@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Shield</title>
+  <meta name="robots" content="noindex, nofollow"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #1565C0; --blue-dark: #0D47A1; --blue-light: #42A5F5; --blue-pale: #E3F2FD;
+      --text: #1a1a2e; --muted: #6b7280; --border: #e5e7eb; --bg: #f8faff;
+      --green: #2E7D32; --orange: #E65100; --red: #C62828; --purple: #7B1FA2;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Topbar ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 64px; background: #fff; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 28px; gap: 16px;
+      box-shadow: 0 1px 8px rgba(0,0,0,.05);
+    }
+    .topbar-logo { display: flex; align-items: center; gap: 9px; text-decoration: none; font-weight: 800; font-size: 18px; color: var(--text); }
+    .topbar-sep { flex: 1; }
+    .topbar-role {
+      padding: 5px 12px; border-radius: 100px; font-size: 12px; font-weight: 700;
+      letter-spacing: .04em; text-transform: uppercase;
+    }
+    .role-global { background: rgba(123,31,162,.1); color: #7B1FA2; }
+    .role-isp { background: rgba(21,101,192,.1); color: var(--blue); }
+    .role-customer { background: rgba(46,125,50,.1); color: var(--green); }
+    .topbar-user { font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .topbar-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--blue-light));
+      color: #fff; font-weight: 800; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .btn-logout {
+      padding: 8px 16px; border-radius: 8px; background: none;
+      border: 1px solid var(--border); color: var(--muted); font-size: 13px;
+      cursor: pointer; font-family: inherit; font-weight: 500;
+      transition: all .2s;
+    }
+    .btn-logout:hover { border-color: var(--red); color: var(--red); background: rgba(198,40,40,.05); }
+
+    /* ── Layout ── */
+    .main { padding: 88px 28px 48px; max-width: 1200px; margin: 0 auto; }
+
+    /* ── Welcome ── */
+    .welcome {
+      background: linear-gradient(135deg, var(--blue), var(--blue-light));
+      border-radius: 16px; padding: 36px 40px; color: #fff; margin-bottom: 32px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px;
+    }
+    .welcome h1 { font-size: 28px; font-weight: 800; margin-bottom: 6px; }
+    .welcome p { font-size: 15px; opacity: .85; }
+    .welcome-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-white {
+      padding: 10px 22px; border-radius: 8px; background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.4); color: #fff; font-size: 14px;
+      font-weight: 600; text-decoration: none; cursor: pointer; font-family: inherit;
+      transition: background .2s; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-white:hover { background: rgba(255,255,255,.3); }
+    .btn-white-solid {
+      padding: 10px 22px; border-radius: 8px; background: #fff;
+      color: var(--blue); font-size: 14px; font-weight: 700;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      transition: all .2s;
+    }
+    .btn-white-solid:hover { box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+
+    /* ── Stats row ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px; }
+    .stat-card {
+      background: #fff; border-radius: 14px; padding: 22px 24px;
+      border: 1px solid var(--border); box-shadow: 0 1px 6px rgba(0,0,0,.04);
+    }
+    .stat-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+      font-size: 20px;
+    }
+    .stat-value { font-size: 28px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .stat-label { font-size: 13px; color: var(--muted); }
+    .stat-badge { display: inline-block; margin-top: 8px; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: rgba(46,125,50,.1); color: var(--green); }
+    .badge-blue  { background: var(--blue-pale); color: var(--blue); }
+    .badge-orange { background: rgba(230,81,0,.1); color: var(--orange); }
+
+    /* ── Content grid ── */
+    .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+
+    /* ── Cards ── */
+    .panel {
+      background: #fff; border-radius: 14px; border: 1px solid var(--border);
+      box-shadow: 0 1px 6px rgba(0,0,0,.04); overflow: hidden;
+    }
+    .panel-hdr {
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel-hdr h3 { font-size: 15px; font-weight: 700; }
+    .panel-body { padding: 20px 24px; }
+
+    /* ── Quick links ── */
+    .quick-list { display: flex; flex-direction: column; gap: 4px; }
+    .quick-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border-radius: 10px; text-decoration: none; color: var(--text);
+      transition: background .15s; font-size: 14px;
+    }
+    .quick-item:hover { background: var(--blue-pale); color: var(--blue); }
+    .quick-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .quick-text { flex: 1; }
+    .quick-text strong { display: block; font-weight: 600; font-size: 13px; }
+    .quick-text small { font-size: 11px; color: var(--muted); }
+    .quick-arrow { color: var(--muted); font-size: 14px; }
+
+    /* ── API Status ── */
+    .api-list { display: flex; flex-direction: column; gap: 10px; }
+    .api-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; background: var(--bg); border-radius: 10px;
+    }
+    .api-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .api-dot.up { background: #43a047; }
+    .api-dot.checking { background: #fb8c00; animation: pulse .8s ease-in-out infinite; }
+    .api-dot.down { background: #ef5350; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .api-name { flex: 1; font-size: 13px; font-weight: 600; }
+    .api-port { font-size: 11px; color: var(--muted); }
+    .api-status-text { font-size: 11px; font-weight: 600; color: var(--muted); }
+
+    /* ── Session ── */
+    .session-info { display: flex; flex-direction: column; gap: 12px; }
+    .session-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .session-row:last-child { border-bottom: none; }
+    .session-key { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .session-val { font-size: 13px; font-weight: 600; color: var(--text); font-family: monospace; font-size: 12px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .session-val.name { font-family: inherit; font-size: 14px; }
+
+    /* ── Coming soon ── */
+    .coming-soon {
+      text-align: center; padding: 48px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .cs-icon { font-size: 48px; }
+    .cs-title { font-size: 18px; font-weight: 700; }
+    .cs-sub { font-size: 14px; color: var(--muted); max-width: 340px; line-height: 1.6; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .content-grid { grid-template-columns: 1fr; }
+      .welcome { padding: 28px; }
+      .welcome h1 { font-size: 22px; }
+    }
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .main { padding: 80px 16px 40px; }
+      .topbar { padding: 0 16px; }
+    }
+
+    /* ── Loading / Auth guard ── */
+    #authGuard { display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column; gap: 16px; }
+    .spinner-lg {
+      width: 40px; height: 40px; border: 3px solid var(--blue-pale);
+      border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #appContent { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- Auth guard -->
+<div id="authGuard">
+  <div class="spinner-lg"></div>
+  <p style="color:var(--muted);font-size:14px">Loading your dashboard…</p>
+</div>
+
+<!-- Main app (shown after auth check) -->
+<div id="appContent">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <a href="/" class="topbar-logo">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+        <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1565C0"/><stop offset="100%" stop-color="#0D47A1"/></linearGradient></defs>
+        <path d="M16 2L28 7.5V16C28 23.5 22.8 29.8 16 32C9.2 29.8 4 23.5 4 16V7.5Z" fill="url(#sg)"/>
+        <path d="M10 16L14 20.5L22 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Shield
+    </a>
+    <div class="topbar-sep"></div>
+    <span class="topbar-role" id="topRole"></span>
+    <div class="topbar-user">
+      <div class="topbar-avatar" id="topAvatar">?</div>
+      <span id="topName" style="font-weight:600;font-size:14px;color:var(--text)"></span>
+    </div>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </header>
+
+  <main class="main">
+
+    <!-- Welcome banner -->
+    <div class="welcome">
+      <div>
+        <h1 id="welcomeTitle">Welcome back!</h1>
+        <p id="welcomeSub">You're signed in to Shield Platform.</p>
+      </div>
+      <div class="welcome-actions">
+        <a href="/api/v1/auth/me" class="btn-white" target="_blank">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+          My Profile
+        </a>
+        <a href="/api/v1/tenants" class="btn-white" target="_blank" id="adminLink" style="display:none">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Manage Tenants
+        </a>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(21,101,192,.1)">🛡</div>
+        <div class="stat-value" id="statPlatform">—</div>
+        <div class="stat-label">Platform Services</div>
+        <span class="stat-badge badge-green" id="statPlatformBadge">Checking…</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(46,125,50,.1)">👨‍👩‍👦</div>
+        <div class="stat-value" id="statTenants">—</div>
+        <div class="stat-label" id="statTenantsLabel">Tenants / Users</div>
+        <span class="stat-badge badge-blue">Active</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(230,81,0,.1)">🔐</div>
+        <div class="stat-value">JWT</div>
+        <div class="stat-label">Session Type</div>
+        <span class="stat-badge badge-blue" id="statExpiry">—</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(123,31,162,.1)">🌐</div>
+        <div class="stat-value">DoH</div>
+        <div class="stat-label">DNS Protocol</div>
+        <span class="stat-badge badge-green">Operational</span>
+      </div>
+    </div>
+
+    <!-- Content grid -->
+    <div class="content-grid">
+
+      <!-- Quick links (role-aware) -->
+      <div class="panel">
+        <div class="panel-hdr">
+          <h3>Quick Actions</h3>
+        </div>
+        <div class="panel-body">
+          <div class="quick-list" id="quickLinks">
+            <!-- Injected by JS based on role -->
+          </div>
+        </div>
+      </div>
+
+      <!-- API Health -->
+      <div class="panel">
+        <div class="panel-hdr">
+          <h3>Service Health</h3>
+          <button onclick="checkHealth()" style="background:none;border:none;cursor:pointer;color:var(--blue);font-size:13px;font-weight:600;font-family:inherit">Refresh</button>
+        </div>
+        <div class="panel-body">
+          <div class="api-list" id="apiList">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Session info + Coming soon -->
+    <div class="content-grid">
+      <div class="panel">
+        <div class="panel-hdr"><h3>Session Info</h3></div>
+        <div class="panel-body">
+          <div class="session-info" id="sessionInfo">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hdr"><h3>Full Dashboard</h3></div>
+        <div class="coming-soon">
+          <div class="cs-icon">🚧</div>
+          <div class="cs-title">React Dashboard Coming Soon</div>
+          <div class="cs-sub">The full parent control dashboard — DNS activity, child management, analytics, rewards — is currently being built with React 19 + MUI v7.</div>
+          <a href="/" class="btn-white-solid" style="margin-top:8px">← Back to Website</a>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const API = '/api/v1';
+
+// ── JWT decode (without verification) ────────────────
+function decodeJwt(token) {
+  try {
+    const payload = token.split('.')[1];
+    return JSON.parse(atob(payload.replace(/-/g,'+').replace(/_/g,'/')));
+  } catch { return null; }
+}
+
+// ── Auth check → redirect to React dashboard ──────────
+const token = localStorage.getItem('shield_access_token');
+if (!token) {
+  window.location.href = '/login.html';
+} else {
+  // Valid token — redirect to React SPA
+  window.location.replace('/app/');
+}
+
+// ── User info ─────────────────────────────────────────
+const role  = claims.role || 'CUSTOMER';
+const name  = localStorage.getItem('shield_name') || claims.sub?.slice(0,8) || 'User';
+const email = localStorage.getItem('shield_email') || claims.email || '';
+const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || 'U';
+
+// Populate topbar
+document.getElementById('topAvatar').textContent = initials;
+document.getElementById('topName').textContent = name;
+const roleEl = document.getElementById('topRole');
+roleEl.textContent = role.replace('_', ' ');
+if (role === 'GLOBAL_ADMIN') {
+  roleEl.className = 'topbar-role role-global';
+} else if (role === 'ISP_ADMIN') {
+  roleEl.className = 'topbar-role role-isp';
+} else {
+  roleEl.className = 'topbar-role role-customer';
+}
+
+// Welcome banner
+document.getElementById('welcomeTitle').textContent = `Welcome back, ${name.split(' ')[0]}!`;
+document.getElementById('welcomeSub').textContent =
+  role === 'GLOBAL_ADMIN' ? 'You have full platform access. Manage tenants, users, and DNS policies.' :
+  role === 'ISP_ADMIN'    ? 'Manage your tenant\'s customers and DNS configurations.' :
+  'Monitor your children\'s internet activity and adjust their protection settings.';
+if (role !== 'CUSTOMER') {
+  document.getElementById('adminLink').style.display = 'inline-flex';
+}
+
+// ── Quick links based on role ─────────────────────────
+const quickLinks = {
+  GLOBAL_ADMIN: [
+    { href: '/api/v1/tenants', icon: '🏢', label: 'Manage Tenants', sub: 'View and create ISP/enterprise tenants' },
+    { href: '/api/v1/auth/me', icon: '👤', label: 'My Profile', sub: 'View account details and settings' },
+    { href: '/api/v1/dns/rules', icon: '🌐', label: 'Global DNS Rules', sub: 'Platform-wide content filter policies' },
+    { href: '/api/v1/notifications/channels', icon: '🔔', label: 'Notification Channels', sub: 'Configure email, WhatsApp, Telegram' },
+    { href: 'https://shield.rstglobal.in/actuator/health', icon: '💚', label: 'Health Check', sub: 'API gateway health status', ext: true },
+  ],
+  ISP_ADMIN: [
+    { href: '/api/v1/tenants/my', icon: '🏢', label: 'My Tenant', sub: 'View tenant configuration' },
+    { href: '/api/v1/auth/me', icon: '👤', label: 'My Profile', sub: 'View account details' },
+    { href: '/api/v1/dns/rules', icon: '🌐', label: 'DNS Rules', sub: 'Manage content filter policies' },
+  ],
+  CUSTOMER: [
+    { href: '/api/v1/profile/children', icon: '👶', label: 'Child Profiles', sub: 'Manage your children\'s settings' },
+    { href: '/api/v1/profile/devices', icon: '📱', label: 'Devices', sub: 'View registered devices' },
+    { href: '/api/v1/dns/rules', icon: '🚫', label: 'Content Filters', sub: 'View active DNS rules' },
+    { href: '/api/v1/auth/me', icon: '👤', label: 'My Profile', sub: 'Account details' },
+  ]
+};
+
+const links = quickLinks[role] || quickLinks.CUSTOMER;
+const ql = document.getElementById('quickLinks');
+links.forEach(l => {
+  const a = document.createElement('a');
+  a.href = l.href;
+  a.className = 'quick-item';
+  if (l.ext) a.target = '_blank';
+  a.innerHTML = `
+    <div class="quick-icon" style="background:var(--blue-pale)">${l.icon}</div>
+    <div class="quick-text"><strong>${l.label}</strong><small>${l.sub}</small></div>
+    <span class="quick-arrow">›</span>
+  `;
+  ql.appendChild(a);
+});
+
+// ── API health check ──────────────────────────────────
+// Each entry: probe via a gateway-routed endpoint
+// 200/401/403 = service UP. 502/503/504 = service DOWN.
+const services = [
+  { name: 'API Gateway',          id: 'gw',    path: '/actuator/health',         port: 8280 },
+  { name: 'Auth Service',         id: 'auth',  path: '/api/v1/auth/me',          port: 8281 },
+  { name: 'Tenant Service',       id: 'tenant',path: '/api/v1/tenants',          port: 8282 },
+  { name: 'Profile Service',      id: 'prof',  path: '/api/v1/profile/children', port: 8283 },
+  { name: 'DNS Service',          id: 'dns',   path: '/api/v1/dns/rules',        port: 8284 },
+  { name: 'Notification Service', id: 'notif', path: '/api/v1/notifications/my/unread', port: 8286 },
+];
+
+function checkHealth() {
+  const list = document.getElementById('apiList');
+  list.innerHTML = '';
+  let upCount = 0;
+
+  services.forEach(svc => {
+    const row = document.createElement('div');
+    row.className = 'api-row';
+    row.innerHTML = `
+      <div class="api-dot checking" id="dot-${svc.id}"></div>
+      <div class="api-name">${svc.name}</div>
+      <div class="api-port">:${svc.port}</div>
+      <div class="api-status-text" id="status-${svc.id}">Checking…</div>
+    `;
+    list.appendChild(row);
+
+    fetch(svc.path, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: AbortSignal.timeout(6000)
+    }).then(r => {
+      const dot = document.getElementById(`dot-${svc.id}`);
+      const st  = document.getElementById(`status-${svc.id}`);
+      // 200, 401, 403, 404 = gateway routed it → service is UP
+      if ([200, 401, 403, 404].includes(r.status) || r.ok) {
+        dot.className = 'api-dot up';
+        st.textContent = 'Online';
+        st.style.color = '#2E7D32';
+        upCount++;
+        document.getElementById('statPlatform').textContent = upCount;
+        document.getElementById('statPlatformBadge').textContent = `${upCount} Online`;
+      } else {
+        dot.className = 'api-dot down';
+        st.textContent = `HTTP ${r.status}`;
+        st.style.color = '#C62828';
+      }
+    }).catch(() => {
+      const dot = document.getElementById(`dot-${svc.id}`);
+      const st  = document.getElementById(`status-${svc.id}`);
+      dot.className = 'api-dot down';
+      st.textContent = 'Offline';
+      st.style.color = '#C62828';
+    });
+  });
+
+  document.getElementById('statPlatform').textContent = '…';
+  document.getElementById('statPlatformBadge').textContent = 'Checking…';
+}
+
+// ── Stats ─────────────────────────────────────────────
+function loadStats() {
+  // Expiry countdown
+  if (claims.exp) {
+    const mins = Math.max(0, Math.round((claims.exp - Date.now() / 1000) / 60));
+    document.getElementById('statExpiry').textContent = `Expires in ${mins}m`;
+  }
+
+  // Tenants count (only for admin roles)
+  if (role !== 'CUSTOMER') {
+    fetch('/api/v1/tenants?page=0&size=1', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(r => r.json()).then(d => {
+      const count = d.data?.totalElements ?? d.data?.length ?? '—';
+      document.getElementById('statTenants').textContent = count;
+      document.getElementById('statTenantsLabel').textContent = 'Total Tenants';
+    }).catch(() => {});
+  } else {
+    fetch('/api/v1/profile/children', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(r => r.json()).then(d => {
+      const count = Array.isArray(d.data) ? d.data.length : '—';
+      document.getElementById('statTenants').textContent = count;
+      document.getElementById('statTenantsLabel').textContent = 'Child Profiles';
+    }).catch(() => {});
+  }
+}
+
+// ── Session info ──────────────────────────────────────
+function renderSession() {
+  const si = document.getElementById('sessionInfo');
+  const rows = [
+    { key: 'Name',       val: name,           cls: 'name' },
+    { key: 'Email',      val: email || claims.email || '—', cls: '' },
+    { key: 'Role',       val: role,           cls: '' },
+    { key: 'User ID',    val: claims.sub || '—', cls: '' },
+    { key: 'Issued At',  val: claims.iat ? new Date(claims.iat * 1000).toLocaleString() : '—', cls: '' },
+    { key: 'Expires At', val: claims.exp ? new Date(claims.exp * 1000).toLocaleString() : '—', cls: '' },
+  ];
+  rows.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'session-row';
+    div.innerHTML = `<span class="session-key">${r.key}</span><span class="session-val ${r.cls}">${r.val}</span>`;
+    si.appendChild(div);
+  });
+}
+
+// ── Logout ────────────────────────────────────────────
+async function logout() {
+  try {
+    const refresh = localStorage.getItem('shield_refresh_token');
+    await fetch(API + '/auth/logout', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: refresh })
+    });
+  } catch { /* best effort */ }
+  localStorage.removeItem('shield_access_token');
+  localStorage.removeItem('shield_refresh_token');
+  localStorage.removeItem('shield_name');
+  localStorage.removeItem('shield_email');
+  window.location.href = '/login.html';
+}
+
+// ── Init ──────────────────────────────────────────────
+document.getElementById('authGuard').style.display = 'none';
+document.getElementById('appContent').style.display = 'block';
+renderSession();
+loadStats();
+checkHealth();
+</script>
+</body>
+</html>

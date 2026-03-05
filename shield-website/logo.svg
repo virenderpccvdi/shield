@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 172 44" width="172" height="44">
+  <defs>
+    <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0D47A1"/>
+      <stop offset="100%" stop-color="#1565C0"/>
+    </linearGradient>
+  </defs>
+  <!-- Shield icon (40x40 in a 44x44 space, 2px padding) -->
+  <g transform="translate(2, 2)">
+    <path d="M20 1 L36 7.5 V19 C36 29 28.5 37.5 20 40 C11.5 37.5 4 29 4 19 V7.5 Z"
+          fill="url(#lg)"/>
+    <path d="M20 5 L33 10.5 V19 C33 27 26.5 34.5 20 37 C13.5 34.5 7 27 7 19 V10.5 Z"
+          fill="rgba(255,255,255,0.12)"/>
+    <path d="M12 19 L17.5 25 L28 14"
+          stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  <!-- Wordmark: "Shield" -->
+  <text x="52" y="29.5"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        font-size="24" font-weight="800" fill="#1a1a2e" letter-spacing="-0.5">Shield</text>
+</svg>

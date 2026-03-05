@@ -1,0 +1,13 @@
+server:
+  port: 8290
+
+spring:
+  application:
+    name: shield-admin
+
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:}
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  success-url: ${APP_URL:https://shield.rstglobal.in}/app/billing/success?session_id={CHECKOUT_SESSION_ID}
+  cancel-url: ${APP_URL:https://shield.rstglobal.in}/app/billing/cancel

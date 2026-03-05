@@ -1,0 +1,44 @@
+server:
+  port: 8287
+
+spring:
+  application:
+    name: shield-rewards
+
+  config:
+    import: optional:configserver:http://localhost:8288
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: rewards
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka:${EUREKA_PASSWORD:ShieldEureka2026}@localhost:8261/eureka/
+    registry-fetch-interval-seconds: 10
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    com.rstglobal.shield.rewards: DEBUG

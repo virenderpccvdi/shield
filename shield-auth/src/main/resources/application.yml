@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: shield-auth
+
+  # Pull shared config from shield-config server (datasource, redis, jwt, eureka)
+  config:
+    import: optional:configserver:http://localhost:8288
+
+  # Flyway — auth schema
+  flyway:
+    schemas: auth
+    table: flyway_schema_history_auth
+    locations: classpath:db/migration/auth
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.rstglobal.shield.auth: DEBUG
+    org.springframework.security: INFO

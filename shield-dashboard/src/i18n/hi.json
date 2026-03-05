@@ -1,0 +1,95 @@
+{
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "tenants": "टेनेंट",
+    "users": "उपयोगकर्ता",
+    "dnsRules": "DNS नियम",
+    "analytics": "एनालिटिक्स",
+    "health": "सिस्टम स्वास्थ्य",
+    "customers": "ग्राहक",
+    "profiles": "प्रोफाइल",
+    "map": "मानचित्र",
+    "alerts": "अलर्ट",
+    "settings": "सेटिंग्स",
+    "logout": "साइन आउट",
+    "branding": "ब्रांडिंग",
+    "ispDashboard": "ISP डैशबोर्ड"
+  },
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "add": "जोड़ें",
+    "search": "खोजें",
+    "loading": "लोड हो रहा है...",
+    "noData": "कोई डेटा उपलब्ध नहीं",
+    "confirm": "पुष्टि करें",
+    "back": "वापस",
+    "submit": "जमा करें",
+    "close": "बंद करें",
+    "create": "बनाएं",
+    "update": "अपडेट करें"
+  },
+  "auth": {
+    "login": "लॉगिन",
+    "register": "रजिस्टर",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "forgotPassword": "पासवर्ड भूल गए?",
+    "rememberMe": "मुझे याद रखें",
+    "signIn": "साइन इन",
+    "signUp": "साइन अप",
+    "logout": "साइन आउट",
+    "welcome": "स्वागत है"
+  },
+  "dashboard": {
+    "totalChildren": "कुल बच्चे",
+    "activeNow": "अभी सक्रिय",
+    "blockedToday": "आज ब्लॉक किए गए",
+    "alertsToday": "आज के अलर्ट"
+  },
+  "tenants": {
+    "title": "टेनेंट",
+    "addIsp": "ISP जोड़ें",
+    "editIsp": "ISP संपादित करें",
+    "deleteIsp": "ISP हटाएं",
+    "name": "नाम",
+    "slug": "स्लग",
+    "email": "ईमेल",
+    "phone": "फोन",
+    "plan": "प्लान",
+    "maxCustomers": "अधिकतम ग्राहक",
+    "status": "स्थिति"
+  },
+  "users": {
+    "title": "उपयोगकर्ता",
+    "addUser": "उपयोगकर्ता जोड़ें",
+    "role": "भूमिका",
+    "tenant": "टेनेंट",
+    "created": "बनाया गया"
+  },
+  "dns": {
+    "title": "DNS नियम",
+    "categories": "श्रेणियां",
+    "blocklist": "ब्लॉकलिस्ट",
+    "allowlist": "अनुमति सूची",
+    "domain": "डोमेन",
+    "reason": "कारण"
+  },
+  "alerts": {
+    "title": "अलर्ट",
+    "markRead": "पढ़ा हुआ चिह्नित करें",
+    "markAllRead": "सभी पढ़ा हुआ चिह्नित करें",
+    "high": "उच्च",
+    "medium": "मध्यम",
+    "low": "निम्न",
+    "critical": "गंभीर"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "account": "खाता",
+    "notifications": "सूचनाएं",
+    "language": "भाषा"
+  }
+}

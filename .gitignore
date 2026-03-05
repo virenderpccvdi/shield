@@ -1,0 +1,65 @@
+# Build artifacts
+**/target/
+**/build/
+**/.gradle/
+**/node_modules/
+**/dist/
+**/.venv/
+**/__pycache__/
+
+# IDE
+**/.idea/
+**/.vscode/
+**/*.iml
+
+# Environment & secrets
+.env
+config/firebase-service-account.json
+**/google-services.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+**/*.log
+**/logs/
+
+# APK (too large for git)
+static/shield-app.apk
+
+# AdGuard work data
+infra/adguard/work/
+infra/adguard/conf/AdGuardHome.yaml
+
+# Vector logs
+infra/vector/logs/
+infra/vector/client_profiles.csv
+
+# Backup data
+/var/backups/
+
+# Docker volumes
+infra/monitoring/prometheus_data/
+infra/monitoring/grafana_data/
+
+# Flutter
+shield-app/.dart_tool/
+shield-app/.flutter-plugins
+shield-app/.flutter-plugins-dependencies
+shield-app/.packages
+shield-app/build/
+
+# Dashboard
+shield-dashboard/dist/
+shield-website/app/assets/
+
+# Java
+**/*.jar
+**/*.class
+
+# Files with hardcoded credentials (use .env templates instead)
+infra/backup/backup-shield-db.sh
+infra/vector/refresh-clients.sh
+infra/vector/vector.toml
+shield-ai/db/database.py

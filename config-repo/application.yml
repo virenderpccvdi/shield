@@ -1,0 +1,57 @@
+# Shared config loaded by ALL Shield services
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5454}/${DB_NAME:shield_db}
+    username: ${DB_USER:shield}
+    password: ${DB_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  flyway:
+    baseline-on-migrate: true
+    out-of-order: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka:${EUREKA_PASSWORD:changeme}@localhost:8261/eureka/
+    registry-fetch-interval-seconds: 10
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+shield:
+  jwt:
+    secret: ${JWT_SECRET:7a9f3b2c8d5e1f4a6b0c3d7e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a}
+    expiry-hours: ${JWT_EXPIRY_HOURS:1}
+    refresh-days: ${JWT_REFRESH_DAYS:30}
+  app:
+    domain: ${APP_DOMAIN:shield.rstglobal.in}
+    url: ${APP_URL:https://shield.rstglobal.in}

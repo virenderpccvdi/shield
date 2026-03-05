@@ -1,0 +1,35 @@
+{
+  "name": "Shield — Family Internet Protection",
+  "short_name": "Shield",
+  "description": "Smart family internet protection. DNS filtering, screen time controls, real-time alerts.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1565C0",
+  "background_color": "#ffffff",
+  "lang": "en",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "label": "Shield Dashboard"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://shield.rstglobal.in/static/shield-app.apk",
+      "id": "in.rstglobal.shield"
+    }
+  ]
+}

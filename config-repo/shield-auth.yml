@@ -1,0 +1,10 @@
+server:
+  port: 8281
+
+spring:
+  application:
+    name: shield-auth
+  flyway:
+    schemas: auth
+    table: flyway_schema_history_auth
+    locations: classpath:db/migration/auth

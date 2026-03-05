@@ -1,0 +1,273 @@
+package com.rstglobal.shield.dns.service;
+
+import com.rstglobal.shield.dns.entity.BudgetUsage;
+import com.rstglobal.shield.dns.entity.DnsRules;
+import com.rstglobal.shield.dns.repository.BudgetUsageRepository;
+import com.rstglobal.shield.dns.repository.DnsRulesRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Scheduled service that enforces time budgets for child profiles.
+ * <p>
+ * Every minute it increments Redis usage counters for profiles that have active budgets.
+ * When usage hits 80% or 100% of a budget limit, a notification is sent to the parent.
+ * At midnight, all daily counters are reset and persisted to the database.
+ */
+@Slf4j
+@Service
+public class BudgetEnforcementService {
+
+    private static final String NOTIFICATION_SERVICE = "SHIELD-NOTIFICATION";
+    private static final String REDIS_PREFIX = "shield:budget:";
+    /** Suffix appended to the budget key when 80% warning has been sent */
+    private static final String WARNED_80_SUFFIX = ":warned80";
+    /** Suffix appended to the budget key when 100% exceeded notification has been sent */
+    private static final String WARNED_100_SUFFIX = ":warned100";
+
+    private final DnsRulesRepository rulesRepo;
+    private final BudgetUsageRepository usageRepo;
+    private final StringRedisTemplate redis;
+    private final DiscoveryClient discoveryClient;
+    private final RestClient restClient;
+
+    public BudgetEnforcementService(DnsRulesRepository rulesRepo,
+                                    BudgetUsageRepository usageRepo,
+                                    StringRedisTemplate redis,
+                                    DiscoveryClient discoveryClient) {
+        this.rulesRepo = rulesRepo;
+        this.usageRepo = usageRepo;
+        this.redis = redis;
+        this.discoveryClient = discoveryClient;
+        this.restClient = RestClient.builder().build();
+    }
+
+    // -------------------------------------------------------
+    //  Every-minute check: increment usage + enforce limits
+    // -------------------------------------------------------
+
+    @Scheduled(fixedRate = 60_000)
+    public void enforceTimeBudgets() {
+        List<DnsRules> allRules = rulesRepo.findAll();
+        int checked = 0;
+
+        for (DnsRules rules : allRules) {
+            Map<String, Integer> budgets = rules.getTimeBudgets();
+            if (budgets == null || budgets.isEmpty()) {
+                continue;
+            }
+
+            UUID profileId = rules.getProfileId();
+            checked++;
+
+            for (Map.Entry<String, Integer> entry : budgets.entrySet()) {
+                String category = entry.getKey();
+                int limitMinutes = entry.getValue();
+                if (limitMinutes <= 0) {
+                    continue; // 0 means unlimited
+                }
+
+                // Increment by 1 minute (assumes the child is actively using the category)
+                String usageKey = usageKey(profileId, category);
+                Long usedMinutes = redis.opsForValue().increment(usageKey);
+                if (usedMinutes == null) usedMinutes = 0L;
+
+                // Set TTL to expire at end of day (auto-cleanup if midnight reset is missed)
+                if (usedMinutes == 1) {
+                    redis.expire(usageKey, Duration.ofHours(25));
+                }
+
+                // 80% warning
+                if (usedMinutes >= (long) (limitMinutes * 0.8) && usedMinutes < limitMinutes) {
+                    String warned80Key = usageKey + WARNED_80_SUFFIX;
+                    Boolean alreadyWarned = redis.hasKey(warned80Key);
+                    if (!Boolean.TRUE.equals(alreadyWarned)) {
+                        redis.opsForValue().set(warned80Key, "1", Duration.ofHours(25));
+                        sendBudgetNotification(profileId, rules.getTenantId(), category,
+                                usedMinutes.intValue(), limitMinutes, false);
+                    }
+                }
+
+                // 100% exceeded
+                if (usedMinutes >= limitMinutes) {
+                    String warned100Key = usageKey + WARNED_100_SUFFIX;
+                    Boolean alreadyWarned = redis.hasKey(warned100Key);
+                    if (!Boolean.TRUE.equals(alreadyWarned)) {
+                        redis.opsForValue().set(warned100Key, "1", Duration.ofHours(25));
+                        sendBudgetNotification(profileId, rules.getTenantId(), category,
+                                usedMinutes.intValue(), limitMinutes, true);
+                        // Block the category by disabling it in DNS rules
+                        blockCategory(rules, category);
+                    }
+                }
+            }
+        }
+
+        if (checked > 0) {
+            log.debug("Budget enforcement tick: checked {} profiles with budgets", checked);
+        }
+    }
+
+    // -------------------------------------------------------
+    //  Midnight reset: persist to DB, clear Redis counters
+    // -------------------------------------------------------
+
+    @Scheduled(cron = "0 0 0 * * *")
+    @Transactional
+    public void midnightReset() {
+        log.info("Midnight budget reset started");
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        List<DnsRules> allRules = rulesRepo.findAll();
+        int persisted = 0;
+
+        for (DnsRules rules : allRules) {
+            Map<String, Integer> budgets = rules.getTimeBudgets();
+            if (budgets == null || budgets.isEmpty()) continue;
+
+            UUID profileId = rules.getProfileId();
+            Map<String, Integer> appUsage = new LinkedHashMap<>();
+
+            for (String category : budgets.keySet()) {
+                String usageKey = usageKey(profileId, category);
+                String val = redis.opsForValue().get(usageKey);
+                int used = (val != null) ? Integer.parseInt(val) : 0;
+                if (used > 0) {
+                    appUsage.put(category, used);
+                }
+
+                // Delete Redis keys for this category
+                redis.delete(usageKey);
+                redis.delete(usageKey + WARNED_80_SUFFIX);
+                redis.delete(usageKey + WARNED_100_SUFFIX);
+            }
+
+            if (!appUsage.isEmpty()) {
+                // Persist yesterday's usage to DB
+                BudgetUsage usage = usageRepo.findByProfileIdAndDate(profileId, yesterday)
+                        .orElse(BudgetUsage.builder()
+                                .profileId(profileId)
+                                .date(yesterday)
+                                .build());
+                usage.setAppUsage(appUsage);
+                usageRepo.save(usage);
+                persisted++;
+            }
+
+            // Re-enable any categories that were blocked due to budget exceeded
+            unblockBudgetCategories(rules);
+        }
+
+        log.info("Midnight budget reset complete: persisted {} usage records", persisted);
+    }
+
+    // -------------------------------------------------------
+    //  Helper methods
+    // -------------------------------------------------------
+
+    /**
+     * Block a category by setting it to false in enabledCategories.
+     */
+    @Transactional
+    public void blockCategory(DnsRules rules, String category) {
+        Map<String, Boolean> categories = rules.getEnabledCategories();
+        if (categories == null) {
+            categories = new LinkedHashMap<>();
+        } else {
+            categories = new LinkedHashMap<>(categories);
+        }
+        categories.put(category, false);
+        rules.setEnabledCategories(categories);
+        rulesRepo.save(rules);
+        log.info("Blocked category '{}' for profile {} due to budget exceeded", category, rules.getProfileId());
+    }
+
+    /**
+     * Re-enable categories that were blocked due to budget limits (on daily reset).
+     * Only re-enables categories that have a corresponding time budget configured.
+     */
+    @Transactional
+    public void unblockBudgetCategories(DnsRules rules) {
+        Map<String, Boolean> categories = rules.getEnabledCategories();
+        Map<String, Integer> budgets = rules.getTimeBudgets();
+        if (categories == null || budgets == null) return;
+
+        boolean changed = false;
+        Map<String, Boolean> updated = new LinkedHashMap<>(categories);
+        for (String category : budgets.keySet()) {
+            if (Boolean.FALSE.equals(updated.get(category))) {
+                updated.put(category, true);
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            rules.setEnabledCategories(updated);
+            rulesRepo.save(rules);
+            log.info("Re-enabled budget-blocked categories for profile {}", rules.getProfileId());
+        }
+    }
+
+    private void sendBudgetNotification(UUID profileId, UUID tenantId,
+                                         String category, int usedMinutes, int limitMinutes,
+                                         boolean exceeded) {
+        try {
+            String baseUrl = resolveNotificationUrl();
+            if (baseUrl == null) return;
+
+            String title = exceeded
+                    ? "Time Budget Exceeded: " + category
+                    : "Time Budget Warning: " + category;
+            String body = exceeded
+                    ? "Screen time for \"" + category + "\" has reached the daily limit of "
+                      + limitMinutes + " minutes. Access has been blocked for today."
+                    : "Screen time for \"" + category + "\" has reached " + usedMinutes
+                      + " of " + limitMinutes + " minutes (80%). Consider wrapping up.";
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("type", "TIME_BUDGET");
+            payload.put("title", title);
+            payload.put("body", body);
+            payload.put("userId", profileId.toString());
+            payload.put("profileId", profileId.toString());
+            payload.put("tenantId", tenantId != null ? tenantId.toString() : "00000000-0000-0000-0000-000000000000");
+            payload.put("actionUrl", "https://shield.rstglobal.in/app/screen-time");
+
+            restClient.post()
+                    .uri(baseUrl + "/internal/notifications/send")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Budget {} notification sent: profile={} category={} used={}/{}min",
+                    exceeded ? "exceeded" : "warning", profileId, category, usedMinutes, limitMinutes);
+        } catch (Exception e) {
+            log.warn("Failed to send budget notification for profile={}: {}", profileId, e.getMessage());
+        }
+    }
+
+    private String resolveNotificationUrl() {
+        List<ServiceInstance> instances = discoveryClient.getInstances(NOTIFICATION_SERVICE);
+        if (instances.isEmpty()) {
+            log.warn("No instances of {} in Eureka — skipping budget notification", NOTIFICATION_SERVICE);
+            return null;
+        }
+        return instances.get(0).getUri().toString();
+    }
+
+    private String usageKey(UUID profileId, String category) {
+        return REDIS_PREFIX + profileId + ":" + category + ":used";
+    }
+}

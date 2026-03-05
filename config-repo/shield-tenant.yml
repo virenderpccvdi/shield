@@ -1,0 +1,10 @@
+server:
+  port: 8282
+
+spring:
+  application:
+    name: shield-tenant
+  flyway:
+    schemas: tenant
+    table: flyway_schema_history_tenant
+    locations: classpath:db/migration/tenant

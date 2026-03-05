@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Free Account — Shield Family Internet Protection</title>
+  <meta name="description" content="Create your free Shield account and start protecting your children online in minutes. DNS filtering, screen time controls, real-time alerts. No credit card required."/>
+  <meta name="robots" content="index, follow"/>
+  <link rel="canonical" href="https://shield.rstglobal.in/register.html"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://shield.rstglobal.in/register.html"/>
+  <meta property="og:title" content="Create Free Account — Shield Family Protection"/>
+  <meta property="og:description" content="Join Shield free. DNS filtering, screen time, and real-time alerts to keep your children safe online. No credit card."/>
+  <meta property="og:image" content="https://shield.rstglobal.in/og-image.svg"/>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "RegisterAction",
+    "name": "Create Shield Account",
+    "description": "Create a free Shield account to protect your children online",
+    "target": "https://shield.rstglobal.in/register.html",
+    "agent": { "@type": "Organization", "name": "RST Global" }
+  }
+  </script>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#1565C0"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="auth.css?v=3"/>
+</head>
+<body>
+
+<div class="auth-page">
+<div class="auth-card">
+
+  <!-- ══ LEFT — Brand Panel ══ -->
+  <aside class="auth-brand">
+    <div class="brand-glow-top"></div>
+
+    <a href="/" class="brand-logo">
+      <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+        <path d="M16 2L4 8v8c0 7.18 5.16 13.9 12 15.5C22.84 29.9 28 23.18 28 16V8L16 2z" fill="rgba(255,255,255,.2)"/>
+        <path d="M16 6L7 11v5c0 5.15 3.7 9.96 9 11.35C21.3 25.96 25 21.15 25 16v-5L16 6z" fill="rgba(255,255,255,.45)"/>
+        <path d="M13 15.5l2 2 4-4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Shield
+    </a>
+
+    <h1 class="brand-headline">Set up your family's<br/><em>protection in</em><br/>2 minutes.</h1>
+    <p class="brand-sub">Join thousands of parents protecting their children — completely free, no credit card required.</p>
+
+    <div class="brand-steps">
+      <div class="brand-step">
+        <div class="brand-step-num">01</div>
+        <div class="brand-step-text">
+          <strong>Create Your Free Account</strong>
+          <span>Sign up in under a minute. Always free — no credit card, no trial.</span>
+        </div>
+      </div>
+      <div class="brand-step">
+        <div class="brand-step-num">02</div>
+        <div class="brand-step-text">
+          <strong>Add Your Child's Profile</strong>
+          <span>Set age, choose blocked categories, and configure their schedule.</span>
+        </div>
+      </div>
+      <div class="brand-step">
+        <div class="brand-step-num">03</div>
+        <div class="brand-step-text">
+          <strong>Scan QR on Child's Device</strong>
+          <span>One QR scan sets Private DNS. Protection starts immediately on all networks.</span>
+        </div>
+      </div>
+      <div class="brand-step">
+        <div class="brand-step-num">04</div>
+        <div class="brand-step-text">
+          <strong>Full Protection — Everywhere</strong>
+          <span>Works on home WiFi, school WiFi, and 4G/5G without any VPN or app.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-badge">
+      <div class="brand-badge-icon">🔒</div>
+      <div class="brand-badge-text">
+        <strong>Privacy First</strong>
+        We filter DNS queries — we never store your child's browsing history.
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ RIGHT — Form Panel ══ -->
+  <main class="auth-form-wrap">
+    <div class="auth-form-box">
+
+      <a href="/" class="form-back">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back to home
+      </a>
+
+      <div class="form-header">
+        <h2 class="form-title">Create your account</h2>
+        <p class="form-subtitle">
+          Already have an account? <a href="login.html">Sign in</a>
+        </p>
+      </div>
+
+      <!-- Alerts -->
+      <div class="alert alert-error" id="alertBox" role="alert">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="alertMsg"></span>
+      </div>
+      <div class="alert alert-success" id="successBox" role="status">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span id="successMsg"></span>
+      </div>
+
+      <form id="registerForm" novalidate>
+
+        <!-- Full name -->
+        <div class="field">
+          <label for="name">Full name</label>
+          <div class="input-wrap">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <input type="text" id="name" name="name" placeholder="e.g. Sarah Johnson"
+                   autocomplete="name" autocapitalize="words"/>
+          </div>
+          <div class="field-error" id="nameError">Please enter your full name.</div>
+        </div>
+
+        <!-- Email -->
+        <div class="field">
+          <label for="email">Email address</label>
+          <div class="input-wrap">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <input type="email" id="email" name="email" placeholder="you@example.com"
+                   autocomplete="email" autocapitalize="none" spellcheck="false"/>
+          </div>
+          <div class="field-error" id="emailError">Please enter a valid email address.</div>
+        </div>
+
+        <!-- Phone (optional) -->
+        <div class="field">
+          <label for="phone">
+            Phone number
+            <span class="label-opt">— optional</span>
+          </label>
+          <div class="phone-wrap">
+            <select class="phone-prefix" id="phonePrefix" aria-label="Country code">
+              <option value="+91">🇮🇳 +91</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+966">🇸🇦 +966</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+65">🇸🇬 +65</option>
+            </select>
+            <div class="input-wrap">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.06 1.22 2 2 0 012.03 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+              </svg>
+              <input type="tel" id="phone" name="phone" placeholder="98765 43210"
+                     autocomplete="tel-national" inputmode="numeric"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            <input type="password" id="password" name="password"
+                   placeholder="Min. 8 characters"
+                   autocomplete="new-password"
+                   oninput="checkStrength(this.value)"/>
+            <button type="button" class="pwd-toggle" onclick="togglePwd('password','eyeIcon1')" aria-label="Show password">
+              <svg id="eyeIcon1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <div class="pwd-strength" id="pwdStrength" style="display:none;">
+            <div class="pwd-strength-bar"><div class="pwd-strength-fill" id="pwdFill"></div></div>
+            <div class="pwd-strength-label" id="pwdLabel"></div>
+          </div>
+          <div class="field-error" id="passwordError">Password must be at least 8 characters.</div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="field">
+          <label for="confirmPassword">Confirm password</label>
+          <div class="input-wrap">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <input type="password" id="confirmPassword" name="confirmPassword"
+                   placeholder="Repeat your password"
+                   autocomplete="new-password"/>
+            <button type="button" class="pwd-toggle" onclick="togglePwd('confirmPassword','eyeIcon2')" aria-label="Show confirm password">
+              <svg id="eyeIcon2" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <div class="field-error" id="confirmPasswordError">Passwords do not match.</div>
+        </div>
+
+        <!-- Terms -->
+        <div class="field" style="margin-bottom:24px;">
+          <label class="checkbox-wrap">
+            <input type="checkbox" id="terms" name="terms"/>
+            I agree to Shield's
+            <a href="/terms" target="_blank">Terms of Service</a>
+            and <a href="/privacy" target="_blank">Privacy Policy</a>
+          </label>
+          <div class="field-error" id="termsError">You must accept the terms to continue.</div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span class="btn-text">Create Free Account</span>
+          <div class="spinner"></div>
+        </button>
+
+      </form>
+
+      <div class="form-switch">
+        Already have an account? <a href="login.html">Sign in</a>
+      </div>
+
+      <div class="form-trust">
+        <div class="form-trust-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+          SSL Encrypted
+        </div>
+        <div class="form-trust-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>
+          </svg>
+          Privacy First
+        </div>
+        <div class="form-trust-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          Always Free
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+</div>
+
+<script>
+const API = '/api/v1/auth';
+
+function togglePwd(inputId, iconId) {
+  const inp = document.getElementById(inputId);
+  const svg = document.getElementById(iconId);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  svg.innerHTML = show
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
+function checkStrength(val) {
+  const bar   = document.getElementById('pwdStrength');
+  const fill  = document.getElementById('pwdFill');
+  const label = document.getElementById('pwdLabel');
+  if (!val) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  let score = 0;
+  if (val.length >= 8)             score++;
+  if (val.length >= 12)            score++;
+  if (/[A-Z]/.test(val))           score++;
+  if (/[0-9]/.test(val))           score++;
+  if (/[^A-Za-z0-9]/.test(val))    score++;
+  const levels = [
+    { pct:'20%', color:'#ef4444', text:'Very weak' },
+    { pct:'40%', color:'#f97316', text:'Weak'      },
+    { pct:'60%', color:'#eab308', text:'Fair'      },
+    { pct:'80%', color:'#84cc16', text:'Strong'    },
+    { pct:'100%',color:'#22c55e', text:'Very strong'},
+  ];
+  const lvl = levels[Math.min(score - 1, 4)] || levels[0];
+  fill.style.width      = lvl.pct;
+  fill.style.background = lvl.color;
+  label.textContent     = lvl.text;
+  label.style.color     = lvl.color;
+}
+
+function showAlert(msg, type = 'error') {
+  document.getElementById('alertBox').classList.toggle('show',    type === 'error');
+  document.getElementById('successBox').classList.toggle('show',  type === 'success');
+  document.getElementById(type === 'error' ? 'alertMsg' : 'successMsg').textContent = msg;
+}
+function hideAlerts() {
+  document.getElementById('alertBox').classList.remove('show');
+  document.getElementById('successBox').classList.remove('show');
+}
+
+function validateEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
+
+function showFieldError(id, show, msg) {
+  const el  = document.getElementById(id + 'Error');
+  const inp = document.getElementById(id);
+  if (el)  { el.classList.toggle('show', show); if (msg) el.textContent = msg; }
+  if (inp)   inp.classList.toggle('error', show);
+}
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideAlerts();
+
+  const name            = document.getElementById('name').value.trim();
+  const email           = document.getElementById('email').value.trim();
+  const phoneRaw        = document.getElementById('phone').value.trim();
+  const prefix          = document.getElementById('phonePrefix').value;
+  const password        = document.getElementById('password').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  const terms           = document.getElementById('terms').checked;
+
+  let valid = true;
+  if (name.length < 2)              { showFieldError('name', true);            valid = false; }
+  else                                showFieldError('name', false);
+  if (!validateEmail(email))        { showFieldError('email', true);           valid = false; }
+  else                                showFieldError('email', false);
+  if (password.length < 8)         { showFieldError('password', true);        valid = false; }
+  else                                showFieldError('password', false);
+  if (password !== confirmPassword) { showFieldError('confirmPassword', true, 'Passwords do not match.'); valid = false; }
+  else                                showFieldError('confirmPassword', false);
+  if (!terms)                       { showFieldError('terms', true);           valid = false; }
+  else                                showFieldError('terms', false);
+
+  if (!valid) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  const phone = phoneRaw ? prefix + phoneRaw.replace(/\s/g, '') : undefined;
+  const body  = { name, email, password };
+  if (phone) body.phone = phone;
+
+  try {
+    const res  = await fetch(API + '/register', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body)
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msg = data?.message || 'Registration failed. Please try again.';
+      showAlert(msg.includes('already') ? 'An account with this email already exists. Please sign in.' : msg);
+      return;
+    }
+
+    showAlert('Account created! Signing you in…', 'success');
+
+    const loginRes  = await fetch(API + '/login', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, password })
+    });
+    const loginData = await loginRes.json();
+
+    if (loginRes.ok) {
+      const { accessToken, refreshToken, name: n, email: ue, role } = loginData.data || {};
+      if (accessToken) {
+        localStorage.setItem('shield_access_token',  accessToken);
+        if (refreshToken) localStorage.setItem('shield_refresh_token', refreshToken);
+        if (n)            localStorage.setItem('shield_name',  n);
+        if (ue)           localStorage.setItem('shield_email', ue);
+        if (role)         localStorage.setItem('shield_role',  role);
+      }
+      setTimeout(() => { window.location.href = '/dashboard.html'; }, 800);
+    } else {
+      setTimeout(() => { window.location.href = 'login.html?registered=1'; }, 1200);
+    }
+
+  } catch {
+    showAlert('Unable to connect. Please check your internet connection and try again.');
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+});
+
+['name','email','password','confirmPassword'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', () => showFieldError(id, false));
+});
+document.getElementById('terms').addEventListener('change', () => showFieldError('terms', false));
+
+if (localStorage.getItem('shield_access_token')) {
+  window.location.href = '/dashboard.html';
+}
+</script>
+</body>
+</html>

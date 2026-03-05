@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Shield Weekly Digest</title>
+<style>
+  body { margin:0; padding:0; background:#f0f2f5; font-family:'Segoe UI',Arial,sans-serif; }
+  .wrap { max-width:640px; margin:32px auto; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,.06); }
+
+  /* Header */
+  .header { background:linear-gradient(135deg,#1565C0 0%,#42A5F5 60%,#26C6DA 100%); padding:36px 32px 28px; color:#fff; }
+  .header-logo { font-size:26px; font-weight:800; letter-spacing:-.5px; }
+  .header-logo span { opacity:.7; font-weight:400; font-size:14px; margin-left:8px; }
+  .header h1 { margin:20px 0 4px; font-size:24px; font-weight:700; }
+  .header .date-range { opacity:.85; font-size:14px; }
+
+  /* Stats row */
+  .stats { display:flex; justify-content:space-around; padding:24px 16px; background:#f8fafc; border-bottom:1px solid #eee; }
+  .stat { text-align:center; }
+  .stat-value { font-size:28px; font-weight:700; color:#1565C0; }
+  .stat-label { font-size:12px; color:#888; text-transform:uppercase; letter-spacing:.5px; margin-top:2px; }
+
+  /* Body */
+  .body { padding:28px 32px; }
+  .body h2 { color:#1a1a2e; font-size:18px; margin:24px 0 12px; border-bottom:2px solid #e3f2fd; padding-bottom:6px; }
+  .body h2:first-child { margin-top:0; }
+  .body p { color:#555; line-height:1.65; font-size:14px; margin:0 0 8px; }
+
+  /* Child card */
+  .child-card { background:#fafbfd; border:1px solid #e8ecf0; border-radius:10px; padding:16px 20px; margin-bottom:14px; }
+  .child-name { font-size:16px; font-weight:600; color:#1a1a2e; margin-bottom:8px; }
+  .child-stats { display:flex; gap:20px; flex-wrap:wrap; }
+  .child-stat { font-size:13px; color:#666; }
+  .child-stat strong { color:#1565C0; }
+
+  /* Insights */
+  .insight { background:#e3f2fd; border-radius:8px; padding:12px 16px; margin-bottom:10px; font-size:14px; color:#1a1a2e; }
+  .insight-icon { margin-right:6px; }
+
+  /* Top sites */
+  .site-list { list-style:none; padding:0; margin:0; }
+  .site-list li { padding:6px 0; border-bottom:1px solid #f0f0f0; font-size:14px; color:#444; display:flex; justify-content:space-between; }
+  .site-list li:last-child { border-bottom:none; }
+  .site-count { color:#1565C0; font-weight:600; }
+
+  /* CTA */
+  .cta-wrap { text-align:center; padding:8px 0 20px; }
+  .cta { display:inline-block; background:linear-gradient(135deg,#1565C0,#42A5F5); color:#fff !important;
+         text-decoration:none; padding:14px 36px; border-radius:10px; font-weight:700; font-size:15px; }
+
+  /* Footer */
+  .footer { background:#f8f9fa; padding:18px 32px; text-align:center; color:#aaa; font-size:12px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">Shield <span>Family Protection</span></div>
+    <h1>Week in Review</h1>
+    <div class="date-range" th:text="${dateRange}">Feb 24 - Mar 2, 2026</div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value" th:text="${totalScreenTime}">12h 34m</div>
+      <div class="stat-label">Screen Time</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" th:text="${blockedAttempts}">847</div>
+      <div class="stat-label">Blocked</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" th:text="${childCount}">3</div>
+      <div class="stat-label">Children</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" th:text="${geofenceAlerts}">5</div>
+      <div class="stat-label">Geo Alerts</div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- Child-by-child breakdown -->
+    <h2>Children Activity</h2>
+    <div th:each="child : ${children}" class="child-card">
+      <div class="child-name" th:text="${child.name}">Alex</div>
+      <div class="child-stats">
+        <div class="child-stat">Screen time: <strong th:text="${child.screenTime}">4h 12m</strong></div>
+        <div class="child-stat">Blocked: <strong th:text="${child.blocked}">283</strong></div>
+        <div class="child-stat">Top app: <strong th:text="${child.topApp}">YouTube</strong></div>
+      </div>
+    </div>
+
+    <!-- Top Visited Sites -->
+    <h2>Most Visited Sites</h2>
+    <ul class="site-list">
+      <li th:each="site : ${topSites}">
+        <span th:text="${site.domain}">youtube.com</span>
+        <span class="site-count" th:text="${site.visits + ' visits'}">142 visits</span>
+      </li>
+    </ul>
+
+    <!-- AI Insights -->
+    <div th:if="${insights != null and !insights.isEmpty()}">
+      <h2>AI Insights</h2>
+      <div th:each="insight : ${insights}" class="insight">
+        <span class="insight-icon">&#128161;</span>
+        <span th:text="${insight}">Screen time increased 20% compared to last week.</span>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-wrap">
+      <a th:href="${dashboardUrl}" class="cta">View Full Report</a>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    You are receiving this weekly digest because you are a Shield subscriber.<br/>
+    To change email preferences, open Shield &rarr; Settings &rarr; Notifications.<br/>
+    &copy; 2026 Shield by RST Global. All rights reserved.
+  </div>
+
+</div>
+</body>
+</html>

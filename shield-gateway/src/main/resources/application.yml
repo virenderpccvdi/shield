@@ -1,0 +1,304 @@
+server:
+  port: 8280
+
+spring:
+  application:
+    name: shield-gateway
+
+  # Pull additional config from shield-config server
+  config:
+    import: optional:configserver:http://localhost:8288
+
+  # Redis — for RequestRateLimiter filter
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # Discover services via Eureka (lb:// URIs)
+          discovery:
+            locator:
+              enabled: false          # manual routes only — no auto-exposure
+
+          default-filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+
+          routes:
+            # ── Auth Service ────────────────────────────────────────────────────
+            - id: shield-auth
+              uri: lb://SHIELD-AUTH
+              predicates:
+                - Path=/api/v1/auth/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: authCB
+                    fallbackUri: forward:/fallback/service-unavailable
+                - name: Retry
+                  args:
+                    retries: 2
+                    statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE
+                    methods: GET
+
+            # ── Tenant Service ───────────────────────────────────────────────────
+            - id: shield-tenant
+              uri: lb://SHIELD-TENANT
+              predicates:
+                - Path=/api/v1/tenants/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: tenantCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            # ── Profile Service ──────────────────────────────────────────────────
+            - id: shield-profile
+              uri: lb://SHIELD-PROFILE
+              predicates:
+                - Path=/api/v1/profiles/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: profileCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            # ── DNS / Filter Service ─────────────────────────────────────────────
+            - id: shield-dns
+              uri: lb://SHIELD-DNS
+              predicates:
+                - Path=/api/v1/dns/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: dnsCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            # ── Location Service ─────────────────────────────────────────────────
+            - id: shield-location
+              uri: lb://SHIELD-LOCATION
+              predicates:
+                - Path=/api/v1/location/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: locationCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            # ── Notification Service (also handles WebSocket /ws/) ───────────────
+            - id: shield-notification
+              uri: lb://SHIELD-NOTIFICATION
+              predicates:
+                - Path=/api/v1/notifications/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: notificationCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-notification-ws
+              uri: lb:ws://SHIELD-NOTIFICATION
+              predicates:
+                - Path=/ws/**
+
+            # ── Rewards Service ──────────────────────────────────────────────────
+            - id: shield-rewards
+              uri: lb://SHIELD-REWARDS
+              predicates:
+                - Path=/api/v1/rewards/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: rewardsCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            # ── Analytics Service ────────────────────────────────────────────────
+            - id: shield-analytics
+              uri: lb://SHIELD-ANALYTICS
+              predicates:
+                - Path=/api/v1/analytics/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: analyticsCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            # ── Admin Service ────────────────────────────────────────────────────
+            - id: shield-admin
+              uri: lb://SHIELD-ADMIN
+              predicates:
+                - Path=/api/v1/admin/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: adminCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            # ── Billing Webhook (public) ─────────────────────────────────────────
+            - id: shield-billing-webhook
+              uri: lb://SHIELD-ADMIN
+              predicates:
+                - Path=/api/v1/billing/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: adminCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            # ── OpenAPI / Swagger Docs ──────────────────────────────────────────
+            - id: shield-auth-docs
+              uri: lb://SHIELD-AUTH
+              predicates:
+                - Path=/docs/auth/**
+              filters:
+                - StripPrefix=2
+
+            - id: shield-tenant-docs
+              uri: lb://SHIELD-TENANT
+              predicates:
+                - Path=/docs/tenant/**
+              filters:
+                - StripPrefix=2
+
+            - id: shield-profile-docs
+              uri: lb://SHIELD-PROFILE
+              predicates:
+                - Path=/docs/profile/**
+              filters:
+                - StripPrefix=2
+
+            - id: shield-dns-docs
+              uri: lb://SHIELD-DNS
+              predicates:
+                - Path=/docs/dns/**
+              filters:
+                - StripPrefix=2
+
+            - id: shield-location-docs
+              uri: lb://SHIELD-LOCATION
+              predicates:
+                - Path=/docs/location/**
+              filters:
+                - StripPrefix=2
+
+            - id: shield-notification-docs
+              uri: lb://SHIELD-NOTIFICATION
+              predicates:
+                - Path=/docs/notification/**
+              filters:
+                - StripPrefix=2
+
+            - id: shield-rewards-docs
+              uri: lb://SHIELD-REWARDS
+              predicates:
+                - Path=/docs/rewards/**
+              filters:
+                - StripPrefix=2
+
+            - id: shield-analytics-docs
+              uri: lb://SHIELD-ANALYTICS
+              predicates:
+                - Path=/docs/analytics/**
+              filters:
+                - StripPrefix=2
+
+            - id: shield-admin-docs
+              uri: lb://SHIELD-ADMIN
+              predicates:
+                - Path=/docs/admin/**
+              filters:
+                - StripPrefix=2
+
+# Eureka client
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka:${EUREKA_PASSWORD:ShieldEureka2026}@localhost:8261/eureka/
+    registry-fetch-interval-seconds: 10
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+# JWT secret for token validation
+shield:
+  jwt:
+    secret: ${JWT_SECRET:7a9f3b2c8d5e1f4a6b0c3d7e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a}
+  app:
+    url: ${APP_URL:https://shield.rstglobal.in}
+
+# Resilience4j circuit breakers
+resilience4j:
+  circuitbreaker:
+    instances:
+      authCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      tenantCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      profileCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      dnsCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      locationCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      notificationCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      rewardsCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      analyticsCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      adminCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+  timelimiter:
+    instances:
+      default:
+        timeoutDuration: 5s
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway
+  endpoint:
+    health:
+      show-details: when_authorized
+    gateway:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    com.rstglobal.shield.gateway: DEBUG

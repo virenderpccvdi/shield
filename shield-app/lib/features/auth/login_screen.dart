@@ -1,0 +1,121 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/auth_state.dart';
+import '../../core/constants.dart';
+import 'package:dio/dio.dart';
+
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _loading = false, _obscure = true;
+  String? _error;
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      final dio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl, connectTimeout: AppConstants.connectTimeout, receiveTimeout: AppConstants.receiveTimeout));
+      final res = await dio.post('/auth/login', data: {'email': _email.text.trim(), 'password': _password.text});
+      final d = res.data['data'];
+      await ref.read(authProvider.notifier).setAuth(
+        userId: d['userId'], accessToken: d['accessToken'],
+        name: d['name'] ?? '', email: d['email'] ?? '', role: d['role'] ?? 'CUSTOMER',
+      );
+      if (mounted) context.go('/dashboard');
+    } on DioException catch (e) {
+      setState(() => _error = e.response?.data?['message'] ?? 'Login failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: const Color(0xFF1565C0),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 40),
+              const Icon(Icons.shield, color: Colors.white, size: 64),
+              const SizedBox(height: 12),
+              const Text('Shield', textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
+              const Text('Family Internet Protection', textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 15)),
+              const SizedBox(height: 40),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text('Sign In', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 20),
+                        if (_error != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+                            child: Text(_error!, style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        TextFormField(
+                          controller: _email, keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
+                          validator: (v) => v!.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _password, obscureText: _obscure,
+                          decoration: InputDecoration(
+                            labelText: 'Password', prefixIcon: const Icon(Icons.lock_outlined),
+                            suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                              onPressed: () => setState(() => _obscure = !_obscure)),
+                          ),
+                          validator: (v) => v!.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: _loading ? null : _login,
+                          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                          child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Sign In', style: TextStyle(fontSize: 16)),
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () => context.go('/forgot-password'),
+                          child: const Text('Forgot Password?'),
+                        ),
+                        TextButton(
+                          onPressed: () => context.go('/register'),
+                          child: const Text("Don't have an account? Register"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() { _email.dispose(); _password.dispose(); super.dispose(); }
+}

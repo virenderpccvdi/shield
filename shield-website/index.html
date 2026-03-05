@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- ═══ Primary SEO ═══ -->
+  <title>Shield — Smart Family Internet Protection | DNS Filtering &amp; Parental Controls</title>
+  <meta name="description" content="Shield gives parents complete control over their children's internet. DNS filtering on 4G &amp; WiFi, screen time schedules, real-time WhatsApp &amp; Telegram alerts, GPS tracking. Free forever."/>
+  <meta name="keywords" content="parental control app, dns filtering, screen time control, internet safety kids, family internet protection, parental controls android, block websites children, child internet filter, time limits phone"/>
+  <meta name="author" content="RST Global"/>
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
+  <link rel="canonical" href="https://shield.rstglobal.in/"/>
+
+  <!-- ═══ Open Graph ═══ -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://shield.rstglobal.in/"/>
+  <meta property="og:site_name" content="Shield"/>
+  <meta property="og:title" content="Shield — Smart Family Internet Protection"/>
+  <meta property="og:description" content="Complete parental control that works everywhere — home WiFi, school WiFi, and mobile 4G. DNS filtering, screen time, real-time alerts. Free."/>
+  <meta property="og:image" content="https://shield.rstglobal.in/og-image.svg"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:image:alt" content="Shield — Smart Family Internet Protection"/>
+  <meta property="og:locale" content="en_US"/>
+
+  <!-- ═══ Twitter Card ═══ -->
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:url" content="https://shield.rstglobal.in/"/>
+  <meta name="twitter:title" content="Shield — Smart Family Internet Protection"/>
+  <meta name="twitter:description" content="Complete parental control that works everywhere — home WiFi, school WiFi, and mobile 4G. Free."/>
+  <meta name="twitter:image" content="https://shield.rstglobal.in/og-image.svg"/>
+
+  <!-- ═══ PWA / App ═══ -->
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#1565C0"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Shield"/>
+  <link rel="apple-touch-icon" href="/favicon.svg"/>
+
+  <!-- ═══ Icons ═══ -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+
+  <!-- ═══ Fonts ═══ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css?v=2"/>
+
+  <!-- ═══ Structured Data ═══ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://shield.rstglobal.in/#organization",
+        "name": "RST Global",
+        "url": "https://shield.rstglobal.in",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://shield.rstglobal.in/logo.svg",
+          "width": 172,
+          "height": 44
+        },
+        "sameAs": []
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://shield.rstglobal.in/#website",
+        "url": "https://shield.rstglobal.in",
+        "name": "Shield — Family Internet Protection",
+        "description": "Smart family internet protection with DNS filtering, screen time controls, and real-time alerts.",
+        "publisher": { "@id": "https://shield.rstglobal.in/#organization" },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": { "@type": "EntryPoint", "urlTemplate": "https://shield.rstglobal.in/?q={search_term_string}" },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://shield.rstglobal.in/#webpage",
+        "url": "https://shield.rstglobal.in",
+        "name": "Shield — Smart Family Internet Protection",
+        "isPartOf": { "@id": "https://shield.rstglobal.in/#website" },
+        "about": { "@id": "https://shield.rstglobal.in/#organization" },
+        "description": "Shield gives parents complete control over their children's internet activity with DNS filtering, screen time schedules, and real-time alerts.",
+        "inLanguage": "en-US"
+      },
+      {
+        "@type": "MobileApplication",
+        "name": "Shield — Family Internet Protection",
+        "operatingSystem": "Android 8.0+",
+        "applicationCategory": "UtilitiesApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "downloadUrl": "https://shield.rstglobal.in/static/shield-app.apk",
+        "description": "Complete parental control app with DNS filtering, screen time limits, GPS tracking, and real-time alerts.",
+        "screenshot": "https://shield.rstglobal.in/og-image.svg",
+        "featureList": "DNS Content Filtering, Screen Time Schedules, Time Budgets, Real-Time Alerts, Multiple Child Profiles, WhatsApp Alerts, Telegram Alerts",
+        "author": { "@id": "https://shield.rstglobal.in/#organization" }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Does Shield work when my child uses mobile data (4G/5G)?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Shield uses DNS-over-HTTPS (DoH) on your child's Android device, routing all DNS queries through Shield's servers regardless of which network they're on — home WiFi, school WiFi, or mobile data."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can my child bypass the filtering with a VPN?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Shield blocks the VPN & Proxies category by default, which prevents installing or using most VPNs. If a child attempts to use a VPN, you'll receive an alert."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need to install an app on my child's phone?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No app is needed on the child's phone for content filtering. You simply set the Private DNS address once using a QR code Shield generates. Filtering is immediate and requires no child-side app."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is Shield free to use?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, Shield is completely free for families. You get up to 5 child profiles, all content categories, unlimited schedule rules, and time budgets at no cost."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<!-- ═══════════════════════════ NAVBAR ═══════════════════════════ -->
+<header class="nav" id="mainNav">
+  <div class="nav-inner">
+
+    <a href="/" class="nav-logo" aria-label="Shield — Home">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1565C0"/>
+            <stop offset="100%" stop-color="#0D47A1"/>
+          </linearGradient>
+        </defs>
+        <path d="M16 2L28 7.5V16C28 23.5 22.8 29.8 16 32C9.2 29.8 4 23.5 4 16V7.5Z" fill="url(#sg)"/>
+        <path d="M10 16L14 20.5L22 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Shield</span>
+    </a>
+
+    <ul class="nav-links" role="list">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#download">Download</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+
+    <div class="nav-cta">
+      <a href="login.html" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="register.html" class="btn btn-primary btn-sm">Get Started Free</a>
+    </div>
+
+    <button class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer">
+      <span></span><span></span><span></span>
+    </button>
+
+  </div>
+
+  <!-- Mobile drawer — only activates inside ≤900px media query -->
+  <div class="nav-drawer" id="navDrawer" aria-hidden="true">
+    <nav aria-label="Mobile navigation">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#download">Download</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-drawer-cta">
+      <a href="login.html" class="btn btn-ghost">Sign In</a>
+      <a href="register.html" class="btn btn-primary">Get Started Free</a>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<section class="hero" id="home" aria-label="Hero">
+  <div class="hero-bg" aria-hidden="true"></div>
+
+  <div class="hero-inner">
+
+    <!-- ── Left: copy ─────────────────────────────────── -->
+    <div class="hero-copy">
+
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Trusted by families in 50+ countries
+      </div>
+
+      <h1 class="hero-h1">
+        Keep Your Kids<br>
+        <span class="hero-gradient">Safe Online</span>
+      </h1>
+
+      <p class="hero-sub">
+        DNS-level protection that blocks harmful content on every device — home WiFi, school WiFi, and 4G. Set schedules, track screen time, and get real-time WhatsApp alerts.
+      </p>
+
+      <div class="hero-btns">
+        <a href="#download" class="btn btn-primary btn-lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Free App
+        </a>
+        <a href="register.html" class="btn btn-ghost btn-lg">Create Account →</a>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <strong>40+</strong>
+          <span>Content categories</span>
+        </div>
+        <div class="hero-stat-div"></div>
+        <div class="hero-stat">
+          <strong>5</strong>
+          <span>Child profiles free</span>
+        </div>
+        <div class="hero-stat-div"></div>
+        <div class="hero-stat">
+          <strong>4G + WiFi</strong>
+          <span>Always protected</span>
+        </div>
+      </div>
+
+    </div><!-- /hero-copy -->
+
+    <!-- ── Right: phone mockup ────────────────────────── -->
+    <div class="hero-phone-col">
+
+      <!-- Floating chips -->
+      <div class="hchip hchip-1">
+        <span class="hchip-dot green"></span>
+        <span class="hchip-text">DNS Shield · Active</span>
+      </div>
+      <div class="hchip hchip-2">
+        <span class="hchip-emoji">👨‍👩‍👦</span>
+        <div><strong>2 Kids Protected</strong><small>All devices secure</small></div>
+      </div>
+      <div class="hchip hchip-3">
+        <span class="hchip-dot red"></span>
+        <div><strong>gambling.com</strong><small>Blocked · just now</small></div>
+      </div>
+
+      <!-- Phone device -->
+      <div class="phone-outer">
+        <div class="phone">
+
+          <!-- Top: island notch + status bar -->
+          <div class="phone-top">
+            <div class="phone-island"></div>
+            <span class="phone-time">9:41</span>
+            <div class="phone-icons">
+              <!-- Signal bars -->
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true">
+                <rect x="0" y="8" width="3" height="4" rx=".8" opacity=".35"/>
+                <rect x="4.5" y="5.5" width="3" height="6.5" rx=".8" opacity=".6"/>
+                <rect x="9" y="3" width="3" height="9" rx=".8" opacity=".85"/>
+                <rect x="13.5" y="0" width="2.5" height="12" rx=".8"/>
+              </svg>
+              <!-- WiFi -->
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true">
+                <circle cx="8" cy="10.5" r="1.4"/>
+                <path d="M4.8 7.5a4.5 4.5 0 0 1 6.4 0l1.1-1.2a6.2 6.2 0 0 0-8.6 0z" opacity=".7"/>
+                <path d="M1.6 4.4a9 9 0 0 1 12.8 0l1.1-1.2A10.7 10.7 0 0 0 .5 3.2z" opacity=".35"/>
+              </svg>
+              <!-- Battery -->
+              <svg width="24" height="12" viewBox="0 0 24 12" fill="currentColor" aria-hidden="true">
+                <rect x=".5" y=".5" width="20" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+                <rect x="1.5" y="1.5" width="16" height="9" rx="1.5"/>
+                <path d="M21.5 4v4a2 2 0 0 0 0-4z"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Screen: carousel slides -->
+          <div class="phone-screen">
+            <div class="slides-track" id="slidesTrack">
+
+              <!-- ── Slide 0: Dashboard ─────────────────── -->
+              <div class="slide">
+                <div class="app-ui">
+                  <div class="app-header">
+                    <span style="font-size:16px">🛡</span>
+                    <div class="app-title-sm">Dashboard</div>
+                    <div class="notif-dot"></div>
+                  </div>
+                  <div class="child-cards">
+                    <div class="child-card active">
+                      <div class="child-avatar">👦</div>
+                      <div class="child-info">
+                        <div class="child-name">Jake, 12</div>
+                        <div class="child-status online">● Online · School WiFi</div>
+                      </div>
+                      <div class="child-shield-ok">🛡</div>
+                    </div>
+                    <div class="child-card">
+                      <div class="child-avatar">👧</div>
+                      <div class="child-info">
+                        <div class="child-name">Emma, 9</div>
+                        <div class="child-status offline">● Offline</div>
+                      </div>
+                      <div class="child-shield-ok">🛡</div>
+                    </div>
+                  </div>
+                  <div class="alert-card">
+                    <div class="alert-icon">🚫</div>
+                    <div class="alert-text">
+                      <div class="alert-title">Blocked: gambling.com</div>
+                      <div class="alert-sub">Jake · 3 mins ago</div>
+                    </div>
+                  </div>
+                  <div class="usage-bar-wrap">
+                    <div class="usage-label">Jake's screen time today</div>
+                    <div class="usage-bar"><div class="usage-fill" style="width:68%"></div></div>
+                    <div class="usage-nums"><span>2h 3m used</span><span>3h limit</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── Slide 1: Smart Schedule ─────────────── -->
+              <div class="slide">
+                <div class="app-ui">
+                  <div class="app-header">
+                    <span class="app-back">‹</span>
+                    <div class="app-title-sm">Jake's Schedule</div>
+                  </div>
+                  <div class="preset-row">
+                    <button class="preset-pill active">School</button>
+                    <button class="preset-pill">Bedtime</button>
+                    <button class="preset-pill">Custom</button>
+                  </div>
+                  <div class="mini-sched">
+                    <div class="sched-days"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+                    <div class="sched-row"><div class="sc gr"></div><div class="sc gr"></div><div class="sc gr"></div><div class="sc gr"></div><div class="sc gr"></div><div class="sc gr"></div><div class="sc gr"></div></div>
+                    <div class="sched-row"><div class="sc rd"></div><div class="sc rd"></div><div class="sc rd"></div><div class="sc rd"></div><div class="sc rd"></div><div class="sc gn"></div><div class="sc gn"></div></div>
+                    <div class="sched-row"><div class="sc gn"></div><div class="sc gn"></div><div class="sc gn"></div><div class="sc gn"></div><div class="sc gn"></div><div class="sc gn"></div><div class="sc gn"></div></div>
+                    <div class="sched-row"><div class="sc rd"></div><div class="sc rd"></div><div class="sc rd"></div><div class="sc rd"></div><div class="sc rd"></div><div class="sc rd"></div><div class="sc rd"></div></div>
+                  </div>
+                  <div class="sched-legend">
+                    <span class="leg-item"><span class="leg-dot gn"></span>Allowed</span>
+                    <span class="leg-item"><span class="leg-dot rd"></span>Blocked</span>
+                    <span class="leg-item"><span class="leg-dot gr"></span>Sleep</span>
+                  </div>
+                  <div class="override-btn">⏸ Pause Internet · 30 min</div>
+                </div>
+              </div>
+
+              <!-- ── Slide 2: Content Filter ─────────────── -->
+              <div class="slide">
+                <div class="app-ui">
+                  <div class="app-header">
+                    <span class="app-back">‹</span>
+                    <div class="app-title-sm">Content Filter</div>
+                  </div>
+                  <div class="filter-badge">STRICT · 28 categories blocked</div>
+                  <div class="cat-list">
+                    <div class="cat-item"><span class="cat-emoji">🔞</span><span class="cat-name">Adult Content</span><span class="tog on"></span></div>
+                    <div class="cat-item"><span class="cat-emoji">🎮</span><span class="cat-name">Gaming</span><span class="tog off"></span></div>
+                    <div class="cat-item"><span class="cat-emoji">📱</span><span class="cat-name">Social Media</span><span class="tog on"></span></div>
+                    <div class="cat-item"><span class="cat-emoji">🎬</span><span class="cat-name">Streaming</span><span class="tog off"></span></div>
+                    <div class="cat-item"><span class="cat-emoji">🎲</span><span class="cat-name">Gambling</span><span class="tog on"></span></div>
+                    <div class="cat-item"><span class="cat-emoji">💬</span><span class="cat-name">VPN &amp; Proxies</span><span class="tog on"></span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── Slide 3: Time Budgets ───────────────── -->
+              <div class="slide">
+                <div class="app-ui">
+                  <div class="app-header">
+                    <span class="app-back">‹</span>
+                    <div class="app-title-sm">Daily Limits · Jake</div>
+                  </div>
+                  <div class="budget-list">
+                    <div class="budget-item">
+                      <div class="budget-hdr"><span class="budget-app">▶ YouTube</span><span class="budget-time">1h 30m / 2h</span></div>
+                      <div class="budget-bar-wrap"><div class="budget-fill warn" style="width:75%"></div></div>
+                    </div>
+                    <div class="budget-item">
+                      <div class="budget-hdr"><span class="budget-app">♪ TikTok</span><span class="budget-time">22m / 1h</span></div>
+                      <div class="budget-bar-wrap"><div class="budget-fill ok" style="width:37%"></div></div>
+                    </div>
+                    <div class="budget-item exceeded">
+                      <div class="budget-hdr"><span class="budget-app">🎮 Gaming</span><span class="budget-time exceeded-lbl">LIMIT REACHED</span></div>
+                      <div class="budget-bar-wrap"><div class="budget-fill over" style="width:100%"></div></div>
+                    </div>
+                    <div class="budget-item">
+                      <div class="budget-hdr"><span class="budget-app">🎡 Roblox</span><span class="budget-time">28m / 2h</span></div>
+                      <div class="budget-bar-wrap"><div class="budget-fill ok" style="width:23%"></div></div>
+                    </div>
+                    <div class="budget-item">
+                      <div class="budget-hdr"><span class="budget-app">📚 Study apps</span><span class="budget-time">Unlimited</span></div>
+                      <div class="budget-bar-wrap" style="background:#e8f5e9"><div class="budget-fill ok" style="width:0%"></div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── Slide 4: Real-Time Alerts ──────────── -->
+              <div class="slide">
+                <div class="app-ui">
+                  <div class="app-header">
+                    <span style="font-size:16px">🛡</span>
+                    <div class="app-title-sm">Alerts</div>
+                    <div class="notif-count">4</div>
+                  </div>
+                  <div class="channel-row">
+                    <span class="ch-pill active">✉ Email</span>
+                    <span class="ch-pill active">💬 WhatsApp</span>
+                    <span class="ch-pill active">✈ Telegram</span>
+                  </div>
+                  <div class="alert-feed">
+                    <div class="feed-item"><div class="feed-dot" style="background:#ef5350"></div><div class="feed-body"><div class="feed-title">Blocked: gambling.com</div><div class="feed-meta">Jake · School WiFi · 2m ago</div></div></div>
+                    <div class="feed-item"><div class="feed-dot" style="background:#ff9800"></div><div class="feed-body"><div class="feed-title">Budget 80%: YouTube</div><div class="feed-meta">Emma · 15m ago</div></div></div>
+                    <div class="feed-item"><div class="feed-dot" style="background:#43a047"></div><div class="feed-body"><div class="feed-title">✓ Jake arrived home</div><div class="feed-meta">Geofence · 32m ago</div></div></div>
+                    <div class="feed-item"><div class="feed-dot" style="background:#1565C0"></div><div class="feed-body"><div class="feed-title">Bedtime schedule started</div><div class="feed-meta">Emma · 8:00 PM</div></div></div>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /slides-track -->
+          </div><!-- /phone-screen -->
+
+          <!-- Home indicator -->
+          <div class="phone-bottom"><div class="phone-bar"></div></div>
+
+        </div><!-- /phone -->
+      </div><!-- /phone-outer -->
+
+      <!-- Carousel controls -->
+      <div class="phone-dots" id="phoneDots">
+        <button class="dot active" onclick="goToSlide(0)" aria-label="Dashboard"></button>
+        <button class="dot" onclick="goToSlide(1)" aria-label="Schedule"></button>
+        <button class="dot" onclick="goToSlide(2)" aria-label="Content filter"></button>
+        <button class="dot" onclick="goToSlide(3)" aria-label="Time budgets"></button>
+        <button class="dot" onclick="goToSlide(4)" aria-label="Alerts"></button>
+      </div>
+      <div class="phone-slide-name" id="slideLabel">Dashboard</div>
+
+    </div><!-- /hero-phone-col -->
+
+  </div><!-- /hero-inner -->
+</section>
+
+<!-- ═══════════════════════════ FEATURES ═══════════════════════════ -->
+<section class="features" id="features" aria-labelledby="features-title">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Everything You Need</div>
+      <h2 class="section-title" id="features-title">Powerful Protection,<br/>Simple Controls</h2>
+      <p class="section-sub">Every feature designed with real families in mind.</p>
+    </div>
+
+    <div class="features-grid">
+      <article class="feature-card featured">
+        <div class="feature-icon bg-blue">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/></svg>
+        </div>
+        <h3>DNS Content Filtering</h3>
+        <p>Block 40+ content categories at the DNS level. Works on home WiFi, mobile 4G, and school networks — no VPN needed, impossible to bypass.</p>
+        <ul class="feature-list">
+          <li>Adult content, gambling, violence</li>
+          <li>Social media &amp; gaming schedules</li>
+          <li>Custom allow &amp; block lists</li>
+          <li>Safe Search enforcement</li>
+        </ul>
+      </article>
+
+      <article class="feature-card">
+        <div class="feature-icon bg-purple">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <h3>Smart Schedules</h3>
+        <p>Set hour-by-hour internet access across the full week. One-tap presets for School, Bedtime, and Homework. Apply instant overrides anytime.</p>
+      </article>
+
+      <article class="feature-card">
+        <div class="feature-icon bg-green">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>Time Budgets</h3>
+        <p>Set daily time limits for YouTube, TikTok, gaming, and more. Shield blocks access automatically when the limit is reached — no arguments needed.</p>
+      </article>
+
+      <article class="feature-card">
+        <div class="feature-icon bg-orange">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <h3>GPS Location Tracking</h3>
+        <p>See exactly where your child is in real-time. Set home, school and custom geofences — get alerts when they arrive or leave.</p>
+        <span class="coming-soon-badge">Coming Soon</span>
+      </article>
+
+      <article class="feature-card">
+        <div class="feature-icon bg-red">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </div>
+        <h3>Real-Time Alerts</h3>
+        <p>Get instant push notifications, email, WhatsApp, and Telegram alerts when your child tries to access blocked content or hits their screen time limit.</p>
+      </article>
+
+      <article class="feature-card">
+        <div class="feature-icon bg-teal">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <h3>Multiple Children</h3>
+        <p>Manage up to 5 child profiles per family. Each child gets their own custom rules, schedule, and time limits. Add a co-parent as secondary guardian.</p>
+      </article>
+
+      <article class="feature-card">
+        <div class="feature-icon bg-indigo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>
+        </div>
+        <h3>Multi-Device Support</h3>
+        <p>Works on smartphones, tablets, laptops, gaming consoles, and smart TVs. Register any device to a child profile with one QR scan.</p>
+      </article>
+
+      <article class="feature-card">
+        <div class="feature-icon bg-pink">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3>Usage Analytics</h3>
+        <p>Detailed charts of daily and weekly internet usage per app and category. Weekly PDF reports emailed every Monday morning.</p>
+        <span class="coming-soon-badge">Coming Soon</span>
+      </article>
+
+      <article class="feature-card">
+        <div class="feature-icon bg-yellow">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <h3>Reward System</h3>
+        <p>Motivate good behaviour with a built-in reward system. Parents set tasks and approve completions — children earn extra screen time as rewards.</p>
+        <span class="coming-soon-badge">Coming Soon</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ HOW IT WORKS ═══════════════════════════ -->
+<section class="how-it-works" id="how-it-works" aria-labelledby="hiw-title">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Setup in Minutes</div>
+      <h2 class="section-title" id="hiw-title">How Shield Works</h2>
+      <p class="section-sub">No router changes. No complicated setup. Works in 3 simple steps.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">01</div>
+        <div class="step-content">
+          <h3>Create Your Free Account</h3>
+          <p><a href="register.html" style="color:var(--blue);font-weight:600;">Sign up in 60 seconds</a> — no credit card, no subscription. Add your child's profile with their name and age.</p>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step">
+        <div class="step-number">02</div>
+        <div class="step-content">
+          <h3>Set Private DNS on Child's Device</h3>
+          <p>Scan the QR code from Shield on your child's Android device. It sets Private DNS automatically — that's it. No apps needed on the child's device.</p>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step">
+        <div class="step-number">03</div>
+        <div class="step-content">
+          <h3>Set Rules &amp; Relax</h3>
+          <p>Choose content categories to block, set a bedtime schedule, and add time limits for YouTube. Shield handles everything automatically — on WiFi and 4G.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ WHY SHIELD ═══════════════════════════ -->
+<section class="why-shield" aria-labelledby="why-title">
+  <div class="container">
+    <div class="why-grid">
+      <div class="why-text">
+        <div class="section-tag">Why Shield?</div>
+        <h2 class="section-title" id="why-title">Protection That Actually Works — Everywhere</h2>
+        <p>Most parental controls only work on the home WiFi. The moment your child leaves the house or switches to 4G data, the protection disappears.</p>
+        <p>Shield uses <strong>DNS-over-HTTPS</strong> — a technology that routes all DNS lookups through your child's personal filtered server. It works at the operating system level, before any app can make a network connection, on any network.</p>
+        <div class="why-points">
+          <div class="why-point">
+            <div class="why-icon">&#10003;</div>
+            <div>Works on all networks — home WiFi, school WiFi, mobile 4G/5G</div>
+          </div>
+          <div class="why-point">
+            <div class="why-icon">&#10003;</div>
+            <div>Cannot be bypassed by switching WiFi or using a VPN</div>
+          </div>
+          <div class="why-point">
+            <div class="why-icon">&#10003;</div>
+            <div>No app required on child's device — zero battery drain</div>
+          </div>
+          <div class="why-point">
+            <div class="why-icon">&#10003;</div>
+            <div>Privacy-first — we filter, we don't store browsing history</div>
+          </div>
+        </div>
+      </div>
+      <div class="why-visual">
+        <div class="comparison-card" role="table" aria-label="Shield vs other parental controls">
+          <div class="comp-row comp-header" role="row">
+            <div role="columnheader"></div>
+            <div class="comp-col-shield" role="columnheader">&#128737; Shield</div>
+            <div class="comp-col-other" role="columnheader">Others</div>
+          </div>
+          <div class="comp-row" role="row">
+            <div class="comp-feature" role="cell">Works on 4G</div>
+            <div class="comp-yes" role="cell">&#10003;</div>
+            <div class="comp-no" role="cell">&#10007;</div>
+          </div>
+          <div class="comp-row" role="row">
+            <div class="comp-feature" role="cell">Works without app</div>
+            <div class="comp-yes" role="cell">&#10003;</div>
+            <div class="comp-no" role="cell">&#10007;</div>
+          </div>
+          <div class="comp-row" role="row">
+            <div class="comp-feature" role="cell">Real-time alerts</div>
+            <div class="comp-yes" role="cell">&#10003;</div>
+            <div class="comp-partial" role="cell">&#8764;</div>
+          </div>
+          <div class="comp-row" role="row">
+            <div class="comp-feature" role="cell">WhatsApp / Telegram alerts</div>
+            <div class="comp-yes" role="cell">&#10003;</div>
+            <div class="comp-no" role="cell">&#10007;</div>
+          </div>
+          <div class="comp-row" role="row">
+            <div class="comp-feature" role="cell">Free to use</div>
+            <div class="comp-yes" role="cell">&#10003;</div>
+            <div class="comp-partial" role="cell">&#8764;</div>
+          </div>
+          <div class="comp-row" role="row">
+            <div class="comp-feature" role="cell">Multi-child profiles</div>
+            <div class="comp-yes" role="cell">&#10003;</div>
+            <div class="comp-partial" role="cell">&#8764;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ DOWNLOAD ═══════════════════════════ -->
+<section class="download" id="download" aria-labelledby="download-title">
+  <div class="download-bg" aria-hidden="true"></div>
+  <div class="container">
+    <div class="download-content">
+      <div class="section-tag light">Free Download</div>
+      <h2 class="section-title light" id="download-title">Start Protecting Your Family Today</h2>
+      <p class="section-sub light">Download the Shield parent app for Android. Free to use. No credit card required.</p>
+      <div class="download-buttons">
+        <a href="/static/shield-app.apk" class="btn btn-download" id="apk-download" download aria-label="Download Shield APK for Android">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.523 15.341a.66.66 0 01-.66-.66V9.318a.66.66 0 011.32 0v5.363a.66.66 0 01-.66.66zM6.477 15.341a.66.66 0 01-.66-.66V9.318a.66.66 0 011.32 0v5.363a.66.66 0 01-.66.66zm5.046 3.978a.66.66 0 01-.66-.66V12.9a.66.66 0 111.32 0v5.759a.66.66 0 01-.66.66zm5.516-12.15l1.116-2.18a.231.231 0 00-.1-.309.232.232 0 00-.31.1L16.62 7.009A7.378 7.378 0 0012 5.93a7.378 7.378 0 00-4.62 1.08L6.255 4.779a.232.232 0 00-.31-.1.231.231 0 00-.1.31l1.116 2.18A6.745 6.745 0 005 12.34h14a6.745 6.745 0 00-1.961-5.171zM9.5 10.5a1 1 0 110-2 1 1 0 010 2zm5 0a1 1 0 110-2 1 1 0 010 2z"/></svg>
+          <div>
+            <div class="btn-label">Download APK</div>
+            <div class="btn-sub">Android 8.0+</div>
+          </div>
+        </a>
+        <div class="ios-coming" aria-label="iOS app coming soon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          <div>
+            <div>iOS App</div>
+            <div class="btn-sub">Coming Soon</div>
+          </div>
+        </div>
+      </div>
+      <div class="download-note">
+        Requires Android 8.0 or higher &nbsp;·&nbsp; Version 1.0.0 &nbsp;·&nbsp; ~90 MB
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ FAQ ═══════════════════════════ -->
+<section class="faq" id="faq" aria-labelledby="faq-title">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">FAQ</div>
+      <h2 class="section-title" id="faq-title">Common Questions</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          Does Shield work when my child uses mobile data (4G/5G)?
+          <span class="faq-arrow" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" role="region">
+          <p>Yes — this is Shield's key advantage. By using DNS-over-HTTPS (DoH) on your child's Android device, all DNS queries are routed through Shield's servers regardless of which network they're on. Home WiFi, school WiFi, or mobile data — the filtering always applies.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          Can my child bypass the filtering with a VPN?
+          <span class="faq-arrow" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" role="region">
+          <p>Shield blocks the "VPN &amp; Proxies" category by default, which prevents installing or using most VPNs. If a child attempts to use a VPN, you'll receive an alert. We also monitor for Tor and anonymizer traffic.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          Do I need to install an app on my child's phone?
+          <span class="faq-arrow" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" role="region">
+          <p>No app is needed on the child's phone for content filtering. You simply set the Private DNS address once (Shield generates a QR code for this). Optionally, a lightweight child companion app is available for location tracking and panic button features.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          Which Android version is required?
+          <span class="faq-arrow" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" role="region">
+          <p>The parent app requires Android 8.0 (Oreo) or higher. Private DNS (DoH) is supported on Android 9.0 (Pie) or higher. For child devices running Android 8.x, filtering works via DHCP DNS on the home router.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          Is Shield free to use?
+          <span class="faq-arrow" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" role="region">
+          <p>Yes, Shield is completely free for families. You get up to 5 child profiles, all content categories, unlimited schedule rules, and time budgets at no cost. Premium features like GPS tracking and AI usage reports are coming in future updates.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          Does Shield work on iPhones?
+          <span class="faq-arrow" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" role="region">
+          <p>The parent app currently supports Android only. An iOS version is in development. For filtering iPhones/iPads, Shield's DoH URL can be configured using an iOS configuration profile — contact support for instructions.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo" aria-label="Shield — Home">
+          <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 2 L28 7.5 V16 C28 23.5 22.8 29.8 16 32 C9.2 29.8 4 23.5 4 16 V7.5 Z" fill="rgba(255,255,255,0.9)"/>
+            <path d="M16 5.5 L25.5 9.5 V16 C25.5 22 21.5 27.5 16 29.5 C10.5 27.5 6.5 22 6.5 16 V9.5 Z" fill="rgba(13,71,161,0.15)"/>
+            <path d="M10 16 L14 20.5 L22 12" stroke="#1565C0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <span>Shield</span>
+        </a>
+        <p>Keeping children safe online with intelligent DNS-based protection that works everywhere.</p>
+      </div>
+      <div class="footer-links">
+        <nav class="footer-col" aria-label="Product links">
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#download">Download</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <nav class="footer-col" aria-label="Account links">
+          <h4>Account</h4>
+          <a href="register.html">Create Account</a>
+          <a href="login.html">Sign In</a>
+        </nav>
+        <nav class="footer-col" aria-label="Company links">
+          <h4>Company</h4>
+          <a href="#">About RST Global</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Contact</a>
+        </nav>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 RST Global. All rights reserved. Shield is a product of RST Global.</p>
+      <p>Made with &#10084; for families everywhere.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── Nav scroll effect ────────────────────────────
+const mainNav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => {
+  mainNav.classList.toggle('scrolled', window.scrollY > 20);
+}, { passive: true });
+
+// ── Mobile nav drawer ────────────────────────────
+const navBurger = document.getElementById('navBurger');
+const navDrawer = document.getElementById('navDrawer');
+
+function closeDrawer() {
+  navDrawer.setAttribute('aria-hidden', 'true');
+  navBurger.setAttribute('aria-expanded', 'false');
+  navBurger.classList.remove('is-open');
+}
+
+navBurger.addEventListener('click', () => {
+  const opening = navDrawer.getAttribute('aria-hidden') === 'true';
+  navDrawer.setAttribute('aria-hidden', opening ? 'false' : 'true');
+  navBurger.setAttribute('aria-expanded', opening ? 'true' : 'false');
+  navBurger.classList.toggle('is-open', opening);
+});
+
+// Close on outside click
+document.addEventListener('click', (e) => {
+  if (!mainNav.contains(e.target)) closeDrawer();
+});
+
+// Close on resize to desktop
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 900) closeDrawer();
+}, { passive: true });
+
+// ── FAQ accordion ────────────────────────────────
+function toggleFaq(btn) {
+  const item = btn.parentElement;
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => {
+    i.classList.remove('open');
+    i.querySelector('.faq-q').setAttribute('aria-expanded', 'false');
+  });
+  if (!isOpen) {
+    item.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+}
+
+// ── Smooth scroll ────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      closeDrawer();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+
+// ── Animate on scroll ────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.feature-card, .step, .why-point').forEach(el => observer.observe(el));
+
+// ── Phone carousel ───────────────────────────────
+const slideLabels = ['Dashboard', 'Smart Schedule', 'Content Filter', 'Time Budgets', 'Real-Time Alerts'];
+let currentSlide = 0;
+let carouselTimer;
+
+function goToSlide(n) {
+  currentSlide = n;
+  const track = document.getElementById('slidesTrack');
+  if (track) track.style.transform = `translateX(-${n * 20}%)`;
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === n));
+  const label = document.getElementById('slideLabel');
+  if (label) label.textContent = slideLabels[n];
+  clearInterval(carouselTimer);
+  carouselTimer = setInterval(() => goToSlide((currentSlide + 1) % 5), 3500);
+}
+
+carouselTimer = setInterval(() => goToSlide((currentSlide + 1) % 5), 3500);
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+server:
+  port: 8261
+
+spring:
+  application:
+    name: shield-eureka
+  security:
+    user:
+      name: eureka
+      password: ${EUREKA_PASSWORD:ShieldEureka2026}
+
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://eureka:${EUREKA_PASSWORD:ShieldEureka2026}@localhost:8261/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.netflix.eureka: WARN
+    com.netflix.discovery: WARN

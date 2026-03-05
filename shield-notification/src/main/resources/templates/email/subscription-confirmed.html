@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Subscription Confirmed - Shield</title>
+<style>
+  body{margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08);}
+  .header{background:linear-gradient(135deg,#004D40,#00796B);padding:28px 32px;color:#fff;}
+  .header h1{margin:0;font-size:22px;font-weight:700;}
+  .header p{margin:4px 0 0;opacity:.85;font-size:13px;}
+  .body{padding:32px;}
+  .greeting{color:#1a1a2e;font-size:16px;line-height:1.6;margin:0 0 24px;}
+  .plan-card{background:linear-gradient(135deg,#E8F5E9,#F1F8E9);border:1px solid #C8E6C9;border-radius:10px;padding:24px;margin-bottom:24px;text-align:center;}
+  .plan-card .checkmark{font-size:48px;margin-bottom:8px;}
+  .plan-card h2{color:#2E7D32;font-size:20px;margin:0 0 4px;font-weight:700;}
+  .plan-card p{color:#558B2F;font-size:14px;margin:0;}
+  .features{margin:0 0 24px;padding:0;list-style:none;}
+  .features li{padding:10px 0 10px 32px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#444;position:relative;line-height:1.5;}
+  .features li:last-child{border-bottom:none;}
+  .features li::before{content:'\2713';position:absolute;left:4px;top:10px;color:#2E7D32;font-weight:700;font-size:16px;}
+  .profiles-badge{display:inline-block;background:#004D40;color:#fff;font-size:13px;font-weight:600;padding:6px 16px;border-radius:20px;margin-bottom:24px;}
+  .cta{display:inline-block;margin-top:8px;background:#004D40;color:#fff !important;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:14px;}
+  .cta:hover{background:#00695C;}
+  .note{color:#888;font-size:13px;line-height:1.5;margin-top:20px;}
+  .footer{background:#f8f9fa;padding:20px 32px;text-align:center;color:#888;font-size:12px;border-top:1px solid #eee;}
+  .footer a{color:#004D40;text-decoration:none;}
+  @media only screen and (max-width:620px){
+    .wrap{margin:0;border-radius:0;}
+    .body,.header{padding:24px 20px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>&#128737; Shield</h1>
+    <p>Family Protection Platform</p>
+  </div>
+  <div class="body">
+    <p class="greeting">
+      Hi <span th:text="${name}">Customer</span>,<br/>
+      Welcome to Shield! Your subscription is now active.
+    </p>
+
+    <div class="plan-card">
+      <div class="checkmark">&#10004;</div>
+      <h2 th:text="${planName} + ' Plan Activated'">Pro Plan Activated</h2>
+      <p>Your family is now protected</p>
+    </div>
+
+    <div th:if="${maxProfiles != null and maxProfiles > 0}" style="text-align:center;margin-bottom:20px;">
+      <span class="profiles-badge" th:text="'Up to ' + ${maxProfiles} + ' child profiles'">Up to 5 child profiles</span>
+    </div>
+
+    <div th:if="${features != null and !features.isEmpty()}">
+      <h3 style="color:#333;font-size:15px;margin:0 0 8px;">What's included:</h3>
+      <ul class="features">
+        <li th:each="feature : ${features}" th:text="${feature}">Feature item</li>
+      </ul>
+    </div>
+
+    <div style="text-align:center;">
+      <a th:href="${dashboardUrl}" class="cta">Go to Dashboard</a>
+    </div>
+
+    <p class="note">
+      Get started by adding child profiles and configuring DNS-based content filtering.
+      If you need help, visit our documentation or contact support.
+    </p>
+  </div>
+  <div class="footer">
+    Shield Family Protection &mdash; <a href="https://shield.rstglobal.in">shield.rstglobal.in</a><br/>
+    RST Global Pvt. Ltd. &bull; Bangalore, India<br/><br/>
+    <span style="color:#aaa;">You received this email because you subscribed to Shield.</span>
+  </div>
+</div>
+</body>
+</html>

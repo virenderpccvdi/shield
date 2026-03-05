@@ -1,0 +1,60 @@
+name: shield_app
+description: Shield — Smart Family Internet Protection
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # HTTP
+  dio: ^5.8.0
+
+  # Storage
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.5.3
+
+  # Charts
+  fl_chart: ^0.70.0
+
+  # Utils
+  intl: ^0.20.2
+  url_launcher: ^6.3.1
+  permission_handler: ^11.4.0
+
+  # Maps & Location
+  google_maps_flutter: ^2.5.3
+  geolocator: ^13.0.2
+
+  # WebSocket
+  stomp_dart_client: ^2.0.0
+
+  # Notifications
+  flutter_local_notifications: ^18.0.1
+
+  # Firebase
+  firebase_core: ^3.12.1
+  firebase_messaging: ^15.2.4
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/

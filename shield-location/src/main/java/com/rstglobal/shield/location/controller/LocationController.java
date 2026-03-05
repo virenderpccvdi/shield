@@ -1,0 +1,74 @@
+package com.rstglobal.shield.location.controller;
+
+import com.rstglobal.shield.common.dto.ApiResponse;
+import com.rstglobal.shield.location.dto.request.CheckinRequest;
+import com.rstglobal.shield.location.dto.response.LocationResponse;
+import com.rstglobal.shield.location.service.LocationService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Parent-facing location endpoints — JWT validated by API Gateway.
+ * X-User-Id and X-User-Role headers injected by gateway.
+ */
+@RestController
+@RequestMapping("/api/v1/location")
+@RequiredArgsConstructor
+public class LocationController {
+
+    private final LocationService locationService;
+
+    @GetMapping("/{profileId}/latest")
+    public ResponseEntity<ApiResponse<LocationResponse>> getLatestLocation(
+            @PathVariable UUID profileId,
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        LocationResponse response = locationService.getLatestLocation(profileId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/{profileId}/history")
+    public ResponseEntity<ApiResponse<Page<LocationResponse>>> getLocationHistory(
+            @PathVariable UUID profileId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
+            @PageableDefault(size = 100) Pageable pageable,
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId) {
+        Page<LocationResponse> response = locationService.getLocationHistory(profileId, from, to, pageable);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    /**
+     * Child manual check-in — creates a location record with type=CHECKIN.
+     */
+    @PostMapping("/child/checkin")
+    public ResponseEntity<ApiResponse<LocationResponse>> childCheckin(
+            @Valid @RequestBody CheckinRequest req) {
+        LocationResponse response = locationService.childCheckin(req);
+        return ResponseEntity.ok(ApiResponse.ok(response, "Check-in recorded"));
+    }
+
+    /**
+     * Returns current speed estimate from recent location points.
+     * If only 1 point exists, speed = 0.
+     */
+    @GetMapping("/{profileId}/speed")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getSpeed(
+            @PathVariable UUID profileId,
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId) {
+        Map<String, Object> speedData = locationService.estimateSpeed(profileId);
+        return ResponseEntity.ok(ApiResponse.ok(speedData));
+    }
+}

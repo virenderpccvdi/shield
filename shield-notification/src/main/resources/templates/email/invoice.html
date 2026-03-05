@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Invoice - Shield</title>
+<style>
+  body{margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08);}
+  .header{background:linear-gradient(135deg,#004D40,#00796B);padding:28px 32px;color:#fff;}
+  .header h1{margin:0;font-size:22px;font-weight:700;}
+  .header p{margin:4px 0 0;opacity:.85;font-size:13px;}
+  .body{padding:32px;}
+  .greeting{color:#1a1a2e;font-size:16px;line-height:1.6;margin:0 0 24px;}
+  .invoice-card{background:#f8faf9;border:1px solid #e0e0e0;border-radius:10px;padding:24px;margin-bottom:24px;}
+  .invoice-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid #e0e0e0;padding-bottom:12px;}
+  .invoice-number{font-size:14px;color:#666;font-weight:600;}
+  .invoice-date{font-size:13px;color:#888;}
+  .badge-paid{display:inline-block;background:#00C853;color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.5px;}
+  .line-items{width:100%;border-collapse:collapse;}
+  .line-items td{padding:10px 0;font-size:14px;color:#444;border-bottom:1px solid #eee;}
+  .line-items td.label{font-weight:600;color:#333;width:40%;}
+  .line-items tr:last-child td{border-bottom:none;}
+  .total-row td{font-size:18px;font-weight:700;color:#004D40;padding-top:14px;border-top:2px solid #004D40;border-bottom:none;}
+  .cta{display:inline-block;margin-top:20px;background:#004D40;color:#fff !important;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:14px;}
+  .cta:hover{background:#00695C;}
+  .note{color:#888;font-size:13px;line-height:1.5;margin-top:16px;}
+  .footer{background:#f8f9fa;padding:20px 32px;text-align:center;color:#888;font-size:12px;border-top:1px solid #eee;}
+  .footer a{color:#004D40;text-decoration:none;}
+  @media only screen and (max-width:620px){
+    .wrap{margin:0;border-radius:0;}
+    .body,.header{padding:24px 20px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>&#128737; Shield</h1>
+    <p>Payment Receipt</p>
+  </div>
+  <div class="body">
+    <p class="greeting">
+      Hi <span th:text="${name}">Customer</span>,<br/>
+      Thank you for your payment. Here is your invoice.
+    </p>
+
+    <div class="invoice-card">
+      <table style="width:100%;margin-bottom:12px;">
+        <tr>
+          <td class="invoice-number" th:text="'Invoice #' + ${invoiceNumber}">Invoice #INV-000001</td>
+          <td style="text-align:right;"><span class="badge-paid">PAID</span></td>
+        </tr>
+        <tr>
+          <td class="invoice-date" th:text="${invoiceDate}" colspan="2">March 5, 2026</td>
+        </tr>
+      </table>
+
+      <table class="line-items">
+        <tr>
+          <td class="label">Plan</td>
+          <td th:text="${planName}">Shield Pro</td>
+        </tr>
+        <tr>
+          <td class="label">Billing Period</td>
+          <td>
+            <span th:text="${billingPeriodStart}">Mar 1, 2026</span>
+            &ndash;
+            <span th:text="${billingPeriodEnd}">Mar 31, 2026</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="label">Currency</td>
+          <td th:text="${currency}">INR</td>
+        </tr>
+        <tr class="total-row">
+          <td class="label">Total Paid</td>
+          <td th:text="'&#x20B9; ' + ${amount}">&#x20B9; 499.00</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align:center;">
+      <a th:href="${dashboardUrl}" class="cta">View Invoice</a>
+    </div>
+
+    <p class="note">
+      This is an automated receipt for your Shield subscription.
+      If you have any questions about this charge, please contact support.
+    </p>
+  </div>
+  <div class="footer">
+    Shield Family Protection &mdash; <a href="https://shield.rstglobal.in">shield.rstglobal.in</a><br/>
+    RST Global Pvt. Ltd. &bull; Bangalore, India<br/><br/>
+    <span style="color:#aaa;">You received this email because you made a payment on Shield.</span>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title th:text="${title}">Shield Alert</title>
+<style>
+  body{margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;}
+  .wrap{max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+  .header{background:linear-gradient(135deg,#1565C0,#42A5F5);padding:28px 32px;color:#fff;}
+  .header h1{margin:0;font-size:22px;font-weight:700;}
+  .header p{margin:4px 0 0;opacity:.85;font-size:13px;}
+  .body{padding:32px;}
+  .body h2{color:#1a1a2e;font-size:18px;margin:0 0 12px;}
+  .body p{color:#444;line-height:1.6;font-size:15px;}
+  .cta{display:inline-block;margin-top:20px;background:#1565C0;color:#fff!important;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px;}
+  .footer{background:#f8f9fa;padding:16px 32px;text-align:center;color:#888;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>&#128737; Shield Family Protection</h1>
+    <p>Keeping your family safe online</p>
+  </div>
+  <div class="body">
+    <h2 th:text="${title}">Alert Title</h2>
+    <p th:text="${body}">Alert body text</p>
+    <a th:if="${actionUrl}" th:href="${actionUrl}" class="cta">View in Shield</a>
+  </div>
+  <div class="footer">
+    You are receiving this because you have alerts enabled in Shield.<br/>
+    To manage preferences, open the Shield app &rarr; Settings &rarr; Notifications.
+  </div>
+</div>
+</body>
+</html>

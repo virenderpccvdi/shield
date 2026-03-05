@@ -1,0 +1,33 @@
+server:
+  port: 8288
+
+spring:
+  application:
+    name: shield-config
+
+  profiles:
+    # Always include 'native' so the filesystem backend is used
+    # even when -Dspring.profiles.active=production is passed via systemd
+    include: native
+
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: file:/var/www/ai/FamilyShield/config-repo/
+        # Explicitly disable git backend to avoid "configure a uri" error
+        git:
+          enabled: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka:${EUREKA_PASSWORD:Shield@Eureka2026}@localhost:8261/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh

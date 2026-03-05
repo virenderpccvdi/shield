@@ -1,0 +1,95 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "tenants": "Tenants",
+    "users": "Users",
+    "dnsRules": "DNS Rules",
+    "analytics": "Analytics",
+    "health": "System Health",
+    "customers": "Customers",
+    "profiles": "Profiles",
+    "map": "Map",
+    "alerts": "Alerts",
+    "settings": "Settings",
+    "logout": "Sign out",
+    "branding": "Branding",
+    "ispDashboard": "ISP Dashboard"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "confirm": "Confirm",
+    "back": "Back",
+    "submit": "Submit",
+    "close": "Close",
+    "create": "Create",
+    "update": "Update"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember Me",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "logout": "Sign out",
+    "welcome": "Welcome"
+  },
+  "dashboard": {
+    "totalChildren": "Total Children",
+    "activeNow": "Active Now",
+    "blockedToday": "Blocked Today",
+    "alertsToday": "Alerts Today"
+  },
+  "tenants": {
+    "title": "Tenants",
+    "addIsp": "Add ISP",
+    "editIsp": "Edit ISP",
+    "deleteIsp": "Delete ISP",
+    "name": "Name",
+    "slug": "Slug",
+    "email": "Email",
+    "phone": "Phone",
+    "plan": "Plan",
+    "maxCustomers": "Max Customers",
+    "status": "Status"
+  },
+  "users": {
+    "title": "Users",
+    "addUser": "Add User",
+    "role": "Role",
+    "tenant": "Tenant",
+    "created": "Created"
+  },
+  "dns": {
+    "title": "DNS Rules",
+    "categories": "Categories",
+    "blocklist": "Blocklist",
+    "allowlist": "Allowlist",
+    "domain": "Domain",
+    "reason": "Reason"
+  },
+  "alerts": {
+    "title": "Alerts",
+    "markRead": "Mark as Read",
+    "markAllRead": "Mark All as Read",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "critical": "Critical"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "notifications": "Notifications",
+    "language": "Language"
+  }
+}

@@ -1,0 +1,58 @@
+server:
+  port: 8284
+
+spring:
+  application:
+    name: shield-dns
+
+  config:
+    import: optional:configserver:http://localhost:8288
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: dns
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka:${EUREKA_PASSWORD:ShieldEureka2026}@localhost:8261/eureka/
+    registry-fetch-interval-seconds: 10
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+shield:
+  app:
+    domain: ${APP_DOMAIN:shield.rstglobal.in}
+  adguard:
+    enabled: ${ADGUARD_ENABLED:false}
+    url: ${ADGUARD_URL:http://localhost:3080}
+    user: ${ADGUARD_USER:shield-api}
+    pass: ${ADGUARD_PASS:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    com.rstglobal.shield.dns: DEBUG

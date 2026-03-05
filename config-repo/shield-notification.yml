@@ -1,0 +1,11 @@
+server:
+  port: 8286
+
+spring:
+  application:
+    name: shield-notification
+
+# Firebase Cloud Messaging — set enabled: true once service account is configured
+firebase:
+  enabled: false
+  service-account-path: /var/www/ai/FamilyShield/config/firebase-service-account.json

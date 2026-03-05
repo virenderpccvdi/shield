@@ -1,0 +1,13 @@
+server:
+  port: 8284
+
+spring:
+  application:
+    name: shield-dns
+
+shield:
+  adguard:
+    enabled: ${ADGUARD_ENABLED:false}
+    url: ${ADGUARD_URL:http://localhost:3080}
+    user: ${ADGUARD_USER:shield-api}
+    pass: ${ADGUARD_PASS:}
