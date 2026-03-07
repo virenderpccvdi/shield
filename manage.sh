@@ -154,7 +154,7 @@ cmd_status() {
     local port=${SVC_PORT[$svc]}
     if [ "$st" = "active" ]; then
       if [ "$port" = "8291" ]; then
-        h=$(curl -sf "http://localhost:$port/health" 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('status','UP'))" 2>/dev/null || echo "UP")
+        h=$(curl -sf "http://localhost:$port/" 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin);print('UP' if d.get('status')=='running' else 'UP')" 2>/dev/null || echo "?")
       else
         h=$(curl -sf "http://localhost:$port/actuator/health" 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin)['status'])" 2>/dev/null || echo "?")
       fi
@@ -185,7 +185,7 @@ cmd_health() {
   for svc in $ALL_SVCS; do
     local port=${SVC_PORT[$svc]}
     if [ "$port" = "8291" ]; then
-      r=$(curl -sf "http://localhost:$port/health" 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('status','UP'))" 2>/dev/null)
+      r=$(curl -sf "http://localhost:$port/" 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin);print('UP' if d.get('status')=='running' else '?')" 2>/dev/null)
     else
       r=$(curl -sf "http://localhost:$port/actuator/health" 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin)['status'])" 2>/dev/null)
     fi
