@@ -6,6 +6,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import BrushIcon from '@mui/icons-material/Brush';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import PaymentIcon from '@mui/icons-material/Payment';
+import BlockIcon from '@mui/icons-material/Block';
 import ShieldIcon from '@mui/icons-material/Shield';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useAuthStore } from '../store/auth.store';
@@ -25,6 +26,7 @@ export default function IspLayout() {
     { label: 'Branding', icon: <BrushIcon />, path: '/isp/branding' },
     { label: 'Analytics', icon: <BarChartIcon />, path: '/isp/analytics' },
     { label: 'Billing', icon: <PaymentIcon />, path: '/isp/billing' },
+    { label: 'Blocklist', icon: <BlockIcon />, path: '/isp/blocklist' },
     { label: 'Settings', icon: <SettingsIcon />, path: '/isp/settings' },
   ];
 

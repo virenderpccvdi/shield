@@ -1,0 +1,26 @@
+Redis Sentinel High Availability Notes
+=======================================
+
+Current setup: Single Redis instance on port 6379 (no password).
+
+Redis Sentinel requires a minimum of 3 Sentinel nodes for proper quorum-based
+HA. A single Sentinel node provides monitoring but cannot achieve automatic
+failover safely (split-brain risk).
+
+To enable proper HA, the architecture requires:
+  - 1 Redis primary (port 6379)
+  - 1+ Redis replicas
+  - 3 Sentinel nodes (can run on same or different servers)
+
+For Shield's current single-server deployment, Redis HA is not practical.
+The sentinel.conf.template file documents the configuration for future
+multi-server setups.
+
+To activate Sentinel on a multi-server deployment:
+  1. Copy sentinel.conf.template to each Sentinel node as sentinel.conf
+  2. Update the monitor IP to point to the primary Redis
+  3. Start with: redis-sentinel /etc/redis/sentinel.conf
+  4. Update Shield services to use spring.data.redis.sentinel.* config
+
+Current Redis status check:
+  redis-cli -p 6379 ping

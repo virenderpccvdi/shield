@@ -15,6 +15,9 @@ import DevicesIcon from '@mui/icons-material/Devices';
 import SettingsIcon from '@mui/icons-material/Settings';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
+import BlockIcon from '@mui/icons-material/Block';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import { useAuthStore } from '../store/auth.store';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
@@ -43,11 +46,14 @@ export default function AdminLayout() {
         { label: 'Devices', icon: <DevicesIcon />, path: '/admin/devices' },
         { label: 'Child Profiles', icon: <ChildCareIcon />, path: '/admin/child-profiles' },
         { label: 'DNS Rules', icon: <DnsIcon />, path: '/admin/dns-rules' },
+        { label: 'Global Blocklist', icon: <BlockIcon />, path: '/admin/blocklist' },
+        { label: 'Features', icon: <ToggleOnIcon />, path: '/admin/features' },
       ],
     },
     {
       title: 'System',
       items: [
+        { label: 'AI Models', icon: <PsychologyIcon />, path: '/admin/ai-models' },
         { label: 'Services', icon: <MonitorHeartIcon />, path: '/admin/health' },
         { label: 'Notifications', icon: <NotificationsIcon />, path: '/admin/notifications' },
         { label: 'Invoices', icon: <ReceiptLongIcon />, path: '/admin/invoices' },

@@ -75,12 +75,17 @@ public class ChannelAdminService {
                              EmailService emailSvc, WhatsAppService waSvc, TelegramService tgSvc) {
         String msg = "Shield notification test — channel is working!";
         boolean sent = switch (channelType) {
-            case "SMTP"     -> emailSvc.sendPlainEmail(tenantId, testRecipient, "Shield SMTP Test", msg);
-            case "WHATSAPP" -> waSvc.send(tenantId, testRecipient, msg);
-            case "TELEGRAM" -> tgSvc.send(tenantId, testRecipient, msg);
+            case "SMTP", "EMAIL" -> emailSvc.sendPlainEmail(tenantId, testRecipient, "Shield SMTP Test", msg);
+            case "WHATSAPP"      -> waSvc.send(tenantId, testRecipient, msg);
+            case "TELEGRAM"      -> tgSvc.send(tenantId, testRecipient, msg);
             default -> throw ShieldException.badRequest("Unknown channel: " + channelType);
         };
-        if (!sent) throw ShieldException.badRequest("Channel test failed — check configuration");
+        if (!sent) {
+            String hint = (channelType.equals("SMTP") || channelType.equals("EMAIL"))
+                    ? "SMTP channel not configured or disabled. Go to Notification Channels settings and save your SMTP credentials."
+                    : channelType + " channel test failed — check configuration.";
+            throw ShieldException.badRequest(hint);
+        }
     }
 
     private ChannelResponse toResponse(NotificationChannel c) {

@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
@@ -6,6 +7,7 @@ from services.anomaly_service import detect_anomaly
 from schemas.request import BatchAnalysisRequest
 from schemas.response import AnomalyResult
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ai", tags=["analysis"])
 
 
@@ -24,4 +26,22 @@ async def analyze_batch(
             "gaming_queries": 0, "after_hours_queries": 0, "new_domains": 0,
             "hour_of_day": 0, "day_of_week": 0
         }
-    return detect_anomaly(features)
+    result = detect_anomaly(features)
+
+    # Register an alert if anomaly detected above threshold
+    if result.is_anomaly and result.score > 0.3:
+        try:
+            from routers.alerts import register_alert
+            register_alert(
+                profile_id=str(request.profileId),
+                alert_type="ANOMALY",
+                severity=result.severity.value,
+                score=result.score,
+                description=f"Anomaly detected for profile {request.profileId} "
+                            f"(score={result.score:.2f}, severity={result.severity.value}). "
+                            f"Unusual internet usage pattern identified by IsolationForest model."
+            )
+        except Exception as e:
+            logger.warning("Failed to register alert: %s", e)
+
+    return result

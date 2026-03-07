@@ -6,19 +6,26 @@ import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.tenant.dto.request.CreateTenantRequest;
 import com.rstglobal.shield.tenant.dto.request.UpdateTenantRequest;
 import com.rstglobal.shield.tenant.dto.response.TenantResponse;
+import com.rstglobal.shield.tenant.entity.Tenant;
+import com.rstglobal.shield.tenant.repository.TenantRepository;
 import com.rstglobal.shield.tenant.service.TenantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.EntityManager;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/tenants")
 @RequiredArgsConstructor
@@ -26,6 +33,8 @@ import java.util.UUID;
 public class TenantController {
 
     private final TenantService tenantService;
+    private final TenantRepository tenantRepository;
+    private final EntityManager entityManager;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -105,6 +114,103 @@ public class TenantController {
     public ApiResponse<TenantResponse> getMyTenant(
             @RequestHeader("X-Tenant-Id") UUID tenantId) {
         return ApiResponse.ok(tenantService.getById(tenantId));
+    }
+
+    // ── Quota endpoints ───────────────────────────────────────────────────────
+
+    /**
+     * GET /api/v1/tenants/{id}/quotas
+     * Returns tenant quota limits and current usage.
+     * Accessible by GLOBAL_ADMIN, or by ISP_ADMIN for their own tenant.
+     */
+    @GetMapping("/{id}/quotas")
+    @Transactional(readOnly = true)
+    @Operation(summary = "Get tenant quota limits and current usage")
+    public ApiResponse<Map<String, Object>> getQuotas(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID callerTenantId,
+            @PathVariable UUID id) {
+        requireGlobalAdminOrSelf(role, callerTenantId, id);
+
+        Tenant tenant = tenantRepository.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("Tenant", id));
+
+        long customerCount = safeCount(
+                "SELECT count(*) FROM profile.customers WHERE tenant_id = '" + id + "'");
+        long profileCount = safeCount(
+                "SELECT count(*) FROM profile.child_profiles cp " +
+                "JOIN profile.customers c ON c.id = cp.customer_id " +
+                "WHERE c.tenant_id = '" + id + "'");
+        long deviceCount = safeCount(
+                "SELECT count(*) FROM profile.devices WHERE tenant_id = '" + id + "'");
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("tenantId", id);
+        result.put("tenantSlug", tenant.getSlug());
+        result.put("plan", tenant.getPlan());
+        result.put("limits", Map.of(
+                "maxCustomers", tenant.getMaxCustomers(),
+                "maxProfilesPerCustomer", tenant.getMaxProfilesPerCustomer()
+        ));
+        result.put("usage", Map.of(
+                "customers", customerCount,
+                "childProfiles", profileCount,
+                "devices", deviceCount
+        ));
+        result.put("utilization", Map.of(
+                "customersPercent", tenant.getMaxCustomers() > 0
+                        ? Math.round((double) customerCount / tenant.getMaxCustomers() * 100) : 0
+        ));
+        return ApiResponse.ok(result);
+    }
+
+    /**
+     * PUT /api/v1/tenants/{id}/quotas
+     * Update tenant quota limits — GLOBAL_ADMIN only.
+     */
+    @PutMapping("/{id}/quotas")
+    @Transactional
+    @Operation(summary = "Update tenant quota limits (GLOBAL_ADMIN only)")
+    public ApiResponse<Map<String, Object>> updateQuotas(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable UUID id,
+            @RequestBody Map<String, Integer> body) {
+        requireGlobalAdmin(role);
+
+        Tenant tenant = tenantRepository.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("Tenant", id));
+
+        if (body.containsKey("maxCustomers") && body.get("maxCustomers") != null) {
+            tenant.setMaxCustomers(body.get("maxCustomers"));
+        }
+        if (body.containsKey("maxProfilesPerCustomer") && body.get("maxProfilesPerCustomer") != null) {
+            tenant.setMaxProfilesPerCustomer(body.get("maxProfilesPerCustomer"));
+        }
+        tenantRepository.save(tenant);
+        log.info("Updated quotas for tenant {}: maxCustomers={}, maxProfilesPerCustomer={}",
+                id, tenant.getMaxCustomers(), tenant.getMaxProfilesPerCustomer());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("tenantId", id);
+        result.put("maxCustomers", tenant.getMaxCustomers());
+        result.put("maxProfilesPerCustomer", tenant.getMaxProfilesPerCustomer());
+        return ApiResponse.ok(result);
+    }
+
+    private long safeCount(String sql) {
+        try {
+            Object result = entityManager.createNativeQuery(sql).getSingleResult();
+            return ((Number) result).longValue();
+        } catch (Exception e) {
+            log.warn("Quota count query failed: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    private void requireGlobalAdminOrSelf(String role, UUID callerTenantId, UUID targetTenantId) {
+        if ("GLOBAL_ADMIN".equals(role)) return;
+        if ("ISP_ADMIN".equals(role) && targetTenantId.equals(callerTenantId)) return;
+        throw ShieldException.forbidden("GLOBAL_ADMIN or ISP_ADMIN (own tenant) role required");
     }
 
     private void requireGlobalAdmin(String role) {

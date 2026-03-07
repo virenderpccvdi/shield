@@ -51,6 +51,10 @@ import BrandingPage from './pages/isp-admin/BrandingPage';
 import CustomerDetailPage from './pages/isp-admin/CustomerDetailPage';
 
 import InvoicesPage from './pages/global-admin/InvoicesPage';
+import GlobalBlocklistPage from './pages/global-admin/GlobalBlocklistPage';
+import AiModelsPage from './pages/global-admin/AiModelsPage';
+import FeatureManagementPage from './pages/global-admin/FeatureManagementPage';
+import IspBlocklistPage from './pages/isp-admin/IspBlocklistPage';
 import SubscriptionPage from './pages/customer/SubscriptionPage';
 import CheckoutSuccessPage from './pages/customer/CheckoutSuccessPage';
 import CheckoutCancelPage from './pages/customer/CheckoutCancelPage';
@@ -120,6 +124,9 @@ export default function App() {
               <Route path="/admin/child-profiles" element={<ChildProfilesPage />} />
               <Route path="/admin/child-profiles/:profileId" element={<AdminChildDetailPage />} />
               <Route path="/admin/invoices" element={<InvoicesPage />} />
+              <Route path="/admin/blocklist" element={<GlobalBlocklistPage />} />
+              <Route path="/admin/ai-models" element={<AiModelsPage />} />
+              <Route path="/admin/features" element={<FeatureManagementPage />} />
               <Route path="/admin/settings" element={<SettingsPage />} />
             </Route>
 
@@ -130,6 +137,7 @@ export default function App() {
               <Route path="/isp/branding" element={<BrandingPage />} />
               <Route path="/isp/analytics" element={<IspAnalyticsPage />} />
               <Route path="/isp/billing" element={<IspBillingPage />} />
+              <Route path="/isp/blocklist" element={<IspBlocklistPage />} />
               <Route path="/isp/settings" element={<SettingsPage />} />
             </Route>
 
