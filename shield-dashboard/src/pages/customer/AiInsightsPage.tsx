@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress,
-  Chip, Stack, Alert, Divider
+  Chip, Stack, Alert, Divider, IconButton, Tooltip as MuiTooltip
 } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -14,6 +14,10 @@ import InfoIcon from '@mui/icons-material/Info';
 import ErrorIcon from '@mui/icons-material/Error';
 import ShieldIcon from '@mui/icons-material/Shield';
 import FavoriteIcon from '@mui/icons-material/Favorite';
+import NightlightIcon from '@mui/icons-material/Nightlight';
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
+import NewReleasesIcon from '@mui/icons-material/NewReleases';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -55,6 +59,17 @@ interface KeywordData {
   keywords: Record<string, number>;
 }
 
+interface SocialAlert {
+  id: string;
+  profileId: string;
+  alertType: string;
+  severity: string;
+  description: string;
+  metadata?: Record<string, unknown>;
+  acknowledged: boolean;
+  detectedAt: string;
+}
+
 const SEVERITY_CONFIG: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
   LOW: { color: '#2E7D32', bg: '#E8F5E9', icon: <InfoIcon /> },
   MEDIUM: { color: '#F57F17', bg: '#FFF8E1', icon: <WarningAmberIcon /> },
@@ -71,6 +86,19 @@ const TREND_ICONS: Record<string, React.ReactNode> = {
   UP: <TrendingUpIcon sx={{ fontSize: 18 }} />,
   DOWN: <TrendingDownIcon sx={{ fontSize: 18 }} />,
   STABLE: <RemoveIcon sx={{ fontSize: 18 }} />,
+};
+
+const SOCIAL_ALERT_ICONS: Record<string, React.ReactNode> = {
+  LATE_NIGHT: <NightlightIcon sx={{ fontSize: 20 }} />,
+  SOCIAL_SPIKE: <TrendingUpIcon sx={{ fontSize: 20 }} />,
+  GAMING_SPIKE: <SportsEsportsIcon sx={{ fontSize: 20 }} />,
+  NEW_CATEGORY: <NewReleasesIcon sx={{ fontSize: 20 }} />,
+};
+
+const SOCIAL_ALERT_COLORS: Record<string, { color: string; bg: string }> = {
+  HIGH: { color: '#C62828', bg: '#FFEBEE' },
+  MEDIUM: { color: '#E65100', bg: '#FFF3E0' },
+  LOW: { color: '#2E7D32', bg: '#E8F5E9' },
 };
 
 function RiskGauge({ score, level }: { score: number; level: string }) {
@@ -101,6 +129,7 @@ function RiskGauge({ score, level }: { score: number; level: string }) {
 
 export default function AiInsightsPage() {
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
+  const qc = useQueryClient();
 
   const { data: children } = useQuery({
     queryKey: ['children'],
@@ -128,6 +157,20 @@ export default function AiInsightsPage() {
     queryKey: ['ai-keywords', profileId],
     queryFn: () => api.get(`/ai/${profileId}/keywords`).then(r => r.data as KeywordData).catch(() => null),
     enabled: !!profileId,
+  });
+
+  const { data: socialAlerts } = useQuery({
+    queryKey: ['social-alerts', profileId],
+    queryFn: () => api.get(`/analytics/${profileId}/social-alerts`)
+      .then(r => r.data as SocialAlert[])
+      .catch(() => [] as SocialAlert[]),
+    enabled: !!profileId,
+    refetchInterval: 2 * 60 * 1000,
+  });
+
+  const acknowledgeMutation = useMutation({
+    mutationFn: (alertId: string) => api.post(`/analytics/social-alerts/${alertId}/acknowledge`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['social-alerts', profileId] }),
   });
 
   if (!children || children.length === 0) {
@@ -362,6 +405,76 @@ export default function AiInsightsPage() {
               </Card>
             </AnimatedPage>
           </Grid>
+
+          {/* Social Monitoring Alerts */}
+          {(socialAlerts && socialAlerts.length > 0) && (
+            <Grid size={12}>
+              <AnimatedPage delay={0.42}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="subtitle1" fontWeight={600}>Social Monitoring Alerts</Typography>
+                      <Chip
+                        label={`${socialAlerts.filter(a => !a.acknowledged).length} unread`}
+                        size="small"
+                        sx={{ bgcolor: '#FFEBEE', color: '#C62828', fontWeight: 700 }}
+                      />
+                    </Box>
+                    <Stack spacing={1.5}>
+                      {socialAlerts.slice(0, 10).map(alert => {
+                        const colors = SOCIAL_ALERT_COLORS[alert.severity] || SOCIAL_ALERT_COLORS.LOW;
+                        const icon = SOCIAL_ALERT_ICONS[alert.alertType] || <NewReleasesIcon sx={{ fontSize: 20 }} />;
+                        return (
+                          <Box
+                            key={alert.id}
+                            sx={{
+                              display: 'flex', alignItems: 'flex-start', gap: 1.5,
+                              p: 1.5, borderRadius: 2,
+                              bgcolor: alert.acknowledged ? '#FAFAFA' : colors.bg,
+                              opacity: alert.acknowledged ? 0.6 : 1,
+                              border: '1px solid',
+                              borderColor: alert.acknowledged ? '#E0E0E0' : `${colors.color}40`,
+                            }}
+                          >
+                            <Box sx={{ color: colors.color, mt: 0.2 }}>{icon}</Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                <Chip
+                                  label={alert.alertType.replace('_', ' ')}
+                                  size="small"
+                                  sx={{ height: 20, fontSize: 10, fontWeight: 700, bgcolor: 'white', color: colors.color }}
+                                />
+                                <Chip
+                                  label={alert.severity}
+                                  size="small"
+                                  sx={{ height: 20, fontSize: 10, fontWeight: 700, bgcolor: colors.color, color: 'white' }}
+                                />
+                                <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+                                  {new Date(alert.detectedAt).toLocaleString()}
+                                </Typography>
+                              </Box>
+                              <Typography variant="body2" color="text.secondary">{alert.description}</Typography>
+                            </Box>
+                            {!alert.acknowledged && (
+                              <MuiTooltip title="Mark as read">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => acknowledgeMutation.mutate(alert.id)}
+                                  sx={{ color: colors.color }}
+                                >
+                                  <CheckCircleOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </MuiTooltip>
+                            )}
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </AnimatedPage>
+            </Grid>
+          )}
 
           {/* Keyword Analysis */}
           {keywordChartData.length > 0 && (

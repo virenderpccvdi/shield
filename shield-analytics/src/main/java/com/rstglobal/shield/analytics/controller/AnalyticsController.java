@@ -5,7 +5,9 @@ import com.rstglobal.shield.analytics.dto.response.DailyUsagePoint;
 import com.rstglobal.shield.analytics.dto.response.TopDomainEntry;
 import com.rstglobal.shield.analytics.dto.response.UsageStatsResponse;
 import com.rstglobal.shield.analytics.entity.DnsQueryLog;
+import com.rstglobal.shield.analytics.entity.SocialAlert;
 import com.rstglobal.shield.analytics.service.AnalyticsService;
+import com.rstglobal.shield.analytics.service.SocialMonitoringService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,6 +34,7 @@ import java.util.UUID;
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
+    private final SocialMonitoringService socialMonitoringService;
 
     /**
      * GET /api/v1/analytics/{profileId}/stats?period=today|week|month
@@ -316,6 +319,51 @@ public class AnalyticsController {
             @RequestHeader(value = "X-User-Role", required = false) String userRole) {
         requireAdmin(userRole);
         return ResponseEntity.ok(analyticsService.getTopTenantsByQueries(period, Math.min(limit, 20)));
+    }
+
+    // ── Social monitoring alerts ──────────────────────────────────────────────
+
+    /**
+     * GET /api/v1/analytics/{profileId}/social-alerts?unreadOnly=true
+     * Returns social behaviour alerts for a profile (late-night, spikes, new categories).
+     */
+    @GetMapping("/{profileId}/social-alerts")
+    public ResponseEntity<List<SocialAlert>> getSocialAlerts(
+            @PathVariable UUID profileId,
+            @RequestParam(defaultValue = "false") boolean unreadOnly,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        validateAccess(profileId, userId, userRole);
+        return ResponseEntity.ok(socialMonitoringService.getAlertsForProfile(profileId, unreadOnly));
+    }
+
+    /**
+     * POST /api/v1/analytics/social-alerts/{alertId}/acknowledge
+     * Mark an alert as acknowledged/read.
+     */
+    @PostMapping("/social-alerts/{alertId}/acknowledge")
+    public ResponseEntity<Void> acknowledgeAlert(
+            @PathVariable UUID alertId,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        if (userId == null || userId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing X-User-Id");
+        }
+        socialMonitoringService.acknowledgeAlert(alertId);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * GET /api/v1/analytics/tenant/{tenantId}/social-alerts
+     * Returns unread social alerts for all profiles in a tenant (ISP admin view).
+     */
+    @GetMapping("/tenant/{tenantId}/social-alerts")
+    public ResponseEntity<List<SocialAlert>> getTenantSocialAlerts(
+            @PathVariable UUID tenantId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String headerTenantId) {
+        requireAdminOrMatchingTenant(userRole, headerTenantId, tenantId);
+        return ResponseEntity.ok(socialMonitoringService.getUnreadAlertsForTenant(tenantId));
     }
 
     private void requireAdmin(String role) {

@@ -142,4 +142,59 @@ public interface DnsQueryLogRepository extends JpaRepository<DnsQueryLog, UUID> 
             """, nativeQuery = true)
     List<Object[]> findTopTenantsByQueries(@Param("from") Instant from, @Param("to") Instant to,
                                             @Param("limit") int limit);
+
+    // ── Social monitoring queries ─────────────────────────────────────────────
+
+    /** Count queries in a window where the query hour (UTC) falls in 22:00–06:00. */
+    @Query(value = """
+            SELECT COUNT(*) FROM analytics.dns_query_logs
+            WHERE profile_id = :profileId
+              AND queried_at BETWEEN :from AND :to
+              AND (EXTRACT(HOUR FROM queried_at AT TIME ZONE 'UTC') >= 22
+                   OR EXTRACT(HOUR FROM queried_at AT TIME ZONE 'UTC') < 6)
+            """, nativeQuery = true)
+    long countLateNightQueries(@Param("profileId") UUID profileId,
+                               @Param("from") Instant from, @Param("to") Instant to);
+
+    /** Count queries matching any of the given category names. */
+    @Query(value = """
+            SELECT COUNT(*) FROM analytics.dns_query_logs
+            WHERE profile_id = :profileId
+              AND queried_at BETWEEN :from AND :to
+              AND category = ANY(CAST(:categories AS VARCHAR[]))
+            """, nativeQuery = true)
+    long countQueriesByCategories(@Param("profileId") UUID profileId,
+                                   @Param("from") Instant from, @Param("to") Instant to,
+                                   @Param("categories") String[] categories);
+
+    /** Categories first seen in the recent window that were NOT present in the baseline window. */
+    @Query(value = """
+            SELECT DISTINCT recent.category
+            FROM (
+                SELECT DISTINCT category FROM analytics.dns_query_logs
+                WHERE profile_id = :profileId
+                  AND queried_at BETWEEN :recentFrom AND :recentTo
+                  AND category IS NOT NULL
+            ) recent
+            WHERE NOT EXISTS (
+                SELECT 1 FROM analytics.dns_query_logs
+                WHERE profile_id = :profileId
+                  AND queried_at BETWEEN :baselineFrom AND :baselineTo
+                  AND category = recent.category
+            )
+            """, nativeQuery = true)
+    List<String> findNewCategories(@Param("profileId") UUID profileId,
+                                    @Param("recentFrom") Instant recentFrom,
+                                    @Param("recentTo") Instant recentTo,
+                                    @Param("baselineFrom") Instant baselineFrom,
+                                    @Param("baselineTo") Instant baselineTo);
+
+    /** Distinct active profiles (with tenantId) since a given time. */
+    @Query(value = """
+            SELECT DISTINCT profile_id, tenant_id
+            FROM analytics.dns_query_logs
+            WHERE queried_at >= :since
+              AND profile_id IS NOT NULL
+            """, nativeQuery = true)
+    List<Object[]> findActiveProfilesSince(@Param("since") Instant since);
 }
