@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Typography, Card, CardContent, Chip, Stack, TextField,
+  Box, Typography, Card, Chip, Stack, TextField,
   MenuItem, CircularProgress, Avatar, Button, TablePagination,
-  InputAdornment,
+  InputAdornment, Collapse, IconButton, Tooltip, Switch, FormControlLabel,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper,
 } from '@mui/material';
 import HistoryIcon from '@mui/icons-material/History';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -21,6 +23,12 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import SearchIcon from '@mui/icons-material/Search';
 import DownloadIcon from '@mui/icons-material/Download';
 import ClearIcon from '@mui/icons-material/Clear';
+import BusinessIcon from '@mui/icons-material/Business';
+import CardMembershipIcon from '@mui/icons-material/CardMembership';
+import BlockIcon from '@mui/icons-material/Block';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
@@ -33,30 +41,43 @@ interface AuditEntry {
   action: string;
   resourceType: string;
   resourceId: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   ipAddress: string;
   createdAt: string;
 }
 
-const ACTION_CONFIG: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-  SERVICE_RESTART: { icon: <RestartAltIcon fontSize="small" />, color: '#FB8C00', label: 'Service Restart' },
-  SERVICE_STOP: { icon: <StopCircleIcon fontSize="small" />, color: '#E53935', label: 'Service Stop' },
-  SERVICE_START: { icon: <PlayCircleIcon fontSize="small" />, color: '#43A047', label: 'Service Start' },
-  PLAN_CREATED: { icon: <AddCircleIcon fontSize="small" />, color: '#7B1FA2', label: 'Plan Created' },
-  PLAN_UPDATED: { icon: <EditIcon fontSize="small" />, color: '#1565C0', label: 'Plan Updated' },
-  PLAN_DELETED: { icon: <DeleteIcon fontSize="small" />, color: '#C62828', label: 'Plan Deleted' },
-  TENANT_UPDATED: { icon: <EditIcon fontSize="small" />, color: '#00897B', label: 'Tenant Updated' },
-  USER_UPDATED: { icon: <PersonIcon fontSize="small" />, color: '#5C6BC0', label: 'User Updated' },
-  USER_DELETED: { icon: <DeleteIcon fontSize="small" />, color: '#C62828', label: 'User Deleted' },
-  USER_LOGIN: { icon: <LoginIcon fontSize="small" />, color: '#2196F3', label: 'User Login' },
-  USER_LOGOUT: { icon: <LogoutIcon fontSize="small" />, color: '#607D8B', label: 'User Logout' },
-  USER_REGISTERED: { icon: <PersonAddIcon fontSize="small" />, color: '#4CAF50', label: 'User Registered' },
-  PASSWORD_CHANGED: { icon: <LockIcon fontSize="small" />, color: '#FF9800', label: 'Password Changed' },
-  PROFILE_UPDATED: { icon: <PersonIcon fontSize="small" />, color: '#009688', label: 'Profile Updated' },
-  DNS_RULES_UPDATED: { icon: <DnsIcon fontSize="small" />, color: '#00897B', label: 'DNS Rules Updated' },
+const ACTION_CONFIG: Record<string, { icon: React.ReactNode; color: string; bg: string; label: string }> = {
+  SERVICE_RESTART: { icon: <RestartAltIcon sx={{ fontSize: 14 }} />, color: '#E65100', bg: '#FFF3E0', label: 'Service Restart' },
+  SERVICE_STOP:    { icon: <StopCircleIcon sx={{ fontSize: 14 }} />,  color: '#C62828', bg: '#FFEBEE', label: 'Service Stop' },
+  SERVICE_START:   { icon: <PlayCircleIcon sx={{ fontSize: 14 }} />,  color: '#2E7D32', bg: '#E8F5E9', label: 'Service Start' },
+  PLAN_CREATED:    { icon: <AddCircleIcon sx={{ fontSize: 14 }} />,   color: '#6A1B9A', bg: '#F3E5F5', label: 'Plan Created' },
+  PLAN_UPDATED:    { icon: <EditIcon sx={{ fontSize: 14 }} />,        color: '#1565C0', bg: '#E3F2FD', label: 'Plan Updated' },
+  PLAN_DELETED:    { icon: <DeleteIcon sx={{ fontSize: 14 }} />,      color: '#C62828', bg: '#FFEBEE', label: 'Plan Deleted' },
+  TENANT_CREATED:  { icon: <BusinessIcon sx={{ fontSize: 14 }} />,    color: '#00695C', bg: '#E0F2F1', label: 'Tenant Created' },
+  TENANT_UPDATED:  { icon: <EditIcon sx={{ fontSize: 14 }} />,        color: '#00838F', bg: '#E0F7FA', label: 'Tenant Updated' },
+  TENANT_DELETED:  { icon: <DeleteIcon sx={{ fontSize: 14 }} />,      color: '#C62828', bg: '#FFEBEE', label: 'Tenant Deleted' },
+  USER_CREATED:    { icon: <PersonAddIcon sx={{ fontSize: 14 }} />,   color: '#2E7D32', bg: '#E8F5E9', label: 'User Created' },
+  USER_UPDATED:    { icon: <PersonIcon sx={{ fontSize: 14 }} />,      color: '#5C6BC0', bg: '#E8EAF6', label: 'User Updated' },
+  USER_DELETED:    { icon: <DeleteIcon sx={{ fontSize: 14 }} />,      color: '#C62828', bg: '#FFEBEE', label: 'User Deleted' },
+  USER_LOGIN:      { icon: <LoginIcon sx={{ fontSize: 14 }} />,       color: '#1565C0', bg: '#E3F2FD', label: 'Login' },
+  USER_LOGOUT:     { icon: <LogoutIcon sx={{ fontSize: 14 }} />,      color: '#546E7A', bg: '#ECEFF1', label: 'Logout' },
+  USER_REGISTERED: { icon: <PersonAddIcon sx={{ fontSize: 14 }} />,   color: '#388E3C', bg: '#F1F8E9', label: 'Registered' },
+  USER_SUSPENDED:  { icon: <BlockIcon sx={{ fontSize: 14 }} />,       color: '#C62828', bg: '#FFEBEE', label: 'User Suspended' },
+  PASSWORD_CHANGED:{ icon: <LockIcon sx={{ fontSize: 14 }} />,        color: '#E65100', bg: '#FFF3E0', label: 'Password Changed' },
+  PASSWORD_RESET:  { icon: <LockIcon sx={{ fontSize: 14 }} />,        color: '#BF360C', bg: '#FBE9E7', label: 'Password Reset' },
+  PROFILE_UPDATED: { icon: <PersonIcon sx={{ fontSize: 14 }} />,      color: '#00695C', bg: '#E0F2F1', label: 'Profile Updated' },
+  DNS_RULES_UPDATED:          { icon: <DnsIcon sx={{ fontSize: 14 }} />,            color: '#00897B', bg: '#E0F2F1', label: 'DNS Rules Updated' },
+  SUBSCRIPTION_CREATED:       { icon: <CardMembershipIcon sx={{ fontSize: 14 }} />, color: '#6A1B9A', bg: '#F3E5F5', label: 'Subscription Created' },
+  SUBSCRIPTION_UPDATED:       { icon: <CardMembershipIcon sx={{ fontSize: 14 }} />, color: '#1565C0', bg: '#E3F2FD', label: 'Subscription Updated' },
+  SUBSCRIPTION_CANCELLED:     { icon: <CardMembershipIcon sx={{ fontSize: 14 }} />, color: '#C62828', bg: '#FFEBEE', label: 'Subscription Cancelled' },
+  SETTINGS_UPDATED:           { icon: <SettingsIcon sx={{ fontSize: 14 }} />,       color: '#546E7A', bg: '#ECEFF1', label: 'Settings Updated' },
+  BLOCKLIST_UPDATED:          { icon: <BlockIcon sx={{ fontSize: 14 }} />,          color: '#BF360C', bg: '#FBE9E7', label: 'Blocklist Updated' },
+  GLOBAL_BLOCKLIST_ADD:       { icon: <BlockIcon sx={{ fontSize: 14 }} />,          color: '#BF360C', bg: '#FBE9E7', label: 'Blocklist Added' },
+  GLOBAL_BLOCKLIST_REMOVE:    { icon: <BlockIcon sx={{ fontSize: 14 }} />,          color: '#546E7A', bg: '#ECEFF1', label: 'Blocklist Removed' },
+  EMERGENCY_BLOCK:            { icon: <BlockIcon sx={{ fontSize: 14 }} />,          color: '#B71C1C', bg: '#FFCDD2', label: 'Emergency Block' },
 };
 
-const DEFAULT_CONFIG = { icon: <SettingsIcon fontSize="small" />, color: '#78909C', label: 'Action' };
+const DEFAULT_CONFIG = { icon: <SettingsIcon sx={{ fontSize: 14 }} />, color: '#78909C', bg: '#ECEFF1', label: 'Action' };
 
 const FILTER_OPTIONS = [
   { value: '', label: 'All Actions' },
@@ -66,7 +87,7 @@ const FILTER_OPTIONS = [
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) +
-    ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    ' · ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 function timeAgo(dateStr: string): string {
@@ -80,17 +101,170 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
+function formatIp(ip: string): string {
+  if (!ip) return '—';
+  if (ip === '::1' || ip === '0:0:0:0:0:0:0:1') return '127.0.0.1';
+  if (ip.startsWith('::ffff:')) return ip.slice(7);
+  return ip;
+}
+
 function exportCSV(entries: AuditEntry[]) {
   const headers = ['Timestamp', 'Action', 'User', 'Resource Type', 'Resource ID', 'IP Address', 'Details'];
   const rows = entries.map(e => [
     e.createdAt, e.action, e.userName || '', e.resourceType || '', e.resourceId || '',
     e.ipAddress || '', JSON.stringify(e.details || {}),
   ]);
-  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const csv = [headers, ...rows]
+    .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click(); URL.revokeObjectURL(url);
+  const a = document.createElement('a');
+  a.href = url; a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function ExpandableDetails({ details }: { details: Record<string, unknown> }) {
+  const [open, setOpen] = useState(false);
+  const entries = Object.entries(details);
+  if (entries.length === 0) return <Typography variant="caption" color="text.disabled">—</Typography>;
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+        {entries.slice(0, 2).map(([k, v]) => (
+          <Chip key={k} size="small" variant="outlined" label={`${k}: ${String(v).substring(0, 30)}`}
+            sx={{ height: 20, fontSize: 10, fontFamily: 'monospace', maxWidth: 200, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }} />
+        ))}
+        {entries.length > 2 && (
+          <Chip size="small" label={open ? 'Show less' : `+${entries.length - 2} more`}
+            onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+            icon={open ? <KeyboardArrowUpIcon style={{ fontSize: 12 }} /> : <KeyboardArrowDownIcon style={{ fontSize: 12 }} />}
+            sx={{ height: 20, fontSize: 10, cursor: 'pointer', bgcolor: '#EDE7F6', color: '#4A148C', border: 'none' }} />
+        )}
+      </Box>
+      <Collapse in={open}>
+        <Box sx={{ mt: 1, bgcolor: 'grey.50', borderRadius: 1, p: 1.5, fontFamily: 'monospace', fontSize: 11, overflowX: 'auto' }}>
+          {entries.map(([k, v]) => (
+            <Box key={k} sx={{ mb: 0.25, display: 'flex', gap: 0.5 }}>
+              <Typography component="span" sx={{ fontWeight: 700, color: '#6A1B9A', fontSize: 11, flexShrink: 0 }}>{k}:</Typography>
+              <Typography component="span" sx={{ fontSize: 11, wordBreak: 'break-all', color: 'text.secondary' }}>{String(v)}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </Collapse>
+    </Box>
+  );
+}
+
+function AuditRow({ entry, idx }: { entry: AuditEntry; idx: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const cfg = ACTION_CONFIG[entry.action] || DEFAULT_CONFIG;
+  const hasDetails = entry.details && Object.keys(entry.details).length > 0;
+
+  return (
+    <>
+      <TableRow
+        hover
+        onClick={() => hasDetails && setExpanded(e => !e)}
+        sx={{
+          cursor: hasDetails ? 'pointer' : 'default',
+          '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } },
+          animation: `fadeIn 0.2s ease ${(idx % 20) * 0.02}s both`,
+          '& td': { borderBottom: expanded ? 'none' : undefined },
+          bgcolor: expanded ? 'rgba(92,107,192,0.03)' : undefined,
+        }}
+      >
+        {/* Timestamp */}
+        <TableCell sx={{ whiteSpace: 'nowrap', width: 150 }}>
+          <Tooltip title={formatDate(entry.createdAt)}>
+            <Box>
+              <Typography variant="body2" fontSize={12} fontWeight={600} color="text.primary">
+                {timeAgo(entry.createdAt)}
+              </Typography>
+              <Typography variant="caption" color="text.disabled" fontSize={10}>
+                {new Date(entry.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              </Typography>
+            </Box>
+          </Tooltip>
+        </TableCell>
+
+        {/* Action */}
+        <TableCell sx={{ width: 180 }}>
+          <Chip
+            size="small"
+            icon={<Box sx={{ display: 'flex', alignItems: 'center', color: cfg.color, ml: '6px !important' }}>{cfg.icon}</Box>}
+            label={cfg.label}
+            sx={{
+              bgcolor: cfg.bg, color: cfg.color, fontWeight: 700, fontSize: 11, height: 24,
+              border: `1px solid ${cfg.color}30`,
+              '& .MuiChip-icon': { color: cfg.color },
+            }}
+          />
+        </TableCell>
+
+        {/* User */}
+        <TableCell sx={{ width: 160 }}>
+          {entry.userName ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Avatar sx={{ width: 24, height: 24, fontSize: 11, bgcolor: '#5C6BC0' }}>
+                {entry.userName[0]?.toUpperCase()}
+              </Avatar>
+              <Typography variant="body2" fontSize={12} noWrap sx={{ maxWidth: 110 }}>
+                {entry.userName}
+              </Typography>
+            </Box>
+          ) : <Typography variant="caption" color="text.disabled">System</Typography>}
+        </TableCell>
+
+        {/* Resource */}
+        <TableCell>
+          {entry.resourceType ? (
+            <Box>
+              <Typography variant="body2" fontSize={12} fontWeight={600}>{entry.resourceType}</Typography>
+              {entry.resourceId && (
+                <Typography variant="caption" color="text.secondary" fontFamily="monospace" fontSize={10}>
+                  #{entry.resourceId.substring(0, 8)}…
+                </Typography>
+              )}
+            </Box>
+          ) : <Typography variant="caption" color="text.disabled">—</Typography>}
+        </TableCell>
+
+        {/* IP */}
+        <TableCell sx={{ width: 120 }}>
+          <Typography variant="caption" fontFamily="monospace" color="text.secondary" fontSize={11}>
+            {formatIp(entry.ipAddress)}
+          </Typography>
+        </TableCell>
+
+        {/* Expand indicator */}
+        <TableCell sx={{ width: 36, pr: 1 }}>
+          {hasDetails && (
+            <IconButton size="small" sx={{ p: 0.25 }}>
+              {expanded ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+            </IconButton>
+          )}
+        </TableCell>
+      </TableRow>
+
+      {/* Expanded details row */}
+      {hasDetails && (
+        <TableRow>
+          <TableCell colSpan={6} sx={{ py: 0, border: expanded ? undefined : 'none !important', bgcolor: 'rgba(92,107,192,0.03)' }}>
+            <Collapse in={expanded} timeout="auto" unmountOnExit>
+              <Box sx={{ py: 1.5, px: 2 }}>
+                <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10, mb: 1, display: 'block' }}>
+                  Event Details
+                </Typography>
+                <ExpandableDetails details={entry.details} />
+              </Box>
+            </Collapse>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
 }
 
 export default function AuditLogPage() {
@@ -99,10 +273,11 @@ export default function AuditLogPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(0);
-  const [size, setSize] = useState(20);
+  const [size, setSize] = useState(25);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['audit-logs', actionFilter, userSearch, dateFrom, dateTo, page, size],
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ['audit-logs', actionFilter, dateFrom, dateTo, page, size],
     queryFn: () => {
       const params = new URLSearchParams({ size: String(size), page: String(page), sort: 'createdAt,desc' });
       if (actionFilter) params.set('action', actionFilter);
@@ -113,137 +288,147 @@ export default function AuditLogPage() {
         return { content: (d?.content ?? d) as AuditEntry[], totalElements: d?.totalElements ?? 0 };
       }).catch(() => ({ content: [], totalElements: 0 }));
     },
+    refetchInterval: autoRefresh ? 30000 : false,
   });
 
-  const entries = data?.content || [];
+  const handleAutoRefreshToggle = useCallback((enabled: boolean) => {
+    setAutoRefresh(enabled);
+    if (enabled) refetch();
+  }, [refetch]);
+
+  useEffect(() => { setPage(0); }, [actionFilter, dateFrom, dateTo]);
+
+  const allEntries = data?.content || [];
   const total = data?.totalElements || 0;
 
-  // Client-side user name filter (backend doesn't support userName search)
   const filtered = userSearch
-    ? entries.filter(e => e.userName?.toLowerCase().includes(userSearch.toLowerCase()))
-    : entries;
+    ? allEntries.filter(e => e.userName?.toLowerCase().includes(userSearch.toLowerCase()))
+    : allEntries;
 
   const hasFilters = actionFilter || userSearch || dateFrom || dateTo;
-  const clearFilters = () => { setActionFilter(''); setUserSearch(''); setDateFrom(''); setDateTo(''); setPage(0); };
+  const clearFilters = () => { setActionFilter(''); setUserSearch(''); setDateFrom(''); setDateTo(''); };
 
   return (
     <AnimatedPage>
       <PageHeader
         icon={<HistoryIcon />}
         title="Audit Log"
-        subtitle={`${total} event${total !== 1 ? 's' : ''} tracked`}
+        subtitle={`${total.toLocaleString()} event${total !== 1 ? 's' : ''} tracked`}
         iconColor="#5C6BC0"
         action={
-          <Button variant="outlined" size="small" startIcon={<DownloadIcon />}
-            onClick={() => exportCSV(filtered)} disabled={filtered.length === 0}
-            sx={{ borderRadius: 2 }}>
-            Export CSV
-          </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <FormControlLabel
+              control={
+                <Switch size="small" checked={autoRefresh} onChange={e => handleAutoRefreshToggle(e.target.checked)}
+                  sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#5C6BC0' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#5C6BC0' } }}
+                />
+              }
+              label={<Typography variant="caption" color="text.secondary">Live</Typography>}
+              sx={{ mr: 0 }}
+            />
+            <Tooltip title="Refresh">
+              <IconButton size="small" onClick={() => refetch()} disabled={isFetching}
+                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+                <RefreshIcon fontSize="small" sx={{ animation: isFetching ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }} />
+              </IconButton>
+            </Tooltip>
+            <Button variant="outlined" size="small" startIcon={<DownloadIcon />}
+              onClick={() => exportCSV(filtered)} disabled={filtered.length === 0}
+              sx={{ borderRadius: 2 }}>
+              Export
+            </Button>
+          </Stack>
         }
       />
 
       {/* Filters */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
-          <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center" useFlexGap>
+      <Card sx={{ mb: 2.5, borderRadius: 2 }}>
+        <Box sx={{ px: 2, py: 1.5 }}>
+          <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center" useFlexGap>
             <TextField select size="small" value={actionFilter}
-              onChange={e => { setActionFilter(e.target.value); setPage(0); }}
-              label="Action" sx={{ minWidth: 180 }}>
+              onChange={e => setActionFilter(e.target.value)}
+              label="Action Type" sx={{ minWidth: 200 }}>
               {FILTER_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
             </TextField>
-            <TextField size="small" placeholder="Filter by user..." value={userSearch}
+
+            <TextField size="small" placeholder="Search user..." value={userSearch}
               onChange={e => setUserSearch(e.target.value)} label="User"
               slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> } }}
-              sx={{ minWidth: 180 }} />
+              sx={{ minWidth: 170 }} />
+
             <TextField size="small" type="date" value={dateFrom}
-              onChange={e => { setDateFrom(e.target.value); setPage(0); }}
-              label="From" slotProps={{ inputLabel: { shrink: true } }} />
+              onChange={e => setDateFrom(e.target.value)} label="From"
+              slotProps={{ inputLabel: { shrink: true } }} />
+
             <TextField size="small" type="date" value={dateTo}
-              onChange={e => { setDateTo(e.target.value); setPage(0); }}
-              label="To" slotProps={{ inputLabel: { shrink: true } }} />
+              onChange={e => setDateTo(e.target.value)} label="To"
+              slotProps={{ inputLabel: { shrink: true } }} />
+
             {hasFilters && (
               <Button size="small" startIcon={<ClearIcon />} onClick={clearFilters}
-                sx={{ color: '#78909C' }}>Clear</Button>
+                sx={{ color: 'text.secondary' }}>Clear</Button>
+            )}
+
+            {autoRefresh && (
+              <Chip size="small" icon={<RefreshIcon style={{ fontSize: 12 }} />}
+                label="Auto-refreshing every 30s"
+                sx={{ bgcolor: '#E8EAF6', color: '#3949AB', fontWeight: 600, fontSize: 11 }} />
             )}
           </Stack>
-        </CardContent>
+        </Box>
       </Card>
 
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 6 }}>
-            <HistoryIcon sx={{ fontSize: 48, color: '#BDBDBD', mb: 1 }} />
-            <Typography color="text.secondary">No audit entries found</Typography>
-            {hasFilters && <Typography variant="caption" color="text.secondary">Try adjusting your filters</Typography>}
-          </CardContent>
+        <Card sx={{ borderRadius: 2 }}>
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <HistoryIcon sx={{ fontSize: 52, color: 'text.disabled', mb: 1.5 }} />
+            <Typography variant="h6" color="text.secondary" fontWeight={600}>No audit entries found</Typography>
+            {hasFilters && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                Try adjusting or clearing your filters
+              </Typography>
+            )}
+          </Box>
         </Card>
       ) : (
-        <>
-          <Box sx={{ position: 'relative', pl: 3 }}>
-            <Box sx={{ position: 'absolute', left: 15, top: 0, bottom: 0, width: 2, bgcolor: '#E0E0E0', borderRadius: 1 }} />
-            {filtered.map((entry, idx) => {
-              const cfg = ACTION_CONFIG[entry.action] || DEFAULT_CONFIG;
-              return (
-                <Box key={entry.id} sx={{
-                  position: 'relative', mb: 2,
-                  '@keyframes fadeInLeft': { from: { opacity: 0, transform: 'translateX(-10px)' }, to: { opacity: 1, transform: 'translateX(0)' } },
-                  animation: `fadeInLeft 0.3s ease ${idx * 0.03}s both`,
-                }}>
-                  <Box sx={{
-                    position: 'absolute', left: -3, top: 16,
-                    width: 24, height: 24, borderRadius: '50%',
-                    bgcolor: cfg.color, color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    zIndex: 1, boxShadow: `0 0 0 4px ${cfg.color}20`,
-                  }}>
-                    {cfg.icon}
-                  </Box>
-                  <Card sx={{ ml: 3, transition: 'all 0.2s ease', '&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.08)' } }}>
-                    <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Chip size="small" label={cfg.label} sx={{ bgcolor: `${cfg.color}15`, color: cfg.color, fontWeight: 600, fontSize: 11 }} />
-                          <Typography variant="body2">
-                            {entry.resourceType && <strong>{entry.resourceType}</strong>}
-                            {entry.resourceId && <Typography component="span" variant="body2" sx={{ fontFamily: 'monospace', ml: 0.5, color: 'text.secondary' }}>{entry.resourceId.substring(0, 8)}...</Typography>}
-                          </Typography>
-                        </Box>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          {entry.userName && (
-                            <Chip size="small" avatar={<Avatar sx={{ width: 20, height: 20, fontSize: 10 }}>{entry.userName?.[0]?.toUpperCase()}</Avatar>}
-                              label={entry.userName} sx={{ height: 24, fontSize: 11 }} />
-                          )}
-                          {entry.ipAddress && (
-                            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>{entry.ipAddress}</Typography>
-                          )}
-                          <Typography variant="caption" color="text.secondary" title={formatDate(entry.createdAt)}>
-                            {timeAgo(entry.createdAt)}
-                          </Typography>
-                        </Stack>
-                      </Box>
-                      {entry.details && Object.keys(entry.details).length > 0 && (
-                        <Box sx={{ mt: 0.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          {Object.entries(entry.details).map(([k, v]) => (
-                            <Chip key={k} size="small" variant="outlined" label={`${k}: ${v}`} sx={{ height: 20, fontSize: 10 }} />
-                          ))}
-                        </Box>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Box>
-              );
-            })}
-          </Box>
+        <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <TableContainer component={Paper} elevation={0}>
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  {['Time', 'Action', 'User', 'Resource', 'IP Address', ''].map((h, i) => (
+                    <TableCell key={i} sx={{
+                      fontWeight: 700, fontSize: 11, textTransform: 'uppercase',
+                      letterSpacing: 0.8, color: 'text.secondary', bgcolor: 'grey.50',
+                      borderBottom: '2px solid', borderColor: 'divider',
+                      ...(h === '' ? { width: 36 } : {}),
+                    }}>
+                      {h}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filtered.map((entry, idx) => (
+                  <AuditRow key={entry.id} entry={entry} idx={idx} />
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
           <TablePagination
-            component="div" count={total} page={page}
+            component="div"
+            count={total}
+            page={page}
             onPageChange={(_, p) => setPage(p)}
             rowsPerPage={size}
             onRowsPerPageChange={e => { setSize(+e.target.value); setPage(0); }}
-            rowsPerPageOptions={[10, 20, 50, 100]}
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            sx={{ borderTop: '1px solid', borderColor: 'divider' }}
           />
-        </>
+        </Card>
       )}
     </AnimatedPage>
   );

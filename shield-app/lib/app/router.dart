@@ -5,10 +5,12 @@ import '../core/auth_state.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/auth/forgot_password_screen.dart';
+import '../features/auth/biometric_gate.dart';
 import '../features/shell/main_shell.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/family/family_screen.dart';
 import '../features/family/child_detail_screen.dart';
+import '../features/family/new_child_profile_screen.dart';
 import '../features/location/map_screen.dart';
 import '../features/alerts/alerts_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -47,10 +49,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/child/tasks', builder: (_, __) => const ChildTasksScreen()),
       GoRoute(path: '/child/sos', builder: (_, __) => const ChildSosScreen()),
       ShellRoute(
-        builder: (context, state, child) => MainShell(child: child),
+        builder: (context, state, child) => BiometricGate(child: MainShell(child: child)),
         routes: [
           GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
           GoRoute(path: '/family', builder: (_, __) => const FamilyScreen()),
+          GoRoute(path: '/family/new', builder: (_, __) => const NewChildProfileScreen()),
           GoRoute(path: '/family/:profileId', builder: (_, state) => ChildDetailScreen(profileId: state.pathParameters['profileId']!)),
           GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
           GoRoute(path: '/alerts', builder: (_, __) => const AlertsScreen()),

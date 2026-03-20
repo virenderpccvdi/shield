@@ -29,9 +29,15 @@ public class LocationService {
     private final GeofenceEventRepository geofenceEventRepository;
     private final GeofenceService geofenceService;
     private final GeofenceBreachDetector geofenceBreachDetector;
+    private final SpoofingDetectionService spoofingDetectionService;
 
     @Transactional
     public LocationResponse uploadLocation(LocationUploadRequest req, UUID userId, String role) {
+        // Fetch the previous point before saving, for spoofing comparison
+        LocationPoint previousPoint = locationPointRepository
+                .findFirstByProfileIdOrderByRecordedAtDesc(req.getProfileId())
+                .orElse(null);
+
         LocationPoint point = LocationPoint.builder()
                 .tenantId(null) // resolved from gateway headers if needed
                 .profileId(req.getProfileId())
@@ -51,6 +57,7 @@ public class LocationService {
         log.debug("Saved location point for profile {} at {},{}", req.getProfileId(), req.getLatitude(), req.getLongitude());
 
         checkGeofences(point);
+        spoofingDetectionService.analyze(point, previousPoint);
 
         return toResponse(point);
     }

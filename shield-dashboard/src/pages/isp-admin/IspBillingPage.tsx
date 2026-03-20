@@ -48,18 +48,33 @@ export default function IspBillingPage() {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
                 <Box>
-                  <Typography variant="h6" fontWeight={700}>{sub?.planDisplayName || 'No Plan'}</Typography>
+                  <Typography variant="h6" fontWeight={700}>{sub?.planDisplayName || sub?.planName || 'No Plan'}</Typography>
                   <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
-                    <Chip size="small" label={sub?.status || 'NONE'} color={sub?.status === 'ACTIVE' ? 'success' : 'default'} />
+                    <Chip size="small" label={sub?.status === 'ACTIVE' ? 'Active' : sub?.status || 'Inactive'}
+                      color={sub?.status === 'ACTIVE' ? 'success' : 'default'} />
                     {sub?.price > 0 && <Chip size="small" label={`₹${sub.price}/${sub.billingCycle === 'YEARLY' ? 'yr' : 'mo'}`} variant="outlined" />}
                   </Stack>
                 </Box>
+                <Stack direction="row" spacing={3}>
+                  {sub?.maxCustomers > 0 && (
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" fontWeight={700}>{sub.maxCustomers?.toLocaleString()}</Typography>
+                      <Typography variant="caption" color="text.secondary">Max Customers</Typography>
+                    </Box>
+                  )}
+                  {sub?.maxProfiles > 0 && (
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" fontWeight={700}>{sub.maxProfiles}</Typography>
+                      <Typography variant="caption" color="text.secondary">Profiles/Customer</Typography>
+                    </Box>
+                  )}
+                </Stack>
                 {sub?.status === 'ACTIVE' && sub?.stripeSubscriptionId && (
                   <Button variant="outlined" color="error" size="small" startIcon={<CancelIcon />}
                     onClick={() => setCancelOpen(true)}>Cancel</Button>
                 )}
               </Box>
-              {sub?.features && (
+              {sub?.features && Object.keys(sub.features).length > 0 && (
                 <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   {Object.entries(sub.features).map(([k, v]) => (
                     <Chip key={k} size="small" icon={v ? <CheckCircleIcon /> : undefined}
@@ -68,41 +83,50 @@ export default function IspBillingPage() {
                   ))}
                 </Box>
               )}
+              {(!sub?.features || Object.keys(sub.features).length === 0) && sub?.planName !== 'FREE' && sub?.status !== 'NONE' && (
+                <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+                  Your plan is managed by the platform administrator. Contact support to upgrade or modify your subscription.
+                </Alert>
+              )}
             </CardContent>
           </Card>
 
-          <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Plans</Typography>
-          <Grid container spacing={2.5} sx={{ mb: 3 }}>
-            {activePlans.map((plan: any) => {
-              const isCurrent = plan.name === sub?.planName;
-              return (
-                <Grid key={plan.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Card sx={{ border: isCurrent ? '2px solid #00897B' : '1px solid #E0E0E0' }}>
-                    <CardContent>
-                      <Typography variant="h6" fontWeight={700}>{plan.displayName}</Typography>
-                      <Typography variant="h4" fontWeight={800} color="#00897B" sx={{ my: 1 }}>
-                        ₹{plan.price}<Typography component="span" variant="body2" color="text.secondary">/{plan.billingCycle === 'YEARLY' ? 'yr' : 'mo'}</Typography>
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{plan.description}</Typography>
-                      <Divider sx={{ mb: 2 }} />
-                      <Typography variant="caption">Up to {plan.maxCustomers} customers, {plan.maxProfilesPerCustomer} profiles each</Typography>
-                      <Box sx={{ mt: 2 }}>
-                        {isCurrent ? (
-                          <Button fullWidth variant="outlined" disabled>Current Plan</Button>
-                        ) : (
-                          <Button fullWidth variant="contained" sx={{ bgcolor: '#00897B' }}
-                            disabled={checkoutMutation.isPending}
-                            onClick={() => checkoutMutation.mutate(plan.id)}>
-                            {checkoutMutation.isPending ? <CircularProgress size={18} color="inherit" /> : 'Subscribe'}
-                          </Button>
-                        )}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
+          {activePlans.length > 0 && (
+            <>
+              <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Available Plans</Typography>
+              <Grid container spacing={2.5} sx={{ mb: 3 }}>
+                {activePlans.map((plan: any) => {
+                  const isCurrent = plan.name === sub?.planName;
+                  return (
+                    <Grid key={plan.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                      <Card sx={{ border: isCurrent ? '2px solid #00897B' : '1px solid #E0E0E0' }}>
+                        <CardContent>
+                          <Typography variant="h6" fontWeight={700}>{plan.displayName}</Typography>
+                          <Typography variant="h4" fontWeight={800} color="#00897B" sx={{ my: 1 }}>
+                            ₹{plan.price}<Typography component="span" variant="body2" color="text.secondary">/{plan.billingCycle === 'YEARLY' ? 'yr' : 'mo'}</Typography>
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{plan.description}</Typography>
+                          <Divider sx={{ mb: 2 }} />
+                          <Typography variant="caption">Up to {plan.maxCustomers} customers, {plan.maxProfilesPerCustomer} profiles each</Typography>
+                          <Box sx={{ mt: 2 }}>
+                            {isCurrent ? (
+                              <Button fullWidth variant="outlined" disabled>Current Plan</Button>
+                            ) : (
+                              <Button fullWidth variant="contained" sx={{ bgcolor: '#00897B' }}
+                                disabled={checkoutMutation.isPending}
+                                onClick={() => checkoutMutation.mutate(plan.id)}>
+                                {checkoutMutation.isPending ? <CircularProgress size={18} color="inherit" /> : 'Subscribe'}
+                              </Button>
+                            )}
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  );
+                })}
+              </Grid>
+            </>
+          )}
 
           {myInvoices.length > 0 && (
             <>

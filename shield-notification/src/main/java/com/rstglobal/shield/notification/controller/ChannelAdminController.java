@@ -33,10 +33,10 @@ public class ChannelAdminController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<ChannelResponse>>> list(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
             @RequestParam(required = false) String scope) {
         requireAdmin(role);
-        UUID tid = "GLOBAL_ADMIN".equals(role) && "platform".equals(scope) ? null : UUID.fromString(tenantId);
+        UUID tid = resolveTenantId(role, tenantId, scope);
         return ResponseEntity.ok(ApiResponse.ok(channelAdminService.listChannels(tid)));
     }
 
@@ -47,11 +47,11 @@ public class ChannelAdminController {
     @PutMapping
     public ResponseEntity<ApiResponse<ChannelResponse>> upsert(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
             @RequestParam(required = false) String scope,
             @Valid @RequestBody UpsertChannelRequest req) {
         requireAdmin(role);
-        UUID tid = "GLOBAL_ADMIN".equals(role) && "platform".equals(scope) ? null : UUID.fromString(tenantId);
+        UUID tid = resolveTenantId(role, tenantId, scope);
         return ResponseEntity.ok(ApiResponse.ok(channelAdminService.upsertChannel(tid, req)));
     }
 
@@ -62,12 +62,12 @@ public class ChannelAdminController {
     @PostMapping("/test")
     public ResponseEntity<ApiResponse<String>> test(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
             @RequestParam String channelType,
             @RequestParam String testRecipient,
             @RequestParam(required = false) String scope) {
         requireAdmin(role);
-        UUID tid = "GLOBAL_ADMIN".equals(role) && "platform".equals(scope) ? null : UUID.fromString(tenantId);
+        UUID tid = resolveTenantId(role, tenantId, scope);
         channelAdminService.testChannel(tid, channelType, testRecipient,
                 emailService, whatsappService, telegramService);
         return ResponseEntity.ok(ApiResponse.ok("Test message sent successfully"));
@@ -77,5 +77,16 @@ public class ChannelAdminController {
         if (!"GLOBAL_ADMIN".equals(role) && !"ISP_ADMIN".equals(role)) {
             throw ShieldException.forbidden("Admin role required");
         }
+    }
+
+    /** GLOBAL_ADMIN → null (platform default); ISP_ADMIN → parse tenantId from header */
+    private UUID resolveTenantId(String role, String tenantId, String scope) {
+        if ("GLOBAL_ADMIN".equals(role) && ("platform".equals(scope) || tenantId == null || tenantId.isBlank())) {
+            return null;
+        }
+        if (tenantId != null && !tenantId.isBlank()) {
+            try { return UUID.fromString(tenantId); } catch (Exception e) { return null; }
+        }
+        return null;
     }
 }

@@ -49,6 +49,15 @@ public class SubscriptionPlan {
     @Column(length = 500)
     private String description;
 
+    /** Null = global ISP plan (managed by GLOBAL_ADMIN). Set = customer plan created by this ISP_ADMIN tenant. */
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
+    /** ISP = plan ISPs subscribe to (Global Admin manages). CUSTOMER = plan customers subscribe to (ISP Admin manages). */
+    @Column(name = "plan_type", nullable = false, length = 20)
+    @Builder.Default
+    private String planType = "CUSTOMER";
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean isDefault = false;

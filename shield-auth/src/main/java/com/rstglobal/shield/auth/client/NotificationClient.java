@@ -1,0 +1,119 @@
+package com.rstglobal.shield.auth.client;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Async HTTP client that calls shield-notification internal endpoints.
+ * All calls are fire-and-forget — failures are logged but never rethrown.
+ */
+@Slf4j
+@Component
+public class NotificationClient {
+
+    private static final String SUPPORT_EMAIL = "support@pccvdi.com";
+    private static final String APP_DOMAIN    = "https://shield.rstglobal.in";
+
+    private final RestClient restClient;
+    private final String     notificationBaseUrl;
+
+    public NotificationClient(
+            @Value("${shield.notification.url:http://localhost:8286}") String notificationBaseUrl) {
+        this.restClient          = RestClient.builder().build();
+        this.notificationBaseUrl = notificationBaseUrl;
+    }
+
+    /**
+     * Sends a welcome email to a newly-admin-created user that includes a
+     * password-setup link valid for 24 hours.
+     *
+     * @param userId  the new user's UUID (used to build the setup token)
+     * @param email   recipient address
+     * @param name    display name
+     * @param role    user role string (e.g. "ISP_ADMIN", "CUSTOMER")
+     * @param otp     one-time password already stored in Redis
+     */
+    @Async
+    public void sendWelcomeEmail(UUID userId, String email, String name, String role, String otp) {
+        sendWelcomeEmail(userId, email, name, role, otp, null);
+    }
+
+    @Async
+    public void sendWelcomeEmail(UUID userId, String email, String name, String role, String otp, String plainPassword) {
+        try {
+            String rawToken   = userId + ":" + otp;
+            String setupToken = Base64.getEncoder().encodeToString(rawToken.getBytes());
+            String loginUrl   = APP_DOMAIN + "/app/login";
+            String setupUrl   = plainPassword != null
+                    ? loginUrl
+                    : APP_DOMAIN + "/app/reset-password?token=" + setupToken;
+
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("name",            name != null ? name : email);
+            variables.put("email",           email);
+            variables.put("role",            role);
+            variables.put("setupUrl",        setupUrl);
+            variables.put("supportEmail",    SUPPORT_EMAIL);
+            variables.put("initialPassword", plainPassword); // null if not provided
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("to",           email);
+            payload.put("subject",      plainPassword != null
+                    ? "Welcome to Shield — Your Account Details"
+                    : "Welcome to Shield — Set Up Your Account");
+            payload.put("templateName", "welcome-user");
+            payload.put("variables",    variables);
+
+            restClient.post()
+                    .uri(notificationBaseUrl + "/internal/notifications/email")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Welcome email dispatched for userId={} email={}", userId, email);
+        } catch (Exception e) {
+            log.warn("Failed to send welcome email to {}: {}", email, e.getMessage());
+        }
+    }
+
+    /** Sends a password-reset email from an admin reset action, containing the new plaintext password. */
+    @Async
+    public void sendAdminPasswordResetEmail(String email, String name, String newPassword) {
+        try {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("name",         name != null ? name : email);
+            variables.put("email",        email);
+            variables.put("newPassword",  newPassword);
+            variables.put("loginUrl",     APP_DOMAIN + "/app/login");
+            variables.put("supportEmail", SUPPORT_EMAIL);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("to",           email);
+            payload.put("subject",      "Shield — Your Password Has Been Reset");
+            payload.put("templateName", "password-reset-admin");
+            payload.put("variables",    variables);
+
+            restClient.post()
+                    .uri(notificationBaseUrl + "/internal/notifications/email")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Admin password-reset email dispatched to {}", email);
+        } catch (Exception e) {
+            log.warn("Failed to send admin password-reset email to {}: {}", email, e.getMessage());
+        }
+    }
+}

@@ -9,6 +9,8 @@ import java.util.UUID;
 public class CreateCustomerRequest {
     @NotNull
     private UUID userId;
+    private String name;
+    private String email;
     private String subscriptionPlan;   // BASIC | STANDARD | PREMIUM
     private Integer maxProfiles;
 }

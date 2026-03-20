@@ -25,9 +25,37 @@ public class SubscriptionPlanController {
     private final AuditLogService auditLogService;
     private final StripeService stripeService;
 
+    /**
+     * List plans:
+     * - GLOBAL_ADMIN: all plans (query ?all=true) or active ISP-level plans
+     * - ISP_ADMIN: their tenant's customer plans
+     * - anyone: active ISP plans (for billing/subscription pages)
+     */
     @GetMapping
-    public ResponseEntity<List<SubscriptionPlan>> list(@RequestParam(defaultValue = "false") boolean all) {
-        return ResponseEntity.ok(all ? planService.listAll() : planService.listActive());
+    public ResponseEntity<List<SubscriptionPlan>> list(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
+            @RequestParam(defaultValue = "false") boolean all) {
+        if ("GLOBAL_ADMIN".equals(role)) {
+            return ResponseEntity.ok(all ? planService.listAll() : planService.listActive());
+        }
+        if ("ISP_ADMIN".equals(role) && tenantIdStr != null && !tenantIdStr.isBlank()) {
+            UUID tenantId = UUID.fromString(tenantIdStr);
+            return ResponseEntity.ok(all ? planService.listAllByTenant(tenantId) : planService.listByTenant(tenantId));
+        }
+        // CUSTOMER role: return only their ISP's tenant-scoped customer plans
+        if ("CUSTOMER".equals(role) && tenantIdStr != null && !tenantIdStr.isBlank()) {
+            UUID tenantId = UUID.fromString(tenantIdStr);
+            return ResponseEntity.ok(planService.listByTenant(tenantId));
+        }
+        // Default fallback: ISP-level plans only
+        return ResponseEntity.ok(planService.listIspPlans());
+    }
+
+    /** ISP-level plans only (for ISP subscription pages) */
+    @GetMapping("/isp")
+    public ResponseEntity<List<SubscriptionPlan>> listIspPlans() {
+        return ResponseEntity.ok(planService.listIspPlans());
     }
 
     @GetMapping("/{id}")
@@ -36,8 +64,19 @@ public class SubscriptionPlanController {
     }
 
     @PostMapping
-    public ResponseEntity<SubscriptionPlan> create(@RequestBody SubscriptionPlan plan, HttpServletRequest req) {
-        SubscriptionPlan created = planService.create(plan);
+    public ResponseEntity<SubscriptionPlan> create(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
+            @RequestBody SubscriptionPlan plan,
+            HttpServletRequest req) {
+        SubscriptionPlan created;
+        if ("ISP_ADMIN".equals(role) && tenantIdStr != null && !tenantIdStr.isBlank()) {
+            UUID tenantId = UUID.fromString(tenantIdStr);
+            created = planService.createForTenant(tenantId, plan);
+        } else {
+            requireGlobalAdmin(role);
+            created = planService.create(plan);
+        }
         auditLogService.log("PLAN_CREATED", "SubscriptionPlan", created.getId().toString(),
                 getUserId(req), getUserName(req), req.getRemoteAddr(),
                 Map.of("planName", created.getName()));
@@ -45,8 +84,19 @@ public class SubscriptionPlanController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SubscriptionPlan> update(@PathVariable UUID id, @RequestBody SubscriptionPlan plan, HttpServletRequest req) {
-        SubscriptionPlan updated = planService.update(id, plan);
+    public ResponseEntity<SubscriptionPlan> update(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
+            @PathVariable UUID id,
+            @RequestBody SubscriptionPlan plan,
+            HttpServletRequest req) {
+        SubscriptionPlan updated;
+        if ("ISP_ADMIN".equals(role) && tenantIdStr != null && !tenantIdStr.isBlank()) {
+            updated = planService.updateForTenant(id, UUID.fromString(tenantIdStr), plan);
+        } else {
+            requireGlobalAdmin(role);
+            updated = planService.update(id, plan);
+        }
         auditLogService.log("PLAN_UPDATED", "SubscriptionPlan", id.toString(),
                 getUserId(req), getUserName(req), req.getRemoteAddr(),
                 Map.of("planName", updated.getName()));
@@ -54,8 +104,17 @@ public class SubscriptionPlanController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable UUID id, HttpServletRequest req) {
-        planService.delete(id);
+    public ResponseEntity<Void> delete(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
+            @PathVariable UUID id,
+            HttpServletRequest req) {
+        if ("ISP_ADMIN".equals(role) && tenantIdStr != null && !tenantIdStr.isBlank()) {
+            planService.deleteForTenant(id, UUID.fromString(tenantIdStr));
+        } else {
+            requireGlobalAdmin(role);
+            planService.delete(id);
+        }
         auditLogService.log("PLAN_DELETED", "SubscriptionPlan", id.toString(),
                 getUserId(req), getUserName(req), req.getRemoteAddr(), Map.of());
         return ResponseEntity.noContent().build();

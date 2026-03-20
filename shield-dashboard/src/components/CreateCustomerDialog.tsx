@@ -8,6 +8,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import api from '../api/axios';
+import { useAuthStore } from '../store/auth.store';
 
 interface Props {
   open: boolean;
@@ -44,6 +45,7 @@ function generatePassword(): string {
 }
 
 export default function CreateCustomerDialog({ open, onClose, onSuccess }: Props) {
+  const user = useAuthStore(s => s.user);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -86,13 +88,30 @@ export default function CreateCustomerDialog({ open, onClose, onSuccess }: Props
     setError('');
     setSaving(true);
     try {
-      await api.post('/auth/admin/register', {
+      // Step 1: Create auth user (pass tenantId so customer JWT has correct tenant)
+      const authResp = await api.post('/auth/admin/register', {
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
         phone: form.phone.trim() || undefined,
         role: 'CUSTOMER',
+        tenantId: user?.tenantId ?? undefined,
       });
+      const userId = authResp.data?.data?.id ?? authResp.data?.id;
+
+      // Step 2: Create profile customer record (name/email stored for ISP list display)
+      if (userId) {
+        await api.post('/profiles/customers', {
+          userId,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          subscriptionPlan: 'BASIC',
+          maxProfiles: 5,
+        }).catch(() => {
+          // Non-fatal: customer record may already exist or profile service unavailable
+        });
+      }
+
       onSuccess(`Customer "${form.name.trim()}" created successfully`);
       setForm(EMPTY);
       setShowPassword(false);

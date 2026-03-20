@@ -9,7 +9,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSubscription, getActivePlans, createCheckout, cancelSubscription, getMyInvoices, openInvoicePdf } from '../../api/billing';
+import { getSubscription, createCheckout, cancelSubscription, getMyInvoices, openInvoicePdf } from '../../api/billing';
+import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 
@@ -30,9 +31,13 @@ export default function SubscriptionPage() {
     queryFn: getSubscription,
   });
 
+  // Fetch only this ISP's customer plans (backend scopes by X-Tenant-Id for CUSTOMER role)
   const { data: plans } = useQuery({
     queryKey: ['active-plans'],
-    queryFn: getActivePlans,
+    queryFn: () => api.get('/admin/plans').then(r => {
+      const d = r.data?.data || r.data;
+      return (Array.isArray(d) ? d : d?.content || []).filter((p: any) => p.active);
+    }),
   });
 
   const { data: invoices } = useQuery({
@@ -113,8 +118,8 @@ export default function SubscriptionPage() {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{plan.description}</Typography>
                       <Divider sx={{ mb: 2 }} />
                       <Stack spacing={0.5} sx={{ mb: 2 }}>
-                        <Typography variant="caption">Up to {plan.maxCustomers} customers</Typography>
-                        <Typography variant="caption">{plan.maxProfilesPerCustomer} profiles per customer</Typography>
+                        <Typography variant="caption">Up to {plan.maxProfilesPerCustomer} child profiles</Typography>
+                        <Typography variant="caption">{plan.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}</Typography>
                       </Stack>
                       {isCurrent ? (
                         <Button fullWidth variant="outlined" disabled>Current Plan</Button>

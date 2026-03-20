@@ -3,7 +3,9 @@ package com.rstglobal.shield.location.controller;
 import com.rstglobal.shield.common.dto.ApiResponse;
 import com.rstglobal.shield.location.dto.request.CheckinRequest;
 import com.rstglobal.shield.location.dto.response.LocationResponse;
+import com.rstglobal.shield.location.entity.SpoofingAlert;
 import com.rstglobal.shield.location.service.LocationService;
+import com.rstglobal.shield.location.service.SpoofingDetectionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -29,6 +32,7 @@ import java.util.UUID;
 public class LocationController {
 
     private final LocationService locationService;
+    private final SpoofingDetectionService spoofingDetectionService;
 
     @GetMapping("/{profileId}/latest")
     public ResponseEntity<ApiResponse<LocationResponse>> getLatestLocation(
@@ -70,5 +74,17 @@ public class LocationController {
             @RequestHeader(value = "X-User-Id", required = false) UUID userId) {
         Map<String, Object> speedData = locationService.estimateSpeed(profileId);
         return ResponseEntity.ok(ApiResponse.ok(speedData));
+    }
+
+    /**
+     * Returns last 20 spoofing detection alerts for a child profile.
+     * Alerts are generated automatically during each location upload.
+     */
+    @GetMapping("/{profileId}/spoofing-alerts")
+    public ResponseEntity<ApiResponse<List<SpoofingAlert>>> getSpoofingAlerts(
+            @PathVariable UUID profileId,
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId) {
+        List<SpoofingAlert> alerts = spoofingDetectionService.getRecentAlerts(profileId);
+        return ResponseEntity.ok(ApiResponse.ok(alerts));
     }
 }

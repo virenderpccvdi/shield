@@ -1,8 +1,13 @@
-import { Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, TextField, InputAdornment, Avatar, Button, Stack, Snackbar } from '@mui/material';
+import { Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, TextField, InputAdornment, Avatar, Button, Stack, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import PeopleIcon from '@mui/icons-material/People';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import PauseCircleIcon from '@mui/icons-material/PauseCircle';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
@@ -12,13 +17,33 @@ import EmptyState from '../../components/EmptyState';
 import CreateCustomerDialog from '../../components/CreateCustomerDialog';
 
 interface Customer {
-  id: string; name: string; email: string; profiles: number; status: string;
-  joinedAt: string; userId?: string; subscriptionPlan?: string;
-  subscriptionStatus?: string; profileCount?: number;
+  id: string;
+  name?: string;
+  email?: string;
+  profiles?: number;
+  status?: string;
+  joinedAt?: string;
+  createdAt?: string;
+  userId?: string;
+  subscriptionPlan?: string;
+  subscriptionStatus?: string;
+  profileCount?: number;
 }
 
-function getInitials(name: string) {
+function getInitials(name?: string) {
+  if (!name) return 'C';
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function displayId(c: Customer, i: number) {
+  if (c.name) return c.name;
+  if (c.userId) return `User ${c.userId.slice(0, 8)}…`;
+  return `Customer ${i + 1}`;
+}
+
+function formatDate(d?: string) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 const statusConfig: Record<string, { color: 'success' | 'error' | 'warning' | 'default'; bg: string }> = {
@@ -36,17 +61,77 @@ const planColors: Record<string, { bg: string; text: string }> = {
 
 export default function CustomersPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [snack, setSnack] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleToggleSuspend = async (c: Customer, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newStatus = (c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    try {
+      await api.put(`/profiles/customers/${c.id}`, { subscriptionStatus: newStatus });
+      qc.invalidateQueries({ queryKey: ['isp-customers'] });
+      setSnack(`Customer ${newStatus === 'ACTIVE' ? 'activated' : 'suspended'}`);
+    } catch { setSnack('Action failed'); }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleting(true);
+    setDeleteTarget(null);
+    // Optimistically remove from cache immediately so stale rows can't be re-clicked
+    qc.setQueryData(['isp-customers'], (old: Customer[] | undefined) =>
+      old ? old.filter(c => c.id !== target.id) : old
+    );
+    try {
+      await api.delete(`/profiles/customers/${target.id}`);
+      setSnack('Customer deleted');
+    } catch (e: any) {
+      // 404 = already gone — still treat as success
+      if (e?.response?.status !== 404) {
+        setSnack(e?.response?.data?.message ?? 'Delete failed');
+        qc.invalidateQueries({ queryKey: ['isp-customers'] }); // restore on real error
+        setDeleting(false);
+        return;
+      }
+      setSnack('Customer deleted');
+    }
+    qc.invalidateQueries({ queryKey: ['isp-customers'] });
+    setDeleting(false);
+  };
   const { data, isLoading } = useQuery({
     queryKey: ['isp-customers'],
-    queryFn: () => api.get('/profiles/customers').then(r => {
+    queryFn: async () => {
+      const r = await api.get('/profiles/customers').catch(() => ({ data: { data: [] } }));
       const d = r.data?.data;
-      return (d?.content ?? d) as Customer[];
-    }).catch(() => []),
+      const list: Customer[] = (d?.content ?? d) as Customer[];
+      // Enrich with user name/email for records that don't have them stored
+      const missing = list.filter(c => !c.name && !c.email && c.userId);
+      if (missing.length > 0) {
+        const ur = await api.get('/auth/users', { params: { size: 500, role: 'CUSTOMER' } }).catch(() => null);
+        if (ur) {
+          const ud = ur.data?.data;
+          const users: any[] = (ud?.content ?? ud ?? []);
+          const userMap: Record<string, any> = {};
+          users.forEach(u => { userMap[u.id] = u; });
+          return list.map(c => {
+            if (!c.name && userMap[c.userId!]) {
+              return { ...c, name: userMap[c.userId!].name, email: userMap[c.userId!].email };
+            }
+            return c;
+          });
+        }
+      }
+      return list;
+    },
   });
-  const customers = (data || []).filter(c => `${c.name} ${c.email}`.toLowerCase().includes(search.toLowerCase()));
+  const customers = (data || []).filter(c =>
+    `${c.name ?? ''} ${c.email ?? ''} ${c.userId ?? ''} ${c.subscriptionPlan ?? ''}`.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <AnimatedPage>
@@ -98,7 +183,7 @@ export default function CustomersPage() {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#F8FAFC' }}>
-                    {['Customer', 'Email', 'Plan', 'Profiles', 'Status', 'Joined'].map(h => (
+                    {['Customer', 'Email', 'Plan', 'Profiles', 'Status', 'Joined', 'Actions'].map(h => (
                       <TableCell key={h} sx={{ fontWeight: 600, color: '#64748B', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                     ))}
                   </TableRow>
@@ -107,10 +192,11 @@ export default function CustomersPage() {
                   {customers.map((c, i) => (
                     <TableRow
                       key={c.id}
+                      onClick={() => navigate(`/isp/customers/${c.id}`)}
                       sx={{
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        '&:hover': { bgcolor: '#F5F9FF', transform: 'scale(1.002)' },
+                        '&:hover': { bgcolor: '#F5F9FF' },
                         '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
                         animation: `fadeInUp 0.3s ease ${0.1 + i * 0.05}s both`,
                       }}
@@ -120,10 +206,13 @@ export default function CustomersPage() {
                           <Avatar sx={{ width: 34, height: 34, fontSize: 13, fontWeight: 700, bgcolor: '#00897B' }}>
                             {getInitials(c.name)}
                           </Avatar>
-                          <Typography fontWeight={600} fontSize={14}>{c.name}</Typography>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography fontWeight={600} fontSize={14} noWrap>{displayId(c, i)}</Typography>
+                            {c.email && <Typography variant="caption" color="text.secondary" noWrap>{c.email}</Typography>}
+                          </Box>
                         </Box>
                       </TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{c.email}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>{c.email ?? '—'}</Typography></TableCell>
                       <TableCell>
                         {(() => { const plan = c.subscriptionPlan || 'FREE'; const pc = planColors[plan] || planColors.FREE; return (
                           <Chip size="small" label={plan} sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: pc.bg, color: pc.text }} />
@@ -135,12 +224,34 @@ export default function CustomersPage() {
                       <TableCell>
                         <Chip
                           size="small"
-                          label={c.status}
-                          color={statusConfig[c.status]?.color || 'default'}
+                          label={c.subscriptionStatus ?? c.status ?? 'ACTIVE'}
+                          color={statusConfig[c.subscriptionStatus ?? c.status ?? 'ACTIVE']?.color || 'success'}
                           sx={{ height: 22, fontSize: 11, fontWeight: 600 }}
                         />
                       </TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{c.joinedAt}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" color="text.secondary">{formatDate(c.createdAt ?? c.joinedAt)}</Typography></TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
+                        <Stack direction="row" spacing={0.5}>
+                          <Tooltip title="View Details">
+                            <IconButton size="small" onClick={() => navigate(`/isp/customers/${c.id}`)} sx={{ color: '#1565C0', '&:hover': { bgcolor: '#E3F2FD' } }}>
+                              <OpenInNewIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={(c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? 'Suspend' : 'Activate'}>
+                            <IconButton size="small" onClick={e => handleToggleSuspend(c, e)}
+                              sx={{ color: (c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? '#F57F17' : '#1B5E20',
+                                '&:hover': { bgcolor: (c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? '#FFF8E1' : '#E8F5E9' } }}>
+                              {(c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? <PauseCircleIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete Customer">
+                            <IconButton size="small" onClick={e => { e.stopPropagation(); setDeleteTarget(c); }}
+                              sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFEBEE' } }}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -159,6 +270,20 @@ export default function CustomersPage() {
           setSnack(msg);
         }}
       />
+
+      {/* Delete Confirm */}
+      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle fontWeight={700} sx={{ color: '#B71C1C' }}>Delete Customer?</DialogTitle>
+        <DialogContent>
+          <Typography>This will permanently delete the customer and all their profiles and data. This cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleDelete} disabled={deleting}>
+            {deleting ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}
         message={snack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />

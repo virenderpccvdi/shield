@@ -8,8 +8,16 @@ import '../../core/api_client.dart';
 final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final client = ref.read(dioProvider);
   try {
-    final res = await client.get('/profile/my/summary');
-    return res.data['data'] as Map<String, dynamic>;
+    final profilesRes = await client.get('/profiles/children');
+    final d = profilesRes.data['data'];
+    final profiles = (d is Map ? (d['content'] ?? d['items'] ?? [d]) : d) as List? ?? [];
+    int activeAlerts = 0;
+    try {
+      final alertsRes = await client.get('/notifications/my/unread');
+      final alertData = alertsRes.data['data'];
+      activeAlerts = alertData is List ? alertData.length : (alertData?['totalElements'] ?? 0) as int;
+    } catch (_) {}
+    return {'totalProfiles': profiles.length, 'activeAlerts': activeAlerts, 'blockedToday': 0, 'profiles': profiles};
   } catch (_) {
     return {'totalProfiles': 0, 'activeAlerts': 0, 'blockedToday': 0, 'profiles': []};
   }
@@ -73,11 +81,19 @@ class DashboardScreen extends ConsumerWidget {
                       child: Column(children: [
                         Icon(Icons.child_care, size: 48, color: Colors.grey.shade400),
                         const SizedBox(height: 12),
-                        const Text('No children added yet', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Text('No child profiles yet', style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
-                        const Text('Add your first child profile to start protecting them online.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+                        const Text('Add your first child profile to start monitoring and protecting them.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
                         const SizedBox(height: 16),
-                        FilledButton.icon(onPressed: () => context.go('/family'), icon: const Icon(Icons.add), label: const Text('Add Child')),
+                        ElevatedButton.icon(
+                          onPressed: () => context.go('/family/new'),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Child'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1565C0),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
                       ]),
                     ),
                   )

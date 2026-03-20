@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { shieldTheme } from './theme/theme';
+import { getShieldTheme } from './theme/theme';
 import { useAuthStore } from './store/auth.store';
+import { useThemeStore } from './store/theme.store';
 
 import CustomerLayout from './layouts/CustomerLayout';
 import AdminLayout from './layouts/AdminLayout';
@@ -55,15 +56,42 @@ import GlobalBlocklistPage from './pages/global-admin/GlobalBlocklistPage';
 import AiModelsPage from './pages/global-admin/AiModelsPage';
 import FeatureManagementPage from './pages/global-admin/FeatureManagementPage';
 import IspBlocklistPage from './pages/isp-admin/IspBlocklistPage';
+import IspFilteringPage from './pages/isp-admin/IspFilteringPage';
+import IspReportsPage from './pages/isp-admin/IspReportsPage';
+import IspSettingsPage from './pages/isp-admin/IspSettingsPage';
+import IspUrlActivityPage from './pages/isp-admin/IspUrlActivityPage';
+import IspAppControlPage from './pages/isp-admin/IspAppControlPage';
+import AdminUrlActivityPage from './pages/global-admin/AdminUrlActivityPage';
+import RolePermissionsPage from './pages/global-admin/RolePermissionsPage';
+import AdminAppControlPage from './pages/global-admin/AdminAppControlPage';
+import AppControlPage from './pages/customer/AppControlPage';
 import SubscriptionPage from './pages/customer/SubscriptionPage';
 import CheckoutSuccessPage from './pages/customer/CheckoutSuccessPage';
 import CheckoutCancelPage from './pages/customer/CheckoutCancelPage';
+import NewChildProfilePage from './pages/customer/NewChildProfilePage';
+import IspPlansPage from './pages/isp-admin/IspPlansPage';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30000, retry: 1 } } });
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuth = useAuthStore((s) => s.isAuthenticated());
   return isAuth ? <>{children}</> : <Navigate to="/login" replace />;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user);
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'ISP_ADMIN') return <Navigate to="/isp/dashboard" replace />;
+  if (user.role !== 'GLOBAL_ADMIN') return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
+function IspRoute({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user);
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'GLOBAL_ADMIN') return <Navigate to="/admin/dashboard" replace />;
+  if (user.role !== 'ISP_ADMIN') return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
 }
 
 function RoleRouter() {
@@ -75,9 +103,11 @@ function RoleRouter() {
 }
 
 export default function App() {
+  const mode = useThemeStore((s) => s.mode);
+  const theme = getShieldTheme(mode);
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={shieldTheme}>
+      <ThemeProvider theme={theme}>
         <CssBaseline />
         <BrowserRouter basename="/app">
           <Routes>
@@ -99,16 +129,18 @@ export default function App() {
               <Route path="/geofences" element={<GeofencesPage />} />
               <Route path="/location-history" element={<LocationHistoryPage />} />
               <Route path="/ai-insights" element={<AiInsightsPage />} />
+              <Route path="/app-control" element={<AppControlPage />} />
               <Route path="/devices" element={<CustomerDevicesPage />} />
               <Route path="/map" element={<LocationMapPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/subscription" element={<SubscriptionPage />} />
+              <Route path="/profiles/new" element={<NewChildProfilePage />} />
               <Route path="/billing/success" element={<CheckoutSuccessPage />} />
               <Route path="/billing/cancel" element={<CheckoutCancelPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
-            <Route element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
+            <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
               <Route path="/admin/dashboard" element={<PlatformDashboardPage />} />
               <Route path="/admin/tenants" element={<TenantsPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
@@ -127,18 +159,28 @@ export default function App() {
               <Route path="/admin/blocklist" element={<GlobalBlocklistPage />} />
               <Route path="/admin/ai-models" element={<AiModelsPage />} />
               <Route path="/admin/features" element={<FeatureManagementPage />} />
+              <Route path="/admin/roles" element={<RolePermissionsPage />} />
+              <Route path="/admin/url-activity" element={<AdminUrlActivityPage />} />
+              <Route path="/admin/app-control" element={<AdminAppControlPage />} />
               <Route path="/admin/settings" element={<SettingsPage />} />
             </Route>
 
-            <Route element={<PrivateRoute><IspLayout /></PrivateRoute>}>
+            <Route element={<IspRoute><IspLayout /></IspRoute>}>
               <Route path="/isp/dashboard" element={<IspDashboardPage />} />
               <Route path="/isp/customers" element={<CustomersPage />} />
               <Route path="/isp/customers/:id" element={<CustomerDetailPage />} />
               <Route path="/isp/branding" element={<BrandingPage />} />
               <Route path="/isp/analytics" element={<IspAnalyticsPage />} />
               <Route path="/isp/billing" element={<IspBillingPage />} />
+              <Route path="/isp/plans" element={<IspPlansPage />} />
               <Route path="/isp/blocklist" element={<IspBlocklistPage />} />
-              <Route path="/isp/settings" element={<SettingsPage />} />
+              <Route path="/isp/filtering" element={<IspFilteringPage />} />
+              <Route path="/isp/reports" element={<IspReportsPage />} />
+              <Route path="/isp/url-activity" element={<IspUrlActivityPage />} />
+              <Route path="/isp/app-control" element={<IspAppControlPage />} />
+              <Route path="/billing/success" element={<CheckoutSuccessPage />} />
+              <Route path="/billing/cancel" element={<CheckoutCancelPage />} />
+              <Route path="/isp/settings" element={<IspSettingsPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

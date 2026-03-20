@@ -82,17 +82,26 @@ public class EmailService {
     private JavaMailSenderImpl buildSender(NotificationChannel ch) {
         JavaMailSenderImpl s = new JavaMailSenderImpl();
         s.setHost(ch.getSmtpHost());
-        s.setPort(ch.getSmtpPort() != null ? ch.getSmtpPort() : 587);
+        int port = ch.getSmtpPort() != null ? ch.getSmtpPort() : 587;
+        s.setPort(port);
         s.setUsername(ch.getSmtpUsername());
         s.setPassword(ch.getSmtpPassword());
         Properties p = s.getJavaMailProperties();
         p.put("mail.transport.protocol", "smtp");
         p.put("mail.smtp.auth", "true");
-        if (Boolean.TRUE.equals(ch.getSmtpTls())) {
+        if (port == 465) {
+            // Port 465: implicit SSL (Zoho, Gmail SMTPS)
+            p.put("mail.smtp.ssl.enable", "true");
+            p.put("mail.smtp.ssl.trust", ch.getSmtpHost());
+            p.put("mail.smtp.starttls.enable", "false");
+        } else if (Boolean.TRUE.equals(ch.getSmtpTls())) {
+            // Port 587: STARTTLS
             p.put("mail.smtp.starttls.enable", "true");
+            p.put("mail.smtp.starttls.required", "true");
         }
-        p.put("mail.smtp.timeout", "10000");
-        p.put("mail.smtp.connectiontimeout", "10000");
+        p.put("mail.smtp.timeout", "15000");
+        p.put("mail.smtp.connectiontimeout", "15000");
+        p.put("mail.smtp.writetimeout", "15000");
         return s;
     }
 }

@@ -1,6 +1,7 @@
 package com.rstglobal.shield.auth.service;
 
 import com.rstglobal.shield.auth.client.AuditClient;
+import com.rstglobal.shield.auth.client.NotificationClient;
 import com.rstglobal.shield.auth.dto.request.*;
 import com.rstglobal.shield.auth.dto.response.AuthResponse;
 import com.rstglobal.shield.auth.dto.response.UserResponse;
@@ -44,6 +45,7 @@ public class AuthService {
     private final StringRedisTemplate redis;
     private final AuditClient         auditClient;
     private final MfaService          mfaService;
+    private final NotificationClient  notificationClient;
 
     @Value("${shield.jwt.refresh-days:30}")
     private long refreshDays;
@@ -55,6 +57,11 @@ public class AuthService {
 
     @Transactional
     public UserResponse register(RegisterRequest req, UserRole role) {
+        return register(req, role, null);
+    }
+
+    @Transactional
+    public UserResponse register(RegisterRequest req, UserRole role, String ipAddress) {
         if (userRepository.existsByEmail(req.getEmail())) {
             throw ShieldException.conflict("Email already registered");
         }
@@ -69,15 +76,99 @@ public class AuthService {
         user = userRepository.save(user);
         log.info("Registered user {} with role {}", user.getId(), role);
         auditClient.log("USER_REGISTERED", "User", user.getId().toString(),
-                user.getId(), user.getName(), null,
+                user.getId(), user.getName(), ipAddress,
                 Map.of("email", user.getEmail(), "role", role.name()));
         return toUserResponse(user);
+    }
+
+    /**
+     * Admin-initiated registration: same as register() but also generates a
+     * password-reset OTP (valid 24 h) and sends a welcome email with a setup link.
+     */
+    @Transactional
+    public UserResponse adminRegister(RegisterRequest req, UserRole role) {
+        UserResponse response = register(req, role);
+
+        // Generate a 24-hour OTP (used for password-setup link if needed)
+        UUID userId = response.getId();
+        String otp  = String.valueOf((int)(Math.random() * 900000) + 100000);
+        redis.opsForValue().set(OTP_PREFIX + userId, otp, 24, TimeUnit.HOURS);
+
+        // Fire-and-forget welcome email: include the plaintext password so user can login immediately
+        notificationClient.sendWelcomeEmail(userId, response.getEmail(), response.getName(),
+                role.name(), otp, req.getPassword());
+
+        log.info("Admin-created user {} — welcome email dispatched", userId);
+        return response;
+    }
+
+    /**
+     * Admin-initiated password reset: ISP_ADMIN can reset CUSTOMER passwords in their tenant;
+     * GLOBAL_ADMIN can reset any user's password.
+     * Sends an email to the user with the new password.
+     */
+    @Transactional
+    public void adminResetPassword(String callerRole, UUID callerTenantId, UUID targetUserId, String newPassword) {
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> ShieldException.notFound("User", targetUserId));
+
+        // Authorization check
+        if ("ISP_ADMIN".equals(callerRole)) {
+            if (target.getRole() != UserRole.CUSTOMER) {
+                throw ShieldException.forbidden("ISP_ADMIN can only reset CUSTOMER passwords");
+            }
+            if (callerTenantId == null || !callerTenantId.equals(target.getTenantId())) {
+                throw ShieldException.forbidden("Cannot reset password for customer in a different tenant");
+            }
+        } else if (!"GLOBAL_ADMIN".equals(callerRole)) {
+            throw ShieldException.forbidden("Admin role required");
+        }
+
+        // Generate random password if not provided
+        if (newPassword == null || newPassword.isBlank()) {
+            newPassword = generateRandomPassword();
+        }
+
+        target.setPasswordHash(passwordEncoder.encode(newPassword));
+        target.setFailedLoginAttempts(0);
+        target.setLockedUntil(null);
+        userRepository.save(target);
+
+        // Send email notification with new password
+        notificationClient.sendAdminPasswordResetEmail(target.getEmail(), target.getName(), newPassword);
+        log.info("Admin reset password for user {} (role={})", targetUserId, target.getRole());
+    }
+
+    private static String generateRandomPassword() {
+        String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lower = "abcdefghijklmnopqrstuvwxyz";
+        String digits = "0123456789";
+        String special = "!@#$%&*";
+        String all = upper + lower + digits + special;
+        StringBuilder pw = new StringBuilder();
+        pw.append(upper.charAt((int)(Math.random() * upper.length())));
+        pw.append(lower.charAt((int)(Math.random() * lower.length())));
+        pw.append(digits.charAt((int)(Math.random() * digits.length())));
+        pw.append(special.charAt((int)(Math.random() * special.length())));
+        for (int i = 4; i < 12; i++) pw.append(all.charAt((int)(Math.random() * all.length())));
+        // Shuffle
+        char[] chars = pw.toString().toCharArray();
+        for (int i = chars.length - 1; i > 0; i--) {
+            int j = (int)(Math.random() * (i + 1));
+            char tmp = chars[i]; chars[i] = chars[j]; chars[j] = tmp;
+        }
+        return new String(chars);
     }
 
     // ── Login ─────────────────────────────────────────────────────────────────
 
     @Transactional
     public AuthResponse login(LoginRequest req) {
+        return login(req, null);
+    }
+
+    @Transactional
+    public AuthResponse login(LoginRequest req, String ipAddress) {
         User user = userRepository.findByEmail(req.getEmail().toLowerCase())
                 .orElseThrow(() -> new ShieldException("UNAUTHORIZED", "Invalid credentials", HttpStatus.UNAUTHORIZED));
 
@@ -121,7 +212,7 @@ public class AuthService {
         redis.opsForValue().set(REFRESH_PREFIX + refresh, user.getId().toString(), refreshDays, TimeUnit.DAYS);
 
         auditClient.log("USER_LOGIN", "User", user.getId().toString(),
-                user.getId(), user.getName(), null,
+                user.getId(), user.getName(), ipAddress,
                 Map.of("email", user.getEmail(), "role", user.getRole().name()));
 
         return buildAuthResponse(user, access, refresh);
@@ -316,6 +407,15 @@ public class AuthService {
         }
         if (updates.containsKey("active")) {
             user.setActive(Boolean.parseBoolean(String.valueOf(updates.get("active"))));
+        }
+        if (updates.containsKey("tenantId")) {
+            Object tid = updates.get("tenantId");
+            if (tid == null || String.valueOf(tid).isBlank()) {
+                user.setTenantId(null);
+            } else {
+                try { user.setTenantId(UUID.fromString(String.valueOf(tid))); }
+                catch (IllegalArgumentException ignored) {}
+            }
         }
         user = userRepository.save(user);
         auditClient.log("USER_UPDATED", "User", userId.toString(),

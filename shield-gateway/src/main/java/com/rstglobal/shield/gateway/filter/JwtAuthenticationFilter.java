@@ -101,7 +101,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         String userId   = claims.getSubject();
         String role     = claims.get("role",     String.class);
-        String tenantId = claims.get("tenantId", String.class);
+        // JWT uses snake_case "tenant_id"; fall back to camelCase "tenantId" for compat
+        String tenantId = claims.get("tenant_id", String.class);
+        if (tenantId == null) tenantId = claims.get("tenantId", String.class);
         long   tokenIat = claims.getIssuedAt() != null
                           ? claims.getIssuedAt().toInstant().getEpochSecond() : 0;
 

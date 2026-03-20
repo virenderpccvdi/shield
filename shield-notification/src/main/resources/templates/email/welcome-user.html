@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Welcome to Shield</title>
+<style>
+  body{margin:0;padding:0;background:#F8FAFC;font-family:'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08);}
+  .header{background:linear-gradient(135deg,#1565C0,#1976D2,#42A5F5);padding:36px 32px 28px;color:#fff;text-align:center;}
+  .logo{font-size:32px;margin-bottom:6px;}
+  .header h1{margin:0;font-size:24px;font-weight:700;letter-spacing:.3px;}
+  .header p{margin:6px 0 0;opacity:.88;font-size:14px;}
+  .body{padding:36px 32px 28px;}
+  .greeting{color:#1a1a2e;font-size:17px;font-weight:600;margin:0 0 8px;}
+  .sub{color:#444;font-size:14px;line-height:1.65;margin:0 0 24px;}
+  .info-card{background:#F0F4FF;border-left:4px solid #1565C0;border-radius:6px;padding:16px 20px;margin-bottom:24px;}
+  .info-card p{margin:0 0 6px;font-size:13px;color:#333;}
+  .info-card p:last-child{margin:0;}
+  .info-card strong{color:#1565C0;}
+  .cta-wrap{text-align:center;margin:28px 0;}
+  .cta{display:inline-block;background:#1565C0;color:#fff !important;text-decoration:none;padding:15px 40px;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:.3px;}
+  .cta:hover{background:#0D47A1;}
+  .expire-note{color:#888;font-size:13px;text-align:center;margin:0 0 28px;}
+  .divider{border:none;border-top:1px solid #ECEFF1;margin:24px 0;}
+  .footer{background:#F8F9FA;padding:20px 32px;text-align:center;color:#888;font-size:12px;border-top:1px solid #ECEFF1;}
+  .footer a{color:#1565C0;text-decoration:none;}
+  @media only screen and (max-width:620px){
+    .wrap{margin:0;border-radius:0;}
+    .body,.header{padding:24px 20px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">&#128737;</div>
+    <h1>Welcome to Shield</h1>
+    <p>Family Internet Protection Platform</p>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <p class="greeting">Hi <span th:text="${name}">there</span>,</p>
+    <p class="sub">
+      Your Shield account has been created by an administrator.
+      Your login credentials are below — please keep them safe and
+      <span th:if="${initialPassword != null and !#strings.isEmpty(initialPassword)}">change your password after first login.</span>
+      <span th:unless="${initialPassword != null and !#strings.isEmpty(initialPassword)}">use the link below to set your own password.</span>
+    </p>
+
+    <!-- Account info card -->
+    <div class="info-card">
+      <p><strong>Email:</strong> &nbsp;<span th:text="${email}">user@example.com</span></p>
+      <p th:if="${initialPassword != null and !#strings.isEmpty(initialPassword)}">
+        <strong>Password:</strong> &nbsp;
+        <code style="background:#fff;border:1px solid #CBD5E1;padding:3px 10px;border-radius:4px;font-size:15px;letter-spacing:1px;color:#1565C0;" th:text="${initialPassword}">••••••••</code>
+      </p>
+      <p><strong>Account Role:</strong> &nbsp;<span th:text="${role}">CUSTOMER</span></p>
+    </div>
+
+    <!-- CTA button -->
+    <div class="cta-wrap">
+      <a th:href="${setupUrl}" class="cta">Login to Shield</a>
+    </div>
+
+    <!-- Expiry note -->
+    <p class="expire-note" th:if="${initialPassword != null and !#strings.isEmpty(initialPassword)}">
+      We recommend you change your password after first login.
+    </p>
+    <p class="expire-note" th:unless="${initialPassword != null and !#strings.isEmpty(initialPassword)}">
+      &#9201; The password-setup link expires in <strong>24 hours</strong>.
+    </p>
+
+    <hr class="divider"/>
+
+    <p style="color:#666;font-size:13px;line-height:1.6;margin:0;">
+      If you did not expect this email or believe it was sent in error, please ignore it or
+      contact our support team at
+      <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}" style="color:#1565C0;">support@pccvdi.com</a>.
+      Your account will remain inactive until you complete the setup.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    &copy; 2026 Shield &mdash; Family Internet Protection &bull;
+    <a href="https://shield.rstglobal.in">shield.rstglobal.in</a>
+    <br/>
+    You are receiving this because an administrator created an account for you.
+  </div>
+</div>
+</body>
+</html>

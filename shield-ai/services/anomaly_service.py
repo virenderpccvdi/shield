@@ -77,5 +77,23 @@ def detect_anomaly(features: dict) -> AnomalyResult:
     return AnomalyResult(is_anomaly=is_anomaly, score=score, severity=severity)
 
 
+def reload_model(model_data: dict) -> None:
+    """Replace the in-memory model with a freshly trained one.
+
+    model_data must have a 'model' key containing an IsolationForest instance.
+    The remaining keys (feature_names, trained_at, etc.) are informational.
+    """
+    global _model
+    new_model = model_data.get("model")
+    if new_model is None:
+        raise ValueError("model_data must contain a 'model' key with a fitted IsolationForest")
+    _model = new_model
+    logger.info(
+        "Anomaly model reloaded in memory. trained_at=%s samples=%s",
+        model_data.get("trained_at"),
+        model_data.get("training_samples"),
+    )
+
+
 def is_model_loaded() -> bool:
     return _model is not None or os.path.exists(MODEL_PATH)

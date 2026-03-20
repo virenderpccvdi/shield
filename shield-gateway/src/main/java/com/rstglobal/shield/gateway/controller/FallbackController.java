@@ -2,28 +2,28 @@ package com.rstglobal.shield.gateway.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
 /**
  * Circuit-breaker fallback endpoints.
- * Downstream services return a 503 with a JSON body when a circuit is open.
+ * Must handle ALL HTTP methods (GET, POST, PUT, DELETE, PATCH) — if this only
+ * handles GET, Spring WebFlux returns 405 when a POST/PUT triggers the fallback.
  */
 @RestController
 @RequestMapping("/fallback")
 public class FallbackController {
 
-    @GetMapping(value = "/service-unavailable", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<Map<String, Object>> serviceUnavailable() {
-        return Mono.just(Map.of(
+    @RequestMapping(value = "/service-unavailable", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> serviceUnavailable() {
+        return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
                 "success", false,
                 "error", "SERVICE_UNAVAILABLE",
                 "message", "The requested service is temporarily unavailable. Please try again shortly."
-        ));
+        )));
     }
 }

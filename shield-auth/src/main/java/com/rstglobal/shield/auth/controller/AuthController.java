@@ -10,6 +10,7 @@ import com.rstglobal.shield.auth.service.MfaService;
 import com.rstglobal.shield.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,15 +32,15 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Register a new customer account")
-    public ApiResponse<UserResponse> register(@Valid @RequestBody RegisterRequest req) {
-        return ApiResponse.ok(authService.register(req, UserRole.CUSTOMER));
+    public ApiResponse<UserResponse> register(@Valid @RequestBody RegisterRequest req, HttpServletRequest httpReq) {
+        return ApiResponse.ok(authService.register(req, UserRole.CUSTOMER, extractIp(httpReq)));
     }
 
     /** Public: Login — returns access + refresh tokens. */
     @PostMapping("/login")
     @Operation(summary = "Login and receive JWT tokens")
-    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest req) {
-        return ApiResponse.ok(authService.login(req));
+    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest req, HttpServletRequest httpReq) {
+        return ApiResponse.ok(authService.login(req, extractIp(httpReq)));
     }
 
     /** Public: Refresh access token using a valid refresh token. */
@@ -147,10 +148,11 @@ public class AuthController {
         return ApiResponse.ok(authService.listUsers(page, size, role));
     }
 
-    /** GLOBAL_ADMIN: Create a user with an explicit role (ISP_ADMIN, CUSTOMER, GLOBAL_ADMIN). */
+    /** GLOBAL_ADMIN: Create a user with an explicit role (ISP_ADMIN, CUSTOMER, GLOBAL_ADMIN).
+     *  Also sends a welcome email with a password-setup link valid for 24 hours. */
     @PostMapping("/admin/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Admin: create user with explicit role (GLOBAL_ADMIN only)")
+    @Operation(summary = "Admin: create user with explicit role + send welcome email (GLOBAL_ADMIN only)")
     public ApiResponse<UserResponse> adminRegister(@Valid @RequestBody AdminRegisterRequest req) {
         UserRole role;
         try {
@@ -158,7 +160,7 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             throw com.rstglobal.shield.common.exception.ShieldException.badRequest("Invalid role: " + req.getRole());
         }
-        return ApiResponse.ok(authService.register(req, role));
+        return ApiResponse.ok(authService.adminRegister(req, role));
     }
 
     /** Public: Issue a limited child device token. Parent must own the child profile. */
@@ -184,5 +186,34 @@ public class AuthController {
     @Operation(summary = "Admin: delete user (GLOBAL_ADMIN only)")
     public void adminDeleteUser(@PathVariable UUID id) {
         authService.adminDeleteUser(id);
+    }
+
+    /**
+     * ISP_ADMIN or GLOBAL_ADMIN: Reset a user's password.
+     * ISP_ADMIN can only reset passwords of CUSTOMER accounts in their own tenant.
+     * GLOBAL_ADMIN can reset any user's password.
+     * Sends email notification to the user with the new password.
+     */
+    @PostMapping("/admin/users/{id}/reset-password")
+    @Operation(summary = "Admin: reset a user's password and send email notification")
+    public ApiResponse<Void> adminResetPassword(
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID callerTenantId,
+            @PathVariable UUID id,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String newPassword = body != null ? body.get("newPassword") : null;
+        authService.adminResetPassword(callerRole, callerTenantId, id, newPassword);
+        return ApiResponse.ok(null, "Password reset successfully. An email has been sent to the user.");
+    }
+
+    /** Extract real client IP — respects X-Forwarded-For and X-Real-IP from nginx. */
+    static String extractIp(HttpServletRequest req) {
+        String xff = req.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
+        }
+        String xri = req.getHeader("X-Real-IP");
+        if (xri != null && !xri.isBlank()) return xri.trim();
+        return req.getRemoteAddr();
     }
 }

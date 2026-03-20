@@ -1,4 +1,9 @@
-import { Box, Typography, Card, CardContent, Switch, Chip, Button, CircularProgress, Grid } from '@mui/material';
+import { useState, useRef } from 'react';
+import {
+  Box, Typography, Card, CardContent, Switch, Chip, Button, CircularProgress, Grid,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton,
+  List, ListItem, ListItemText, Snackbar, Alert, LinearProgress, Divider,
+} from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import SecurityIcon from '@mui/icons-material/Security';
@@ -13,6 +18,9 @@ import BugReportIcon from '@mui/icons-material/BugReport';
 import PhishingIcon from '@mui/icons-material/Phishing';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -72,28 +80,233 @@ const categoryIcons: Record<string, { icon: React.ReactNode; color: string; bg: 
   vpn: { icon: <VpnKeyIcon />, color: '#4527A0', bg: '#EDE7F6' },
 };
 
+const parseDomainsCsv = (text: string): string[] => {
+  return text
+    .split(/[\n,\r]+/)
+    .map(line => line.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
+    .filter(d => d.length > 3 && d.includes('.') && !d.startsWith('#'));
+};
+
+interface CsvImportDialogProps {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  onImport: (domains: string[], onProgress: (done: number, total: number) => void) => Promise<void>;
+}
+
+function CsvImportDialog({ open, title, onClose, onImport }: CsvImportDialogProps) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [domains, setDomains] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [done, setDone] = useState(false);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      setDomains(parseDomainsCsv(text));
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConfirm = async () => {
+    setImporting(true);
+    setDone(false);
+    try {
+      await onImport(domains, (d, t) => setProgress({ done: d, total: t }));
+      setDone(true);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (importing) return;
+    setDomains([]);
+    setProgress(null);
+    setDone(false);
+    if (fileRef.current) fileRef.current.value = '';
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
+      <DialogContent>
+        {done ? (
+          <Box sx={{ textAlign: 'center', py: 3 }}>
+            <CheckCircleIcon sx={{ fontSize: 56, color: '#43A047', mb: 1 }} />
+            <Typography variant="h6" fontWeight={700}>Import Complete</Typography>
+            <Typography color="text.secondary">{domains.length} domains imported successfully</Typography>
+          </Box>
+        ) : (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Upload a CSV or TXT file. Each line or comma-separated value should be a domain (e.g. <code>example.com</code>).
+              Lines starting with # are skipped.
+            </Typography>
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<UploadFileIcon />}
+              fullWidth
+              sx={{ mb: 2, borderStyle: 'dashed', py: 2 }}
+            >
+              Choose File (.csv / .txt)
+              <input ref={fileRef} type="file" accept=".csv,.txt" hidden onChange={handleFile} />
+            </Button>
+
+            {domains.length > 0 && (
+              <Box>
+                <Chip
+                  label={`Found ${domains.length} domain${domains.length !== 1 ? 's' : ''} to import`}
+                  color="success"
+                  sx={{ mb: 1.5, fontWeight: 600 }}
+                />
+                <Box sx={{ maxHeight: 180, overflowY: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1, px: 1 }}>
+                  <List dense disablePadding>
+                    {domains.slice(0, 50).map((d, i) => (
+                      <ListItem key={i} disablePadding sx={{ py: 0.25 }}>
+                        <ListItemText primaryTypographyProps={{ fontSize: 13 }} primary={d} />
+                      </ListItem>
+                    ))}
+                    {domains.length > 50 && (
+                      <ListItem disablePadding sx={{ py: 0.5 }}>
+                        <ListItemText primaryTypographyProps={{ fontSize: 12, color: 'text.secondary' }} primary={`...and ${domains.length - 50} more`} />
+                      </ListItem>
+                    )}
+                  </List>
+                </Box>
+              </Box>
+            )}
+
+            {importing && progress && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  Importing {progress.done}/{progress.total} domains...
+                </Typography>
+                <LinearProgress variant="determinate" value={(progress.done / progress.total) * 100} sx={{ borderRadius: 2 }} />
+              </Box>
+            )}
+          </>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={handleClose} disabled={importing}>{done ? 'Close' : 'Cancel'}</Button>
+        {!done && (
+          <Button
+            variant="contained"
+            onClick={handleConfirm}
+            disabled={domains.length === 0 || importing}
+            startIcon={importing ? <CircularProgress size={16} color="inherit" /> : undefined}
+          >
+            {importing ? 'Importing...' : `Import ${domains.length > 0 ? domains.length : ''} Domains`}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+interface AddDomainDialogProps {
+  open: boolean;
+  title: string;
+  color: string;
+  onClose: () => void;
+  onAdd: (domain: string) => void;
+}
+
+function AddDomainDialog({ open, title, color, onClose, onAdd }: AddDomainDialogProps) {
+  const [value, setValue] = useState('');
+  const handleAdd = () => {
+    const cleaned = value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (cleaned && cleaned.includes('.')) {
+      onAdd(cleaned);
+      setValue('');
+      onClose();
+    }
+  };
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus fullWidth label="Domain" placeholder="e.g. example.com" size="small"
+          value={value} onChange={e => setValue(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          sx={{ mt: 1 }}
+        />
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" onClick={handleAdd} disabled={!value.trim()} sx={{ bgcolor: color, '&:hover': { bgcolor: color, filter: 'brightness(0.9)' } }}>
+          Add
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 export default function RulesPage() {
   const { profileId } = useParams();
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
-    queryKey: ['rules', profileId],
-    queryFn: () => api.get(`/dns/rules/${profileId}`).then(r => {
-      const rules = r.data.data as DnsRulesResponse;
-      return rulesToCategories(rules);
-    }).catch(() => DEFAULT_CATEGORIES),
+  const [addBlockOpen, setAddBlockOpen] = useState(false);
+  const [addAllowOpen, setAddAllowOpen] = useState(false);
+  const [csvBlockOpen, setCsvBlockOpen] = useState(false);
+  const [csvAllowOpen, setCsvAllowOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false, message: '', severity: 'success',
   });
+
+  const { data: rulesData, isLoading } = useQuery({
+    queryKey: ['rules', profileId],
+    queryFn: () => api.get(`/dns/rules/${profileId}`).then(r => r.data.data as DnsRulesResponse).catch(() => null),
+  });
+
+  const categories = rulesData ? rulesToCategories(rulesData) : DEFAULT_CATEGORIES;
+  const customAllowlist: string[] = rulesData?.customAllowlist ?? [];
+  const customBlocklist: string[] = rulesData?.customBlocklist ?? [];
 
   const toggleMutation = useMutation({
     mutationFn: ({ key, blocked }: { key: string; blocked: boolean }) => {
-      // Build the full categories map with the toggled value
       const currentCategories: Record<string, boolean> = {};
-      (categories).forEach(c => { currentCategories[c.key] = c.key === key ? blocked : c.blocked; });
+      categories.forEach(c => { currentCategories[c.key] = c.key === key ? blocked : c.blocked; });
       return api.put(`/dns/rules/${profileId}/categories`, { categories: currentCategories });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rules', profileId] }),
   });
 
-  const categories = data || DEFAULT_CATEGORIES;
+  const addToListMutation = useMutation({
+    mutationFn: ({ list, domain }: { list: 'allowlist' | 'blocklist'; domain: string }) =>
+      api.post(`/dns/rules/${profileId}/${list}`, { domain }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rules', profileId] }),
+  });
+
+  const removeFromListMutation = useMutation({
+    mutationFn: ({ list, domain }: { list: 'allowlist' | 'blocklist'; domain: string }) =>
+      api.delete(`/dns/rules/${profileId}/${list}/${encodeURIComponent(domain)}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rules', profileId] }),
+  });
+
+  const handleCsvImport = async (
+    list: 'allowlist' | 'blocklist',
+    domains: string[],
+    onProgress: (done: number, total: number) => void
+  ) => {
+    const BATCH = 50;
+    let done = 0;
+    for (let i = 0; i < domains.length; i += BATCH) {
+      const batch = domains.slice(i, i + BATCH);
+      await Promise.all(batch.map(d => api.post(`/dns/rules/${profileId}/${list}`, { domain: d }).catch(() => null)));
+      done += batch.length;
+      onProgress(Math.min(done, domains.length), domains.length);
+    }
+    qc.invalidateQueries({ queryKey: ['rules', profileId] });
+    setSnackbar({ open: true, message: `Successfully imported ${domains.length} domains`, severity: 'success' });
+  };
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
 
@@ -163,18 +376,171 @@ export default function RulesPage() {
         })}
       </Grid>
 
-      <AnimatedPage delay={0.6}>
-        <Box sx={{ mt: 3, display: 'flex', gap: 1.5 }}>
-          <Button variant="outlined" size="small" startIcon={<AddCircleOutlineIcon />}
-            sx={{ borderRadius: 2, borderColor: '#E53935', color: '#E53935', '&:hover': { bgcolor: '#FFF5F5', borderColor: '#E53935' } }}>
-            Add Custom Block
-          </Button>
-          <Button variant="outlined" size="small" startIcon={<AddCircleOutlineIcon />}
-            sx={{ borderRadius: 2, borderColor: '#43A047', color: '#43A047', '&:hover': { bgcolor: '#F5FFF5', borderColor: '#43A047' } }}>
-            Add Custom Allow
-          </Button>
-        </Box>
-      </AnimatedPage>
+      {/* Custom Domain Lists */}
+      <Grid container spacing={2.5} sx={{ mt: 1 }}>
+        {/* Blocklist */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <AnimatedPage delay={0.5}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="subtitle1" fontWeight={600} color="#E53935">
+                    Custom Blocklist
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small" variant="outlined" startIcon={<UploadFileIcon />}
+                      onClick={() => setCsvBlockOpen(true)}
+                      sx={{ borderRadius: 2, borderColor: '#E53935', color: '#E53935', fontSize: 12,
+                        '&:hover': { bgcolor: '#FFF5F5', borderColor: '#E53935' } }}
+                    >
+                      Import CSV
+                    </Button>
+                    <Button
+                      size="small" variant="outlined" startIcon={<AddCircleOutlineIcon />}
+                      onClick={() => setAddBlockOpen(true)}
+                      sx={{ borderRadius: 2, borderColor: '#E53935', color: '#E53935', fontSize: 12,
+                        '&:hover': { bgcolor: '#FFF5F5', borderColor: '#E53935' } }}
+                    >
+                      Add
+                    </Button>
+                  </Box>
+                </Box>
+                <Divider sx={{ mb: 1 }} />
+                {customBlocklist.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                    No custom blocked domains
+                  </Typography>
+                ) : (
+                  <List dense disablePadding sx={{ maxHeight: 240, overflowY: 'auto' }}>
+                    {customBlocklist.map((domain) => (
+                      <ListItem
+                        key={domain}
+                        disablePadding
+                        sx={{ py: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}
+                        secondaryAction={
+                          <IconButton size="small" edge="end"
+                            onClick={() => removeFromListMutation.mutate({ list: 'blocklist', domain })}
+                            sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFF5F5' } }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        }
+                      >
+                        <ListItemText
+                          primary={domain}
+                          primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
+          </AnimatedPage>
+        </Grid>
+
+        {/* Allowlist */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <AnimatedPage delay={0.55}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="subtitle1" fontWeight={600} color="#43A047">
+                    Custom Allowlist
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small" variant="outlined" startIcon={<UploadFileIcon />}
+                      onClick={() => setCsvAllowOpen(true)}
+                      sx={{ borderRadius: 2, borderColor: '#43A047', color: '#43A047', fontSize: 12,
+                        '&:hover': { bgcolor: '#F5FFF5', borderColor: '#43A047' } }}
+                    >
+                      Import CSV
+                    </Button>
+                    <Button
+                      size="small" variant="outlined" startIcon={<AddCircleOutlineIcon />}
+                      onClick={() => setAddAllowOpen(true)}
+                      sx={{ borderRadius: 2, borderColor: '#43A047', color: '#43A047', fontSize: 12,
+                        '&:hover': { bgcolor: '#F5FFF5', borderColor: '#43A047' } }}
+                    >
+                      Add
+                    </Button>
+                  </Box>
+                </Box>
+                <Divider sx={{ mb: 1 }} />
+                {customAllowlist.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                    No custom allowed domains
+                  </Typography>
+                ) : (
+                  <List dense disablePadding sx={{ maxHeight: 240, overflowY: 'auto' }}>
+                    {customAllowlist.map((domain) => (
+                      <ListItem
+                        key={domain}
+                        disablePadding
+                        sx={{ py: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}
+                        secondaryAction={
+                          <IconButton size="small" edge="end"
+                            onClick={() => removeFromListMutation.mutate({ list: 'allowlist', domain })}
+                            sx={{ color: '#43A047', '&:hover': { bgcolor: '#F5FFF5' } }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        }
+                      >
+                        <ListItemText
+                          primary={domain}
+                          primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
+          </AnimatedPage>
+        </Grid>
+      </Grid>
+
+      {/* Dialogs */}
+      <AddDomainDialog
+        open={addBlockOpen}
+        title="Block a Domain"
+        color="#E53935"
+        onClose={() => setAddBlockOpen(false)}
+        onAdd={(domain) => addToListMutation.mutate({ list: 'blocklist', domain })}
+      />
+      <AddDomainDialog
+        open={addAllowOpen}
+        title="Allow a Domain"
+        color="#43A047"
+        onClose={() => setAddAllowOpen(false)}
+        onAdd={(domain) => addToListMutation.mutate({ list: 'allowlist', domain })}
+      />
+      <CsvImportDialog
+        open={csvBlockOpen}
+        title="Import Domains to Blocklist"
+        onClose={() => setCsvBlockOpen(false)}
+        onImport={(domains, onProgress) => handleCsvImport('blocklist', domains, onProgress)}
+      />
+      <CsvImportDialog
+        open={csvAllowOpen}
+        title="Import Domains to Allowlist"
+        onClose={() => setCsvAllowOpen(false)}
+        onImport={(domains, onProgress) => handleCsvImport('allowlist', domains, onProgress)}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={snackbar.severity} variant="filled" onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </AnimatedPage>
   );
 }

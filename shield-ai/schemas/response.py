@@ -27,6 +27,8 @@ class WeeklyDigestResponse(BaseModel):
     profileId: str
     weekOf: str
     summary: str
+    llm_summary: Optional[str] = None
+    rule_based_summary: str = ""
     riskLevel: RiskLevel
     riskScore: int
     signals: List[str] = []

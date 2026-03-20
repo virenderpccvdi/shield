@@ -1,52 +1,350 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/auth_state.dart';
+import '../../core/api_client.dart';
+import '../../core/biometric_service.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  Map<String, dynamic>? _sub;
+  bool _loadingSub = true;
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSubscription();
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final available = await BiometricService.isAvailable();
+    final enabled = await BiometricService.isEnabled();
+    if (mounted) setState(() { _biometricAvailable = available; _biometricEnabled = enabled; });
+  }
+
+  Future<void> _loadSubscription() async {
+    try {
+      final res = await ref.read(dioProvider).get('/billing/my/subscription');
+      if (mounted) setState(() { _sub = res.data['data']; _loadingSub = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingSub = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.w700))),
       body: ListView(
         children: [
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF1565C0)),
-            accountName: Text(auth.name ?? 'User', style: const TextStyle(fontWeight: FontWeight.w700)),
-            accountEmail: Text(auth.email ?? ''),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text((auth.name ?? 'U')[0].toUpperCase(), style: const TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.w800, fontSize: 24)),
+          // Profile header
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+              ),
             ),
+            child: Row(children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white,
+                child: Text((auth.name ?? 'U')[0].toUpperCase(),
+                  style: const TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.w800, fontSize: 24)),
+              ),
+              const SizedBox(width: 16),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(auth.name ?? 'User', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+                Text(auth.email ?? '', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)),
+                  child: Text(_loadingSub ? '...' : (_sub?['planName'] ?? 'Free Plan'),
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
+              ])),
+            ]),
           ),
-          ListTile(leading: const Icon(Icons.person_outline), title: const Text('Account'), subtitle: const Text('Profile, email, password'), onTap: () {}),
-          ListTile(leading: const Icon(Icons.notifications_outlined), title: const Text('Notifications'), subtitle: const Text('Alerts and reports'), onTap: () {}),
-          ListTile(leading: const Icon(Icons.security_outlined), title: const Text('Security'), subtitle: const Text('Two-factor authentication'), onTap: () {}),
-          ListTile(leading: const Icon(Icons.info_outline), title: const Text('About Shield'), subtitle: const Text('Version 1.0.0'), onTap: () {}),
-          const Divider(),
+
+          const SizedBox(height: 8),
+          _SectionHeader('Account'),
+          _SettingsTile(icon: Icons.person_outline, title: 'Edit Profile', subtitle: 'Update name and email',
+            onTap: () => _showEditProfile(context, auth)),
+          _SettingsTile(icon: Icons.lock_outline, title: 'Change Password', subtitle: 'Update your password',
+            onTap: () => _showChangePassword(context)),
+          _SettingsTile(icon: Icons.security_outlined, title: 'Two-Factor Authentication', subtitle: 'Enable TOTP for extra security',
+            onTap: () => _launchWeb(context, 'settings')),
+          _SettingsTile(icon: Icons.family_restroom, title: 'Family Members', subtitle: 'Invite co-parents and manage family',
+            onTap: () => _launchWeb(context, 'settings')),
+          if (_biometricAvailable)
+            SwitchListTile(
+              secondary: const Icon(Icons.fingerprint, color: Color(0xFF1565C0)),
+              title: const Text('Biometric Unlock', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              subtitle: const Text('Use fingerprint or face to unlock app', style: TextStyle(fontSize: 12)),
+              value: _biometricEnabled,
+              onChanged: (val) async {
+                await BiometricService.setEnabled(val);
+                if (mounted) {
+                  setState(() => _biometricEnabled = val);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Biometric unlock ${val ? 'enabled' : 'disabled'}')),
+                  );
+                }
+              },
+            ),
+
+          const Divider(height: 1),
+          _SectionHeader('Notifications'),
+          _SettingsTile(icon: Icons.notifications_outlined, title: 'Alert Preferences', subtitle: 'DNS blocks, geofence, SOS alerts',
+            onTap: () => _showNotificationPrefs(context)),
+          _SettingsTile(icon: Icons.do_not_disturb_outlined, title: 'Quiet Hours', subtitle: 'Silence notifications at night',
+            onTap: () => _showQuietHours(context)),
+
+          const Divider(height: 1),
+          _SectionHeader('Subscription'),
+          if (_loadingSub)
+            const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()))
+          else ...[
+            if (_sub != null)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1565C0).withAlpha(10),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF1565C0).withAlpha(40)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.card_membership, color: Color(0xFF1565C0)),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(_sub!['planName'] ?? 'Plan', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                      _sub!['status'] == 'ACTIVE' ? 'Active — renews ${_fmtDate(_sub!['currentPeriodEnd'])}' : (_sub!['status'] ?? ''),
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                  ])),
+                  TextButton(onPressed: () => _launchWeb(context, 'subscription'), child: const Text('Manage')),
+                ]),
+              ),
+            _SettingsTile(icon: Icons.receipt_long_outlined, title: 'Invoices', subtitle: 'View and download billing history',
+              onTap: () => _launchWeb(context, 'subscription')),
+            _SettingsTile(icon: Icons.upgrade_outlined, title: 'Upgrade Plan', subtitle: 'Unlock more features',
+              onTap: () => _launchWeb(context, 'subscription')),
+          ],
+
+          const Divider(height: 1),
+          _SectionHeader('App'),
+          _SettingsTile(icon: Icons.router_outlined, title: 'Router Setup', subtitle: 'Configure your home router DNS',
+            onTap: () => _showRouterSetup(context)),
+          _SettingsTile(icon: Icons.help_outline, title: 'Help & Support', subtitle: 'FAQ and contact',
+            onTap: () => _launchWeb(context, '')),
+          _SettingsTile(icon: Icons.info_outline, title: 'About Shield', subtitle: 'Version 1.0.0',
+            onTap: () => showAboutDialog(context: context, applicationName: 'Shield', applicationVersion: '1.0.0',
+              applicationIcon: const Icon(Icons.shield, color: Color(0xFF1565C0), size: 40),
+              children: [const Text('Family Internet Protection powered by AI.')])),
+
+          const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+            title: const Text('Sign Out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
             onTap: () async {
-              final confirm = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+              final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
                 title: const Text('Sign Out'),
                 content: const Text('Are you sure you want to sign out?'),
                 actions: [
                   TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                  FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: Colors.red), child: const Text('Sign Out')),
+                  FilledButton(onPressed: () => Navigator.pop(ctx, true),
+                    style: FilledButton.styleFrom(backgroundColor: Colors.red), child: const Text('Sign Out')),
                 ],
               ));
-              if (confirm == true) {
+              if (ok == true && context.mounted) {
                 await ref.read(authProvider.notifier).logout();
-                if (context.mounted) context.go('/login');
+                context.go('/login');
               }
             },
           ),
+          const SizedBox(height: 32),
         ],
       ),
     );
   }
+
+  void _showEditProfile(BuildContext context, AuthState auth) {
+    final nameCtrl = TextEditingController(text: auth.name);
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Edit Profile'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextFormField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Full Name')),
+        const SizedBox(height: 8),
+        Text(auth.email ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        FilledButton(onPressed: () async {
+          Navigator.pop(ctx);
+          try {
+            await ref.read(dioProvider).put('/auth/me', data: {'name': nameCtrl.text});
+            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated')));
+          } catch (e) {
+            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+          }
+        }, child: const Text('Save')),
+      ],
+    ));
+  }
+
+  void _showChangePassword(BuildContext context) {
+    final oldCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Change Password'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: oldCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Current Password')),
+        const SizedBox(height: 12),
+        TextField(controller: newCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'New Password')),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        FilledButton(onPressed: () async {
+          Navigator.pop(ctx);
+          try {
+            await ref.read(dioProvider).put('/auth/change-password',
+              data: {'currentPassword': oldCtrl.text, 'newPassword': newCtrl.text});
+            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed')));
+          } catch (e) {
+            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+          }
+        }, child: const Text('Change')),
+      ],
+    ));
+  }
+
+  void _showNotificationPrefs(BuildContext context) {
+    showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Alert Preferences', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+          const SizedBox(height: 16),
+          _PrefTile('DNS Block Alerts', 'Notify when content is blocked', true),
+          _PrefTile('Geofence Alerts', 'Notify on zone entry/exit', true),
+          _PrefTile('SOS Panic Alerts', 'High-priority SOS notifications', true),
+          _PrefTile('Weekly Report Email', 'Digest every Monday 8 AM', false),
+          const SizedBox(height: 16),
+          SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Done'))),
+        ]),
+      ));
+  }
+
+  void _showQuietHours(BuildContext context) {
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Quiet Hours'),
+      content: const Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('Notifications will be silenced during these hours.', style: TextStyle(fontSize: 13)),
+        SizedBox(height: 16),
+        Row(children: [
+          Expanded(child: TextField(decoration: InputDecoration(labelText: 'From', hintText: '22:00'))),
+          SizedBox(width: 16),
+          Expanded(child: TextField(decoration: InputDecoration(labelText: 'To', hintText: '07:00'))),
+        ]),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Save')),
+      ],
+    ));
+  }
+
+  void _showRouterSetup(BuildContext context) {
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Router Setup'),
+      content: const SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Point your router\'s DNS to:', style: TextStyle(fontWeight: FontWeight.w600)),
+        SizedBox(height: 12),
+        Text('Primary:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        SelectableText('shield.rstglobal.in', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w700)),
+        SizedBox(height: 12),
+        Text('Or configure each child\'s device with their personal DoH URL (found in Family → child profile).',
+          style: TextStyle(fontSize: 12)),
+      ])),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close'))],
+    ));
+  }
+
+  Future<void> _launchWeb(BuildContext context, String path) async {
+    final uri = Uri.parse('https://shield.rstglobal.in/app${path.isNotEmpty ? '/$path' : ''}');
+    if (await canLaunchUrl(uri)) {
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  String _fmtDate(dynamic val) {
+    if (val == null) return '';
+    try { return val.toString().split('T').first; } catch (_) { return ''; }
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader(this.title);
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+    child: Text(title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Colors.grey, letterSpacing: 1)),
+  );
+}
+
+class _SettingsTile extends StatelessWidget {
+  final IconData icon;
+  final String title, subtitle;
+  final VoidCallback onTap;
+  const _SettingsTile({required this.icon, required this.title, required this.subtitle, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    leading: Icon(icon, color: const Color(0xFF1565C0)),
+    title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+    subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+    trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+    onTap: onTap,
+  );
+}
+
+class _PrefTile extends StatefulWidget {
+  final String title, subtitle;
+  final bool initial;
+  const _PrefTile(this.title, this.subtitle, this.initial);
+
+  @override
+  State<_PrefTile> createState() => _PrefTileState();
+}
+
+class _PrefTileState extends State<_PrefTile> {
+  late bool _val;
+
+  @override
+  void initState() { super.initState(); _val = widget.initial; }
+
+  @override
+  Widget build(BuildContext context) => SwitchListTile(
+    title: Text(widget.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+    subtitle: Text(widget.subtitle, style: const TextStyle(fontSize: 12)),
+    value: _val, onChanged: (v) => setState(() => _val = v),
+  );
 }

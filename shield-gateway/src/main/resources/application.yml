@@ -281,6 +281,8 @@ resilience4j:
     instances:
       default:
         timeoutDuration: 5s
+      adminCB:
+        timeoutDuration: 30s
 
 # Actuator
 management:

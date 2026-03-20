@@ -36,6 +36,36 @@ public class TenantService {
             "multi_admin",        false
     );
 
+    private static final Map<TenantPlan, Map<String, Object>> PLAN_DEFAULTS = Map.of(
+        TenantPlan.STARTER, Map.of(
+            "maxCustomers", 100,
+            "maxProfilesPerCustomer", 5,
+            "features", Map.of(
+                "dns_filtering", true, "ai_monitoring", false, "gps_tracking", false,
+                "screen_time", true, "rewards", false, "instant_pause", true,
+                "content_reporting", false, "multi_admin", false
+            )
+        ),
+        TenantPlan.GROWTH, Map.of(
+            "maxCustomers", 1000,
+            "maxProfilesPerCustomer", 10,
+            "features", Map.of(
+                "dns_filtering", true, "ai_monitoring", true, "gps_tracking", true,
+                "screen_time", true, "rewards", true, "instant_pause", true,
+                "content_reporting", true, "multi_admin", false
+            )
+        ),
+        TenantPlan.ENTERPRISE, Map.of(
+            "maxCustomers", 100000,
+            "maxProfilesPerCustomer", 20,
+            "features", Map.of(
+                "dns_filtering", true, "ai_monitoring", true, "gps_tracking", true,
+                "screen_time", true, "rewards", true, "instant_pause", true,
+                "content_reporting", true, "multi_admin", true
+            )
+        )
+    );
+
     private final TenantRepository tenantRepository;
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -95,7 +125,22 @@ public class TenantService {
         if (req.getContactPhone()           != null) tenant.setContactPhone(req.getContactPhone());
         if (req.getLogoUrl()                != null) tenant.setLogoUrl(req.getLogoUrl());
         if (req.getPrimaryColor()           != null) tenant.setPrimaryColor(req.getPrimaryColor());
-        if (req.getPlan()                   != null) tenant.setPlan(req.getPlan());
+        if (req.getPlan()                   != null) {
+            tenant.setPlan(req.getPlan());
+            // Auto-apply plan defaults unless explicit overrides provided
+            Map<String, Object> pd = PLAN_DEFAULTS.get(req.getPlan());
+            if (pd != null) {
+                if (req.getMaxCustomers() == null)
+                    tenant.setMaxCustomers((Integer) pd.get("maxCustomers"));
+                if (req.getMaxProfilesPerCustomer() == null)
+                    tenant.setMaxProfilesPerCustomer((Integer) pd.get("maxProfilesPerCustomer"));
+                if (req.getFeatures() == null) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Boolean> f = (Map<String, Boolean>) pd.get("features");
+                    tenant.setFeatures(f);
+                }
+            }
+        }
         if (req.getMaxCustomers()           != null) tenant.setMaxCustomers(req.getMaxCustomers());
         if (req.getMaxProfilesPerCustomer() != null) tenant.setMaxProfilesPerCustomer(req.getMaxProfilesPerCustomer());
         if (req.getFeatures()               != null) tenant.setFeatures(req.getFeatures());
@@ -107,6 +152,21 @@ public class TenantService {
     }
 
     // ── Feature flag toggle ───────────────────────────────────────────────────
+
+    /** Force re-apply PLAN_DEFAULTS for the tenant's current plan. */
+    @Transactional
+    public TenantResponse syncPlanFeatures(UUID id) {
+        Tenant tenant = findOrThrow(id);
+        Map<String, Object> pd = PLAN_DEFAULTS.get(tenant.getPlan());
+        if (pd != null) {
+            tenant.setMaxCustomers((Integer) pd.get("maxCustomers"));
+            tenant.setMaxProfilesPerCustomer((Integer) pd.get("maxProfilesPerCustomer"));
+            @SuppressWarnings("unchecked")
+            Map<String, Boolean> f = (Map<String, Boolean>) pd.get("features");
+            tenant.setFeatures(new HashMap<>(f));
+        }
+        return toResponse(tenantRepository.save(tenant));
+    }
 
     @Transactional
     public TenantResponse toggleFeature(UUID id, String feature, boolean enabled) {

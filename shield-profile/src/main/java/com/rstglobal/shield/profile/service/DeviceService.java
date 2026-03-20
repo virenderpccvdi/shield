@@ -54,6 +54,19 @@ public class DeviceService {
                 .map(this::toResponse).toList();
     }
 
+    public List<DeviceResponse> listByProfileAdmin(UUID profileId) {
+        return deviceRepository.findByProfileId(profileId).stream()
+                .map(this::toResponse)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteAdmin(UUID id) {
+        Device device = deviceRepository.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("Device", id));
+        deviceRepository.delete(device);
+    }
+
     @Transactional
     public void delete(UUID deviceId, UUID customerId) {
         Device device = deviceRepository.findById(deviceId)

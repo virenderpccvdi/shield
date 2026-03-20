@@ -19,4 +19,5 @@ public class SubscriptionResponse {
     private String stripeSubscriptionId;
     private Map<String, Boolean> features;
     private int maxProfiles;
+    private int maxCustomers;
 }

@@ -55,3 +55,10 @@ logging:
 firebase:
   enabled: false
   service-account-path: /var/www/ai/FamilyShield/config/firebase-service-account.json
+
+# Twilio SMS (disabled by default; set TWILIO_ENABLED=true in .env to activate)
+twilio:
+  enabled: ${TWILIO_ENABLED:false}
+  account-sid: ${TWILIO_ACCOUNT_SID:}
+  auth-token: ${TWILIO_AUTH_TOKEN:}
+  from-number: ${TWILIO_FROM_NUMBER:}

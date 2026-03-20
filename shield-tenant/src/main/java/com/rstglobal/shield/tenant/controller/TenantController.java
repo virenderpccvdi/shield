@@ -207,6 +207,15 @@ public class TenantController {
         }
     }
 
+    @PostMapping("/{id}/sync-features")
+    @Operation(summary = "Force re-apply plan defaults to tenant features (GLOBAL_ADMIN only)")
+    public ApiResponse<TenantResponse> syncPlanFeatures(
+            @RequestHeader("X-User-Role") String role,
+            @PathVariable UUID id) {
+        requireGlobalAdmin(role);
+        return ApiResponse.ok(tenantService.syncPlanFeatures(id));
+    }
+
     private void requireGlobalAdminOrSelf(String role, UUID callerTenantId, UUID targetTenantId) {
         if ("GLOBAL_ADMIN".equals(role)) return;
         if ("ISP_ADMIN".equals(role) && targetTenantId.equals(callerTenantId)) return;

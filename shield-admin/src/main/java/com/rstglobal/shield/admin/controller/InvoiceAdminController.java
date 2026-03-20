@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -28,14 +29,18 @@ public class InvoiceAdminController {
     private final BillingService billingService;
 
     @GetMapping
-    @Operation(summary = "List all invoices (paginated)")
+    @Operation(summary = "List all invoices (paginated), optionally filtered by tenantId")
     public ApiResponse<Page<InvoiceResponse>> listAll(
             @RequestHeader("X-User-Role") String role,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) UUID tenantId) {
         requireGlobalAdmin(role);
-        return ApiResponse.ok(billingService.listAllInvoices(
-                PageRequest.of(page, size, Sort.by("createdAt").descending())));
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<InvoiceResponse> result = tenantId != null
+                ? billingService.listInvoicesByTenant(tenantId, pageable)
+                : billingService.listAllInvoices(pageable);
+        return ApiResponse.ok(result);
     }
 
     @GetMapping("/{id}")

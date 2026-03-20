@@ -125,6 +125,13 @@
             <version>9.4.3</version>
         </dependency>
 
+        <!-- Twilio SDK (SMS / SOS alerts) -->
+        <dependency>
+            <groupId>com.twilio.sdk</groupId>
+            <artifactId>twilio</artifactId>
+            <version>10.6.7</version>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

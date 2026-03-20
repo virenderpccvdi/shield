@@ -32,7 +32,16 @@ function getInitials(name: string) {
 
 const INITIAL_COLORS = ['#00897B', '#1565C0', '#7B1FA2', '#FB8C00', '#E53935'];
 
-interface RecentCustomer { id: string; name: string; email: string; joinedAt: string; profiles: number; }
+interface RecentCustomer {
+  id: string;
+  name?: string;
+  email?: string;
+  userId?: string;
+  joinedAt?: string;
+  createdAt?: string;
+  profiles?: number;
+  profileCount?: number;
+}
 
 export default function IspDashboardPage() {
   const tenantId = useAuthStore(s => s.user?.tenantId);
@@ -53,8 +62,8 @@ export default function IspDashboardPage() {
         const d = r.data?.data;
         const list = (d?.content ?? d) as RecentCustomer[];
         if (Array.isArray(list)) {
-          setCustomerCount(list.length);
-          setProfileCount(list.reduce((s, c) => s + (c.profiles || 0), 0));
+          setCustomerCount(d?.totalElements ?? list.length);
+          setProfileCount(list.reduce((s, c) => s + (c.profileCount || c.profiles || 0), 0));
           setRecentSignups(list.slice(0, 5));
         }
       }).catch(() => {}),
@@ -195,13 +204,16 @@ export default function IspDashboardPage() {
                         animation: `fadeInRight 0.4s ease ${0.5 + i * 0.1}s both`,
                       }}>
                         <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, bgcolor: INITIAL_COLORS[i % INITIAL_COLORS.length] }}>
-                          {getInitials(signup.name)}
+                          {signup.name ? getInitials(signup.name) : (signup.userId?.slice(0, 2).toUpperCase() ?? 'C')}
                         </Avatar>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography variant="body2" fontWeight={600} noWrap>{signup.name}</Typography>
-                          <Typography variant="caption" color="text.secondary">{signup.joinedAt ? new Date(signup.joinedAt).toLocaleDateString() : signup.email}</Typography>
+                          <Typography variant="body2" fontWeight={600} noWrap>{signup.name || `Customer ${i + 1}`}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {(signup.createdAt || signup.joinedAt) ? new Date(signup.createdAt || signup.joinedAt || '').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : (signup.email || '')}
+                          </Typography>
                         </Box>
-                        <Chip size="small" label={`${signup.profiles || 0} profile${(signup.profiles || 0) !== 1 ? 's' : ''}`}
+                        <Chip size="small"
+                          label={`${signup.profileCount || signup.profiles || 0} profile${(signup.profileCount || signup.profiles || 0) !== 1 ? 's' : ''}`}
                           sx={{ height: 22, fontSize: 11, bgcolor: '#E0F2F1', color: '#00695C' }} />
                       </Box>
                     ))}

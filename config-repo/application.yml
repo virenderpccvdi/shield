@@ -1,7 +1,7 @@
 # Shared config loaded by ALL Shield services
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5454}/${DB_NAME:shield_db}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:shield_db}
     username: ${DB_USER:shield}
     password: ${DB_PASSWORD:changeme}
     hikari:

@@ -93,8 +93,8 @@ public class BillingService {
                 .stripePaymentIntentId(session.getPaymentIntent())
                 .build());
 
-        // Update customer subscription via cross-schema query
-        updateCustomerSubscription(inv.getUserId(), inv.getPlanName(), "ACTIVE", session.getSubscription());
+        // Update customer subscription via cross-schema query (also handles ISP admin tenant update)
+        updateCustomerSubscription(inv.getUserId(), inv.getTenantId(), inv.getPlanName(), "ACTIVE", session.getSubscription());
 
         log.info("Checkout completed: invoice={}, user={}, plan={}", inv.getId(), inv.getUserId(), inv.getPlanName());
         auditLogService.log("SUBSCRIPTION_CREATED", "Invoice", inv.getId().toString(),
@@ -204,11 +204,16 @@ public class BillingService {
         Optional<StripeCustomer> sc = stripeCustomerRepo.findByStripeCustomerId(custId);
         if (sc.isEmpty()) return;
 
-        updateCustomerSubscription(sc.get().getUserId(), "FREE", "CANCELLED", null);
+        updateCustomerSubscription(sc.get().getUserId(), sc.get().getTenantId(), "FREE", "CANCELLED", null);
         log.info("Subscription cancelled for user {}", sc.get().getUserId());
     }
 
     public SubscriptionResponse getSubscription(UUID userId) {
+        return getSubscription(userId, null);
+    }
+
+    public SubscriptionResponse getSubscription(UUID userId, UUID tenantId) {
+        // First try customer subscription (CUSTOMER role)
         try {
             Object[] row = (Object[]) entityManager.createNativeQuery(
                     "SELECT c.subscription_plan, c.subscription_status, c.subscription_expires_at, " +
@@ -232,19 +237,58 @@ public class BillingService {
                     .maxProfiles(row[4] != null ? ((Number) row[4]).intValue() : 5)
                     .build();
         } catch (Exception e) {
-            log.debug("No subscription found for user {}", userId);
-            return SubscriptionResponse.builder()
-                    .planName("FREE").status("NONE")
-                    .build();
+            log.debug("No customer subscription found for user {}, trying tenant", userId);
         }
+
+        // Fallback: ISP admin — look up tenant plan
+        if (tenantId != null) {
+            try {
+                Object[] row = (Object[]) entityManager.createNativeQuery(
+                        "SELECT t.plan, t.is_active, t.subscription_ends_at, t.max_customers, t.max_profiles_per_customer " +
+                        "FROM tenant.tenants t WHERE t.id = :tid")
+                        .setParameter("tid", tenantId)
+                        .getSingleResult();
+
+                String planName = row[0] != null ? row[0].toString() : "STARTER";
+                boolean isActive = row[1] != null && (Boolean) row[1];
+                SubscriptionPlan plan = planRepo.findByName(planName).orElse(null);
+
+                return SubscriptionResponse.builder()
+                        .planName(planName)
+                        .planDisplayName(plan != null ? plan.getDisplayName() : capitalize(planName) + " Plan")
+                        .price(plan != null ? plan.getPrice() : BigDecimal.ZERO)
+                        .billingCycle(plan != null ? plan.getBillingCycle() : "MONTHLY")
+                        .status(isActive ? "ACTIVE" : "SUSPENDED")
+                        .expiresAt(row[2] != null ? ((java.sql.Timestamp) row[2]).toInstant() : null)
+                        .features(plan != null ? plan.getFeatures() : null)
+                        .maxCustomers(row[3] != null ? ((Number) row[3]).intValue() : 100)
+                        .maxProfiles(row[4] != null ? ((Number) row[4]).intValue() : 5)
+                        .build();
+            } catch (Exception ex) {
+                log.debug("No tenant found for tenantId {}", tenantId);
+            }
+        }
+
+        return SubscriptionResponse.builder()
+                .planName("FREE").planDisplayName("Free Plan").status("NONE")
+                .build();
+    }
+
+    private String capitalize(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return s.charAt(0) + s.substring(1).toLowerCase();
     }
 
     public void cancelSubscription(UUID userId) {
-        SubscriptionResponse sub = getSubscription(userId);
+        cancelSubscription(userId, null);
+    }
+
+    public void cancelSubscription(UUID userId, UUID tenantId) {
+        SubscriptionResponse sub = getSubscription(userId, tenantId);
         if (sub.getStripeSubscriptionId() != null && !sub.getStripeSubscriptionId().isBlank()) {
             stripeService.cancelSubscription(sub.getStripeSubscriptionId());
         }
-        updateCustomerSubscription(userId, sub.getPlanName(), "CANCELLED", null);
+        updateCustomerSubscription(userId, tenantId, "FREE", "CANCELLED", null);
         log.info("User {} cancelled subscription", userId);
     }
 
@@ -254,6 +298,10 @@ public class BillingService {
 
     public Page<InvoiceResponse> listAllInvoices(Pageable pageable) {
         return invoiceRepo.findAll(pageable).map(this::toResponse);
+    }
+
+    public Page<InvoiceResponse> listInvoicesByTenant(UUID tenantId, Pageable pageable) {
+        return invoiceRepo.findByTenantId(tenantId, pageable).map(this::toResponse);
     }
 
     public InvoiceResponse getInvoiceById(UUID id) {
@@ -425,10 +473,14 @@ public class BillingService {
     }
 
     private void updateCustomerSubscription(UUID userId, String planName, String status, String stripeSubId) {
+        updateCustomerSubscription(userId, null, planName, status, stripeSubId);
+    }
+
+    private void updateCustomerSubscription(UUID userId, UUID tenantId, String planName, String status, String stripeSubId) {
         try {
             SubscriptionPlan plan = planRepo.findByName(planName).orElse(null);
             int maxProfiles = plan != null ? plan.getMaxProfilesPerCustomer() : 5;
-            entityManager.createNativeQuery(
+            int updated = entityManager.createNativeQuery(
                     "UPDATE profile.customers SET subscription_plan = :plan, subscription_status = :status, " +
                     "stripe_subscription_id = :subId, max_profiles = :mp, updated_at = now() " +
                     "WHERE user_id = :uid")
@@ -438,18 +490,90 @@ public class BillingService {
                     .setParameter("mp", maxProfiles)
                     .setParameter("uid", userId)
                     .executeUpdate();
+
+            // If no customer row updated and we have a tenantId, update the tenant's plan (ISP admin)
+            if (updated == 0 && tenantId != null) {
+                boolean active = "ACTIVE".equals(status);
+                // Serialize plan features for tenant update
+                String featuresJson = null;
+                int maxCustomers = plan != null ? plan.getMaxCustomers() : 100;
+                int maxProfilesPerCustomer = plan != null ? plan.getMaxProfilesPerCustomer() : 5;
+                if (plan != null && plan.getFeatures() != null && !plan.getFeatures().isEmpty()) {
+                    try {
+                        featuresJson = new com.fasterxml.jackson.databind.ObjectMapper()
+                                .writeValueAsString(plan.getFeatures());
+                    } catch (Exception ex) {
+                        log.warn("Failed to serialize plan features: {}", ex.getMessage());
+                    }
+                }
+                try {
+                    if (featuresJson != null) {
+                        entityManager.createNativeQuery(
+                                "UPDATE tenant.tenants SET plan = :plan, is_active = :active, " +
+                                "features = CAST(:features AS jsonb), max_customers = :maxCust, " +
+                                "max_profiles_per_customer = :maxProf, updated_at = now() " +
+                                "WHERE id = :tid")
+                                .setParameter("plan", planName)
+                                .setParameter("active", active)
+                                .setParameter("features", featuresJson)
+                                .setParameter("maxCust", maxCustomers)
+                                .setParameter("maxProf", maxProfilesPerCustomer)
+                                .setParameter("tid", tenantId)
+                                .executeUpdate();
+                    } else {
+                        entityManager.createNativeQuery(
+                                "UPDATE tenant.tenants SET plan = :plan, is_active = :active, " +
+                                "max_customers = :maxCust, max_profiles_per_customer = :maxProf, updated_at = now() " +
+                                "WHERE id = :tid")
+                                .setParameter("plan", planName)
+                                .setParameter("active", active)
+                                .setParameter("maxCust", maxCustomers)
+                                .setParameter("maxProf", maxProfilesPerCustomer)
+                                .setParameter("tid", tenantId)
+                                .executeUpdate();
+                    }
+                    log.info("Updated tenant {} plan to {} with features (ISP admin billing)", tenantId, planName);
+                } catch (Exception ex) {
+                    log.error("Failed to update tenant plan for tenant {}", tenantId, ex);
+                }
+            }
         } catch (Exception e) {
-            log.error("Failed to update customer subscription for user {}", userId, e);
+            log.error("Failed to update subscription for user {} / tenant {}", userId, tenantId, e);
         }
     }
 
     private InvoiceResponse toResponse(Invoice inv) {
+        // Enrich: tenant name
+        String tenantName = null;
+        if (inv.getTenantId() != null) {
+            try {
+                tenantName = (String) entityManager.createNativeQuery(
+                        "SELECT name FROM tenant.tenants WHERE id = :tid")
+                        .setParameter("tid", inv.getTenantId()).getSingleResult();
+            } catch (Exception ignored) {}
+        }
+        // Enrich: real user email/name when stored email is placeholder
+        String userEmail = inv.getUserEmail();
+        String userName = null;
+        if (inv.getUserId() != null) {
+            try {
+                Object[] row = (Object[]) entityManager.createNativeQuery(
+                        "SELECT email, name FROM auth.users WHERE id = :uid")
+                        .setParameter("uid", inv.getUserId()).getSingleResult();
+                if (row[0] != null && (userEmail == null || userEmail.isBlank() || "user@shield.app".equals(userEmail))) {
+                    userEmail = (String) row[0];
+                }
+                if (row[1] != null) userName = (String) row[1];
+            } catch (Exception ignored) {}
+        }
         return InvoiceResponse.builder()
                 .id(inv.getId())
                 .tenantId(inv.getTenantId())
                 .customerId(inv.getCustomerId())
                 .userId(inv.getUserId())
-                .userEmail(inv.getUserEmail())
+                .userEmail(userEmail)
+                .tenantName(tenantName)
+                .userName(userName)
                 .planName(inv.getPlanName())
                 .amount(inv.getAmount())
                 .currency(inv.getCurrency())

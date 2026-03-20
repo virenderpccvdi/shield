@@ -141,6 +141,31 @@ public class DnsRulesService {
         return toPlatformResponse(platformRepo.save(pd));
     }
 
+    /**
+     * Copy platform blocklist and allowlist domains into ALL existing child profile rules.
+     * Domains already present in a profile are skipped (no duplicates).
+     * Returns number of profiles updated.
+     */
+    @Transactional
+    public int propagatePlatformRulesToAllProfiles() {
+        PlatformDefaults pd = platformRepo.findAll().stream().findFirst()
+                .orElseThrow(() -> ShieldException.notFound("platform-defaults", "singleton"));
+        List<String> platformBlocklist = Optional.ofNullable(pd.getCustomBlocklist()).orElse(List.of());
+        List<String> platformAllowlist = Optional.ofNullable(pd.getCustomAllowlist()).orElse(List.of());
+        List<DnsRules> allRules = rulesRepo.findAll();
+        for (DnsRules rules : allRules) {
+            List<String> block = new ArrayList<>(Optional.ofNullable(rules.getCustomBlocklist()).orElse(List.of()));
+            for (String d : platformBlocklist) { if (!block.contains(d)) block.add(d); }
+            rules.setCustomBlocklist(block);
+            List<String> allow = new ArrayList<>(Optional.ofNullable(rules.getCustomAllowlist()).orElse(List.of()));
+            for (String d : platformAllowlist) { if (!allow.contains(d)) allow.add(d); }
+            rules.setCustomAllowlist(allow);
+            rulesRepo.save(rules);
+        }
+        log.info("Propagated platform rules to {} profiles", allRules.size());
+        return allRules.size();
+    }
+
     private PlatformDefaultsResponse toPlatformResponse(PlatformDefaults pd) {
         return PlatformDefaultsResponse.builder()
                 .enabledCategories(pd.getEnabledCategories())

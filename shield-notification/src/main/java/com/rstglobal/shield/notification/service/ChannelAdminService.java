@@ -36,16 +36,19 @@ public class ChannelAdminService {
 
     @Transactional
     public ChannelResponse upsertChannel(UUID tenantId, UpsertChannelRequest req) {
+        // Normalize EMAIL → SMTP to prevent duplicate channel records
+        String channelType = "EMAIL".equals(req.getChannelType()) ? "SMTP" : req.getChannelType();
+
         NotificationChannel ch = channelRepo
-                .findByTenantIdAndChannelType(tenantId, req.getChannelType())
+                .findByTenantIdAndChannelType(tenantId, channelType)
                 .orElse(NotificationChannel.builder()
                         .tenantId(tenantId)
-                        .channelType(req.getChannelType())
+                        .channelType(channelType)
                         .build());
 
         ch.setEnabled(req.getEnabled());
 
-        switch (req.getChannelType()) {
+        switch (channelType) {
             case "SMTP" -> {
                 ch.setSmtpHost(req.getSmtpHost());
                 ch.setSmtpPort(req.getSmtpPort());
@@ -64,7 +67,7 @@ public class ChannelAdminService {
                 if (req.getTelegramBotToken() != null) ch.setTelegramBotToken(req.getTelegramBotToken());
                 ch.setTelegramBotUsername(req.getTelegramBotUsername());
             }
-            default -> throw ShieldException.badRequest("Unknown channel type: " + req.getChannelType());
+            default -> throw ShieldException.badRequest("Unknown channel type: " + channelType);
         }
 
         return toResponse(channelRepo.save(ch));

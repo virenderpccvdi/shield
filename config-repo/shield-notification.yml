@@ -13,7 +13,7 @@ firebase:
 # SMTP defaults — overridden by SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_FROM env vars
 smtp:
   host: ${SMTP_HOST:smtp.zoho.com}
-  port: ${SMTP_PORT:587}
+  port: ${SMTP_PORT:465}
   user: ${SMTP_USER:noreply@rstglobal.in}
   pass: ${SMTP_PASS:}
   from: ${SMTP_FROM:noreply@rstglobal.in}

@@ -5,12 +5,15 @@ import com.rstglobal.shield.notification.entity.Notification;
 import com.rstglobal.shield.notification.repository.AlertPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Dispatches a notification across all configured channels:
@@ -19,6 +22,7 @@ import java.util.Optional;
  * 3. Email
  * 4. WhatsApp
  * 5. Telegram
+ * 6. SMS via Twilio (SOS + high-severity geofence breaches)
  *
  * Respects quiet hours and per-type preference toggles.
  */
@@ -27,12 +31,27 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class NotificationDispatcher {
 
+    /** Notification types that always bypass quiet hours and trigger SMS */
+    private static final Set<String> CRITICAL_TYPES =
+            Set.of("SOS_ALERT", "GEOFENCE_BREACH_HIGH", "LOCATION_SPOOFING");
+
     private final SimpMessagingTemplate ws;
     private final EmailService emailService;
     private final WhatsAppService whatsappService;
     private final TelegramService telegramService;
     private final FcmService fcmService;
     private final AlertPreferenceRepository prefRepo;
+    private final JdbcTemplate jdbc;
+
+    /**
+     * Optional — only present when twilio.enabled=true.
+     * Falls back to NoOpSmsService which is registered via @ConditionalOnMissingBean.
+     */
+    @Autowired(required = false)
+    private TwilioSmsService twilioSmsService;
+
+    @Autowired(required = false)
+    private NoOpSmsService noOpSmsService;
 
     /**
      * @param notification  The saved Notification entity
@@ -42,8 +61,10 @@ public class NotificationDispatcher {
         Optional<AlertPreference> prefOpt = prefRepo.findByUserId(notification.getUserId());
         AlertPreference pref = prefOpt.orElse(defaultPreference());
 
-        // Check quiet hours
-        if (isQuietTime(pref)) {
+        boolean isCritical = CRITICAL_TYPES.contains(notification.getType());
+
+        // Check quiet hours — critical alerts bypass quiet hours
+        if (!isCritical && isQuietTime(pref)) {
             log.debug("Quiet hours active — suppressing notification userId={}", notification.getUserId());
             // Still deliver via WebSocket (silent in-app)
             pushWebSocket(notification);
@@ -74,6 +95,11 @@ public class NotificationDispatcher {
             }
         }
 
+        // 3. SMS via Twilio — only for critical alert types (SOS, geofence high, spoofing)
+        if (isCritical) {
+            dispatchSms(notification);
+        }
+
         // 4. Email
         if (Boolean.TRUE.equals(pref.getEmailEnabled()) && toEmail != null) {
             String emailBody = buildEmailBody(notification);
@@ -92,6 +118,38 @@ public class NotificationDispatcher {
         if (Boolean.TRUE.equals(pref.getTelegramEnabled())) {
             String msg = "<b>" + notification.getTitle() + "</b>\n" + notification.getBody();
             telegramService.send(notification.getTenantId(), pref.getTelegramChatId(), msg);
+        }
+    }
+
+    /**
+     * Look up the user's phone number from auth.users and send an SMS.
+     * Uses the effective SMS service (Twilio if enabled, otherwise no-op).
+     */
+    private void dispatchSms(Notification notification) {
+        try {
+            String phone = lookupUserPhone(notification.getUserId());
+            if (phone == null || phone.isBlank()) {
+                log.debug("No phone on file for userId={} — SMS skipped", notification.getUserId());
+                return;
+            }
+            String message = notification.getTitle() + " — " + notification.getBody();
+            if (twilioSmsService != null) {
+                twilioSmsService.sendSms(phone, message);
+            } else if (noOpSmsService != null) {
+                noOpSmsService.sendSms(phone, message);
+            }
+        } catch (Exception e) {
+            log.warn("SMS dispatch failed for userId={}: {}", notification.getUserId(), e.getMessage());
+        }
+    }
+
+    private String lookupUserPhone(java.util.UUID userId) {
+        try {
+            return jdbc.queryForObject(
+                    "SELECT phone FROM auth.users WHERE id = ?",
+                    String.class, userId);
+        } catch (Exception e) {
+            return null;
         }
     }
 

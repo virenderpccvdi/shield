@@ -65,7 +65,12 @@ public class DeviceController {
     public ApiResponse<List<DeviceResponse>> listByProfile(
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId,
             @PathVariable UUID profileId) {
+        if ("ISP_ADMIN".equals(role) || "GLOBAL_ADMIN".equals(role)) {
+            // Admin can view any profile's devices
+            return ApiResponse.ok(deviceService.listByProfileAdmin(profileId));
+        }
         UUID customerId = resolveCustomerId(userId, role);
         return ApiResponse.ok(deviceService.listByProfile(profileId, customerId));
     }
@@ -77,6 +82,10 @@ public class DeviceController {
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role,
             @PathVariable UUID id) {
+        if ("ISP_ADMIN".equals(role) || "GLOBAL_ADMIN".equals(role)) {
+            deviceService.deleteAdmin(id);
+            return;
+        }
         UUID customerId = resolveCustomerId(userId, role);
         deviceService.delete(id, customerId);
     }

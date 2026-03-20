@@ -4,12 +4,14 @@ import {
   Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell,
   TableBody, Chip, TextField, InputAdornment, CircularProgress, Button,
   Dialog, DialogTitle, DialogContent, DialogActions, Grid,
-  MenuItem, IconButton, Tooltip, Alert, Snackbar, Stack,
+  MenuItem, IconButton, Tooltip, Alert, Snackbar, Stack, FormControlLabel, Switch,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BusinessIcon from '@mui/icons-material/Business';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
@@ -29,12 +31,12 @@ interface Tenant {
 }
 interface TenantForm {
   name: string; slug: string; contactEmail: string; contactPhone: string;
-  plan: string; maxCustomers: number; maxProfilesPerCustomer: number;
+  plan: string; maxCustomers: number; maxProfilesPerCustomer: number; active: boolean;
 }
 
 const EMPTY_FORM: TenantForm = {
   name: '', slug: '', contactEmail: '', contactPhone: '',
-  plan: 'STARTER', maxCustomers: 100, maxProfilesPerCustomer: 5,
+  plan: 'STARTER', maxCustomers: 100, maxProfilesPerCustomer: 5, active: true,
 };
 const EMPTY_TENANTS: Tenant[] = [];
 
@@ -83,7 +85,7 @@ export default function TenantsPage() {
   function openAdd() { setEditing(null); setForm(EMPTY_FORM); setFormError(''); setOpen(true); }
   function openEdit(t: Tenant) {
     setEditing(t);
-    setForm({ name: t.name, slug: t.slug, contactEmail: t.contactEmail, contactPhone: t.contactPhone || '', plan: t.plan, maxCustomers: t.maxCustomers, maxProfilesPerCustomer: t.maxProfilesPerCustomer });
+    setForm({ name: t.name, slug: t.slug, contactEmail: t.contactEmail, contactPhone: t.contactPhone || '', plan: t.plan, maxCustomers: t.maxCustomers, maxProfilesPerCustomer: t.maxProfilesPerCustomer, active: t.status !== 'SUSPENDED' });
     setFormError(''); setOpen(true);
   }
   function handleClose() { setOpen(false); setEditing(null); }
@@ -191,6 +193,13 @@ export default function TenantsPage() {
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title={t.status === 'SUSPENDED' ? 'Activate ISP' : 'Suspend ISP'}>
+                          <IconButton size="small"
+                            onClick={(e) => { e.stopPropagation(); updateMutation.mutate({ id: t.id, body: { ...t, active: t.status === 'SUSPENDED', maxCustomers: t.maxCustomers, maxProfilesPerCustomer: t.maxProfilesPerCustomer } as any }); }}
+                            sx={{ color: t.status === 'SUSPENDED' ? '#2E7D32' : '#F57F17', transition: 'transform 0.15s ease', '&:hover': { transform: 'scale(1.15)' } }}>
+                            {t.status === 'SUSPENDED' ? <CheckCircleIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
+                          </IconButton>
+                        </Tooltip>
                         <Tooltip title="Delete">
                           <IconButton size="small" aria-label={`Delete ${t.name}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(t); }}
                             sx={{ color: 'error.main', transition: 'transform 0.15s ease', '&:hover': { transform: 'scale(1.15)' } }}>
@@ -248,6 +257,21 @@ export default function TenantsPage() {
                 onChange={e => setForm(f => ({ ...f, maxProfilesPerCustomer: Number(e.target.value) }))}
                 inputProps={{ min: 1, max: 20 }} />
             </Grid>
+            {editing && (
+              <Grid size={12}>
+                <FormControlLabel
+                  control={<Switch checked={form.active} onChange={(_, c) => setForm(f => ({ ...f, active: c }))}
+                    sx={{ '& .MuiSwitch-thumb': { bgcolor: form.active ? '#2E7D32' : '#C62828' } }} />}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {form.active
+                        ? <><CheckCircleIcon sx={{ fontSize: 16, color: '#2E7D32' }} /><Typography variant="body2" fontWeight={600} color="#2E7D32">Active — ISP can operate normally</Typography></>
+                        : <><BlockIcon sx={{ fontSize: 16, color: '#C62828' }} /><Typography variant="body2" fontWeight={600} color="#C62828">Suspended — ISP access disabled</Typography></>}
+                    </Box>
+                  }
+                />
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>

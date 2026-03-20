@@ -11,6 +11,8 @@ public class CustomerResponse {
     private UUID id;
     private UUID tenantId;
     private UUID userId;
+    private String name;
+    private String email;
     private String subscriptionPlan;
     private String subscriptionStatus;
     private Instant subscriptionExpiresAt;

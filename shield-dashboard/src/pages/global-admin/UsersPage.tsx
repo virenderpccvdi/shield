@@ -5,7 +5,7 @@ import {
   TableBody, Chip, TextField, InputAdornment, CircularProgress, Button,
   Dialog, DialogTitle, DialogContent, DialogActions, Grid,
   MenuItem, Alert, Snackbar, Stack, Avatar, IconButton, Tooltip,
-  Switch, FormControlLabel,
+  Switch, FormControlLabel, Select, FormControl, InputLabel,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -13,6 +13,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PeopleIcon from '@mui/icons-material/People';
 import DownloadIcon from '@mui/icons-material/Download';
+import BusinessIcon from '@mui/icons-material/Business';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
@@ -29,7 +30,7 @@ interface UserForm {
   role: string; tenantId: string;
 }
 interface EditForm {
-  name: string; phone: string; role: string; active: boolean;
+  name: string; phone: string; role: string; active: boolean; tenantId: string;
 }
 interface Tenant { id: string; name: string; slug: string; }
 
@@ -61,6 +62,7 @@ export default function UsersPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [tenantFilter, setTenantFilter] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<UserForm>(EMPTY_FORM);
   const [formError, setFormError] = useState('');
@@ -68,7 +70,7 @@ export default function UsersPage() {
   // Edit state
   const [editOpen, setEditOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState<EditForm>({ name: '', phone: '', role: '', active: true });
+  const [editForm, setEditForm] = useState<EditForm>({ name: '', phone: '', role: '', active: true, tenantId: '' });
   const [editError, setEditError] = useState('');
   // Delete state
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -120,9 +122,11 @@ export default function UsersPage() {
     },
   });
 
-  const filtered = users.filter(u =>
-    `${u.name} ${u.email} ${u.role}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = users.filter(u => {
+    const matchSearch = `${u.name} ${u.email} ${u.role} ${tenants.find(t => t.id === u.tenantId)?.name ?? ''}`.toLowerCase().includes(search.toLowerCase());
+    const matchTenant = !tenantFilter || u.tenantId === tenantFilter || (tenantFilter === '__none__' && !u.tenantId);
+    return matchSearch && matchTenant;
+  });
 
   function handleSave() {
     if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
@@ -136,7 +140,7 @@ export default function UsersPage() {
   function openEdit(u: User, e: React.MouseEvent) {
     e.stopPropagation();
     setEditUser(u);
-    setEditForm({ name: u.name, phone: u.phone || '', role: u.role, active: u.active });
+    setEditForm({ name: u.name, phone: u.phone || '', role: u.role, active: u.active, tenantId: u.tenantId || '' });
     setEditError(''); setEditOpen(true);
   }
 
@@ -152,10 +156,18 @@ export default function UsersPage() {
         title="Users"
         subtitle={`${users.length} users across all tenants`}
         action={
-          <Stack direction="row" spacing={2}>
+          <Stack direction="row" spacing={2} flexWrap="wrap">
             <TextField size="small" placeholder="Search users..." value={search} onChange={e => setSearch(e.target.value)}
               slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> } }}
-              sx={{ width: 240 }} />
+              sx={{ width: 220 }} />
+            <FormControl size="small" sx={{ minWidth: 170 }}>
+              <InputLabel>Filter by ISP</InputLabel>
+              <Select value={tenantFilter} label="Filter by ISP" onChange={e => setTenantFilter(e.target.value)}>
+                <MenuItem value="">All ISPs</MenuItem>
+                <MenuItem value="__none__">No ISP (Platform)</MenuItem>
+                {tenants.map(t => <MenuItem key={t.id} value={t.id}><Stack direction="row" spacing={0.75} alignItems="center"><BusinessIcon sx={{ fontSize: 14, color: '#1565C0' }} /><span>{t.name}</span></Stack></MenuItem>)}
+              </Select>
+            </FormControl>
             <Button variant="outlined" size="small" startIcon={<DownloadIcon />}
               onClick={() => exportCSV(filtered)} sx={{ borderRadius: 2 }}>Export</Button>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm(EMPTY_FORM); setFormError(''); setOpen(true); }}
@@ -205,9 +217,21 @@ export default function UsersPage() {
                     <TableCell><Typography variant="body2" color="text.secondary">{u.email}</Typography></TableCell>
                     <TableCell><Chip size="small" label={u.role.replace('_', ' ')} color={ROLE_COLOR[u.role] || 'default'} sx={{ fontSize: 11, fontWeight: 600 }} /></TableCell>
                     <TableCell>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace', fontSize: 12 }}>
-                        {tenants.find(t => t.id === u.tenantId)?.name || u.tenantId || '\u2014'}
-                      </Typography>
+                      {u.tenantId ? (() => {
+                        const t = tenants.find(t => t.id === u.tenantId);
+                        return (
+                          <Chip
+                            size="small"
+                            icon={<BusinessIcon sx={{ fontSize: 13 }} />}
+                            label={t?.name ?? `${u.tenantId.slice(0, 8)}…`}
+                            sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#E3F2FD', color: '#1565C0', maxWidth: 160 }}
+                          />
+                        );
+                      })() : (
+                        u.role === 'GLOBAL_ADMIN'
+                          ? <Chip size="small" label="Platform" sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#FCE4EC', color: '#880E4F' }} />
+                          : <Typography variant="caption" color="text.secondary">—</Typography>
+                      )}
                     </TableCell>
                     <TableCell><Chip size="small" label={u.active ? 'ACTIVE' : 'DISABLED'} color={u.active ? 'success' : 'default'} variant="outlined" /></TableCell>
                     <TableCell><Typography variant="body2" color="text.secondary">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '\u2014'}</Typography></TableCell>
@@ -272,6 +296,13 @@ export default function UsersPage() {
                 <MenuItem value="ISP_ADMIN">ISP Admin</MenuItem>
                 <MenuItem value="CUSTOMER">Customer</MenuItem>
                 <MenuItem value="GLOBAL_ADMIN">Global Admin</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid size={12}>
+              <TextField fullWidth select label="Tenant" value={editForm.tenantId} onChange={e => setEditForm(f => ({ ...f, tenantId: e.target.value }))}
+                helperText="Assign user to an ISP tenant">
+                <MenuItem value=""><em>None (Platform)</em></MenuItem>
+                {tenants.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}
               </TextField>
             </Grid>
             <Grid size={12}>

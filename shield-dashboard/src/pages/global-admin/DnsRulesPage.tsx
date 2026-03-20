@@ -10,6 +10,7 @@ import DnsIcon from '@mui/icons-material/Dns';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
+import SyncIcon from '@mui/icons-material/Sync';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -32,6 +33,7 @@ export default function DnsRulesPage() {
   const [newReason, setNewReason] = useState('');
   const [domainError, setDomainError] = useState('');
   const [dirty, setDirty] = useState(false);
+  const [propagating, setPropagating] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -143,6 +145,19 @@ export default function DnsRulesPage() {
     setAddOpen(false); setNewDomain(''); setNewReason(''); setNewType('BLOCK'); setDomainError('');
   };
 
+  const handlePropagate = async () => {
+    setPropagating(true);
+    try {
+      const res = await api.post('/dns/rules/platform/propagate');
+      const count = res.data?.data?.profilesUpdated ?? 0;
+      setSnack(`Platform rules applied to ${count} child profiles`);
+    } catch {
+      setSnack('Failed to propagate rules');
+    } finally {
+      setPropagating(false);
+    }
+  };
+
   const handleDeleteDomain = (domain: string, type: 'BLOCK' | 'ALLOW') => {
     if (type === 'BLOCK') {
       handleSaveBlocklist(blocklist.filter(d => d !== domain));
@@ -158,6 +173,15 @@ export default function DnsRulesPage() {
         title="Global DNS Rules"
         subtitle="Platform-wide content filter defaults for all new profiles"
         iconColor="#00897B"
+        action={
+          <Tooltip title="Propagate current platform blocklist/allowlist to ALL existing child profiles">
+            <Button variant="outlined" startIcon={propagating ? <CircularProgress size={14} /> : <SyncIcon />}
+              onClick={handlePropagate} disabled={propagating}
+              sx={{ borderColor: '#00897B', color: '#00897B', '&:hover': { bgcolor: '#E0F2F1' } }}>
+              {propagating ? 'Applying…' : 'Apply to All Profiles'}
+            </Button>
+          </Tooltip>
+        }
       />
 
       {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}

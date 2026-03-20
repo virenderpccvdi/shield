@@ -10,4 +10,11 @@ import java.util.UUID;
 public interface SubscriptionPlanRepository extends JpaRepository<SubscriptionPlan, UUID> {
     List<SubscriptionPlan> findByActiveTrueOrderBySortOrder();
     Optional<SubscriptionPlan> findByName(String name);
+
+    /** Plans for ISP subscriptions (global, no tenant) */
+    List<SubscriptionPlan> findByPlanTypeAndActiveTrueOrderBySortOrder(String planType);
+
+    /** Customer plans created by a specific ISP tenant */
+    List<SubscriptionPlan> findByTenantIdAndActiveTrueOrderBySortOrder(UUID tenantId);
+    List<SubscriptionPlan> findByTenantIdOrderBySortOrder(UUID tenantId);
 }

@@ -15,6 +15,12 @@ public class Customer extends BaseEntity {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "name", length = 150)
+    private String name;
+
+    @Column(name = "email", length = 254)
+    private String email;
+
     @Column(name = "subscription_plan", nullable = false, length = 50)
     private String subscriptionPlan;
 

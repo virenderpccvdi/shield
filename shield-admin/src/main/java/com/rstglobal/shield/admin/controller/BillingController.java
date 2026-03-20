@@ -32,10 +32,11 @@ public class BillingController {
     @Operation(summary = "Create Stripe checkout session")
     public ApiResponse<CheckoutResponse> createCheckout(
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @RequestHeader(value = "X-User-Email", required = false) String email,
             @RequestHeader(value = "X-User-Name", required = false) String userName,
             @Valid @RequestBody CheckoutRequest req) {
+        UUID tenantId = parseUuid(tenantIdStr);
         return ApiResponse.ok(billingService.createCheckout(userId, tenantId,
                 email != null ? email : "user@shield.app",
                 userName != null ? userName : "Shield User",
@@ -45,16 +46,25 @@ public class BillingController {
     @GetMapping("/subscription")
     @Operation(summary = "Get current subscription details")
     public ApiResponse<SubscriptionResponse> getSubscription(
-            @RequestHeader("X-User-Id") UUID userId) {
-        return ApiResponse.ok(billingService.getSubscription(userId));
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr) {
+        UUID tenantId = parseUuid(tenantIdStr);
+        return ApiResponse.ok(billingService.getSubscription(userId, tenantId));
     }
 
     @PostMapping("/subscription/cancel")
     @Operation(summary = "Cancel subscription")
     public ApiResponse<String> cancelSubscription(
-            @RequestHeader("X-User-Id") UUID userId) {
-        billingService.cancelSubscription(userId);
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr) {
+        UUID tenantId = parseUuid(tenantIdStr);
+        billingService.cancelSubscription(userId, tenantId);
         return ApiResponse.ok("Subscription cancelled");
+    }
+
+    private static UUID parseUuid(String s) {
+        if (s == null || s.isBlank()) return null;
+        try { return UUID.fromString(s); } catch (IllegalArgumentException e) { return null; }
     }
 
     @GetMapping("/invoices/my")

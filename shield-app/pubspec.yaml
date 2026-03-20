@@ -23,6 +23,9 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   shared_preferences: ^2.5.3
 
+  # Biometric auth
+  local_auth: ^2.3.0
+
   # Charts
   fl_chart: ^0.70.0
 

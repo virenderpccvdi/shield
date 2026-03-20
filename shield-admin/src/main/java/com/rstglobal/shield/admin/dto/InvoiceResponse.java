@@ -15,6 +15,8 @@ public class InvoiceResponse {
     private UUID customerId;
     private UUID userId;
     private String userEmail;
+    private String tenantName;
+    private String userName;
     private String planName;
     private BigDecimal amount;
     private String currency;

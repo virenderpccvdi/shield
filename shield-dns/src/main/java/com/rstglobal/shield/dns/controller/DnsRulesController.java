@@ -108,13 +108,23 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(response, "Filtering resumed for profile"));
     }
 
-    // ── Platform defaults (GLOBAL_ADMIN only) ────────────────────────────────
+    // ── Platform defaults ─────────────────────────────────────────────────────
 
+    /** ISP_ADMIN can read platform defaults (inherited rules); writes remain GLOBAL_ADMIN only. */
     @GetMapping("/rules/platform")
     public ResponseEntity<ApiResponse<PlatformDefaultsResponse>> getPlatformDefaults(
             @RequestHeader("X-User-Role") String role) {
-        requireGlobalAdmin(role);
+        requireCustomer(role);
         return ResponseEntity.ok(ApiResponse.ok(rulesService.getPlatformDefaults()));
+    }
+
+    /** Propagate platform blocklist/allowlist to all existing child profiles. */
+    @PostMapping("/rules/platform/propagate")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> propagatePlatformRules(
+            @RequestHeader("X-User-Role") String role) {
+        requireGlobalAdmin(role);
+        int count = rulesService.propagatePlatformRulesToAllProfiles();
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("profilesUpdated", count)));
     }
 
     @PutMapping("/rules/platform/categories")

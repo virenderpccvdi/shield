@@ -3,6 +3,7 @@ package com.rstglobal.shield.profile.service;
 import com.rstglobal.shield.common.dto.PagedResponse;
 import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.profile.dto.request.CreateCustomerRequest;
+import com.rstglobal.shield.profile.dto.request.UpdateCustomerRequest;
 import com.rstglobal.shield.profile.dto.response.CustomerResponse;
 import com.rstglobal.shield.profile.entity.Customer;
 import com.rstglobal.shield.profile.repository.ChildProfileRepository;
@@ -30,6 +31,8 @@ public class CustomerService {
         }
         Customer customer = Customer.builder()
                 .userId(req.getUserId())
+                .name(req.getName())
+                .email(req.getEmail())
                 .subscriptionPlan(req.getSubscriptionPlan() != null ? req.getSubscriptionPlan() : "BASIC")
                 .subscriptionStatus("ACTIVE")
                 .maxProfiles(req.getMaxProfiles() != null ? req.getMaxProfiles() : 5)
@@ -50,8 +53,38 @@ public class CustomerService {
     }
 
     public PagedResponse<CustomerResponse> listByTenant(UUID tenantId, Pageable pageable) {
+        if (tenantId == null) {
+            return PagedResponse.of(customerRepository.findAll(pageable).map(this::toResponse));
+        }
         return PagedResponse.of(customerRepository.findByTenantId(tenantId, pageable)
                 .map(this::toResponse));
+    }
+
+    @Transactional
+    public CustomerResponse update(UUID id, UpdateCustomerRequest req, UUID tenantId) {
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("Customer", id));
+        // Ensure ISP admin can only manage their own tenant's customers
+        if (tenantId != null && !tenantId.equals(customer.getTenantId())) {
+            throw ShieldException.forbidden("Customer does not belong to your tenant");
+        }
+        if (req.getSubscriptionPlan() != null) customer.setSubscriptionPlan(req.getSubscriptionPlan());
+        if (req.getSubscriptionStatus() != null) customer.setSubscriptionStatus(req.getSubscriptionStatus());
+        if (req.getMaxProfiles() != null) customer.setMaxProfiles(req.getMaxProfiles());
+        customer = customerRepository.save(customer);
+        log.info("Updated customer {}: plan={}, status={}", id, customer.getSubscriptionPlan(), customer.getSubscriptionStatus());
+        return toResponse(customer);
+    }
+
+    @Transactional
+    public void delete(UUID id, UUID tenantId) {
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("Customer", id));
+        if (tenantId != null && !tenantId.equals(customer.getTenantId())) {
+            throw ShieldException.forbidden("Customer does not belong to your tenant");
+        }
+        customerRepository.delete(customer);
+        log.info("Deleted customer {}", id);
     }
 
     private Customer findOrThrow(UUID id) {
@@ -65,6 +98,8 @@ public class CustomerService {
                 .id(c.getId())
                 .tenantId(c.getTenantId())
                 .userId(c.getUserId())
+                .name(c.getName())
+                .email(c.getEmail())
                 .subscriptionPlan(c.getSubscriptionPlan())
                 .subscriptionStatus(c.getSubscriptionStatus())
                 .subscriptionExpiresAt(c.getSubscriptionExpiresAt())

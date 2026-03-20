@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Card, CardContent, TextField, Button, Switch,
   CircularProgress, Alert, Grid, Snackbar, Divider, InputAdornment,
-  IconButton, Chip,
+  IconButton, Chip, Select, MenuItem, FormControl, InputLabel, FormHelperText,
 } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
@@ -166,10 +166,20 @@ export default function NotificationChannelsPage() {
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     <TextField label="SMTP Host" value={smtp.smtpHost} fullWidth size="small"
                       onChange={e => setSmtp(s => ({ ...s, smtpHost: e.target.value }))}
-                      placeholder="smtp.gmail.com" sx={inputSx} />
-                    <TextField label="Port" value={smtp.smtpPort} size="small" type="number"
-                      onChange={e => setSmtp(s => ({ ...s, smtpPort: parseInt(e.target.value) || 587 }))}
-                      sx={{ ...inputSx, width: 120 }} />
+                      placeholder="smtp.zoho.com" sx={inputSx} />
+                    <FormControl size="small" sx={{ minWidth: 160 }}>
+                      <InputLabel>Security / Port</InputLabel>
+                      <Select label="Security / Port" value={smtp.smtpPort === 465 ? '465' : smtp.smtpPort === 25 ? '25' : '587'}
+                        onChange={e => {
+                          const p = parseInt(e.target.value as string);
+                          setSmtp(s => ({ ...s, smtpPort: p, smtpTls: p !== 25 }));
+                        }} sx={{ borderRadius: 2 }}>
+                        <MenuItem value="465">465 — SSL/TLS</MenuItem>
+                        <MenuItem value="587">587 — STARTTLS</MenuItem>
+                        <MenuItem value="25">25 — None</MenuItem>
+                      </Select>
+                      <FormHelperText>{smtp.smtpPort === 465 ? 'Implicit SSL — Zoho, Gmail' : smtp.smtpPort === 587 ? 'STARTTLS — Office365' : 'Unencrypted'}</FormHelperText>
+                    </FormControl>
                   </Box>
                   <TextField label="Username" value={smtp.smtpUsername} fullWidth size="small"
                     onChange={e => setSmtp(s => ({ ...s, smtpUsername: e.target.value }))}
@@ -197,9 +207,13 @@ export default function NotificationChannelsPage() {
                       placeholder="Shield" sx={inputSx} />
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Switch size="small" checked={smtp.smtpTls ?? true}
-                      onChange={e => setSmtp(s => ({ ...s, smtpTls: e.target.checked }))} />
-                    <Typography variant="body2">Enable TLS/STARTTLS</Typography>
+                    <Chip size="small" icon={<EmailIcon fontSize="small" />}
+                      label={smtp.smtpPort === 465 ? 'Implicit SSL active' : smtp.smtpPort === 587 ? 'STARTTLS active' : 'No encryption'}
+                      color={smtp.smtpPort === 465 || smtp.smtpPort === 587 ? 'success' : 'warning'}
+                      variant="outlined" />
+                    <Typography variant="caption" color="text.secondary">
+                      Encryption mode is set automatically from the port selection above
+                    </Typography>
                   </Box>
                   <Divider />
                   <Box sx={{ display: 'flex', gap: 1.5 }}>
