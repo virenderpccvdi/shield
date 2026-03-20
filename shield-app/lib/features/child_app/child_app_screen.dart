@@ -95,11 +95,12 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
       }
 
       final client = ref.read(dioProvider);
-      await client.post('/child/location/panic', data: {
+      final profileId = ref.read(authProvider).childProfileId;
+      await client.post('/location/child/panic', data: {
+        'profileId': profileId,
         'latitude': position.latitude,
         'longitude': position.longitude,
-        'accuracy': position.accuracy,
-        'timestamp': DateTime.now().toIso8601String(),
+        'message': 'Child SOS alert',
       });
 
       setState(() { _sosResult = 'SOS sent! Your family has been alerted.'; });
@@ -114,11 +115,16 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
     setState(() { _checkingIn = true; _checkInResult = null; });
     try {
       final position = await _getCurrentPosition();
+      if (position == null) {
+        setState(() { _checkingIn = false; _checkInResult = 'Could not get location. Please enable location access.'; });
+        return;
+      }
       final client = ref.read(dioProvider);
-      await client.post('/child/checkin', data: {
-        if (position != null) 'latitude': position.latitude,
-        if (position != null) 'longitude': position.longitude,
-        'timestamp': DateTime.now().toIso8601String(),
+      final profileId = ref.read(authProvider).childProfileId;
+      await client.post('/location/child/checkin', data: {
+        'profileId': profileId,
+        'latitude': position.latitude,
+        'longitude': position.longitude,
       });
       setState(() { _checkInResult = 'Checked in successfully!'; });
     } catch (e) {
