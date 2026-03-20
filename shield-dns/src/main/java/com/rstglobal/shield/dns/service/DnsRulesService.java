@@ -46,15 +46,15 @@ public class DnsRulesService {
         return rulesRepo.save(rules);
     }
 
-    @Transactional(readOnly = true)
-    public DnsRulesResponse getRules(UUID profileId) {
-        DnsRules rules = findOrThrow(profileId);
+    @Transactional
+    public DnsRulesResponse getRules(UUID profileId, UUID tenantId) {
+        DnsRules rules = findOrInit(profileId, tenantId);
         return toResponse(rules);
     }
 
     @Transactional
-    public DnsRulesResponse updateCategories(UUID profileId, UpdateCategoriesRequest req) {
-        DnsRules rules = findOrThrow(profileId);
+    public DnsRulesResponse updateCategories(UUID profileId, UUID tenantId, UpdateCategoriesRequest req) {
+        DnsRules rules = findOrInit(profileId, tenantId);
         Map<String, Boolean> cats = rules.getEnabledCategories();
         if (cats == null) cats = new LinkedHashMap<>();
         cats.putAll(req.getCategories());
@@ -65,22 +65,22 @@ public class DnsRulesService {
     }
 
     @Transactional
-    public DnsRulesResponse updateAllowlist(UUID profileId, UpdateListRequest req) {
-        DnsRules rules = findOrThrow(profileId);
+    public DnsRulesResponse updateAllowlist(UUID profileId, UUID tenantId, UpdateListRequest req) {
+        DnsRules rules = findOrInit(profileId, tenantId);
         rules.setCustomAllowlist(req.getDomains());
         return toResponse(rulesRepo.save(rules));
     }
 
     @Transactional
-    public DnsRulesResponse updateBlocklist(UUID profileId, UpdateListRequest req) {
-        DnsRules rules = findOrThrow(profileId);
+    public DnsRulesResponse updateBlocklist(UUID profileId, UUID tenantId, UpdateListRequest req) {
+        DnsRules rules = findOrInit(profileId, tenantId);
         rules.setCustomBlocklist(req.getDomains());
         return toResponse(rulesRepo.save(rules));
     }
 
     @Transactional
-    public DnsRulesResponse domainAction(UUID profileId, DomainActionRequest req) {
-        DnsRules rules = findOrThrow(profileId);
+    public DnsRulesResponse domainAction(UUID profileId, UUID tenantId, DomainActionRequest req) {
+        DnsRules rules = findOrInit(profileId, tenantId);
         String domain = req.getDomain().toLowerCase().trim();
         if ("ALLOW".equals(req.getAction())) {
             List<String> allow = new ArrayList<>(Optional.ofNullable(rules.getCustomAllowlist()).orElse(List.of()));
@@ -184,8 +184,8 @@ public class DnsRulesService {
      * When paused, the DNS resolver should check this flag and bypass blocking.
      */
     @Transactional
-    public DnsRulesResponse setFilteringPaused(UUID profileId, boolean paused) {
-        DnsRules rules = findOrThrow(profileId);
+    public DnsRulesResponse setFilteringPaused(UUID profileId, UUID tenantId, boolean paused) {
+        DnsRules rules = findOrInit(profileId, tenantId);
         Map<String, Boolean> cats = rules.getEnabledCategories();
         if (cats == null) cats = new LinkedHashMap<>();
         cats.put("__paused__", paused);
@@ -197,9 +197,13 @@ public class DnsRulesService {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private DnsRules findOrThrow(UUID profileId) {
+    /** Finds existing DNS rules or auto-initializes with MODERATE defaults (lazy provision). */
+    private DnsRules findOrInit(UUID profileId, UUID tenantId) {
         return rulesRepo.findByProfileId(profileId)
-                .orElseThrow(() -> ShieldException.notFound("dns-rules", profileId.toString()));
+                .orElseGet(() -> {
+                    log.info("DNS rules not found for profileId={}, auto-initializing with MODERATE defaults", profileId);
+                    return initRules(tenantId, profileId, "MODERATE");
+                });
     }
 
     private void syncToAdGuard(DnsRules rules) {

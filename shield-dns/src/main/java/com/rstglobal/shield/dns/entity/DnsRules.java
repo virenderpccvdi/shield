@@ -28,7 +28,7 @@ public class DnsRules {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "tenant_id", nullable = false)
+    @Column(name = "tenant_id")
     private UUID tenantId;
 
     @Column(name = "profile_id", nullable = false, unique = true)

@@ -55,6 +55,7 @@ const sections = [
     title: 'Management',
     items: [
       { label: 'Tenants', icon: <BusinessIcon />, path: '/admin/tenants' },
+      { label: 'Customers', icon: <PeopleIcon />, path: '/admin/customers' },
       { label: 'Users', icon: <PeopleIcon />, path: '/admin/users' },
       { label: 'Plans', icon: <CardMembershipIcon />, path: '/admin/plans' },
       { label: 'Devices', icon: <DevicesIcon />, path: '/admin/devices' },

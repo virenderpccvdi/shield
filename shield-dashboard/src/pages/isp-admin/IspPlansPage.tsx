@@ -66,6 +66,7 @@ function PlanDialog({ open, plan, onClose, onSaved }: {
   const [maxProfiles, setMaxProfiles] = useState(String(plan?.maxProfilesPerCustomer ?? 5));
   const [description, setDesc]        = useState(plan?.description ?? '');
   const [active, setActive]           = useState(plan?.active ?? true);
+  const [sortOrder, setSortOrder]     = useState(plan?.sortOrder ?? 0);
   const [features, setFeatures]       = useState<Record<string, boolean>>(plan?.features ?? { ...EMPTY_FEATURES });
   const [saving, setSaving]           = useState(false);
   const [err, setErr]                 = useState('');
@@ -81,6 +82,7 @@ function PlanDialog({ open, plan, onClose, onSaved }: {
         price: parseFloat(price) || 0, billingCycle: cycle,
         maxProfilesPerCustomer: parseInt(maxProfiles) || 5,
         description, active, features, planType: 'CUSTOMER',
+        sortOrder,
       };
       if (isEdit) {
         await api.put(`/admin/plans/${plan!.id}`, payload);

@@ -83,7 +83,7 @@ public class SubscriptionPlanService {
         existing.setMaxProfilesPerCustomer(updated.getMaxProfilesPerCustomer());
         existing.setFeatures(updated.getFeatures());
         existing.setDescription(updated.getDescription());
-        existing.setSortOrder(updated.getSortOrder());
+        if (updated.getSortOrder() != null) existing.setSortOrder(updated.getSortOrder());
         existing.setActive(updated.getActive());
         return repo.save(existing);
     }
@@ -101,7 +101,7 @@ public class SubscriptionPlanService {
         existing.setMaxProfilesPerCustomer(updated.getMaxProfilesPerCustomer());
         existing.setFeatures(updated.getFeatures());
         existing.setDescription(updated.getDescription());
-        existing.setSortOrder(updated.getSortOrder());
+        if (updated.getSortOrder() != null) existing.setSortOrder(updated.getSortOrder());
         existing.setActive(updated.getActive());
         return repo.save(existing);
     }

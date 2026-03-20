@@ -52,6 +52,7 @@ import BrandingPage from './pages/isp-admin/BrandingPage';
 import CustomerDetailPage from './pages/isp-admin/CustomerDetailPage';
 
 import InvoicesPage from './pages/global-admin/InvoicesPage';
+import GlobalCustomersPage from './pages/global-admin/GlobalCustomersPage';
 import GlobalBlocklistPage from './pages/global-admin/GlobalBlocklistPage';
 import AiModelsPage from './pages/global-admin/AiModelsPage';
 import FeatureManagementPage from './pages/global-admin/FeatureManagementPage';
@@ -156,6 +157,8 @@ export default function App() {
               <Route path="/admin/child-profiles" element={<ChildProfilesPage />} />
               <Route path="/admin/child-profiles/:profileId" element={<AdminChildDetailPage />} />
               <Route path="/admin/invoices" element={<InvoicesPage />} />
+              <Route path="/admin/customers" element={<GlobalCustomersPage />} />
+              <Route path="/admin/customers/:id" element={<CustomerDetailPage />} />
               <Route path="/admin/blocklist" element={<GlobalBlocklistPage />} />
               <Route path="/admin/ai-models" element={<AiModelsPage />} />
               <Route path="/admin/features" element={<FeatureManagementPage />} />

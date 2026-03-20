@@ -6,7 +6,7 @@ import {
   TextField, Select, MenuItem, FormControl, InputLabel, Switch, IconButton,
   Tooltip, Alert, Snackbar, LinearProgress,
 } from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonIcon from '@mui/icons-material/Person';
@@ -66,7 +66,7 @@ const PLAN_COLORS: Record<string, { bg: string; text: string }> = {
   PREMIUM:    { bg: '#F3E5F5', text: '#7B1FA2' },
   ENTERPRISE: { bg: '#FFF8E1', text: '#F57F17' },
 };
-interface AvailablePlan { id: string; name: string; displayName: string; price: number; billingCycle: string; features?: Record<string, boolean>; }
+interface AvailablePlan { id: string; name: string; displayName: string; price: number; billingCycle: string; maxProfilesPerCustomer?: number; features?: Record<string, boolean>; }
 
 function getInitials(name?: string) {
   if (!name) return 'C';
@@ -295,10 +295,11 @@ function EditCustomerDialog({ customer, open, onClose, onSaved }: {
     enabled: open,
   });
 
-  // Sync plan default once plans load
+  // Sync plan: if current plan doesn't match any of the ISP's tenant plans, default to first
   useEffect(() => {
-    if (availablePlans.length && !plan) {
-      setPlan(availablePlans[0].name);
+    if (availablePlans.length) {
+      const match = availablePlans.find(p => p.name === plan);
+      if (!match) setPlan(availablePlans[0].name);
     }
   }, [availablePlans]);
 
@@ -328,7 +329,11 @@ function EditCustomerDialog({ customer, open, onClose, onSaved }: {
           {err && <Alert severity="error" sx={{ borderRadius: 1 }}>{err}</Alert>}
           <FormControl fullWidth size="small">
             <InputLabel>Subscription Plan</InputLabel>
-            <Select value={plan} label="Subscription Plan" onChange={e => setPlan(e.target.value)}>
+            <Select value={plan} label="Subscription Plan" onChange={e => {
+              setPlan(e.target.value);
+              const selected = availablePlans.find(p => p.name === e.target.value);
+              if (selected?.maxProfilesPerCustomer) setMaxProfiles(selected.maxProfilesPerCustomer);
+            }}>
               {availablePlans.length === 0 && (
                 <MenuItem value="" disabled><em>No plans created yet — go to Plans page first</em></MenuItem>
               )}
@@ -391,6 +396,8 @@ function DeleteDialog({ open, title, onClose, onConfirm, loading }: {
 export default function CustomerDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath = location.pathname.startsWith('/admin') ? '/admin/customers' : '/isp/customers';
   const qc = useQueryClient();
   const [tab, setTab] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
@@ -465,7 +472,7 @@ export default function CustomerDetailPage() {
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
   if (!customer) return (
     <AnimatedPage>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/isp/customers')}>Back</Button>
+      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(backPath)}>Back</Button>
       <EmptyState title="Customer not found" description="This customer may have been removed" />
     </AnimatedPage>
   );
@@ -487,7 +494,7 @@ export default function CustomerDetailPage() {
         return;
       }
     }
-    navigate('/isp/customers');
+    navigate(backPath);
     setActionLoading(false);
   };
 
@@ -572,7 +579,7 @@ export default function CustomerDetailPage() {
 
   return (
     <AnimatedPage>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/isp/customers')}
+      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(backPath)}
         sx={{ mb: 2, color: 'text.secondary', '&:hover': { bgcolor: '#F8FAFC' } }}>
         Back to Customers
       </Button>
@@ -845,7 +852,7 @@ export default function CustomerDetailPage() {
       {/* Dialogs */}
       {editOpen && (
         <EditCustomerDialog customer={customer} open={editOpen} onClose={() => setEditOpen(false)}
-          onSaved={() => qc.invalidateQueries({ queryKey: ['isp-customer', id] })} />
+          onSaved={() => { qc.invalidateQueries({ queryKey: ['isp-customer', id] }); setSnack('Customer plan updated successfully'); }} />
       )}
       {dnsProfileOpen && (
         <DnsRulesDialog profile={dnsProfileOpen} open={!!dnsProfileOpen} onClose={() => setDnsProfileOpen(null)} />
