@@ -38,4 +38,7 @@ public class Customer extends BaseEntity {
 
     @Column(name = "stripe_subscription_id")
     private String stripeSubscriptionId;
+
+    @Column(name = "uninstall_pin", length = 6)
+    private String uninstallPin;
 }

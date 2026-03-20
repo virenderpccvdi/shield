@@ -171,8 +171,8 @@ export default function CustomerDashboardPage() {
   if (error) return <Alert severity="error" sx={{ mt: 2 }}>Failed to load dashboard. Check your connection.</Alert>;
 
   const alerts = recentAlerts || [];
-  const highBlockChildren = children.filter(c => c.blocksToday > 10);
-  const totalBlocks = children.reduce((s, c) => s + c.blocksToday, 0);
+  const highBlockChildren = children.filter(c => (c.blocksToday ?? 0) > 10);
+  const totalBlocks = children.reduce((s, c) => s + (c.blocksToday ?? 0), 0);
   const onlineCount = children.filter(c => c.online).length;
   const pausedCount = children.filter(c => c.paused).length;
   const totalQueries7d = (dailyStats || []).reduce((s, d) => s + (d.totalQueries || 0), 0);

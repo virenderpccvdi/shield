@@ -53,18 +53,18 @@ function timeAgo(dateStr?: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export default function DevicesPage() {
+export default function IspDevicesPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<Device | null>(null);
 
   const { data: statsData } = useQuery({
-    queryKey: ['device-stats'],
+    queryKey: ['isp-device-stats'],
     queryFn: () => api.get('/profiles/devices/stats').then(r => r.data?.data || r.data).catch(() => ({ totalDevices: 0, onlineDevices: 0 })),
   });
 
   const { data: devicesData, isLoading } = useQuery({
-    queryKey: ['admin-devices'],
+    queryKey: ['isp-devices'],
     queryFn: () => api.get('/profiles/devices/all?size=100').then(r => {
       const d = r.data?.data;
       return (d?.content ?? d ?? []) as Device[];
@@ -74,8 +74,8 @@ export default function DevicesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/profiles/devices/${id}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-devices'] });
-      qc.invalidateQueries({ queryKey: ['device-stats'] });
+      qc.invalidateQueries({ queryKey: ['isp-devices'] });
+      qc.invalidateQueries({ queryKey: ['isp-device-stats'] });
       setConfirmDelete(null);
     },
   });
@@ -90,8 +90,8 @@ export default function DevicesPage() {
       <PageHeader
         icon={<DevicesIcon />}
         title="Devices"
-        subtitle="All registered devices across tenants"
-        iconColor="#1565C0"
+        subtitle="All registered devices in your network"
+        iconColor="#7B1FA2"
         action={
           <TextField size="small" placeholder="Search devices..." value={search} onChange={e => setSearch(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
@@ -111,7 +111,6 @@ export default function DevicesPage() {
         </Grid>
       </Grid>
 
-      {/* Summary by type */}
       <Stack direction="row" spacing={1} sx={{ mb: 3 }} flexWrap="wrap">
         {['PHONE', 'TABLET', 'LAPTOP', 'TV', 'CONSOLE'].map(type => {
           const count = (devicesData || []).filter(d => d.deviceType === type).length;
@@ -123,11 +122,11 @@ export default function DevicesPage() {
       </Stack>
 
       {isLoading ? (
-        <Card><Paper><SkeletonTable rows={8} columns={7} /></Paper></Card>
+        <Card><Paper><SkeletonTable rows={8} columns={8} /></Paper></Card>
       ) : devices.length === 0 ? (
         <Card>
           <EmptyState
-            icon={<DevicesIcon sx={{ fontSize: 36, color: '#1565C0' }} />}
+            icon={<DevicesIcon sx={{ fontSize: 36, color: '#7B1FA2' }} />}
             title="No devices found"
             description={search ? 'Try adjusting your search' : 'Devices will appear here once customers register them via the mobile app'}
           />

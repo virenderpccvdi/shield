@@ -22,4 +22,8 @@ public class ChildProfileResponse {
     private String notes;
     private Instant createdAt;
     private Instant updatedAt;
+    // Device status — populated from profile.devices table
+    private boolean online;
+    private Instant lastSeenAt;
+    private int deviceCount;
 }

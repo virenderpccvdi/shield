@@ -43,7 +43,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _verifyCode() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; _step = _Step.newPassword; _loading = false; });
+    setState(() { _loading = true; _error = null; });
+    try {
+      // Verify the code is valid before proceeding to new password step
+      await _dio.post('/auth/verify-reset-code', data: {
+        'email': _emailCtrl.text.trim(),
+        'code': _codeCtrl.text.trim(),
+      });
+      if (mounted) setState(() { _step = _Step.newPassword; _loading = false; });
+    } on DioException catch (e) {
+      // If endpoint doesn't exist or code is wrong, proceed anyway (code verified at reset step)
+      final status = e.response?.statusCode;
+      if (status == 404 || status == null) {
+        // Endpoint not implemented — optimistically proceed
+        if (mounted) setState(() { _step = _Step.newPassword; _loading = false; });
+      } else {
+        if (mounted) setState(() { _error = e.response?.data?['message'] ?? 'Invalid or expired code.'; _loading = false; });
+      }
+    }
   }
 
   Future<void> _resetPassword() async {

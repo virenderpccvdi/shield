@@ -41,6 +41,9 @@ dependencies:
   # WebSocket
   stomp_dart_client: ^2.0.0
 
+  # Installed apps
+  installed_apps: ^1.4.0
+
   # Notifications
   flutter_local_notifications: ^18.0.1
 

@@ -207,6 +207,12 @@ public class DnsRulesService {
     }
 
     private void syncToAdGuard(DnsRules rules) {
+        String clientId = rules.getDnsClientId();
+        if (clientId == null || clientId.isBlank()) {
+            log.warn("syncToAdGuard: no dnsClientId on rules for profileId={} — skipping AdGuard sync", rules.getProfileId());
+            return;
+        }
+
         // Determine blocked services from categories
         List<String> blocked = new ArrayList<>();
         Map<String, Boolean> cats = Optional.ofNullable(rules.getEnabledCategories()).orElse(Map.of());
@@ -221,8 +227,18 @@ public class DnsRulesService {
                 blocked.add(service);
             }
         });
-        // We would need the client ID from profile service; for now log
-        log.debug("AdGuard sync: profileId={} blockedServices={}", rules.getProfileId(), blocked);
+
+        boolean safesearch = Boolean.TRUE.equals(rules.getSafesearchEnabled());
+        AdGuardClient.AdGuardClientData data = new AdGuardClient.AdGuardClientData(
+                true,
+                true,
+                true,
+                Map.of("enabled", safesearch, "google", safesearch, "bing", safesearch,
+                        "duckduckgo", safesearch, "youtube", Boolean.TRUE.equals(rules.getYoutubeRestricted())),
+                blocked
+        );
+        log.debug("AdGuard sync: profileId={} clientId={} blockedServices={}", rules.getProfileId(), clientId, blocked);
+        adGuard.updateClient(clientId, clientId, data);
     }
 
     private DnsRulesResponse toResponse(DnsRules r) {

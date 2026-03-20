@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/auth_state.dart';
 import '../../core/api_client.dart';
 import '../../core/biometric_service.dart';
@@ -234,38 +235,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ));
   }
 
-  void _showNotificationPrefs(BuildContext context) {
-    showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Alert Preferences', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-          const SizedBox(height: 16),
-          _PrefTile('DNS Block Alerts', 'Notify when content is blocked', true),
-          _PrefTile('Geofence Alerts', 'Notify on zone entry/exit', true),
-          _PrefTile('SOS Panic Alerts', 'High-priority SOS notifications', true),
-          _PrefTile('Weekly Report Email', 'Digest every Monday 8 AM', false),
-          const SizedBox(height: 16),
-          SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Done'))),
-        ]),
-      ));
+  void _showNotificationPrefs(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final dnsAlerts = prefs.getBool('notif_dns') ?? true;
+    final geoAlerts = prefs.getBool('notif_geo') ?? true;
+    final sosAlerts = prefs.getBool('notif_sos') ?? true;
+    final weeklyDigest = prefs.getBool('notif_weekly') ?? false;
+
+    if (!context.mounted) return;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setState) => Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Alert Preferences', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+            const SizedBox(height: 8),
+            SwitchListTile(title: const Text('DNS Block Alerts'), subtitle: const Text('Notify when content is blocked'),
+              value: dnsAlerts, onChanged: (v) { setState(() {}); prefs.setBool('notif_dns', v); }),
+            SwitchListTile(title: const Text('Geofence Alerts'), subtitle: const Text('Notify on zone entry/exit'),
+              value: geoAlerts, onChanged: (v) { setState(() {}); prefs.setBool('notif_geo', v); }),
+            SwitchListTile(title: const Text('SOS Panic Alerts'), subtitle: const Text('High-priority SOS notifications'),
+              value: sosAlerts, onChanged: (v) { setState(() {}); prefs.setBool('notif_sos', v); }),
+            SwitchListTile(title: const Text('Weekly Report Email'), subtitle: const Text('Digest every Monday 8 AM'),
+              value: weeklyDigest, onChanged: (v) { setState(() {}); prefs.setBool('notif_weekly', v); }),
+            const SizedBox(height: 12),
+            SizedBox(width: double.infinity, child: FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Done'),
+            )),
+          ]),
+        ),
+      ),
+    );
   }
 
-  void _showQuietHours(BuildContext context) {
+  void _showQuietHours(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final fromCtrl = TextEditingController(text: prefs.getString('quiet_from') ?? '22:00');
+    final toCtrl = TextEditingController(text: prefs.getString('quiet_to') ?? '07:00');
+    if (!context.mounted) return;
     showDialog(context: context, builder: (ctx) => AlertDialog(
       title: const Text('Quiet Hours'),
-      content: const Column(mainAxisSize: MainAxisSize.min, children: [
-        Text('Notifications will be silenced during these hours.', style: TextStyle(fontSize: 13)),
-        SizedBox(height: 16),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('Notifications will be silenced during these hours.', style: TextStyle(fontSize: 13)),
+        const SizedBox(height: 16),
         Row(children: [
-          Expanded(child: TextField(decoration: InputDecoration(labelText: 'From', hintText: '22:00'))),
-          SizedBox(width: 16),
-          Expanded(child: TextField(decoration: InputDecoration(labelText: 'To', hintText: '07:00'))),
+          Expanded(child: TextField(controller: fromCtrl, decoration: const InputDecoration(labelText: 'From', hintText: '22:00'))),
+          const SizedBox(width: 16),
+          Expanded(child: TextField(controller: toCtrl, decoration: const InputDecoration(labelText: 'To', hintText: '07:00'))),
         ]),
       ]),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Save')),
+        FilledButton(onPressed: () async {
+          await prefs.setString('quiet_from', fromCtrl.text);
+          await prefs.setString('quiet_to', toCtrl.text);
+          if (ctx.mounted) Navigator.pop(ctx);
+          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Quiet hours saved')));
+        }, child: const Text('Save')),
       ],
     ));
   }

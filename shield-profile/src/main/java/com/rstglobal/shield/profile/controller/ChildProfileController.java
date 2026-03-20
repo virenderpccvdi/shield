@@ -11,12 +11,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/profiles/children")
 @RequiredArgsConstructor
@@ -31,9 +33,10 @@ public class ChildProfileController {
     @Operation(summary = "Create child profile")
     public ApiResponse<ChildProfileResponse> create(
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @RequestHeader("X-User-Role") String role,
             @Valid @RequestBody CreateChildProfileRequest req) {
+        UUID tenantId = tenantIdStr != null && !tenantIdStr.isBlank() ? UUID.fromString(tenantIdStr) : null;
         UUID customerId = resolveCustomerId(userId, role);
         return ApiResponse.ok(childProfileService.create(customerId, tenantId, req));
     }
@@ -104,7 +107,19 @@ public class ChildProfileController {
             throw ShieldException.forbidden("CUSTOMER role required");
         }
         return customerRepository.findByUserId(userId)
-                .orElseThrow(() -> ShieldException.notFound("Customer", userId))
+                .orElseGet(() -> {
+                    // Auto-provision Customer record on first access
+                    com.rstglobal.shield.profile.entity.Customer c =
+                        com.rstglobal.shield.profile.entity.Customer.builder()
+                            .userId(userId)
+                            .subscriptionPlan("BASIC")
+                            .subscriptionStatus("ACTIVE")
+                            .maxProfiles(5)
+                            .build();
+                    customerRepository.save(c);
+                    log.info("Auto-provisioned Customer record for userId={}", userId);
+                    return c;
+                })
                 .getId();
     }
 }

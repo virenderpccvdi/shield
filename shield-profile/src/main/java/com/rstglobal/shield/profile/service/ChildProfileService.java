@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -29,6 +30,9 @@ public class ChildProfileService {
 
     @Value("${shield.app.domain:shield.rstglobal.in}")
     private String appDomain;
+
+    @Value("${shield.dns.service.url:http://localhost:8284}")
+    private String dnsServiceUrl;
 
     private final ChildProfileRepository childProfileRepository;
     private final CustomerRepository customerRepository;
@@ -62,12 +66,34 @@ public class ChildProfileService {
         profile = childProfileRepository.save(profile);
         log.info("Created child profile '{}' (dnsClientId={}) for customer {}",
                 profile.getName(), dnsClientId, customerId);
+
+        // Provision DNS rules in shield-dns (best-effort)
+        try {
+            String provisionUrl = dnsServiceUrl + "/internal/dns/provision?profileId=" + profile.getId()
+                    + "&filterLevel=" + profile.getFilterLevel()
+                    + "&clientId=" + profile.getDnsClientId()
+                    + "&profileName=" + java.net.URLEncoder.encode(profile.getName(), java.nio.charset.StandardCharsets.UTF_8);
+            if (tenantId != null) {
+                provisionUrl += "&tenantId=" + tenantId;
+            }
+            new org.springframework.web.client.RestTemplate().postForObject(provisionUrl, null, String.class);
+        } catch (Exception e) {
+            log.warn("DNS provisioning call failed for profile {}: {}", profile.getId(), e.getMessage());
+        }
+
         return toResponse(profile);
     }
 
     public List<ChildProfileResponse> listByCustomer(UUID customerId) {
-        return childProfileRepository.findByCustomerId(customerId).stream()
-                .map(this::toResponse).toList();
+        List<ChildProfile> profiles = childProfileRepository.findByCustomerId(customerId);
+        if (profiles.isEmpty()) return List.of();
+        List<UUID> profileIds = profiles.stream().map(ChildProfile::getId).toList();
+        Map<UUID, List<com.rstglobal.shield.profile.entity.Device>> devicesByProfile =
+                deviceRepository.findByProfileIdIn(profileIds).stream()
+                        .collect(Collectors.groupingBy(com.rstglobal.shield.profile.entity.Device::getProfileId));
+        return profiles.stream()
+                .map(p -> toResponseWithDevices(p, devicesByProfile.getOrDefault(p.getId(), List.of())))
+                .toList();
     }
 
     public ChildProfileResponse getById(UUID id, UUID customerId) {
@@ -75,7 +101,8 @@ public class ChildProfileService {
         if (!profile.getCustomerId().equals(customerId)) {
             throw ShieldException.forbidden("Access denied to this profile");
         }
-        return toResponse(profile);
+        List<com.rstglobal.shield.profile.entity.Device> devices = deviceRepository.findByProfileId(id);
+        return toResponseWithDevices(profile, devices);
     }
 
     @Transactional
@@ -206,6 +233,17 @@ public class ChildProfileService {
     }
 
     private ChildProfileResponse toResponse(ChildProfile p) {
+        return toResponseWithDevices(p, List.of());
+    }
+
+    private ChildProfileResponse toResponseWithDevices(ChildProfile p,
+            List<com.rstglobal.shield.profile.entity.Device> devices) {
+        boolean online = devices.stream().anyMatch(com.rstglobal.shield.profile.entity.Device::isOnline);
+        Instant lastSeenAt = devices.stream()
+                .map(com.rstglobal.shield.profile.entity.Device::getLastSeenAt)
+                .filter(Objects::nonNull)
+                .max(Instant::compareTo)
+                .orElse(null);
         return ChildProfileResponse.builder()
                 .id(p.getId())
                 .customerId(p.getCustomerId())
@@ -220,6 +258,9 @@ public class ChildProfileService {
                 .notes(p.getNotes())
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())
+                .online(online)
+                .lastSeenAt(lastSeenAt)
+                .deviceCount(devices.size())
                 .build();
     }
 }

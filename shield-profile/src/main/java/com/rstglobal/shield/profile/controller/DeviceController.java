@@ -53,11 +53,34 @@ public class DeviceController {
     @Operation(summary = "Register device to a child profile")
     public ApiResponse<DeviceResponse> register(
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @RequestHeader("X-User-Role") String role,
             @Valid @RequestBody CreateDeviceRequest req) {
         UUID customerId = resolveCustomerId(userId, role);
+        UUID tenantId = null;
+        if (tenantIdStr != null && !tenantIdStr.isBlank()) {
+            try { tenantId = UUID.fromString(tenantIdStr); } catch (Exception ignored) {}
+        }
+        if (tenantId == null) {
+            tenantId = customerRepository.findByUserId(userId)
+                    .map(c -> c.getTenantId()).orElse(null);
+        }
         return ApiResponse.ok(deviceService.register(tenantId, customerId, req));
+    }
+
+    @PostMapping("/heartbeat")
+    @Operation(summary = "Update heartbeat for all devices of a child profile (called by child app)")
+    public ResponseEntity<Void> heartbeat(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestBody Map<String, String> body) {
+        String profileIdStr = body.get("profileId");
+        if (profileIdStr == null || profileIdStr.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            deviceService.heartbeatByProfile(UUID.fromString(profileIdStr));
+        } catch (Exception ignored) {}
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/profile/{profileId}")

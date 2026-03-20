@@ -34,6 +34,9 @@ public class DnsRules {
     @Column(name = "profile_id", nullable = false, unique = true)
     private UUID profileId;
 
+    @Column(name = "dns_client_id")
+    private String dnsClientId;
+
     /** Map of category key → enabled (true=allowed, false=blocked) */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "enabled_categories", columnDefinition = "jsonb")

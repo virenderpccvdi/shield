@@ -53,7 +53,7 @@ public class AdGuardClient {
                 "safe_search", Map.of("enabled", true, "google", true, "bing", true,
                         "duckduckgo", true, "youtube", true),
                 "blocked_services", List.of(),
-                "tags", List.of("shield:profile:" + profileId)
+                "tags", List.of("device_phone")
         );
         post("/control/clients/add", body);
     }

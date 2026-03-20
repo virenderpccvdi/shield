@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:installed_apps/installed_apps.dart';
+import 'package:installed_apps/app_info.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_state.dart';
 import '../../core/app_lock_service.dart';
@@ -47,6 +50,80 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
   bool _checkingIn = false;
   String? _sosResult;
   String? _checkInResult;
+  Timer? _heartbeatTimer;
+  Timer? _locationTimer;
+  Timer? _appsTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start heartbeat immediately, then every 30 seconds
+    _sendHeartbeat();
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) => _sendHeartbeat());
+    // Background location update every 2 minutes
+    _locationTimer = Timer.periodic(const Duration(minutes: 2), (_) => _sendBackgroundLocation());
+    // Sync installed apps on startup, then every 30 minutes
+    _syncInstalledApps();
+    _appsTimer = Timer.periodic(const Duration(minutes: 30), (_) => _syncInstalledApps());
+  }
+
+  @override
+  void dispose() {
+    _heartbeatTimer?.cancel();
+    _locationTimer?.cancel();
+    _appsTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _sendHeartbeat() async {
+    try {
+      final client = ref.read(dioProvider);
+      final profileId = ref.read(authProvider).childProfileId;
+      if (profileId == null) return;
+      await client.post('/profiles/devices/heartbeat', data: {'profileId': profileId});
+    } catch (_) {}
+  }
+
+  Future<void> _sendBackgroundLocation() async {
+    try {
+      final position = await _getCurrentPosition();
+      if (position == null) return;
+      final client = ref.read(dioProvider);
+      final profileId = ref.read(authProvider).childProfileId;
+      if (profileId == null) return;
+      await client.post('/location/child/checkin', data: {
+        'profileId': profileId,
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _syncInstalledApps() async {
+    try {
+      final List<AppInfo> apps = await InstalledApps.getInstalledApps(true, false);
+      if (apps.isEmpty) return;
+      final client = ref.read(dioProvider);
+      final profileId = ref.read(authProvider).childProfileId;
+      if (profileId == null) return;
+      // Send non-system apps to backend (limit to 200)
+      // Note: getInstalledApps(excludeSystemApps=true) already filters system apps
+      final appList = apps
+          .take(200)
+          .map((a) => {
+                'packageName': a.packageName,
+                'appName': a.name,
+                'versionName': a.versionName,
+                'systemApp': false,
+                'usageTodayMinutes': 0,
+              })
+          .toList();
+      await client.post('/profiles/apps/sync', data: {
+        'profileId': profileId,
+        'apps': appList,
+      });
+    } catch (_) {}
+  }
 
   Future<Position?> _getCurrentPosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -81,8 +158,13 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
     }
 
     return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-    );
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 10),
+      ),
+    ).timeout(const Duration(seconds: 12), onTimeout: () {
+      throw Exception('Location timeout');
+    });
   }
 
   Future<void> _sendSos() async {
@@ -128,9 +210,12 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
       });
       setState(() { _checkInResult = 'Checked in successfully!'; });
     } catch (e) {
-      setState(() { _checkInResult = 'Check-in failed. Try again.'; });
+      final msg = e.toString().contains('timeout')
+          ? 'Location timed out. Check-in failed.'
+          : 'Check-in failed. Try again.';
+      setState(() { _checkInResult = msg; });
     } finally {
-      setState(() { _checkingIn = false; });
+      if (mounted) setState(() { _checkingIn = false; });
     }
   }
 

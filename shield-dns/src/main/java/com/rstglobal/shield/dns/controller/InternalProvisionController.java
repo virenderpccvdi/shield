@@ -21,10 +21,13 @@ public class InternalProvisionController {
 
     @PostMapping("/provision")
     public ResponseEntity<ApiResponse<Void>> provision(
-            @RequestParam UUID tenantId,
+            @RequestParam(required = false) String tenantId,
             @RequestParam UUID profileId,
-            @RequestParam(defaultValue = "STRICT") String filterLevel) {
-        provisionService.provision(tenantId, profileId, filterLevel);
+            @RequestParam(defaultValue = "STRICT") String filterLevel,
+            @RequestParam(required = false) String clientId,
+            @RequestParam(required = false) String profileName) {
+        UUID tid = (tenantId != null && !tenantId.isBlank()) ? UUID.fromString(tenantId) : null;
+        provisionService.provision(tid, profileId, filterLevel, clientId, profileName);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

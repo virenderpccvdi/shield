@@ -29,7 +29,7 @@ interface Category { id: string; name: string; key: string; blocked: boolean; al
 
 interface DnsRulesResponse {
   profileId: string;
-  categories: Record<string, boolean>;
+  enabledCategories: Record<string, boolean>;
   customAllowlist: string[];
   customBlocklist: string[];
 }
@@ -61,9 +61,10 @@ const DEFAULT_CATEGORIES: Category[] = [
 ];
 
 function rulesToCategories(rules: DnsRulesResponse): Category[] {
-  return Object.entries(rules.categories).map(([key, blocked], i) => {
+  // enabledCategories: true = allowed, false = blocked (UI "blocked" is the opposite)
+  return Object.entries(rules.enabledCategories).map(([key, enabled], i) => {
     const meta = CATEGORY_META[key] || { name: key };
-    return { id: String(i + 1), name: meta.name, key, blocked, alwaysOn: meta.alwaysOn || false, emoji: '' };
+    return { id: String(i + 1), name: meta.name, key, blocked: !enabled, alwaysOn: meta.alwaysOn || false, emoji: '' };
   });
 }
 
@@ -272,8 +273,12 @@ export default function RulesPage() {
 
   const toggleMutation = useMutation({
     mutationFn: ({ key, blocked }: { key: string; blocked: boolean }) => {
+      // Backend stores: true = allowed, false = blocked → invert UI "blocked" flag
       const currentCategories: Record<string, boolean> = {};
-      categories.forEach(c => { currentCategories[c.key] = c.key === key ? blocked : c.blocked; });
+      categories.forEach(c => {
+        const uiBlocked = c.key === key ? blocked : c.blocked;
+        currentCategories[c.key] = !uiBlocked; // flip to backend "enabled" semantics
+      });
       return api.put(`/dns/rules/${profileId}/categories`, { categories: currentCategories });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rules', profileId] }),
@@ -281,13 +286,24 @@ export default function RulesPage() {
 
   const addToListMutation = useMutation({
     mutationFn: ({ list, domain }: { list: 'allowlist' | 'blocklist'; domain: string }) =>
-      api.post(`/dns/rules/${profileId}/${list}`, { domain }),
+      api.post(`/dns/rules/${profileId}/domain/action`, {
+        domain,
+        action: list === 'allowlist' ? 'ALLOW' : 'BLOCK',
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rules', profileId] }),
   });
 
   const removeFromListMutation = useMutation({
-    mutationFn: ({ list, domain }: { list: 'allowlist' | 'blocklist'; domain: string }) =>
-      api.delete(`/dns/rules/${profileId}/${list}/${encodeURIComponent(domain)}`),
+    mutationFn: async ({ list, domain }: { list: 'allowlist' | 'blocklist'; domain: string }) => {
+      // Fetch current list, remove the domain, then PUT the updated full list
+      const r = await api.get(`/dns/rules/${profileId}`);
+      const currentRules: DnsRulesResponse = r.data?.data ?? r.data;
+      const currentList: string[] = list === 'allowlist'
+        ? (currentRules.customAllowlist ?? [])
+        : (currentRules.customBlocklist ?? []);
+      const updated = currentList.filter(d => d !== domain);
+      return api.put(`/dns/rules/${profileId}/${list}`, { domains: updated });
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rules', profileId] }),
   });
 
@@ -300,7 +316,10 @@ export default function RulesPage() {
     let done = 0;
     for (let i = 0; i < domains.length; i += BATCH) {
       const batch = domains.slice(i, i + BATCH);
-      await Promise.all(batch.map(d => api.post(`/dns/rules/${profileId}/${list}`, { domain: d }).catch(() => null)));
+      await Promise.all(batch.map(d => api.post(`/dns/rules/${profileId}/domain/action`, {
+        domain: d,
+        action: list === 'allowlist' ? 'ALLOW' : 'BLOCK',
+      }).catch(() => null)));
       done += batch.length;
       onProgress(Math.min(done, domains.length), domains.length);
     }

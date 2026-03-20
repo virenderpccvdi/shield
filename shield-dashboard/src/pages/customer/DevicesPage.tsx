@@ -6,6 +6,7 @@ import {
   Divider, Alert,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import DevicesIcon from '@mui/icons-material/Devices';
 import PhoneAndroidIcon from '@mui/icons-material/PhoneAndroid';
 import TabletIcon from '@mui/icons-material/Tablet';
@@ -20,6 +21,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DnsIcon from '@mui/icons-material/Dns';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import AndroidIcon from '@mui/icons-material/Android';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -204,6 +206,7 @@ function SetupDnsDialog({ child, open, onClose }: { child: ChildProfile; open: b
 
 export default function DevicesPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [setupChild, setSetupChild] = useState<ChildProfile | null>(null);
@@ -289,6 +292,16 @@ export default function DevicesPage() {
                 sx={{ borderColor: '#00897B', color: '#00897B', '&:hover': { bgcolor: '#E0F2F1' }, textTransform: 'none', fontWeight: 600 }}
               >
                 Connect Device
+              </Button>
+            )}
+            {profileId && (
+              <Button
+                variant="outlined"
+                startIcon={<AndroidIcon />}
+                onClick={() => navigate(`/profiles/${profileId}/apps`)}
+                sx={{ borderColor: '#43A047', color: '#43A047', '&:hover': { bgcolor: '#F1F8E9' }, textTransform: 'none', fontWeight: 600 }}
+              >
+                View Apps
               </Button>
             )}
             <Button

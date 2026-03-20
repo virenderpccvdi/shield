@@ -62,10 +62,12 @@ import IspReportsPage from './pages/isp-admin/IspReportsPage';
 import IspSettingsPage from './pages/isp-admin/IspSettingsPage';
 import IspUrlActivityPage from './pages/isp-admin/IspUrlActivityPage';
 import IspAppControlPage from './pages/isp-admin/IspAppControlPage';
+import IspDevicesPage from './pages/isp-admin/IspDevicesPage';
 import AdminUrlActivityPage from './pages/global-admin/AdminUrlActivityPage';
 import RolePermissionsPage from './pages/global-admin/RolePermissionsPage';
 import AdminAppControlPage from './pages/global-admin/AdminAppControlPage';
 import AppControlPage from './pages/customer/AppControlPage';
+import ChildAppsPage from './pages/customer/ChildAppsPage';
 import SubscriptionPage from './pages/customer/SubscriptionPage';
 import CheckoutSuccessPage from './pages/customer/CheckoutSuccessPage';
 import CheckoutCancelPage from './pages/customer/CheckoutCancelPage';
@@ -131,6 +133,7 @@ export default function App() {
               <Route path="/location-history" element={<LocationHistoryPage />} />
               <Route path="/ai-insights" element={<AiInsightsPage />} />
               <Route path="/app-control" element={<AppControlPage />} />
+              <Route path="/profiles/:profileId/apps" element={<ChildAppsPage />} />
               <Route path="/devices" element={<CustomerDevicesPage />} />
               <Route path="/map" element={<LocationMapPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
@@ -181,6 +184,7 @@ export default function App() {
               <Route path="/isp/reports" element={<IspReportsPage />} />
               <Route path="/isp/url-activity" element={<IspUrlActivityPage />} />
               <Route path="/isp/app-control" element={<IspAppControlPage />} />
+              <Route path="/isp/devices" element={<IspDevicesPage />} />
               <Route path="/billing/success" element={<CheckoutSuccessPage />} />
               <Route path="/billing/cancel" element={<CheckoutCancelPage />} />
               <Route path="/isp/settings" element={<IspSettingsPage />} />

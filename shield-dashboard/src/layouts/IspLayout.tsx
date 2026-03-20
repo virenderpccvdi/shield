@@ -12,6 +12,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import PhonelinkSetupIcon from '@mui/icons-material/PhonelinkSetup';
+import DevicesIcon from '@mui/icons-material/Devices';
 import PaymentIcon from '@mui/icons-material/Payment';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import BlockIcon from '@mui/icons-material/Block';
@@ -52,6 +53,7 @@ const sections = [
       { label: 'Customers', icon: <PeopleIcon />, path: '/isp/customers' },
       { label: 'Plans', icon: <CardMembershipIcon />, path: '/isp/plans' },
       { label: 'App Control', icon: <PhonelinkSetupIcon />, path: '/isp/app-control' },
+      { label: 'Devices', icon: <DevicesIcon />, path: '/isp/devices' },
       { label: 'Branding', icon: <BrushIcon />, path: '/isp/branding' },
     ],
   },
