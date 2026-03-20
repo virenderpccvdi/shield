@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_state.dart';
@@ -8,20 +9,25 @@ import '../../core/app_lock_service.dart';
 import 'pin_verify_dialog.dart';
 
 /// Riverpod providers for child app data
-final childUsageSummaryProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+final childUsageSummaryProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, profileId) async {
   final client = ref.read(dioProvider);
   try {
-    final res = await client.get('/child/usage/today');
-    return Map<String, dynamic>.from(res.data['data'] as Map? ?? {});
+    final res = await client.get('/analytics/dns/$profileId/stats');
+    final d = res.data['data'] as Map? ?? {};
+    return {
+      'dnsQueries': d['totalQueries'] ?? 0,
+      'blockedQueries': d['totalBlocked'] ?? 0,
+      'screenTimeMinutes': 0,
+    };
   } catch (_) {
     return {};
   }
 });
 
-final childTasksProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final childTasksProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, profileId) async {
   final client = ref.read(dioProvider);
   try {
-    final res = await client.get('/rewards/tasks/my');
+    final res = await client.get('/rewards/tasks', queryParameters: {'profileId': profileId});
     return (res.data['data'] as List? ?? [])
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
@@ -125,8 +131,9 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
-    final usageSummary = ref.watch(childUsageSummaryProvider);
-    final tasks = ref.watch(childTasksProvider);
+    final profileId = auth.childProfileId ?? '';
+    final usageSummary = ref.watch(childUsageSummaryProvider(profileId));
+    final tasks = ref.watch(childTasksProvider(profileId));
 
     return PopScope(
       canPop: false,
@@ -147,9 +154,9 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
       },
       child: Scaffold(
       appBar: AppBar(
-        title: Text('Hi, ${auth.name ?? 'there'}!', style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text('Hi, ${auth.childName ?? auth.name ?? 'there'}!', style: const TextStyle(fontWeight: FontWeight.w700)),
         centerTitle: true,
-        automaticallyImplyLeading: false, // No back button for child
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.lock_outline, size: 20),
@@ -157,13 +164,35 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
             onPressed: () {
               PinVerifyDialog.show(
                 context,
-                title: 'Parent Settings',
-                description: 'Enter parent PIN to access settings',
-                onSuccess: () {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Parent mode unlocked. You can now access settings.')),
-                    );
+                title: 'Parent Access',
+                description: 'Enter parent PIN',
+                onSuccess: () async {
+                  if (!context.mounted) return;
+                  final choice = await showModalBottomSheet<String>(
+                    context: context,
+                    builder: (_) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const ListTile(title: Text('Parent Options', style: TextStyle(fontWeight: FontWeight.w700))),
+                          ListTile(
+                            leading: const Icon(Icons.exit_to_app, color: Colors.red),
+                            title: const Text('Exit Child Mode'),
+                            subtitle: const Text('Remove child mode from this device'),
+                            onTap: () => Navigator.pop(context, 'exit'),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.cancel_outlined),
+                            title: const Text('Cancel'),
+                            onTap: () => Navigator.pop(context, null),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                  if (choice == 'exit' && context.mounted) {
+                    await ref.read(authProvider.notifier).logout();
+                    if (context.mounted) context.go('/login');
                   }
                 },
               );
@@ -173,8 +202,8 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(childUsageSummaryProvider);
-          ref.invalidate(childTasksProvider);
+          ref.invalidate(childUsageSummaryProvider(profileId));
+          ref.invalidate(childTasksProvider(profileId));
         },
         child: ListView(
           padding: const EdgeInsets.all(16),

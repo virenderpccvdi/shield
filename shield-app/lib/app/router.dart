@@ -5,6 +5,7 @@ import '../core/auth_state.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/auth/forgot_password_screen.dart';
+import '../features/auth/child_device_setup_screen.dart';
 import '../features/auth/biometric_gate.dart';
 import '../features/shell/main_shell.dart';
 import '../features/dashboard/dashboard_screen.dart';
@@ -32,19 +33,24 @@ import '../features/child/child_sos_screen.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
   return GoRouter(
-    initialLocation: auth.isAuthenticated ? '/dashboard' : '/login',
+    initialLocation: auth.isChildMode ? '/child' : (auth.isAuthenticated ? '/dashboard' : '/login'),
     redirect: (context, state) {
-      final isAuth = ref.read(authProvider).isAuthenticated;
-      final publicRoutes = ['/login', '/register', '/forgot-password'];
+      final authState = ref.read(authProvider);
+      final isAuth = authState.isAuthenticated;
+      final isChildMode = authState.isChildMode;
+      final publicRoutes = ['/login', '/register', '/forgot-password', '/child-setup'];
       final isPublicRoute = publicRoutes.contains(state.matchedLocation);
+      // Child mode: always redirect to /child
+      if (isChildMode && isAuth && state.matchedLocation != '/child') return '/child';
       if (!isAuth && !isPublicRoute) return '/login';
-      if (isAuth && isPublicRoute) return '/dashboard';
+      if (isAuth && !isChildMode && isPublicRoute) return '/dashboard';
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
+      GoRoute(path: '/child-setup', builder: (_, __) => const ChildDeviceSetupScreen()),
       GoRoute(path: '/child', builder: (_, __) => const ChildAppScreen()),
       GoRoute(path: '/child/tasks', builder: (_, __) => const ChildTasksScreen()),
       GoRoute(path: '/child/sos', builder: (_, __) => const ChildSosScreen()),
