@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
+import '../../app/theme.dart';
 
 class DnsRulesScreen extends ConsumerStatefulWidget {
   final String profileId;
@@ -9,197 +10,649 @@ class DnsRulesScreen extends ConsumerStatefulWidget {
   ConsumerState<DnsRulesScreen> createState() => _DnsRulesScreenState();
 }
 
-class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen> {
+class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabs;
+
+  // ── Categories state ────────────────────────────────────────────────────
   Map<String, bool> _categories = {};
-  bool _loading = true;
-  bool _saving = false;
-  String _search = '';
-  String? _error;
+  bool _catsLoading = true;
+  bool _catsSaving  = false;
+  String _search    = '';
+  String? _catsError;
+
+  // ── Custom lists state ──────────────────────────────────────────────────
+  List<String> _blocklist = [];
+  List<String> _allowlist = [];
+  bool _listsLoading = true;
+  bool _listsSaving  = false;
+
+  // ── Filter level ────────────────────────────────────────────────────────
+  String _filterLevel = 'MODERATE';
+  bool _levelSaving   = false;
 
   @override
   void initState() {
     super.initState();
-    _loadRules();
+    _tabs = TabController(length: 3, vsync: this);
+    _loadCategories();
+    _loadCustomLists();
+    _loadFilterLevel();
   }
 
-  Future<void> _loadRules() async {
-    setState(() { _loading = true; _error = null; });
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  // ── Loaders ─────────────────────────────────────────────────────────────
+
+  Future<void> _loadCategories() async {
+    setState(() { _catsLoading = true; _catsError = null; });
     try {
-      final client = ref.read(dioProvider);
-      final res = await client.get('/dns/rules/${widget.profileId}');
+      final res = await ref.read(dioProvider).get('/dns/rules/${widget.profileId}');
       final data = res.data['data'] as Map<String, dynamic>? ?? {};
       final cats = data['categories'] as Map<String, dynamic>? ?? {};
       setState(() {
         _categories = cats.map((k, v) => MapEntry(k, v == true));
-        _loading = false;
+        _catsLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
-        _error = 'Failed to load DNS rules';
-        _loading = false;
-        // Provide default categories
+        _catsError = 'Using defaults';
         _categories = {
-          'ADULT': true, 'GAMBLING': true, 'MALWARE': true, 'PHISHING': true,
+          'ADULT': true,  'GAMBLING': true,  'MALWARE': true,  'PHISHING': true,
           'SOCIAL_MEDIA': false, 'GAMING': false, 'STREAMING': false,
           'DATING': true, 'DRUGS': true, 'WEAPONS': true, 'VIOLENCE': true,
           'CRYPTO': false, 'VPN_PROXY': true, 'ADVERTISING': false,
           'PIRACY': true, 'HATE_SPEECH': true, 'SELF_HARM': true,
         };
+        _catsLoading = false;
       });
     }
   }
 
-  Future<void> _save() async {
-    setState(() => _saving = true);
+  Future<void> _loadCustomLists() async {
+    setState(() => _listsLoading = true);
     try {
-      final client = ref.read(dioProvider);
-      await client.put('/dns/rules/${widget.profileId}/categories', data: _categories);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('DNS rules saved'), backgroundColor: Colors.green),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
+      final res = await ref.read(dioProvider).get('/dns/rules/${widget.profileId}');
+      final data = res.data['data'] as Map<String, dynamic>? ?? {};
+      setState(() {
+        _blocklist = List<String>.from(data['customBlocklist'] ?? []);
+        _allowlist = List<String>.from(data['customAllowlist'] ?? []);
+        _listsLoading = false;
+      });
+    } catch (_) {
+      setState(() => _listsLoading = false);
     }
   }
 
-  String _formatCategory(String key) {
-    return key.replaceAll('_', ' ').split(' ').map((w) =>
-      w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}'
-    ).join(' ');
+  Future<void> _loadFilterLevel() async {
+    try {
+      final res = await ref.read(dioProvider).get('/dns/rules/${widget.profileId}');
+      final data = res.data['data'] as Map<String, dynamic>? ?? {};
+      if (mounted) setState(() => _filterLevel = data['filterLevel'] as String? ?? 'MODERATE');
+    } catch (_) {}
   }
 
-  IconData _categoryIcon(String key) {
-    switch (key) {
-      case 'ADULT': return Icons.no_adult_content;
-      case 'GAMBLING': return Icons.casino;
-      case 'MALWARE': return Icons.bug_report;
-      case 'PHISHING': return Icons.phishing;
-      case 'SOCIAL_MEDIA': return Icons.people;
-      case 'GAMING': return Icons.sports_esports;
-      case 'STREAMING': return Icons.play_circle;
-      case 'DATING': return Icons.favorite;
-      case 'DRUGS': return Icons.medication;
-      case 'WEAPONS': return Icons.gpp_bad;
-      case 'VIOLENCE': return Icons.warning;
-      case 'CRYPTO': return Icons.currency_bitcoin;
-      case 'VPN_PROXY': return Icons.vpn_key;
-      case 'ADVERTISING': return Icons.ad_units;
-      case 'PIRACY': return Icons.file_download_off;
-      case 'HATE_SPEECH': return Icons.speaker_notes_off;
-      case 'SELF_HARM': return Icons.healing;
-      default: return Icons.block;
+  // ── Savers ───────────────────────────────────────────────────────────────
+
+  Future<void> _saveCategories() async {
+    setState(() => _catsSaving = true);
+    try {
+      await ref.read(dioProvider).put('/dns/rules/${widget.profileId}/categories', data: _categories);
+      if (mounted) _showSnack('Content rules saved', success: true);
+    } catch (e) {
+      if (mounted) _showSnack('Failed to save: $e', success: false);
+    } finally {
+      if (mounted) setState(() => _catsSaving = false);
+    }
+  }
+
+  Future<void> _saveLists() async {
+    setState(() => _listsSaving = true);
+    try {
+      await ref.read(dioProvider).put('/dns/rules/${widget.profileId}/custom-lists', data: {
+        'customBlocklist': _blocklist,
+        'customAllowlist': _allowlist,
+      });
+      if (mounted) _showSnack('Custom lists saved', success: true);
+    } catch (e) {
+      if (mounted) _showSnack('Failed: $e', success: false);
+    } finally {
+      if (mounted) setState(() => _listsSaving = false);
+    }
+  }
+
+  Future<void> _saveFilterLevel(String level) async {
+    setState(() { _filterLevel = level; _levelSaving = true; });
+    try {
+      await ref.read(dioProvider).put('/dns/rules/${widget.profileId}/filter-level',
+          data: {'filterLevel': level});
+      if (mounted) _showSnack('Protection level updated', success: true);
+    } catch (e) {
+      if (mounted) _showSnack('Failed: $e', success: false);
+    } finally {
+      if (mounted) setState(() => _levelSaving = false);
+    }
+  }
+
+  void _showSnack(String msg, {required bool success}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: success ? ShieldTheme.success : ShieldTheme.dangerLight,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
+  }
+
+  // ── Domain entry dialog ──────────────────────────────────────────────────
+
+  Future<String?> _promptDomain(String title) async {
+    final ctrl = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: ctrl,
+          decoration: InputDecoration(
+            hintText: 'e.g. example.com',
+            prefixIcon: const Icon(Icons.language),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  String _fmt(String key) => key.replaceAll('_', ' ').split(' ').map((w) =>
+      w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}').join(' ');
+
+  IconData _catIcon(String k) {
+    const map = {
+      'ADULT': Icons.no_adult_content, 'GAMBLING': Icons.casino,
+      'MALWARE': Icons.bug_report, 'PHISHING': Icons.phishing,
+      'SOCIAL_MEDIA': Icons.people, 'GAMING': Icons.sports_esports,
+      'STREAMING': Icons.play_circle, 'DATING': Icons.favorite,
+      'DRUGS': Icons.medication, 'WEAPONS': Icons.gpp_bad,
+      'VIOLENCE': Icons.warning, 'CRYPTO': Icons.currency_bitcoin,
+      'VPN_PROXY': Icons.vpn_key, 'ADVERTISING': Icons.ad_units,
+      'PIRACY': Icons.file_download_off, 'HATE_SPEECH': Icons.speaker_notes_off,
+      'SELF_HARM': Icons.healing,
+    };
+    return map[k] ?? Icons.block;
+  }
+
+  // ── Build ────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: ShieldTheme.surface,
+      appBar: AppBar(
+        title: const Text('Parental Controls'),
+        bottom: TabBar(
+          controller: _tabs,
+          tabs: const [
+            Tab(text: 'Categories'),
+            Tab(text: 'Block List'),
+            Tab(text: 'Allow List'),
+          ],
+          indicatorColor: ShieldTheme.primary,
+          labelColor: ShieldTheme.primary,
+          unselectedLabelColor: ShieldTheme.textSecondary,
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabs,
+        children: [
+          _CategoriesTab(
+            categories: _categories,
+            loading: _catsLoading,
+            saving: _catsSaving,
+            search: _search,
+            error: _catsError,
+            filterLevel: _filterLevel,
+            levelSaving: _levelSaving,
+            onSearchChanged: (v) => setState(() => _search = v),
+            onCategoryChanged: (k, v) => setState(() => _categories[k] = v),
+            onBlockAll: () => setState(() => _categories.updateAll((_, __) => true)),
+            onAllowAll: () => setState(() => _categories.updateAll((_, __) => false)),
+            onSave: _saveCategories,
+            onLevelChanged: _saveFilterLevel,
+            catIcon: _catIcon,
+            fmt: _fmt,
+          ),
+          _DomainListTab(
+            title: 'Blocked Domains',
+            subtitle: 'These domains are always blocked',
+            icon: Icons.block,
+            iconColor: ShieldTheme.dangerLight,
+            domains: _blocklist,
+            loading: _listsLoading,
+            saving: _listsSaving,
+            onAdd: () async {
+              final d = await _promptDomain('Block Domain');
+              if (d != null && d.isNotEmpty && !_blocklist.contains(d)) {
+                setState(() => _blocklist.add(d));
+              }
+            },
+            onRemove: (d) => setState(() => _blocklist.remove(d)),
+            onSave: _saveLists,
+          ),
+          _DomainListTab(
+            title: 'Allowed Domains',
+            subtitle: 'These domains are never blocked',
+            icon: Icons.check_circle,
+            iconColor: ShieldTheme.success,
+            domains: _allowlist,
+            loading: _listsLoading,
+            saving: _listsSaving,
+            onAdd: () async {
+              final d = await _promptDomain('Allow Domain');
+              if (d != null && d.isNotEmpty && !_allowlist.contains(d)) {
+                setState(() => _allowlist.add(d));
+              }
+            },
+            onRemove: (d) => setState(() => _allowlist.remove(d)),
+            onSave: _saveLists,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Categories Tab ─────────────────────────────────────────────────────────
+
+class _CategoriesTab extends StatelessWidget {
+  final Map<String, bool> categories;
+  final bool loading, saving, levelSaving;
+  final String search, filterLevel;
+  final String? error;
+  final ValueChanged<String> onSearchChanged;
+  final void Function(String, bool) onCategoryChanged;
+  final VoidCallback onBlockAll, onAllowAll, onSave;
+  final Future<void> Function(String) onLevelChanged;
+  final IconData Function(String) catIcon;
+  final String Function(String) fmt;
+
+  const _CategoriesTab({
+    required this.categories, required this.loading, required this.saving,
+    required this.levelSaving, required this.search, required this.filterLevel,
+    required this.error, required this.onSearchChanged, required this.onCategoryChanged,
+    required this.onBlockAll, required this.onAllowAll, required this.onSave,
+    required this.onLevelChanged, required this.catIcon, required this.fmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const Center(child: CircularProgressIndicator());
+
+    final filtered = categories.entries
+        .where((e) => search.isEmpty || e.key.toLowerCase().contains(search.toLowerCase()))
+        .toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final blockedCount = categories.values.where((v) => v).length;
+
+    return Column(children: [
+      // ── Filter level selector ───────────────────────────────────────────
+      Container(
+        color: Colors.white,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Protection Level',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: ShieldTheme.textSecondary)),
+          const SizedBox(height: 8),
+          Row(children: [
+            for (final level in ['STRICT', 'MODERATE', 'LIGHT', 'OFF'])
+              Expanded(child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: _LevelChip(
+                  label: level,
+                  selected: filterLevel == level,
+                  saving: levelSaving,
+                  onTap: () => onLevelChanged(level),
+                ),
+              )),
+          ]),
+        ]),
+      ),
+      const Divider(height: 1),
+      // ── Search + stats ──────────────────────────────────────────────────
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: Column(children: [
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Search categories...',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onChanged: onSearchChanged,
+          ),
+          const SizedBox(height: 10),
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: blockedCount > 10
+                    ? ShieldTheme.success.withOpacity(0.1)
+                    : ShieldTheme.warning.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.shield, size: 14,
+                  color: blockedCount > 10 ? ShieldTheme.success : ShieldTheme.warning),
+                const SizedBox(width: 4),
+                Text('$blockedCount / ${categories.length} blocked',
+                  style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w600,
+                    color: blockedCount > 10 ? ShieldTheme.success : ShieldTheme.warning)),
+              ]),
+            ),
+            const Spacer(),
+            TextButton(onPressed: onBlockAll, child: const Text('Block All', style: TextStyle(fontSize: 12))),
+            TextButton(onPressed: onAllowAll, child: const Text('Allow All', style: TextStyle(fontSize: 12))),
+            FilledButton(
+              onPressed: saving ? null : onSave,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(64, 32),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+              ),
+              child: saving
+                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Save', style: TextStyle(fontSize: 12)),
+            ),
+          ]),
+          if (error != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(children: [
+                const Icon(Icons.info_outline, color: Colors.orange, size: 16),
+                const SizedBox(width: 6),
+                Expanded(child: Text('$error — save to apply to your account.',
+                  style: const TextStyle(fontSize: 11, color: Colors.orange))),
+              ]),
+            ),
+          ],
+        ]),
+      ),
+      // ── List ────────────────────────────────────────────────────────────
+      Expanded(
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          itemCount: filtered.length,
+          itemBuilder: (_, i) {
+            final entry = filtered[i];
+            final blocked = entry.value;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: blocked ? ShieldTheme.dangerLight.withOpacity(0.3) : ShieldTheme.divider,
+                ),
+              ),
+              child: SwitchListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                secondary: Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: blocked
+                        ? ShieldTheme.dangerLight.withOpacity(0.1)
+                        : ShieldTheme.divider,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(catIcon(entry.key),
+                    color: blocked ? ShieldTheme.dangerLight : ShieldTheme.textSecondary,
+                    size: 18),
+                ),
+                title: Text(fmt(entry.key),
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                subtitle: Text(
+                  blocked ? 'Blocked' : 'Allowed',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: blocked ? ShieldTheme.dangerLight : ShieldTheme.success,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                value: entry.value,
+                activeColor: ShieldTheme.dangerLight,
+                onChanged: (v) => onCategoryChanged(entry.key, v),
+              ),
+            );
+          },
+        ),
+      ),
+    ]);
+  }
+}
+
+class _LevelChip extends StatelessWidget {
+  final String label;
+  final bool selected, saving;
+  final VoidCallback onTap;
+  const _LevelChip({required this.label, required this.selected,
+      required this.saving, required this.onTap});
+
+  Color get _color {
+    switch (label) {
+      case 'STRICT':   return ShieldTheme.dangerLight;
+      case 'MODERATE': return ShieldTheme.warning;
+      case 'LIGHT':    return ShieldTheme.successLight;
+      default:         return ShieldTheme.textSecondary;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _categories.entries
-        .where((e) => _search.isEmpty || e.key.toLowerCase().contains(_search.toLowerCase()))
-        .toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-
-    final blockedCount = _categories.values.where((v) => v).length;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('DNS Content Rules', style: TextStyle(fontWeight: FontWeight.w700)),
-        actions: [
-          TextButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.save),
-            label: const Text('Save'),
+    return GestureDetector(
+      onTap: saving ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? _color.withOpacity(0.1) : ShieldTheme.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? _color : ShieldTheme.divider,
+            width: selected ? 1.5 : 1,
           ),
-        ],
+        ),
+        child: Column(children: [
+          if (saving && selected)
+            SizedBox(width: 14, height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2, color: _color))
+          else
+            Icon(_levelIcon, color: selected ? _color : ShieldTheme.textSecondary, size: 16),
+          const SizedBox(height: 2),
+          Text(label.substring(0, 1) + label.substring(1).toLowerCase(),
+            style: TextStyle(
+              fontSize: 10, fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+              color: selected ? _color : ShieldTheme.textSecondary,
+            )),
+        ]),
       ),
-      body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search categories...',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      onChanged: (v) => setState(() => _search = v),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(Icons.shield, color: blockedCount > 10 ? Colors.green : Colors.orange, size: 20),
-                        const SizedBox(width: 8),
-                        Text('$blockedCount of ${_categories.length} categories blocked',
-                          style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () => setState(() => _categories.updateAll((k, v) => true)),
-                          child: const Text('Block All'),
-                        ),
-                        TextButton(
-                          onPressed: () => setState(() => _categories.updateAll((k, v) => false)),
-                          child: const Text('Allow All'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
-                    child: Row(children: [
-                      const Icon(Icons.info_outline, color: Colors.orange, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text('Using default categories. Save to apply.', style: TextStyle(color: Colors.orange.shade800, fontSize: 12))),
-                    ]),
-                  ),
-                ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: filtered.length,
-                  itemBuilder: (_, i) {
-                    final entry = filtered[i];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 4),
-                      child: SwitchListTile(
-                        secondary: Icon(_categoryIcon(entry.key),
-                          color: entry.value ? Colors.red.shade400 : Colors.grey.shade400),
-                        title: Text(_formatCategory(entry.key),
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                        subtitle: Text(entry.value ? 'Blocked' : 'Allowed',
-                          style: TextStyle(
-                            color: entry.value ? Colors.red.shade400 : Colors.green.shade400,
-                            fontSize: 12,
-                          )),
-                        value: entry.value,
-                        onChanged: (v) => setState(() => _categories[entry.key] = v),
-                        activeColor: Colors.red,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+    );
+  }
+
+  IconData get _levelIcon {
+    switch (label) {
+      case 'STRICT':   return Icons.security;
+      case 'MODERATE': return Icons.shield;
+      case 'LIGHT':    return Icons.shield_outlined;
+      default:         return Icons.no_encryption_outlined;
+    }
+  }
+}
+
+// ── Domain List Tab ────────────────────────────────────────────────────────
+
+class _DomainListTab extends StatelessWidget {
+  final String title, subtitle;
+  final IconData icon;
+  final Color iconColor;
+  final List<String> domains;
+  final bool loading, saving;
+  final VoidCallback onAdd, onSave;
+  final void Function(String) onRemove;
+
+  const _DomainListTab({
+    required this.title, required this.subtitle, required this.icon,
+    required this.iconColor, required this.domains, required this.loading,
+    required this.saving, required this.onAdd, required this.onRemove, required this.onSave,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const Center(child: CircularProgressIndicator());
+
+    return Column(children: [
+      // Header
+      Container(
+        color: Colors.white,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            Text(subtitle, style: const TextStyle(fontSize: 12, color: ShieldTheme.textSecondary)),
+          ])),
+          FilledButton(
+            onPressed: saving ? null : onSave,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(60, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            child: saving
+              ? const SizedBox(width: 14, height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Text('Save'),
+          ),
+        ]),
+      ),
+      const Divider(height: 1),
+      // List
+      Expanded(
+        child: domains.isEmpty
+          ? _EmptyList(iconColor: iconColor, icon: icon, onAdd: onAdd)
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+              itemCount: domains.length,
+              itemBuilder: (_, i) => _DomainTile(
+                domain: domains[i],
+                color: iconColor,
+                onRemove: () => onRemove(domains[i]),
+              ),
+            ),
+      ),
+      // Add button
+      SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: FilledButton.icon(
+            onPressed: onAdd,
+            icon: const Icon(Icons.add),
+            label: Text('Add Domain to ${title.split(' ').first}'),
+            style: FilledButton.styleFrom(
+              backgroundColor: iconColor,
+              minimumSize: const Size(double.infinity, 48),
+            ),
+          ),
+        ),
+      ),
+    ]);
+  }
+}
+
+class _DomainTile extends StatelessWidget {
+  final String domain;
+  final Color color;
+  final VoidCallback onRemove;
+  const _DomainTile({required this.domain, required this.color, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ShieldTheme.divider),
+      ),
+      child: ListTile(
+        dense: true,
+        leading: Container(
+          width: 32, height: 32,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(Icons.language, color: color, size: 16),
+        ),
+        title: Text(domain, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        trailing: IconButton(
+          icon: Icon(Icons.remove_circle_outline, color: Colors.red.shade400, size: 20),
+          onPressed: onRemove,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyList extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback onAdd;
+  const _EmptyList({required this.icon, required this.iconColor, required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 56, color: iconColor.withOpacity(0.3)),
+        const SizedBox(height: 12),
+        const Text('No domains added',
+          style: TextStyle(fontWeight: FontWeight.w600, color: ShieldTheme.textSecondary)),
+        const SizedBox(height: 6),
+        const Text('Tap the button below to add your first domain.',
+          style: TextStyle(fontSize: 12, color: ShieldTheme.textSecondary)),
+      ]),
     );
   }
 }

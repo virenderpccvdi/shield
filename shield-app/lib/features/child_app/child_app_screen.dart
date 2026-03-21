@@ -7,12 +7,12 @@ import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_state.dart';
 import '../../core/app_lock_service.dart';
 import 'pin_verify_dialog.dart';
 
-/// Riverpod providers for child app data
 final childUsageSummaryProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, profileId) async {
   final client = ref.read(dioProvider);
   try {
@@ -23,22 +23,37 @@ final childUsageSummaryProvider = FutureProvider.family<Map<String, dynamic>, St
       'blockedQueries': d['totalBlocked'] ?? 0,
       'screenTimeMinutes': 0,
     };
-  } catch (_) {
-    return {};
-  }
+  } catch (_) { return {}; }
 });
 
 final childTasksProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, profileId) async {
   final client = ref.read(dioProvider);
   try {
     final res = await client.get('/rewards/tasks', queryParameters: {'profileId': profileId});
-    return (res.data['data'] as List? ?? [])
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
-  } catch (_) {
-    return [];
-  }
+    return (res.data['data'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  } catch (_) { return []; }
 });
+
+/// Check-in status stored in SharedPreferences
+class CheckInState {
+  final bool isCheckedIn;
+  final String? checkedInAt;
+  const CheckInState({this.isCheckedIn = false, this.checkedInAt});
+
+  static Future<CheckInState> load(String profileId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isIn = prefs.getBool('checkin_$profileId') ?? false;
+    final at = prefs.getString('checkin_at_$profileId');
+    return CheckInState(isCheckedIn: isIn, checkedInAt: at);
+  }
+
+  static Future<void> save(String profileId, {required bool isIn, String? at}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('checkin_$profileId', isIn);
+    if (at != null) await prefs.setString('checkin_at_$profileId', at);
+    else await prefs.remove('checkin_at_$profileId');
+  }
+}
 
 class ChildAppScreen extends ConsumerStatefulWidget {
   const ChildAppScreen({super.key});
@@ -46,11 +61,15 @@ class ChildAppScreen extends ConsumerStatefulWidget {
   ConsumerState<ChildAppScreen> createState() => _ChildAppScreenState();
 }
 
-class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
+class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProviderStateMixin {
   bool _sosSending = false;
-  bool _checkingIn = false;
   String? _sosResult;
-  String? _checkInResult;
+  bool _loading = true;
+  bool _checkingIn = false;
+  bool _isCheckedIn = false;
+  String? _checkedInAt;
+  int _batteryPct = -1;
+  late AnimationController _sosController;
   Timer? _heartbeatTimer;
   Timer? _locationTimer;
   Timer? _appsTimer;
@@ -58,23 +77,39 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
   @override
   void initState() {
     super.initState();
-    // Start heartbeat immediately, then every 30 seconds
+    _sosController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
+    _loadInitialState();
     _sendHeartbeat();
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) => _sendHeartbeat());
-    // Background location update every 30 seconds for near real-time tracking
     _sendBackgroundLocation();
     _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) => _sendBackgroundLocation());
-    // Sync installed apps on startup, then every 30 minutes
     _syncInstalledApps();
     _appsTimer = Timer.periodic(const Duration(minutes: 30), (_) => _syncInstalledApps());
   }
 
   @override
   void dispose() {
+    _sosController.dispose();
     _heartbeatTimer?.cancel();
     _locationTimer?.cancel();
     _appsTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadInitialState() async {
+    final profileId = ref.read(authProvider).childProfileId ?? '';
+    final state = await CheckInState.load(profileId);
+    try {
+      final battery = Battery();
+      _batteryPct = await battery.batteryLevel;
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _isCheckedIn = state.isCheckedIn;
+        _checkedInAt = state.checkedInAt;
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _sendHeartbeat() async {
@@ -87,6 +122,7 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
         final battery = Battery();
         final level = await battery.batteryLevel;
         data['batteryPct'] = level.toString();
+        if (mounted) setState(() => _batteryPct = level);
       } catch (_) {}
       await client.post('/profiles/devices/heartbeat', data: data);
     } catch (e) {
@@ -112,7 +148,6 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
         'heading': position.heading >= 0 ? position.heading : null,
         'isMoving': position.speed > 0.5,
       });
-      // Update device telemetry with current speed
       if (speedKmh > 0) {
         try {
           await client.post('/profiles/devices/heartbeat', data: {
@@ -133,22 +168,14 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
       final client = ref.read(dioProvider);
       final profileId = ref.read(authProvider).childProfileId;
       if (profileId == null) return;
-      // Send non-system apps to backend (limit to 200)
-      // Note: getInstalledApps(excludeSystemApps=true) already filters system apps
-      final appList = apps
-          .take(200)
-          .map((a) => {
-                'packageName': a.packageName,
-                'appName': a.name,
-                'versionName': a.versionName,
-                'systemApp': false,
-                'usageTodayMinutes': 0,
-              })
-          .toList();
-      await client.post('/profiles/apps/sync', data: {
-        'profileId': profileId,
-        'apps': appList,
-      });
+      final appList = apps.take(200).map((a) => {
+        'packageName': a.packageName,
+        'appName': a.name,
+        'versionName': a.versionName,
+        'systemApp': false,
+        'usageTodayMinutes': 0,
+      }).toList();
+      await client.post('/profiles/apps/sync', data: {'profileId': profileId, 'apps': appList});
     } catch (e) {
       debugPrint('[Shield] App sync failed: $e');
     }
@@ -156,57 +183,54 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
 
   Future<Position?> _getCurrentPosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location services are disabled. Please enable them.')),
-        );
-      }
-      return null;
-    }
-
+    if (!serviceEnabled) return null;
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permission denied.')),
-          );
-        }
-        return null;
-      }
+      if (permission == LocationPermission.denied) return null;
     }
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permission permanently denied. Please enable in settings.')),
-        );
-      }
-      return null;
-    }
-
+    if (permission == LocationPermission.deniedForever) return null;
     return await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
         timeLimit: Duration(seconds: 15),
       ),
     ).timeout(const Duration(seconds: 18), onTimeout: () async {
-      // Fall back to last known position if current position times out
-      return await Geolocator.getLastKnownPosition() ??
-          (throw Exception('Location timeout'));
+      return await Geolocator.getLastKnownPosition() ?? (throw Exception('Location timeout'));
     });
   }
 
   Future<void> _sendSos() async {
     setState(() { _sosSending = true; _sosResult = null; });
     try {
+      // Confirm before sending
+      final confirm = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          title: const Row(children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 8),
+            Text('Send SOS Alert?', style: TextStyle(fontWeight: FontWeight.w800)),
+          ]),
+          content: const Text('This will immediately alert your parents with your current location. Only use in a real emergency.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Yes, Send SOS'),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) { setState(() => _sosSending = false); return; }
+
       final position = await _getCurrentPosition();
       if (position == null) {
         setState(() { _sosSending = false; _sosResult = 'Could not get location'; });
         return;
       }
-
       final client = ref.read(dioProvider);
       final profileId = ref.read(authProvider).childProfileId;
       await client.post('/location/child/panic', data: {
@@ -215,38 +239,95 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
         'longitude': position.longitude,
         'message': 'Child SOS alert',
       });
-
-      setState(() { _sosResult = 'SOS sent! Your family has been alerted.'; });
+      setState(() { _sosResult = '✓ SOS sent! Your family has been alerted.'; });
     } catch (e) {
       setState(() { _sosResult = 'Failed to send SOS. Please try again.'; });
     } finally {
-      setState(() { _sosSending = false; });
+      if (mounted) setState(() => _sosSending = false);
     }
   }
 
-  Future<void> _checkIn() async {
-    setState(() { _checkingIn = true; _checkInResult = null; });
-    try {
-      final position = await _getCurrentPosition();
-      if (position == null) {
-        setState(() { _checkingIn = false; _checkInResult = 'Could not get location. Please enable location access.'; });
-        return;
+  Future<void> _handleCheckIn() async {
+    if (_isCheckedIn) {
+      // Check out — requires parent PIN
+      PinVerifyDialog.show(
+        context,
+        title: 'Check Out',
+        description: 'Enter the parent PIN to check out',
+        onSuccess: () async {
+          setState(() => _checkingIn = true);
+          try {
+            final position = await _getCurrentPosition();
+            final client = ref.read(dioProvider);
+            final profileId = ref.read(authProvider).childProfileId;
+            if (profileId != null && position != null) {
+              await client.post('/location/child/checkin', data: {
+                'profileId': profileId,
+                'latitude': position.latitude,
+                'longitude': position.longitude,
+                'message': 'Child checked out',
+              });
+            }
+            final now = DateTime.now();
+            await CheckInState.save(profileId!, isIn: false);
+            if (mounted) {
+              setState(() {
+                _isCheckedIn = false;
+                _checkedInAt = null;
+                _checkingIn = false;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Checked out successfully'), backgroundColor: Colors.orange),
+              );
+            }
+          } catch (_) {
+            if (mounted) setState(() => _checkingIn = false);
+          }
+        },
+      );
+    } else {
+      // Check in
+      setState(() => _checkingIn = true);
+      try {
+        final position = await _getCurrentPosition();
+        if (position == null) {
+          if (mounted) {
+            setState(() => _checkingIn = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not get location. Please enable location access.'), backgroundColor: Colors.orange),
+            );
+          }
+          return;
+        }
+        final client = ref.read(dioProvider);
+        final profileId = ref.read(authProvider).childProfileId;
+        await client.post('/location/child/checkin', data: {
+          'profileId': profileId,
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+          'accuracy': position.accuracy,
+          'message': 'Child checked in',
+        });
+        final now = DateTime.now().toIso8601String();
+        await CheckInState.save(profileId!, isIn: true, at: now);
+        if (mounted) {
+          setState(() {
+            _isCheckedIn = true;
+            _checkedInAt = now;
+            _checkingIn = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✓ Checked in! Parent notified.'), backgroundColor: Colors.green),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _checkingIn = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Check-in failed: $e'), backgroundColor: Colors.red),
+          );
+        }
       }
-      final client = ref.read(dioProvider);
-      final profileId = ref.read(authProvider).childProfileId;
-      await client.post('/location/child/checkin', data: {
-        'profileId': profileId,
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-      });
-      setState(() { _checkInResult = 'Checked in successfully!'; });
-    } catch (e) {
-      final msg = e.toString().contains('timeout')
-          ? 'Location timed out. Check-in failed.'
-          : 'Check-in failed. Try again.';
-      setState(() { _checkInResult = msg; });
-    } finally {
-      if (mounted) setState(() { _checkingIn = false; });
     }
   }
 
@@ -261,13 +342,11 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        // Child cannot leave the app without parent PIN
         final locked = await AppLockService.isChildLocked();
         if (locked && context.mounted) {
-          PinVerifyDialog.show(
-            context,
+          PinVerifyDialog.show(context,
             title: 'Exit App',
-            description: 'Enter the parent PIN to exit the Shield app',
+            description: 'Enter the parent PIN to exit Shield',
             onSuccess: () => SystemNavigator.pop(),
           );
         } else {
@@ -275,290 +354,456 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
         }
       },
       child: Scaffold(
-      appBar: AppBar(
-        title: Text('Hi, ${auth.childName ?? auth.name ?? 'there'}!', style: const TextStyle(fontWeight: FontWeight.w700)),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.lock_outline, size: 20),
-            tooltip: 'Parent access',
-            onPressed: () {
-              PinVerifyDialog.show(
-                context,
-                title: 'Parent Access',
-                description: 'Enter parent PIN',
-                onSuccess: () async {
-                  if (!context.mounted) return;
-                  final choice = await showModalBottomSheet<String>(
-                    context: context,
-                    builder: (_) => SafeArea(
-                      child: Column(
+        backgroundColor: const Color(0xFFF0F4FF),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : CustomScrollView(
+                slivers: [
+                  // ── Sliver App Bar ────────────────────────────────────────
+                  SliverAppBar(
+                    expandedHeight: 140,
+                    floating: false,
+                    pinned: true,
+                    automaticallyImplyLeading: false,
+                    backgroundColor: const Color(0xFF0D47A1),
+                    foregroundColor: Colors.white,
+                    actions: [
+                      if (_batteryPct >= 0)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: _BatteryChip(level: _batteryPct),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.lock_outline, size: 20),
+                        tooltip: 'Parent access',
+                        onPressed: () => _showParentOptions(context),
+                      ),
+                    ],
+                    flexibleSpace: FlexibleSpaceBar(
+                      titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      title: Column(
                         mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const ListTile(title: Text('Parent Options', style: TextStyle(fontWeight: FontWeight.w700))),
-                          ListTile(
-                            leading: const Icon(Icons.exit_to_app, color: Colors.red),
-                            title: const Text('Exit Child Mode'),
-                            subtitle: const Text('Remove child mode from this device'),
-                            onTap: () => Navigator.pop(context, 'exit'),
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.cancel_outlined),
-                            title: const Text('Cancel'),
-                            onTap: () => Navigator.pop(context, null),
-                          ),
+                          Text('Hi, ${auth.childName ?? auth.name ?? 'there'}! 👋',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                          Text(_isCheckedIn ? '✓ Checked in' : 'Not checked in',
+                            style: TextStyle(fontSize: 11, color: _isCheckedIn ? Colors.green.shade200 : Colors.white60)),
                         ],
                       ),
-                    ),
-                  );
-                  if (choice == 'exit' && context.mounted) {
-                    await ref.read(authProvider.notifier).logout();
-                    if (context.mounted) context.go('/login');
-                  }
-                },
-              );
-            },
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(childUsageSummaryProvider(profileId));
-          ref.invalidate(childTasksProvider(profileId));
-        },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // --- SOS / Panic Button ---
-            Center(
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: _sosSending ? null : _sendSos,
-                    child: Container(
-                      width: 160,
-                      height: 160,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.red.shade700,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.red.withAlpha(100),
-                            blurRadius: 24,
-                            spreadRadius: 4,
+                      background: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF1565C0), Color(0xFF0D47A1), Color(0xFF1A237E)],
                           ),
-                        ],
-                      ),
-                      child: Center(
-                        child: _sosSending
-                            ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
-                            : const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.warning_amber_rounded, size: 48, color: Colors.white),
-                                  SizedBox(height: 4),
-                                  Text('SOS', style: TextStyle(
-                                    fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white,
-                                    letterSpacing: 2,
-                                  )),
-                                ],
-                              ),
+                        ),
+                        child: Positioned(
+                          right: -20,
+                          top: -20,
+                          child: Opacity(
+                            opacity: 0.08,
+                            child: Icon(Icons.shield, size: 180, color: Colors.white),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Tap for emergency alert',
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                  if (_sosResult != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      _sosResult!,
-                      style: TextStyle(
-                        color: _sosResult!.contains('sent') ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
+
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+
+                        // ── SOS Button ──────────────────────────────────────
+                        _SosButton(
+                          sending: _sosSending,
+                          result: _sosResult,
+                          controller: _sosController,
+                          onTap: _sosSending ? null : _sendSos,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Check In / Check Out ─────────────────────────────
+                        _CheckInCard(
+                          isCheckedIn: _isCheckedIn,
+                          checkedInAt: _checkedInAt,
+                          loading: _checkingIn,
+                          onTap: _checkingIn ? null : _handleCheckIn,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Quick Stats Row ──────────────────────────────────
+                        usageSummary.when(
+                          data: (data) => _StatsRow(data: data),
+                          loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+                          error: (_, __) => const SizedBox.shrink(),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Tasks ────────────────────────────────────────────
+                        _TasksCard(tasksAsync: tasks, profileId: profileId),
+                        const SizedBox(height: 80),
+                      ]),
                     ),
-                  ],
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // --- Check-In Button ---
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _checkingIn ? null : _checkIn,
-                icon: _checkingIn
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.check_circle_outline),
-                label: const Text('Check In', style: TextStyle(fontSize: 16)),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: const Color(0xFF1565C0),
-                ),
-              ),
-            ),
-            if (_checkInResult != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                _checkInResult!,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _checkInResult!.contains('success') ? Colors.green : Colors.red,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-
-            // --- Today's Usage Summary ---
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade200),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.bar_chart, color: Color(0xFF1565C0)),
-                        SizedBox(width: 8),
-                        Text("Today's Usage", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    usageSummary.when(
-                      data: (data) {
-                        if (data.isEmpty) {
-                          return const Text('No usage data yet today.', style: TextStyle(color: Colors.grey));
-                        }
-                        final screenMinutes = data['screenTimeMinutes'] as int? ?? 0;
-                        final hours = screenMinutes ~/ 60;
-                        final mins = screenMinutes % 60;
-                        final queries = data['dnsQueries'] as int? ?? 0;
-                        final blocked = data['blockedQueries'] as int? ?? 0;
-                        return Column(
-                          children: [
-                            _UsageRow(icon: Icons.phone_android, label: 'Screen Time', value: '${hours}h ${mins}m'),
-                            _UsageRow(icon: Icons.dns, label: 'DNS Queries', value: '$queries'),
-                            _UsageRow(icon: Icons.block, label: 'Blocked', value: '$blocked'),
-                          ],
-                        );
-                      },
-                      loading: () => const Center(child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )),
-                      error: (_, __) => const Text('Could not load usage data.', style: TextStyle(color: Colors.grey)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // --- Tasks from Rewards ---
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade200),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.emoji_events, color: Color(0xFFFFA726)),
-                        SizedBox(width: 8),
-                        Text('My Tasks', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    tasks.when(
-                      data: (taskList) {
-                        if (taskList.isEmpty) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            child: Text('No tasks assigned yet.', style: TextStyle(color: Colors.grey)),
-                          );
-                        }
-                        return Column(
-                          children: taskList.map((task) {
-                            final completed = task['completed'] == true;
-                            final points = task['points'] as int? ?? 0;
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(
-                                completed ? Icons.check_circle : Icons.radio_button_unchecked,
-                                color: completed ? Colors.green : Colors.grey,
-                              ),
-                              title: Text(
-                                task['title'] as String? ?? 'Task',
-                                style: TextStyle(
-                                  decoration: completed ? TextDecoration.lineThrough : null,
-                                  color: completed ? Colors.grey : null,
-                                ),
-                              ),
-                              trailing: Chip(
-                                label: Text('$points pts', style: const TextStyle(fontSize: 12)),
-                                backgroundColor: Colors.amber.shade50,
-                                side: BorderSide.none,
-                                padding: EdgeInsets.zero,
-                              ),
-                            );
-                          }).toList(),
-                        );
-                      },
-                      loading: () => const Center(child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )),
-                      error: (_, __) => const Text('Could not load tasks.', style: TextStyle(color: Colors.grey)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
-    ),
+    );
+  }
+
+  void _showParentOptions(BuildContext context) {
+    PinVerifyDialog.show(
+      context,
+      title: 'Parent Access',
+      description: 'Enter parent PIN',
+      onSuccess: () async {
+        if (!context.mounted) return;
+        final choice = await showModalBottomSheet<String>(
+          context: context,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          builder: (_) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                const ListTile(title: Text('Parent Options', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18))),
+                ListTile(
+                  leading: const CircleAvatar(backgroundColor: Color(0xFFFFEBEE), child: Icon(Icons.exit_to_app, color: Colors.red)),
+                  title: const Text('Exit Child Mode', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Remove parental controls from this device'),
+                  onTap: () => Navigator.pop(context, 'exit'),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+        if (choice == 'exit' && context.mounted) {
+          await ref.read(authProvider.notifier).logout();
+          if (context.mounted) context.go('/login');
+        }
+      },
     );
   }
 }
 
-class _UsageRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _UsageRow({required this.icon, required this.label, required this.value});
+// ── Sub-widgets ───────────────────────────────────────────────────────────────
+
+class _SosButton extends StatelessWidget {
+  final bool sending;
+  final String? result;
+  final AnimationController controller;
+  final VoidCallback? onTap;
+  const _SosButton({required this.sending, this.result, required this.controller, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Column(
         children: [
-          Icon(icon, size: 20, color: Colors.grey.shade600),
-          const SizedBox(width: 10),
-          Text(label, style: const TextStyle(fontSize: 14)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+          const Text('Emergency SOS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF1A1A2E))),
+          const SizedBox(height: 4),
+          const Text('Press and hold in an emergency', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: onTap,
+            child: AnimatedBuilder(
+              animation: controller,
+              builder: (_, child) => Container(
+                width: 130,
+                height: 130,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red.shade600,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.3 + controller.value * 0.3),
+                      blurRadius: 20 + controller.value * 20,
+                      spreadRadius: 2 + controller.value * 6,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: sending
+                      ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+                      : const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.warning_amber_rounded, size: 40, color: Colors.white),
+                            SizedBox(height: 2),
+                            Text('SOS', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 3)),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+          ),
+          if (result != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: result!.contains('✓') ? Colors.green.shade50 : Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(result!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: result!.contains('✓') ? Colors.green.shade700 : Colors.red.shade700,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _CheckInCard extends StatelessWidget {
+  final bool isCheckedIn;
+  final String? checkedInAt;
+  final bool loading;
+  final VoidCallback? onTap;
+  const _CheckInCard({required this.isCheckedIn, this.checkedInAt, required this.loading, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isCheckedIn
+              ? [const Color(0xFF1B5E20), const Color(0xFF2E7D32)]
+              : [const Color(0xFF1565C0), const Color(0xFF0D47A1)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: (isCheckedIn ? Colors.green : Colors.blue).withOpacity(0.25),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56, height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              isCheckedIn ? Icons.location_on : Icons.location_off,
+              color: Colors.white, size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isCheckedIn ? 'Checked In ✓' : 'Not Checked In',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isCheckedIn && checkedInAt != null
+                      ? 'Since ${_formatTime(checkedInAt!)}'
+                      : isCheckedIn ? 'Location shared with parents' : 'Tap to let parents know where you are',
+                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton(
+            onPressed: onTap,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: isCheckedIn ? Colors.green.shade700 : const Color(0xFF1565C0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              elevation: 0,
+            ),
+            child: loading
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : Text(
+                    isCheckedIn ? 'Check Out' : 'Check In',
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _formatTime(String iso) {
+    try {
+      final d = DateTime.parse(iso).toLocal();
+      final h = d.hour.toString().padLeft(2, '0');
+      final m = d.minute.toString().padLeft(2, '0');
+      return '$h:$m';
+    } catch (_) { return 'today'; }
+  }
+}
+
+class _StatsRow extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const _StatsRow({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final queries = data['dnsQueries'] as int? ?? 0;
+    final blocked = data['blockedQueries'] as int? ?? 0;
+    final screenMins = data['screenTimeMinutes'] as int? ?? 0;
+    final blockPct = queries > 0 ? ((blocked / queries) * 100).round() : 0;
+
+    return Row(children: [
+      Expanded(child: _StatTile(icon: Icons.dns, label: 'Requests', value: '$queries', color: const Color(0xFF1565C0))),
+      const SizedBox(width: 10),
+      Expanded(child: _StatTile(icon: Icons.block, label: 'Blocked', value: '$blockPct%', color: Colors.red)),
+      const SizedBox(width: 10),
+      Expanded(child: _StatTile(icon: Icons.timer, label: 'Screen', value: screenMins > 0 ? '${screenMins}m' : '--', color: Colors.orange)),
+    ]);
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  const _StatTile({required this.icon, required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+      ),
+      child: Column(children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(height: 6),
+        Text(value, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: color)),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      ]),
+    );
+  }
+}
+
+class _TasksCard extends StatelessWidget {
+  final AsyncValue<List<Map<String, dynamic>>> tasksAsync;
+  final String profileId;
+  const _TasksCard({required this.tasksAsync, required this.profileId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(children: [
+            Icon(Icons.emoji_events, color: Color(0xFFFFA726), size: 22),
+            SizedBox(width: 8),
+            Text('My Tasks', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          ]),
+          const SizedBox(height: 12),
+          tasksAsync.when(
+            data: (tasks) {
+              if (tasks.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(child: Text('No tasks assigned yet 🎉', style: TextStyle(color: Colors.grey))),
+                );
+              }
+              return Column(
+                children: tasks.map((task) {
+                  final done = task['completed'] == true;
+                  final pts = task['points'] as int? ?? 0;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: done ? Colors.green.shade50 : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: done ? Colors.green.shade200 : Colors.grey.shade200),
+                    ),
+                    child: Row(children: [
+                      Icon(done ? Icons.check_circle : Icons.radio_button_unchecked,
+                          color: done ? Colors.green : Colors.grey, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(
+                        task['title'] as String? ?? 'Task',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          decoration: done ? TextDecoration.lineThrough : null,
+                          color: done ? Colors.grey : const Color(0xFF1A1A2E),
+                        ),
+                      )),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text('$pts pts', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.amber.shade800)),
+                      ),
+                    ]),
+                  );
+                }).toList(),
+              );
+            },
+            loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(strokeWidth: 2))),
+            error: (_, __) => const Text('Could not load tasks', style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BatteryChip extends StatelessWidget {
+  final int level;
+  const _BatteryChip({required this.level});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = level < 20 ? Colors.red.shade300 : level < 50 ? Colors.orange.shade300 : Colors.green.shade300;
+    final icon = level < 20 ? Icons.battery_alert : level < 50 ? Icons.battery_3_bar : Icons.battery_full;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 3),
+        Text('$level%', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+      ]),
     );
   }
 }

@@ -10,15 +10,18 @@ class ScheduleScreen extends ConsumerStatefulWidget {
 }
 
 class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
-  // 7 days x 24 hours grid: true = blocked
+  // 7 days × 24 hours: true = blocked (1 in backend), false = allowed (0)
   late List<List<bool>> _grid;
   bool _loading = true;
   bool _saving = false;
-  int? _dragStartDay;
-  bool? _dragValue;
+  String? _activePreset;
+  bool _overrideActive = false;
+  String? _overrideType;
+  String? _overrideEndsAt;
 
-  static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  static const _daysFull = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+  // Backend uses full lowercase day keys — order matches Mon=0..Sun=6
+  static const _dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  static const _dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   @override
   void initState() {
@@ -28,23 +31,14 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   }
 
   Future<void> _loadSchedule() async {
+    setState(() => _loading = true);
     try {
       final client = ref.read(dioProvider);
       final res = await client.get('/dns/schedules/${widget.profileId}');
-      final data = res.data['data'] as Map<String, dynamic>? ?? {};
-      final blocks = data['blocks'] as List? ?? [];
-      for (final block in blocks) {
-        final b = block as Map<String, dynamic>;
-        final dayIdx = _daysFull.indexOf(b['day'] ?? '');
-        if (dayIdx < 0) continue;
-        final from = b['fromHour'] as int? ?? 0;
-        final to = b['toHour'] as int? ?? 0;
-        for (int h = from; h < to && h < 24; h++) {
-          _grid[dayIdx][h] = true;
-        }
-      }
+      final data = (res.data['data'] ?? res.data) as Map<String, dynamic>? ?? {};
+      _parseGrid(data);
     } catch (e) {
-      debugPrint('[Shield] Schedule load failed: $e');
+      debugPrint('[Shield] Schedule load: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not load schedule'), backgroundColor: Colors.orange),
@@ -54,24 +48,37 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     if (mounted) setState(() => _loading = false);
   }
 
+  void _parseGrid(Map<String, dynamic> data) {
+    final rawGrid = data['grid'] as Map<String, dynamic>? ?? {};
+    final newGrid = List.generate(7, (_) => List.filled(24, false));
+    for (int d = 0; d < 7; d++) {
+      final hours = rawGrid[_dayKeys[d]] as List?;
+      if (hours == null) continue;
+      for (int h = 0; h < 24 && h < hours.length; h++) {
+        // backend: 0 = allowed, 1 = blocked
+        newGrid[d][h] = (hours[h] as int? ?? 0) == 1;
+      }
+    }
+    _grid = newGrid;
+    _activePreset = data['activePreset'] as String?;
+    _overrideActive = data['overrideActive'] as bool? ?? false;
+    _overrideType = data['overrideType'] as String?;
+    _overrideEndsAt = data['overrideEndsAt'] as String?;
+  }
+
+  Map<String, List<int>> _buildApiGrid() {
+    final result = <String, List<int>>{};
+    for (int d = 0; d < 7; d++) {
+      result[_dayKeys[d]] = List.generate(24, (h) => _grid[d][h] ? 1 : 0);
+    }
+    return result;
+  }
+
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      final blocks = <Map<String, dynamic>>[];
-      for (int d = 0; d < 7; d++) {
-        int? start;
-        for (int h = 0; h <= 24; h++) {
-          final blocked = h < 24 && _grid[d][h];
-          if (blocked && start == null) {
-            start = h;
-          } else if (!blocked && start != null) {
-            blocks.add({'day': _daysFull[d], 'fromHour': start, 'toHour': h});
-            start = null;
-          }
-        }
-      }
       final client = ref.read(dioProvider);
-      await client.put('/dns/schedules/${widget.profileId}', data: {'blocks': blocks});
+      await client.put('/dns/schedules/${widget.profileId}', data: {'grid': _buildApiGrid()});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Schedule saved'), backgroundColor: Colors.green),
@@ -88,177 +95,349 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     }
   }
 
-  void _applyPreset(String preset) {
-    setState(() {
-      for (int d = 0; d < 7; d++) {
-        for (int h = 0; h < 24; h++) {
-          _grid[d][h] = false;
-        }
+  Future<void> _applyServerPreset(String preset) async {
+    try {
+      final client = ref.read(dioProvider);
+      final res = await client.post('/dns/schedules/${widget.profileId}/preset?preset=$preset');
+      final data = (res.data['data'] ?? res.data) as Map<String, dynamic>? ?? {};
+      setState(() => _parseGrid(data));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$preset preset applied'), backgroundColor: Colors.green),
+        );
       }
-      switch (preset) {
-        case 'school':
-          // Mon-Fri: block 8am-3pm (school hours)
-          for (int d = 0; d < 5; d++) {
-            for (int h = 8; h < 15; h++) _grid[d][h] = true;
-          }
-          // Block 9pm-7am (bedtime) all days
-          for (int d = 0; d < 7; d++) {
-            for (int h = 21; h < 24; h++) _grid[d][h] = true;
-            for (int h = 0; h < 7; h++) _grid[d][h] = true;
-          }
-          break;
-        case 'weekend':
-          // Weekends: block 10pm-8am only
-          for (int d = 5; d < 7; d++) {
-            for (int h = 22; h < 24; h++) _grid[d][h] = true;
-            for (int h = 0; h < 8; h++) _grid[d][h] = true;
-          }
-          break;
-        case 'bedtime':
-          // All days: block 9pm-7am
-          for (int d = 0; d < 7; d++) {
-            for (int h = 21; h < 24; h++) _grid[d][h] = true;
-            for (int h = 0; h < 7; h++) _grid[d][h] = true;
-          }
-          break;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+        );
       }
-    });
+    }
+  }
+
+  Future<void> _applyOverride(String type, int durationMins) async {
+    try {
+      final client = ref.read(dioProvider);
+      final res = await client.post('/dns/schedules/${widget.profileId}/override',
+          data: {'overrideType': type, 'durationMinutes': durationMins});
+      final data = (res.data['data'] ?? res.data) as Map<String, dynamic>? ?? {};
+      setState(() => _parseGrid(data));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Override failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _cancelOverride() async {
+    try {
+      final client = ref.read(dioProvider);
+      final res = await client.delete('/dns/schedules/${widget.profileId}/override');
+      final data = (res.data['data'] ?? res.data) as Map<String, dynamic>? ?? {};
+      setState(() => _parseGrid(data));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Cancel failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showOverrideDialog() {
+    String type = 'PAUSE';
+    int durationMins = 60;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Text('Apply Override', style: TextStyle(fontWeight: FontWeight.w700)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: type,
+                decoration: const InputDecoration(labelText: 'Override Type', border: OutlineInputBorder()),
+                items: const [
+                  DropdownMenuItem(value: 'PAUSE', child: Text('Pause Internet')),
+                  DropdownMenuItem(value: 'HOMEWORK', child: Text('Homework Mode')),
+                  DropdownMenuItem(value: 'FOCUS', child: Text('Focus Mode')),
+                  DropdownMenuItem(value: 'BEDTIME_NOW', child: Text('Bedtime Now')),
+                ],
+                onChanged: (v) => setS(() => type = v!),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: '60',
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Duration (minutes)',
+                  helperText: '0 = until manually cancelled',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (v) => durationMins = int.tryParse(v) ?? 60,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () { Navigator.pop(ctx); _applyOverride(type, durationMins); },
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Apply'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text('Internet Schedule', style: TextStyle(fontWeight: FontWeight.w700)),
+        backgroundColor: Colors.white,
+        elevation: 0,
         actions: [
-          TextButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.save),
-            label: const Text('Save'),
-          ),
+          if (_saving)
+            const Padding(padding: EdgeInsets.all(16), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+          else
+            TextButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Save'),
+            ),
         ],
       ),
       body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-            children: [
-              // Presets
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    _PresetChip(label: 'School Day', icon: Icons.school, onTap: () => _applyPreset('school')),
-                    const SizedBox(width: 8),
-                    _PresetChip(label: 'Weekend', icon: Icons.weekend, onTap: () => _applyPreset('weekend')),
-                    const SizedBox(width: 8),
-                    _PresetChip(label: 'Bedtime Only', icon: Icons.bedtime, onTap: () => _applyPreset('bedtime')),
-                    const SizedBox(width: 8),
-                    _PresetChip(label: 'Clear All', icon: Icons.clear_all, onTap: () {
-                      setState(() {
-                        for (var row in _grid) { for (int h = 0; h < 24; h++) row[h] = false; }
-                      });
-                    }),
-                  ]),
-                ),
-              ),
-              // Legend
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(children: [
-                  Container(width: 14, height: 14, decoration: BoxDecoration(color: Colors.red.shade400, borderRadius: BorderRadius.circular(3))),
-                  const SizedBox(width: 6),
-                  const Text('Blocked', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(width: 16),
-                  Container(width: 14, height: 14, decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(3))),
-                  const SizedBox(width: 6),
-                  const Text('Allowed', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                ]),
-              ),
-              const SizedBox(height: 8),
-              // Grid
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: 50.0 + 24 * 28.0,
-                    child: Column(
-                      children: [
-                        // Hour headers
-                        Row(children: [
-                          const SizedBox(width: 50),
-                          ...List.generate(24, (h) => SizedBox(
-                            width: 28,
-                            child: Text('${h.toString().padLeft(2, '0')}', textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 9, color: Colors.grey)),
-                          )),
-                        ]),
-                        const SizedBox(height: 4),
-                        // Day rows
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: 7,
-                            itemBuilder: (_, d) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              child: Row(children: [
-                                SizedBox(width: 50, child: Text(_days[d],
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
-                                ...List.generate(24, (h) => GestureDetector(
-                                  onTapDown: (_) => setState(() => _grid[d][h] = !_grid[d][h]),
-                                  onPanStart: (_) {
-                                    _dragStartDay = d;
-                                    _dragValue = !_grid[d][h];
-                                    setState(() => _grid[d][h] = _dragValue!);
-                                  },
-                                  onPanUpdate: (details) {
-                                    final box = context.findRenderObject() as RenderBox?;
-                                    if (box == null) return;
-                                    // Simple horizontal drag within the same row
-                                    final localX = details.localPosition.dx;
-                                    final hourIdx = ((localX - 50) / 28).floor().clamp(0, 23);
-                                    if (_dragValue != null && _dragStartDay == d) {
-                                      setState(() => _grid[d][hourIdx] = _dragValue!);
-                                    }
-                                  },
-                                  child: Container(
-                                    width: 26,
-                                    height: 32,
-                                    margin: const EdgeInsets.all(1),
-                                    decoration: BoxDecoration(
-                                      color: _grid[d][h] ? Colors.red.shade400 : Colors.green.shade50,
-                                      borderRadius: BorderRadius.circular(3),
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadSchedule,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Override banner
+                    if (_overrideActive)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.pause_circle, color: Colors.orange.shade700),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Override Active: ${_overrideType ?? ''}',
+                                      style: TextStyle(fontWeight: FontWeight.w700, color: Colors.orange.shade800)),
+                                  if (_overrideEndsAt != null)
+                                    Text('Ends: ${_formatTime(_overrideEndsAt!)}',
+                                        style: TextStyle(fontSize: 12, color: Colors.orange.shade700)),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _cancelOverride,
+                              child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // Presets
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Quick Presets', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF546E7A))),
+                          const SizedBox(height: 8),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(children: [
+                              _PresetBtn(label: 'School Hours', icon: Icons.school, color: const Color(0xFF1565C0), onTap: () => _applyServerPreset('SCHOOL')),
+                              const SizedBox(width: 8),
+                              _PresetBtn(label: 'Bedtime', icon: Icons.bedtime, color: const Color(0xFF7B1FA2), onTap: () => _applyServerPreset('BEDTIME')),
+                              const SizedBox(width: 8),
+                              _PresetBtn(label: 'Weekend', icon: Icons.weekend, color: const Color(0xFFFB8C00), onTap: () => _applyServerPreset('WEEKEND')),
+                              const SizedBox(width: 8),
+                              _PresetBtn(label: 'Strict', icon: Icons.security, color: const Color(0xFFC62828), onTap: () => _applyServerPreset('STRICT')),
+                              const SizedBox(width: 8),
+                              _PresetBtn(label: 'Override', icon: Icons.pause_circle, color: Colors.red, onTap: _showOverrideDialog),
+                              const SizedBox(width: 8),
+                              _PresetBtn(label: 'Clear All', icon: Icons.clear_all, color: Colors.grey, onTap: () {
+                                setState(() {
+                                  for (var row in _grid) { for (int h = 0; h < 24; h++) row[h] = false; }
+                                  _activePreset = null;
+                                });
+                              }),
+                            ]),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Legend
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(children: [
+                        _LegendDot(color: Colors.red.shade400, label: 'Blocked'),
+                        const SizedBox(width: 16),
+                        _LegendDot(color: const Color(0xFFC8E6C9), label: 'Allowed'),
+                        if (_activePreset != null) ...[
+                          const Spacer(),
+                          Chip(
+                            label: Text(_activePreset!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                            backgroundColor: const Color(0xFFE3F2FD),
+                            side: const BorderSide(color: Color(0xFF90CAF9)),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
+                      ]),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Grid
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Hour headers
+                          Row(children: [
+                            const SizedBox(width: 44),
+                            ...List.generate(24, (h) => SizedBox(
+                              width: 28,
+                              child: Text(h.toString(), textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600,
+                                    color: (h >= 22 || h < 6) ? Colors.grey.shade400 : const Color(0xFF546E7A))),
+                            )),
+                          ]),
+                          const SizedBox(height: 4),
+                          // Day rows
+                          ...List.generate(7, (d) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(children: [
+                              SizedBox(
+                                width: 44,
+                                child: Text(_dayLabels[d],
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: d >= 5 ? const Color(0xFFFB8C00) : const Color(0xFF546E7A),
+                                  ),
+                                ),
+                              ),
+                              ...List.generate(24, (h) => GestureDetector(
+                                onTap: () => setState(() => _grid[d][h] = !_grid[d][h]),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 120),
+                                  width: 26,
+                                  height: 30,
+                                  margin: const EdgeInsets.all(1),
+                                  decoration: BoxDecoration(
+                                    color: _grid[d][h] ? Colors.red.shade400 : const Color(0xFFC8E6C9),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: _grid[d][h] ? Colors.red.shade300 : const Color(0xFFA5D6A7),
+                                      width: 1,
                                     ),
                                   ),
-                                )),
-                              ]),
-                            ),
+                                ),
+                              )),
+                            ]),
+                          )),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ),
+
+                    // Save button
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: FilledButton.icon(
+                          onPressed: _saving ? null : _save,
+                          icon: _saving
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.save),
+                          label: Text(_saving ? 'Saving...' : 'Save Schedule'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF1565C0),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+    );
+  }
+
+  String _formatTime(String iso) {
+    try {
+      return TimeOfDay.fromDateTime(DateTime.parse(iso).toLocal()).format(context);
+    } catch (_) {
+      return iso;
+    }
+  }
+}
+
+class _PresetBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _PresetBtn({required this.label, required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16, color: color),
+      label: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: color.withOpacity(0.4)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        visualDensity: VisualDensity.compact,
+      ),
     );
   }
 }
 
-class _PresetChip extends StatelessWidget {
+class _LegendDot extends StatelessWidget {
+  final Color color;
   final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  const _PresetChip({required this.label, required this.icon, required this.onTap});
+  const _LegendDot({required this.color, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return ActionChip(
-      avatar: Icon(icon, size: 18),
-      label: Text(label, style: const TextStyle(fontSize: 13)),
-      onPressed: onTap,
-    );
+    return Row(children: [
+      Container(width: 14, height: 14, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+      const SizedBox(width: 5),
+      Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+    ]);
   }
 }

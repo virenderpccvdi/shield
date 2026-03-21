@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Branded Shield logo widget — drawn entirely with Canvas (no asset required).
+/// Branded Shield logo — Canvas-drawn. Deep-blue shield with location pin
+/// and a family (parent + child) silhouette inside.
 class ShieldLogo extends StatelessWidget {
   const ShieldLogo({super.key, this.size = 72});
   final double size;
@@ -19,98 +20,163 @@ class _ShieldPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
+    // ── Outer shadow ───────────────────────────────────────────────────────
+    final shadowPaint = Paint()
+      ..color = const Color(0x401565C0)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    _drawShield(canvas, w, h, shadowPaint, offset: const Offset(0, 3));
+
     // ── Gradient fill ──────────────────────────────────────────────────────
-    final gradientPaint = Paint()
+    final gradPaint = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF9C27B0), Color(0xFF3F51B5), Color(0xFF1565C0)],
-        stops: [0.0, 0.5, 1.0],
+        colors: [Color(0xFF1976D2), Color(0xFF0D47A1), Color(0xFF01579B)],
+        stops: [0.0, 0.55, 1.0],
       ).createShader(Rect.fromLTWH(0, 0, w, h))
       ..style = PaintingStyle.fill;
+    _drawShield(canvas, w, h, gradPaint);
 
-    // ── Shield path ────────────────────────────────────────────────────────
-    // Classic shield: flat top with a pointed bottom.
-    final path = Path();
-    final rx = w * 0.12; // corner radius
-    // Top-left corner
-    path.moveTo(0, h * 0.10);
-    path.quadraticBezierTo(0, 0, rx, 0);
-    // Top edge
-    path.lineTo(w - rx, 0);
-    // Top-right corner
-    path.quadraticBezierTo(w, 0, w, h * 0.10);
-    // Right side
-    path.lineTo(w, h * 0.55);
-    // Curve down to the point
-    path.cubicTo(w, h * 0.80, w * 0.65, h * 0.92, w * 0.50, h);
-    path.cubicTo(w * 0.35, h * 0.92, 0, h * 0.80, 0, h * 0.55);
-    path.close();
+    // ── Subtle inner border ────────────────────────────────────────────────
+    final borderPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.white.withOpacity(0.4), Colors.white.withOpacity(0.05)],
+      ).createShader(Rect.fromLTWH(0, 0, w, h))
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.025;
+    _drawShield(canvas, w, h, borderPaint);
 
-    canvas.drawPath(path, gradientPaint);
-
-    // ── Inner highlight (glossy top sheen) ────────────────────────────────
+    // ── Glossy top sheen ──────────────────────────────────────────────────
     final sheenPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [Colors.white.withOpacity(0.25), Colors.white.withOpacity(0.0)],
+        colors: [Colors.white.withOpacity(0.22), Colors.white.withOpacity(0.0)],
       ).createShader(Rect.fromLTWH(w * 0.1, 0, w * 0.8, h * 0.45))
       ..style = PaintingStyle.fill;
-
-    final sheenPath = Path();
-    sheenPath.moveTo(rx, 0);
-    sheenPath.lineTo(w - rx, 0);
-    sheenPath.quadraticBezierTo(w, 0, w, h * 0.10);
-    sheenPath.lineTo(w * 0.85, h * 0.42);
-    sheenPath.quadraticBezierTo(w * 0.5, h * 0.50, w * 0.15, h * 0.42);
-    sheenPath.lineTo(0, h * 0.10);
-    sheenPath.quadraticBezierTo(0, 0, rx, 0);
+    final sheenPath = Path()
+      ..moveTo(w * 0.12, 0)
+      ..lineTo(w - w * 0.12, 0)
+      ..quadraticBezierTo(w, 0, w, h * 0.10)
+      ..lineTo(w * 0.82, h * 0.40)
+      ..quadraticBezierTo(w * 0.5, h * 0.48, w * 0.18, h * 0.40)
+      ..lineTo(0, h * 0.10)
+      ..quadraticBezierTo(0, 0, w * 0.12, 0)
+      ..close();
     canvas.drawPath(sheenPath, sheenPaint);
 
-    // ── "S" letter ────────────────────────────────────────────────────────
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'S',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: w * 0.46,
-          fontWeight: FontWeight.w900,
-          letterSpacing: -1,
-          shadows: [
-            Shadow(color: Colors.black.withOpacity(0.20), blurRadius: 4,
-                offset: const Offset(0, 2)),
-          ],
-        ),
+    // ── Location pin (centered, upper half) ───────────────────────────────
+    _drawLocationPin(canvas, w, h);
+
+    // ── Parent + child silhouette (lower, below pin) ───────────────────────
+    _drawFamily(canvas, w, h);
+  }
+
+  void _drawShield(Canvas canvas, double w, double h, Paint paint,
+      {Offset offset = Offset.zero}) {
+    final path = Path();
+    final rx = w * 0.12;
+    path.moveTo(offset.dx, offset.dy + h * 0.10);
+    path.quadraticBezierTo(offset.dx, offset.dy, offset.dx + rx, offset.dy);
+    path.lineTo(offset.dx + w - rx, offset.dy);
+    path.quadraticBezierTo(offset.dx + w, offset.dy, offset.dx + w, offset.dy + h * 0.10);
+    path.lineTo(offset.dx + w, offset.dy + h * 0.56);
+    path.cubicTo(
+      offset.dx + w, offset.dy + h * 0.80,
+      offset.dx + w * 0.65, offset.dy + h * 0.93,
+      offset.dx + w * 0.50, offset.dy + h,
+    );
+    path.cubicTo(
+      offset.dx + w * 0.35, offset.dy + h * 0.93,
+      offset.dx, offset.dy + h * 0.80,
+      offset.dx, offset.dy + h * 0.56,
+    );
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  void _drawLocationPin(Canvas canvas, double w, double h) {
+    final cx = w * 0.50;
+    final cy = h * 0.33;
+    final pr = w * 0.115; // pin head radius
+
+    // Pin head
+    final pinPaint = Paint()
+      ..color = Colors.white.withOpacity(0.92)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx, cy), pr, pinPaint);
+
+    // Pin tip (teardrop) - pointing down
+    final tipPaint = Paint()
+      ..color = Colors.white.withOpacity(0.92)
+      ..style = PaintingStyle.fill;
+    final tipPath = Path()
+      ..moveTo(cx - pr * 0.55, cy + pr * 0.7)
+      ..quadraticBezierTo(cx, cy + pr * 2.2, cx, cy + pr * 2.2)
+      ..quadraticBezierTo(cx + pr * 0.55, cy + pr * 0.7, cx + pr * 0.55, cy + pr * 0.7)
+      ..close();
+    canvas.drawPath(tipPath, tipPaint);
+
+    // Inner dot
+    final dotPaint = Paint()
+      ..color = const Color(0xFF1565C0)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx, cy), pr * 0.38, dotPaint);
+  }
+
+  void _drawFamily(Canvas canvas, double w, double h) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.82)
+      ..style = PaintingStyle.fill;
+
+    // Parent figure (left-center)
+    final px = w * 0.395;
+    final py = h * 0.645;
+    // Parent head
+    canvas.drawCircle(Offset(px, py), w * 0.062, paint);
+    // Parent body (rounded rect)
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(px, py + w * 0.11), width: w * 0.11, height: w * 0.14),
+        Radius.circular(w * 0.03),
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(
-      canvas,
-      Offset((w - textPainter.width) / 2, h * 0.22),
+      paint,
     );
 
-    // ── Check-mark tick at the bottom ─────────────────────────────────────
-    final tickPaint = Paint()
+    // Child figure (right-center, slightly smaller)
+    final chx = w * 0.605;
+    final chy = h * 0.660;
+    // Child head
+    canvas.drawCircle(Offset(chx, chy), w * 0.048, paint);
+    // Child body
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(chx, chy + w * 0.088), width: w * 0.088, height: w * 0.11),
+        Radius.circular(w * 0.025),
+      ),
+      paint,
+    );
+
+    // Connecting line (holding hands)
+    final linePaint = Paint()
       ..color = Colors.white.withOpacity(0.55)
-      ..strokeWidth = w * 0.045
+      ..strokeWidth = w * 0.025
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
-
-    final cx = w * 0.50;
-    final ty = h * 0.74;
-    final tickPath = Path()
-      ..moveTo(cx - w * 0.15, ty)
-      ..lineTo(cx - w * 0.04, ty + h * 0.07)
-      ..lineTo(cx + w * 0.15, ty - h * 0.07);
-    canvas.drawPath(tickPath, tickPaint);
+    canvas.drawLine(
+      Offset(px + w * 0.055, py + w * 0.095),
+      Offset(chx - w * 0.044, chy + w * 0.075),
+      linePaint,
+    );
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Larger version with shadow card, used on login/splash screens.
+/// Hero version with glow ring — for login/splash screens.
 class ShieldLogoHero extends StatelessWidget {
   const ShieldLogoHero({super.key, this.size = 80});
   final double size;
@@ -118,19 +184,76 @@ class ShieldLogoHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size * 1.35,
-      height: size * 1.35,
+      width: size * 1.4,
+      height: size * 1.4,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const RadialGradient(
-          colors: [Color(0x33FFFFFF), Color(0x00FFFFFF)],
+        gradient: RadialGradient(
+          colors: [
+            const Color(0xFF1976D2).withOpacity(0.18),
+            Colors.transparent,
+          ],
         ),
         boxShadow: [
-          BoxShadow(color: const Color(0xFF9C27B0).withOpacity(0.45),
-              blurRadius: 28, spreadRadius: 4),
+          BoxShadow(
+            color: const Color(0xFF1565C0).withOpacity(0.35),
+            blurRadius: 32,
+            spreadRadius: 6,
+          ),
         ],
       ),
       child: Center(child: ShieldLogo(size: size)),
+    );
+  }
+}
+
+/// Animated pulsing version — for splash/loading.
+class ShieldLogoPulse extends StatefulWidget {
+  const ShieldLogoPulse({super.key, this.size = 80});
+  final double size;
+
+  @override
+  State<ShieldLogoPulse> createState() => _ShieldLogoPulseState();
+}
+
+class _ShieldLogoPulseState extends State<ShieldLogoPulse>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 2))
+      ..repeat(reverse: true);
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, child) => Container(
+        width: widget.size * (1.3 + _anim.value * 0.15),
+        height: widget.size * (1.3 + _anim.value * 0.15),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1565C0).withOpacity(0.25 + _anim.value * 0.2),
+              blurRadius: 24 + _anim.value * 16,
+              spreadRadius: 4 + _anim.value * 4,
+            ),
+          ],
+        ),
+        child: Center(child: ShieldLogo(size: widget.size)),
+      ),
     );
   }
 }

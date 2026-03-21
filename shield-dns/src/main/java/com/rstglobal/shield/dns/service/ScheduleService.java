@@ -35,14 +35,21 @@ public class ScheduleService {
         return scheduleRepo.save(s);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ScheduleResponse getSchedule(UUID profileId) {
-        return toResponse(findOrThrow(profileId));
+        // Auto-create default schedule if none exists — prevents "Schedule not found" errors
+        Schedule s = scheduleRepo.findByProfileId(profileId)
+                .orElseGet(() -> scheduleRepo.save(
+                        Schedule.builder().profileId(profileId).grid(defaultGrid()).build()));
+        return toResponse(s);
     }
 
     @Transactional
     public ScheduleResponse updateSchedule(UUID profileId, UpdateScheduleRequest req) {
-        Schedule s = findOrThrow(profileId);
+        // Auto-create if not found (same resilience as getSchedule)
+        Schedule s = scheduleRepo.findByProfileId(profileId)
+                .orElseGet(() -> scheduleRepo.save(
+                        Schedule.builder().profileId(profileId).grid(defaultGrid()).build()));
         s.setGrid(req.getGrid());
         s.setActivePreset(req.getActivePreset());
         return toResponse(scheduleRepo.save(s));
@@ -50,7 +57,9 @@ public class ScheduleService {
 
     @Transactional
     public ScheduleResponse applyPreset(UUID profileId, String preset) {
-        Schedule s = findOrThrow(profileId);
+        Schedule s = scheduleRepo.findByProfileId(profileId)
+                .orElseGet(() -> scheduleRepo.save(
+                        Schedule.builder().profileId(profileId).grid(defaultGrid()).build()));
         s.setGrid(gridForPreset(preset));
         s.setActivePreset(preset);
         return toResponse(scheduleRepo.save(s));
@@ -58,7 +67,9 @@ public class ScheduleService {
 
     @Transactional
     public ScheduleResponse applyOverride(UUID profileId, ScheduleOverrideRequest req) {
-        Schedule s = findOrThrow(profileId);
+        Schedule s = scheduleRepo.findByProfileId(profileId)
+                .orElseGet(() -> scheduleRepo.save(
+                        Schedule.builder().profileId(profileId).grid(defaultGrid()).build()));
         s.setOverrideActive(true);
         s.setOverrideType(req.getOverrideType());
         s.setOverrideEndsAt(req.getDurationMinutes() > 0
@@ -69,7 +80,9 @@ public class ScheduleService {
 
     @Transactional
     public ScheduleResponse cancelOverride(UUID profileId) {
-        Schedule s = findOrThrow(profileId);
+        Schedule s = scheduleRepo.findByProfileId(profileId)
+                .orElseGet(() -> scheduleRepo.save(
+                        Schedule.builder().profileId(profileId).grid(defaultGrid()).build()));
         s.setOverrideActive(false);
         s.setOverrideType(null);
         s.setOverrideEndsAt(null);
