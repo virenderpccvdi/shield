@@ -22,6 +22,8 @@ public class AdminRoleFilter implements Filter {
 
     private static final Set<String> PUBLIC_PREFIXES = Set.of(
             "/api/v1/admin/tr069/webhook",
+            "/api/v1/admin/contact/submit",
+            "/api/v1/admin/visitors/track",
             "/api/v1/billing/",
             "/actuator/health",
             "/v3/api-docs",
