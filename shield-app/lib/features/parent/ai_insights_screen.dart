@@ -12,20 +12,22 @@ final aiInsightsProvider =
   final client = ref.read(dioProvider);
   final result = <String, dynamic>{};
 
-  // Fetch AI insights
+  // Fetch AI insights (enriched endpoint)
   try {
     final res = await client.get('/ai/$profileId/insights');
-    final data = res.data['data'];
+    final data = res.data is Map && res.data['data'] != null
+        ? res.data['data']
+        : res.data;
     if (data is Map) result.addAll(Map<String, dynamic>.from(data));
   } catch (_) {}
 
-  // Fetch analytics stats for behavior trends
+  // Fetch analytics stats for behavior trends (fallback/supplemental)
   try {
     final res =
         await client.get('/analytics/$profileId/stats?period=WEEK');
-    final data = res.data['data'];
-    if (data is Map) {
-      result['analyticsStats'] = Map<String, dynamic>.from(data);
+    final raw = res.data is Map ? res.data['data'] : null;
+    if (raw is Map) {
+      result['analyticsStats'] = Map<String, dynamic>.from(raw);
     }
   } catch (_) {}
 
@@ -37,6 +39,10 @@ final aiInsightsProvider =
 Map<String, dynamic> _mockData() => {
       'riskScore': 38,
       'riskLevel': 'MEDIUM',
+      'hasData': true,
+      'screenTimeMinutes': 182,
+      'dailyAvgMinutes': 145,
+      'totalBlocked': 212,
       'summary':
           'Activity patterns look mostly healthy. A few late-night sessions detected.',
       'recommendations': [
@@ -44,37 +50,56 @@ Map<String, dynamic> _mockData() => {
           'icon': 'bedtime',
           'title': 'Set a Bedtime Schedule',
           'description':
-              'We noticed browsing activity after 10 PM on 3 nights this week. Consider enabling a bedtime schedule to improve sleep quality.',
+              'Browsing activity detected after 10 PM on 3 nights this week. Enable a bedtime schedule to improve sleep quality.',
         },
         {
-          'icon': 'shield',
-          'title': 'Tighten Gaming Category',
+          'icon': 'sports_esports',
+          'title': 'Tighten Gaming Time Limit',
           'description':
-              'Gaming-related DNS queries spiked 40% this week. You may want to set a daily time limit for this category.',
+              'Gaming-related DNS queries spiked 40% this week. Set a daily 1-hour limit for the Gaming category.',
         },
         {
           'icon': 'star',
           'title': 'Reward Good Behaviour',
           'description':
-              'Your child completed all homework tasks on time this week. A reward point boost could reinforce the habit.',
+              'Your child completed all homework tasks on time. A reward point boost could reinforce the habit.',
         },
       ],
       'anomalies': [
         {
+          'detectedAt': '2026-03-21T22:14:00Z',
           'timestamp': '2026-03-21T22:14:00',
           'description': 'Unusual browsing activity detected after curfew.',
           'severity': 'MEDIUM',
         },
         {
+          'detectedAt': '2026-03-20T15:33:00Z',
           'timestamp': '2026-03-20T15:33:00',
           'description': 'Repeated attempts to access blocked social media.',
           'severity': 'LOW',
         },
         {
+          'detectedAt': '2026-03-19T08:05:00Z',
           'timestamp': '2026-03-19T08:05:00',
           'description': 'VPN-related DNS query pattern detected.',
           'severity': 'HIGH',
         },
+      ],
+      'weeklyTrend': [
+        {'date': '2026-03-15', 'allowed': 120, 'blocked': 18},
+        {'date': '2026-03-16', 'allowed': 95,  'blocked': 12},
+        {'date': '2026-03-17', 'allowed': 140, 'blocked': 30},
+        {'date': '2026-03-18', 'allowed': 110, 'blocked': 22},
+        {'date': '2026-03-19', 'allowed': 160, 'blocked': 45},
+        {'date': '2026-03-20', 'allowed': 200, 'blocked': 60},
+        {'date': '2026-03-21', 'allowed': 130, 'blocked': 25},
+      ],
+      'topCategories': [
+        {'name': 'Social Media', 'minutes': 48, 'blocked': 78},
+        {'name': 'Gaming',       'minutes': 62, 'blocked': 52},
+        {'name': 'Adult',        'minutes': 0,  'blocked': 34},
+        {'name': 'Streaming',    'minutes': 35, 'blocked': 21},
+        {'name': 'Ads',          'minutes': 5,  'blocked': 15},
       ],
       'analyticsStats': {
         'dailyAllowed': [120, 95, 140, 110, 160, 200, 130],
@@ -120,6 +145,13 @@ class AiInsightsScreen extends ConsumerWidget {
               ref.invalidate(aiInsightsProvider(profileId)),
         ),
         data: (raw) {
+          // If the backend says hasData=false (new profile), show empty state
+          if (raw['hasData'] == false) {
+            return _NoDataEmptyState(
+              onRefresh: () =>
+                  ref.invalidate(aiInsightsProvider(profileId)),
+            );
+          }
           final data =
               raw.isEmpty ? _mockData() : _mergeMock(raw);
           return _InsightsBody(
@@ -136,9 +168,34 @@ class AiInsightsScreen extends ConsumerWidget {
   /// Fill any missing keys from mock so widgets always have data.
   Map<String, dynamic> _mergeMock(Map<String, dynamic> raw) {
     final mock = _mockData();
+
+    // Prefer real weeklyTrend over mock if it's non-empty
+    final weeklyTrend = (raw['weeklyTrend'] as List?)?.isNotEmpty == true
+        ? raw['weeklyTrend']
+        : mock['weeklyTrend'];
+
+    // Merge topCategories: prefer real if non-empty
+    final topCategories = (raw['topCategories'] as List?)?.isNotEmpty == true
+        ? raw['topCategories']
+        : mock['topCategories'];
+
+    // Merge recommendations: prefer real if non-empty
+    final recommendations =
+        (raw['recommendations'] as List?)?.isNotEmpty == true
+            ? raw['recommendations']
+            : mock['recommendations'];
+
+    // Merge anomalies: use real ones (may be empty = good)
+    final anomalies =
+        raw.containsKey('anomalies') ? raw['anomalies'] : mock['anomalies'];
+
     return {
       ...mock,
       ...raw,
+      'weeklyTrend': weeklyTrend,
+      'topCategories': topCategories,
+      'recommendations': recommendations,
+      'anomalies': anomalies,
       'analyticsStats': {
         ...(mock['analyticsStats'] as Map<String, dynamic>),
         ...((raw['analyticsStats'] as Map?)?.cast<String, dynamic>() ?? {}),
@@ -165,13 +222,33 @@ class _InsightsBody extends StatelessWidget {
     final stats =
         (data['analyticsStats'] as Map?)?.cast<String, dynamic>() ?? {};
 
-    final dailyAllowed = _toDoubleList(stats['dailyAllowed']);
-    final dailyBlocked = _toDoubleList(stats['dailyBlocked']);
-    final categories = _toCategoryList(stats['topBlockedCategories']);
+    // Prefer real weeklyTrend from AI endpoint
+    final weeklyTrend = _toMapList(data['weeklyTrend']);
+    final dailyAllowed = weeklyTrend.isNotEmpty
+        ? weeklyTrend.map((d) => ((d['allowed'] as num?) ?? 0).toDouble()).toList()
+        : _toDoubleList(stats['dailyAllowed']);
+    final dailyBlocked = weeklyTrend.isNotEmpty
+        ? weeklyTrend.map((d) => ((d['blocked'] as num?) ?? 0).toDouble()).toList()
+        : _toDoubleList(stats['dailyBlocked']);
+
+    // Categories: prefer topCategories from AI insights
+    final topCategories = _toMapList(data['topCategories']);
+    final legacyCategories = _toCategoryList(stats['topBlockedCategories']);
+    final categories = topCategories.isNotEmpty
+        ? topCategories.map((c) => {
+              'name': c['name'] ?? '',
+              'count': (c['blocked'] as num?) ?? 0,
+            }).toList()
+        : legacyCategories;
+
     final recommendations = _toMapList(data['recommendations']);
     final anomalies = _toMapList(data['anomalies']);
-    final riskScore =
-        (data['riskScore'] as num?)?.toDouble() ?? 0;
+    final riskScore = (data['riskScore'] as num?)?.toDouble() ?? 0;
+
+    // Screen time stats
+    final screenTimeMinutes = (data['screenTimeMinutes'] as num?)?.toInt() ?? 0;
+    final dailyAvgMinutes = (data['dailyAvgMinutes'] as num?)?.toInt() ?? 0;
+    final totalBlocked = (data['totalBlocked'] as num?)?.toInt() ?? 0;
 
     return RefreshIndicator(
       onRefresh: onRefresh,
@@ -185,12 +262,21 @@ class _InsightsBody extends StatelessWidget {
             // 1. Risk Score Card
             _RiskScoreCard(
               riskScore: riskScore,
-              summary: data['summary'] as String? ??
-                  'AI analysis in progress…',
+              summary: (data['summary'] as String?)?.isNotEmpty == true
+                  ? data['summary'] as String
+                  : 'AI analysis in progress…',
+            ),
+            const SizedBox(height: 16),
+
+            // 2. Screen Time Stats Row
+            _ScreenTimeStatsRow(
+              screenTimeMinutes: screenTimeMinutes,
+              dailyAvgMinutes: dailyAvgMinutes,
+              totalBlocked: totalBlocked,
             ),
             const SizedBox(height: 20),
 
-            // 2. Behavior Trends
+            // 3. Behavior Trends
             _SectionHeader(
               icon: Icons.show_chart_rounded,
               title: 'Behavior Trends',
@@ -203,17 +289,19 @@ class _InsightsBody extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // 3. Top Blocked Categories
-            _SectionHeader(
-              icon: Icons.bar_chart_rounded,
-              title: 'Top Blocked Categories',
-              subtitle: 'This week',
-            ),
-            const SizedBox(height: 10),
-            _BlockedCategoriesCard(categories: categories),
-            const SizedBox(height: 20),
+            // 4. Top Blocked Categories
+            if (categories.isNotEmpty) ...[
+              _SectionHeader(
+                icon: Icons.bar_chart_rounded,
+                title: 'Top Blocked Categories',
+                subtitle: 'This week',
+              ),
+              const SizedBox(height: 10),
+              _BlockedCategoriesCard(categories: categories),
+              const SizedBox(height: 20),
+            ],
 
-            // 4. AI Recommendations
+            // 5. AI Recommendations
             _SectionHeader(
               icon: Icons.lightbulb_rounded,
               title: 'AI Recommendations',
@@ -229,7 +317,7 @@ class _InsightsBody extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            // 5. Anomaly Alerts
+            // 6. Anomaly Alerts
             _SectionHeader(
               icon: Icons.warning_amber_rounded,
               title: 'Anomaly Alerts',
@@ -279,6 +367,251 @@ class _InsightsBody extends StatelessWidget {
           .toList();
     }
     return [];
+  }
+}
+
+// ─── No-Data Empty State (new profile / < 24h usage) ─────────────────────────
+
+class _NoDataEmptyState extends StatelessWidget {
+  final VoidCallback onRefresh;
+  const _NoDataEmptyState({required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon illustration
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: ShieldTheme.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(Icons.psychology_rounded,
+                      size: 60, color: ShieldTheme.primary.withOpacity(0.5)),
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: ShieldTheme.surface,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: ShieldTheme.primary.withOpacity(0.3)),
+                      ),
+                      child: Icon(Icons.hourglass_empty_rounded,
+                          size: 18,
+                          color: ShieldTheme.primary.withOpacity(0.6)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 28),
+            const Text(
+              'Collecting Data…',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: ShieldTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'AI insights will be available after 24 hours of usage. '
+              'Make sure your child\'s device is connected and actively browsing.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: ShieldTheme.textSecondary,
+                height: 1.55,
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Checklist hints
+            _HintRow(
+              icon: Icons.wifi_rounded,
+              text: 'Device connected to Shield DNS',
+            ),
+            _HintRow(
+              icon: Icons.access_time_rounded,
+              text: 'Check back after some browsing activity',
+            ),
+            _HintRow(
+              icon: Icons.notifications_active_rounded,
+              text: 'You\'ll get a notification when insights are ready',
+            ),
+            const SizedBox(height: 32),
+            TextButton.icon(
+              onPressed: onRefresh,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Check Again'),
+              style: TextButton.styleFrom(foregroundColor: ShieldTheme.primary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HintRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _HintRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 16, color: ShieldTheme.primary.withOpacity(0.6)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              text,
+              style: const TextStyle(
+                  fontSize: 13, color: ShieldTheme.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Screen Time Stats Row ────────────────────────────────────────────────────
+
+class _ScreenTimeStatsRow extends StatelessWidget {
+  final int screenTimeMinutes;
+  final int dailyAvgMinutes;
+  final int totalBlocked;
+
+  const _ScreenTimeStatsRow({
+    required this.screenTimeMinutes,
+    required this.dailyAvgMinutes,
+    required this.totalBlocked,
+  });
+
+  String _fmtMinutes(int m) {
+    if (m < 60) return '${m}m';
+    return '${m ~/ 60}h ${m % 60}m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatTile(
+            icon: Icons.access_time_filled_rounded,
+            color: ShieldTheme.primary,
+            label: 'Screen Time',
+            value: _fmtMinutes(screenTimeMinutes),
+            sub: 'this week',
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _StatTile(
+            icon: Icons.today_rounded,
+            color: ShieldTheme.accent,
+            label: 'Daily Average',
+            value: _fmtMinutes(dailyAvgMinutes),
+            sub: 'per day',
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _StatTile(
+            icon: Icons.block_rounded,
+            color: ShieldTheme.danger,
+            label: 'Blocked',
+            value: '$totalBlocked',
+            sub: 'queries',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String value;
+  final String sub;
+
+  const _StatTile({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+    required this.sub,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: ShieldTheme.cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: ShieldTheme.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: color,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: ShieldTheme.textPrimary,
+            ),
+          ),
+          Text(
+            sub,
+            style: const TextStyle(
+              fontSize: 10,
+              color: ShieldTheme.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -944,6 +1277,14 @@ class _RecommendationCard extends StatelessWidget {
         return Icons.block_rounded;
       case 'location':
         return Icons.location_on_rounded;
+      case 'sports_esports':
+        return Icons.sports_esports_rounded;
+      case 'vpn_lock':
+        return Icons.vpn_lock_rounded;
+      case 'people':
+        return Icons.people_rounded;
+      case 'time_limit':
+        return Icons.timer_rounded;
       default:
         return Icons.lightbulb_rounded;
     }
@@ -1053,7 +1394,10 @@ class _AnomalyCard extends StatelessWidget {
     final severity = anomaly['severity'] as String?;
     final color = _severityColor(severity);
     final description = anomaly['description'] as String? ?? '';
-    final timestamp = _formatTimestamp(anomaly['timestamp'] as String?);
+    // support both 'detectedAt' (new) and 'timestamp' (legacy)
+    final ts = (anomaly['detectedAt'] as String?)
+        ?? (anomaly['timestamp'] as String?);
+    final timestamp = _formatTimestamp(ts);
 
     return Container(
       decoration: BoxDecoration(

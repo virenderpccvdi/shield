@@ -213,9 +213,27 @@ public class DnsRulesService {
             return;
         }
 
+        Map<String, Boolean> cats = Optional.ofNullable(rules.getEnabledCategories()).orElse(Map.of());
+
+        // If schedule enforcement OR pause flag is active, disable filtering entirely
+        // (filteringEnabled=false in AdGuard blocks ALL DNS for the client)
+        boolean scheduleBlocked = Boolean.TRUE.equals(cats.get(ScheduleService.SCHEDULE_BLOCKED_KEY));
+        boolean paused = Boolean.TRUE.equals(cats.get("__paused__"));
+        if (scheduleBlocked || paused) {
+            AdGuardClient.AdGuardClientData data = new AdGuardClient.AdGuardClientData(
+                    false, false, false,
+                    Map.of("enabled", false, "google", false, "bing", false,
+                            "duckduckgo", false, "youtube", false),
+                    List.of()
+            );
+            log.info("AdGuard sync: profileId={} clientId={} — BLOCKED (scheduleBlocked={} paused={})",
+                    rules.getProfileId(), clientId, scheduleBlocked, paused);
+            adGuard.updateClient(clientId, clientId, data);
+            return;
+        }
+
         // Determine blocked services from categories
         List<String> blocked = new ArrayList<>();
-        Map<String, Boolean> cats = Optional.ofNullable(rules.getEnabledCategories()).orElse(Map.of());
         Map<String, String> adguardServiceMap = Map.of(
                 "streaming", "youtube",
                 "social_media", "instagram",

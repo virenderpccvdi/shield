@@ -16,7 +16,7 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 const presets = [
-  { label: 'School Hours', icon: <SchoolIcon sx={{ fontSize: 16 }} />, color: '#1565C0', key: 'SCHOOL_HOURS' },
+  { label: 'School Hours', icon: <SchoolIcon sx={{ fontSize: 16 }} />, color: '#1565C0', key: 'SCHOOL' },
   { label: 'Bedtime', icon: <BedtimeIcon sx={{ fontSize: 16 }} />, color: '#7B1FA2', key: 'BEDTIME' },
   { label: 'Weekend', icon: <WeekendIcon sx={{ fontSize: 16 }} />, color: '#FB8C00', key: 'WEEKEND' },
 ];
@@ -118,11 +118,11 @@ export default function SchedulePage() {
                       {HOURS.map(h => {
                         const val = grid[day]?.[h] ?? 1;
                         return (
-                          <Tooltip key={h} title={`${day} ${h}:00 — ${val === 1 ? 'Allowed' : 'Blocked'}`} arrow>
+                          <Tooltip key={h} title={`${day} ${h}:00 — ${val === 1 ? 'Blocked' : 'Allowed'}`} arrow>
                             <Box onClick={() => toggle(day, h)} sx={{
                               width: 26, height: 28, borderRadius: '6px', mr: 0.25, cursor: 'pointer',
-                              bgcolor: val === 0 ? '#FFCDD2' : '#C8E6C9',
-                              border: '1.5px solid', borderColor: val === 0 ? '#EF9A9A' : '#A5D6A7',
+                              bgcolor: val === 1 ? '#FFCDD2' : '#C8E6C9',
+                              border: '1.5px solid', borderColor: val === 1 ? '#EF9A9A' : '#A5D6A7',
                               transition: 'all 0.15s ease',
                               '&:hover': { transform: 'scale(1.15)', zIndex: 1 },
                               '&:active': { transform: 'scale(0.95)' },

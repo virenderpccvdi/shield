@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress,
-  Chip, Stack, Alert, Divider, IconButton, Tooltip as MuiTooltip
+  Chip, Stack, Alert, Divider, IconButton, Tooltip as MuiTooltip,
+  Button, LinearProgress,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, BarChart, Bar,
+} from 'recharts';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
@@ -18,10 +22,17 @@ import NightlightIcon from '@mui/icons-material/Nightlight';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import NewReleasesIcon from '@mui/icons-material/NewReleases';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import BlockIcon from '@mui/icons-material/Block';
+import TodayIcon from '@mui/icons-material/Today';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ChildProfile { id: string; name: string; }
 
@@ -32,6 +43,31 @@ interface RiskIndicator {
   detectedAt: string;
 }
 
+interface CategoryStat {
+  name: string;
+  minutes: number;
+  blocked: number;
+}
+
+interface Recommendation {
+  type: string;
+  title: string;
+  description: string;
+  icon: string;
+}
+
+interface AnomalyEvent {
+  severity: string;
+  description: string;
+  detectedAt: string;
+}
+
+interface DayTrend {
+  date: string;
+  allowed: number;
+  blocked: number;
+}
+
 interface InsightsData {
   profileId: string;
   riskScore: number;
@@ -39,6 +75,15 @@ interface InsightsData {
   indicators: RiskIndicator[];
   addictionScore: number;
   mentalHealthSignals: string[];
+  hasData: boolean;
+  screenTimeMinutes: number;
+  dailyAvgMinutes: number;
+  totalBlocked: number;
+  topCategories: CategoryStat[];
+  recommendations: Recommendation[];
+  anomalies: AnomalyEvent[];
+  weeklyTrend: DayTrend[];
+  summary: string;
 }
 
 interface WeeklyDigest {
@@ -69,6 +114,8 @@ interface SocialAlert {
   acknowledged: boolean;
   detectedAt: string;
 }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const SEVERITY_CONFIG: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
   LOW: { color: '#2E7D32', bg: '#E8F5E9', icon: <InfoIcon /> },
@@ -101,13 +148,37 @@ const SOCIAL_ALERT_COLORS: Record<string, { color: string; bg: string }> = {
   LOW: { color: '#2E7D32', bg: '#E8F5E9' },
 };
 
+const REC_ICON_COLORS: Record<string, string> = {
+  limit: '#7B1FA2',
+  schedule: '#0288D1',
+  block: '#C62828',
+  reward: '#2E7D32',
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmtMinutes(m: number): string {
+  if (!m) return '0m';
+  if (m < 60) return `${m}m`;
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
+}
+
+function shortDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch { return iso; }
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
 function RiskGauge({ score, level }: { score: number; level: string }) {
   const config = RISK_COLORS[level] || RISK_COLORS.LOW;
   return (
     <Box sx={{ position: 'relative', display: 'inline-flex' }}>
       <CircularProgress
         variant="determinate"
-        value={score}
+        value={Math.min(100, score)}
         size={100}
         thickness={6}
         sx={{
@@ -127,6 +198,247 @@ function RiskGauge({ score, level }: { score: number; level: string }) {
   );
 }
 
+function StatCard({ icon, label, value, sub, color }: {
+  icon: React.ReactNode; label: string; value: string; sub: string; color: string;
+}) {
+  return (
+    <Card sx={{ height: '100%' }}>
+      <CardContent sx={{ py: 2.5 }}>
+        <Box sx={{
+          width: 36, height: 36, borderRadius: 2, bgcolor: `${color}18`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5,
+        }}>
+          <Box sx={{ color, '& .MuiSvgIcon-root': { fontSize: 20 } }}>{icon}</Box>
+        </Box>
+        <Typography variant="h5" fontWeight={800} sx={{ color, lineHeight: 1.1 }}>{value}</Typography>
+        <Typography variant="body2" fontWeight={600} sx={{ mt: 0.3 }}>{label}</Typography>
+        <Typography variant="caption" color="text.secondary">{sub}</Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RecommendationCard({ rec }: { rec: Recommendation }) {
+  const color = REC_ICON_COLORS[rec.type] || '#7B1FA2';
+  return (
+    <Card sx={{
+      border: '1px solid',
+      borderColor: `${color}30`,
+      '&:hover': { boxShadow: 3, transform: 'translateY(-1px)', transition: 'all .15s' },
+    }}>
+      <CardContent sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+        <Box sx={{
+          width: 44, height: 44, borderRadius: 2, flexShrink: 0,
+          background: `linear-gradient(135deg, ${color}cc, ${color})`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <LightbulbIcon sx={{ color: 'white', fontSize: 22 }} />
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="body1" fontWeight={700}>{rec.title}</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.4, lineHeight: 1.5 }}>
+            {rec.description}
+          </Typography>
+          <Box sx={{ mt: 1.5 }}>
+            <Chip
+              label={rec.type.toUpperCase()}
+              size="small"
+              sx={{ height: 20, fontSize: 10, fontWeight: 700, bgcolor: `${color}18`, color }}
+            />
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AnomalyRow({ event }: { event: AnomalyEvent }) {
+  const sev = SEVERITY_CONFIG[event.severity] || SEVERITY_CONFIG.LOW;
+  return (
+    <Box sx={{
+      display: 'flex', alignItems: 'flex-start', gap: 1.5,
+      p: 1.5, borderRadius: 2, bgcolor: sev.bg,
+    }}>
+      <Box sx={{ color: sev.color, mt: 0.3, '& .MuiSvgIcon-root': { fontSize: 20 } }}>
+        {sev.icon}
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="body2" fontWeight={600}>{event.description}</Typography>
+        <Typography variant="caption" color="text.secondary">
+          {new Date(event.detectedAt).toLocaleString()}
+        </Typography>
+      </Box>
+      <Chip
+        size="small"
+        label={event.severity}
+        sx={{ ml: 'auto', height: 20, fontSize: 10, fontWeight: 700, bgcolor: 'white', color: sev.color }}
+      />
+    </Box>
+  );
+}
+
+// ─── Weekly AI Report card ────────────────────────────────────────────────────
+
+function WeeklyReportCard({ weekly, insights }: { weekly: WeeklyDigest; insights?: InsightsData }) {
+  const trendColor = weekly.usageTrend === 'DOWN' ? '#43A047' : weekly.usageTrend === 'UP' ? '#E53935' : '#607D8B';
+  const riskCfg = RISK_COLORS[weekly.riskLevel] || RISK_COLORS.LOW;
+
+  const screenHrs = insights?.screenTimeMinutes
+    ? `${(insights.screenTimeMinutes / 60).toFixed(1)} hrs`
+    : null;
+
+  return (
+    <Card sx={{ background: 'linear-gradient(135deg, #F3E5F5 0%, #EDE7F6 100%)', border: '1px solid #CE93D820' }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          <ShieldIcon sx={{ color: '#7B1FA2' }} />
+          <Typography variant="subtitle1" fontWeight={700}>Weekly AI Report</Typography>
+          <Chip
+            label={`Week of ${weekly.weekOf}`}
+            size="small"
+            sx={{ ml: 'auto', bgcolor: 'white', fontWeight: 600, fontSize: 11 }}
+          />
+        </Box>
+
+        {/* Key metrics row */}
+        <Stack direction="row" spacing={2} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+          {screenHrs && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <AccessTimeIcon sx={{ fontSize: 16, color: '#7B1FA2' }} />
+              <Typography variant="body2" fontWeight={600}>{screenHrs} screen time</Typography>
+            </Box>
+          )}
+          {insights?.totalBlocked != null && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <BlockIcon sx={{ fontSize: 16, color: '#E53935' }} />
+              <Typography variant="body2" fontWeight={600}>{insights.totalBlocked} sites blocked</Typography>
+            </Box>
+          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: trendColor }}>
+            {TREND_ICONS[weekly.usageTrend]}
+            <Typography variant="body2" fontWeight={600}>
+              Usage: {weekly.usageTrend}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: riskCfg.color }} />
+            <Typography variant="body2" fontWeight={600} sx={{ color: riskCfg.color }}>
+              Risk: {weekly.riskLevel}
+            </Typography>
+          </Box>
+        </Stack>
+
+        <Alert
+          severity={weekly.riskLevel === 'HIGH' ? 'error' : weekly.riskLevel === 'MEDIUM' ? 'warning' : 'success'}
+          sx={{ mb: 2, borderRadius: 2, bgcolor: 'white' }}
+        >
+          {weekly.summary}
+        </Alert>
+
+        {weekly.topInsight && (
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            <strong>Top Insight:</strong> {weekly.topInsight}
+          </Typography>
+        )}
+        {weekly.recommendedAction && (
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mt: 1, p: 1.5, borderRadius: 2, bgcolor: 'white' }}>
+            <LightbulbIcon sx={{ fontSize: 18, color: '#7B1FA2', mt: 0.1 }} />
+            <Typography variant="body2" color="primary">
+              <strong>Top Recommendation:</strong> {weekly.recommendedAction}
+            </Typography>
+          </Box>
+        )}
+
+        {weekly.signals.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Divider sx={{ mb: 1.5 }} />
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {weekly.signals.map((s, i) => (
+                <Chip key={i} label={s} size="small" variant="outlined" sx={{ fontSize: 12 }} />
+              ))}
+            </Stack>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── No-data empty state ──────────────────────────────────────────────────────
+
+function NoDataEmptyState({ profileName }: { profileName?: string }) {
+  return (
+    <Card sx={{ textAlign: 'center', p: 4 }}>
+      <CardContent>
+        <Box sx={{
+          width: 88, height: 88, borderRadius: '50%',
+          bgcolor: '#F3E5F5', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', mx: 'auto', mb: 3,
+        }}>
+          <HourglassEmptyIcon sx={{ fontSize: 44, color: '#9C27B0' }} />
+        </Box>
+        <Typography variant="h6" fontWeight={700} gutterBottom>
+          Collecting Data…
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 380, mx: 'auto', lineHeight: 1.6 }}>
+          AI insights for{profileName ? ` ${profileName}` : ' this profile'} will be available
+          after 24 hours of usage. Make sure the child's device is connected to Shield DNS.
+        </Typography>
+        <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 3 }} flexWrap="wrap" useFlexGap>
+          {['Device connected to Shield DNS', 'Active browsing detected', 'Check back after ~24h'].map((hint, i) => (
+            <Chip
+              key={i}
+              icon={<InfoIcon />}
+              label={hint}
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: 11 }}
+            />
+          ))}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Category progress bars ───────────────────────────────────────────────────
+
+function TopCategoriesCard({ categories }: { categories: CategoryStat[] }) {
+  if (!categories || categories.length === 0) return null;
+  const maxBlocked = Math.max(...categories.map(c => c.blocked), 1);
+  const palette = ['#7B1FA2', '#E53935', '#F57C00', '#0288D1', '#2E7D32'];
+  return (
+    <Card>
+      <CardContent>
+        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Top Blocked Categories</Typography>
+        <Stack spacing={1.5}>
+          {categories.slice(0, 5).map((cat, i) => (
+            <Box key={i}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="body2" fontWeight={600}>{cat.name}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {cat.blocked} blocked · {fmtMinutes(cat.minutes)} allowed
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={(cat.blocked / maxBlocked) * 100}
+                sx={{
+                  height: 6, borderRadius: 3,
+                  bgcolor: `${palette[i % palette.length]}18`,
+                  '& .MuiLinearProgress-bar': { bgcolor: palette[i % palette.length], borderRadius: 3 },
+                }}
+              />
+            </Box>
+          ))}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function AiInsightsPage() {
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const qc = useQueryClient();
@@ -140,16 +452,23 @@ export default function AiInsightsPage() {
   });
 
   const profileId = selectedChild || (children && children.length > 0 ? children[0].id : null);
+  const selectedChildObj = (children || []).find(c => c.id === profileId);
 
   const { data: insights, isLoading: loadingInsights } = useQuery({
     queryKey: ['ai-insights', profileId],
-    queryFn: () => api.get(`/ai/${profileId}/insights`).then(r => r.data as InsightsData),
+    queryFn: () => api.get(`/ai/${profileId}/insights`).then(r => {
+      const d = r.data?.data ?? r.data;
+      return d as InsightsData;
+    }),
     enabled: !!profileId,
   });
 
   const { data: weekly, isLoading: loadingWeekly } = useQuery({
     queryKey: ['ai-weekly', profileId],
-    queryFn: () => api.get(`/ai/${profileId}/weekly`).then(r => r.data as WeeklyDigest),
+    queryFn: () => api.get(`/ai/${profileId}/weekly`).then(r => {
+      const d = r.data?.data ?? r.data;
+      return d as WeeklyDigest;
+    }),
     enabled: !!profileId,
   });
 
@@ -184,12 +503,19 @@ export default function AiInsightsPage() {
 
   const isLoading = loadingInsights || loadingWeekly;
 
-  // Generate mock weekly chart data
-  const weeklyChartData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
-    day,
-    risk: Math.floor(Math.random() * 40) + 10,
-    usage: Math.floor(Math.random() * 180) + 30,
-  }));
+  // Build weekly trend chart data — prefer real data from insights
+  const rawTrend = insights?.weeklyTrend ?? [];
+  const weeklyChartData = rawTrend.length >= 7
+    ? rawTrend.map(d => ({
+        day: shortDate(d.date),
+        allowed: d.allowed,
+        blocked: d.blocked,
+      }))
+    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
+        day,
+        allowed: 0,
+        blocked: 0,
+      }));
 
   // Keyword bar chart data
   const keywords = keywordData?.keywords || {};
@@ -197,6 +523,9 @@ export default function AiInsightsPage() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10)
     .map(([word, count]) => ({ word, count }));
+
+  // No-data state (new profile)
+  const showNoData = insights?.hasData === false;
 
   return (
     <AnimatedPage>
@@ -206,7 +535,7 @@ export default function AiInsightsPage() {
         subtitle="AI-powered behavior analysis and risk assessment"
         iconColor="#7B1FA2"
         action={
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             {(children || []).map(c => (
               <Chip
                 key={c.id}
@@ -226,39 +555,45 @@ export default function AiInsightsPage() {
 
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
+      ) : showNoData ? (
+        <NoDataEmptyState profileName={selectedChildObj?.name} />
       ) : (
         <Grid container spacing={2.5}>
-          {/* Risk Score Card */}
+
+          {/* ── Row 1: Risk Score + Addiction + Trend + Mental Health ── */}
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <AnimatedPage delay={0.1}>
               <Card sx={{ textAlign: 'center' }}>
                 <CardContent sx={{ py: 3 }}>
                   <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>Risk Score</Typography>
                   <RiskGauge
-                    score={insights?.riskScore ?? 15}
+                    score={insights?.riskScore ?? 0}
                     level={insights?.riskLevel ?? 'LOW'}
                   />
+                  {insights?.summary && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block', lineHeight: 1.4 }}>
+                      {insights.summary}
+                    </Typography>
+                  )}
                 </CardContent>
               </Card>
             </AnimatedPage>
           </Grid>
 
-          {/* Addiction Score */}
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <AnimatedPage delay={0.15}>
               <Card sx={{ textAlign: 'center' }}>
                 <CardContent sx={{ py: 3 }}>
                   <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>Addiction Score</Typography>
                   <RiskGauge
-                    score={insights?.addictionScore ?? 20}
-                    level={(insights?.addictionScore ?? 20) > 60 ? 'HIGH' : (insights?.addictionScore ?? 20) > 35 ? 'MEDIUM' : 'LOW'}
+                    score={insights?.addictionScore ?? 0}
+                    level={(insights?.addictionScore ?? 0) > 60 ? 'HIGH' : (insights?.addictionScore ?? 0) > 35 ? 'MEDIUM' : 'LOW'}
                   />
                 </CardContent>
               </Card>
             </AnimatedPage>
           </Grid>
 
-          {/* Usage Trend */}
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <AnimatedPage delay={0.2}>
               <Card>
@@ -278,7 +613,6 @@ export default function AiInsightsPage() {
             </AnimatedPage>
           </Grid>
 
-          {/* Mental Health Signals */}
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <AnimatedPage delay={0.25}>
               <Card>
@@ -301,52 +635,92 @@ export default function AiInsightsPage() {
             </AnimatedPage>
           </Grid>
 
-          {/* Weekly Summary */}
+          {/* ── Row 2: Screen Time Stats ── */}
+          {insights?.hasData && (
+            <>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <AnimatedPage delay={0.28}>
+                  <StatCard
+                    icon={<AccessTimeIcon />}
+                    label="Screen Time"
+                    value={fmtMinutes(insights.screenTimeMinutes)}
+                    sub="this week"
+                    color="#7B1FA2"
+                  />
+                </AnimatedPage>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <AnimatedPage delay={0.3}>
+                  <StatCard
+                    icon={<TodayIcon />}
+                    label="Daily Average"
+                    value={fmtMinutes(insights.dailyAvgMinutes)}
+                    sub="per day"
+                    color="#0288D1"
+                  />
+                </AnimatedPage>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <AnimatedPage delay={0.32}>
+                  <StatCard
+                    icon={<BlockIcon />}
+                    label="Blocked Requests"
+                    value={`${insights.totalBlocked}`}
+                    sub="this week"
+                    color="#E53935"
+                  />
+                </AnimatedPage>
+              </Grid>
+            </>
+          )}
+
+          {/* ── Weekly AI Report ── */}
           {weekly && (
             <Grid size={12}>
-              <AnimatedPage delay={0.3}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                      <ShieldIcon sx={{ color: '#7B1FA2' }} />
-                      <Typography variant="subtitle1" fontWeight={600}>Weekly Summary</Typography>
-                    </Box>
-                    <Alert
-                      severity={weekly.riskLevel === 'HIGH' ? 'error' : weekly.riskLevel === 'MEDIUM' ? 'warning' : 'success'}
-                      sx={{ mb: 2, borderRadius: 2 }}
-                    >
-                      {weekly.summary}
-                    </Alert>
-                    {weekly.topInsight && (
-                      <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Top Insight:</strong> {weekly.topInsight}
-                      </Typography>
-                    )}
-                    {weekly.recommendedAction && (
-                      <Typography variant="body2" color="primary">
-                        <strong>Recommendation:</strong> {weekly.recommendedAction}
-                      </Typography>
-                    )}
-                    {weekly.signals.length > 0 && (
-                      <Box sx={{ mt: 2 }}>
-                        <Divider sx={{ mb: 1.5 }} />
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                          {weekly.signals.map((s, i) => (
-                            <Chip key={i} label={s} size="small" variant="outlined" sx={{ fontSize: 12 }} />
-                          ))}
-                        </Stack>
-                      </Box>
-                    )}
-                  </CardContent>
-                </Card>
+              <AnimatedPage delay={0.35}>
+                <WeeklyReportCard weekly={weekly} insights={insights} />
               </AnimatedPage>
             </Grid>
           )}
 
-          {/* Risk Indicators */}
-          {insights && insights.indicators.length > 0 && (
+          {/* ── Weekly Usage Trend Chart ── */}
+          <Grid size={{ xs: 12, md: 7 }}>
+            <AnimatedPage delay={0.38}>
+              <Card>
+                <CardContent>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+                    Weekly Usage Trend
+                  </Typography>
+                  <Box sx={{ height: 250 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={weeklyChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                        <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip
+                          formatter={(value: number, name: string) => [value, name === 'allowed' ? 'Allowed' : 'Blocked']}
+                        />
+                        <Area type="monotone" dataKey="allowed" stroke="#7B1FA2" fill="#F3E5F5" name="allowed" />
+                        <Area type="monotone" dataKey="blocked" stroke="#E53935" fill="#FFEBEE" name="blocked" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </CardContent>
+              </Card>
+            </AnimatedPage>
+          </Grid>
+
+          {/* ── Top Categories ── */}
+          <Grid size={{ xs: 12, md: 5 }}>
+            <AnimatedPage delay={0.4}>
+              <TopCategoriesCard categories={insights?.topCategories ?? []} />
+            </AnimatedPage>
+          </Grid>
+
+          {/* ── Risk Indicators ── */}
+          {insights && (insights.indicators?.length ?? 0) > 0 && (
             <Grid size={{ xs: 12, md: 6 }}>
-              <AnimatedPage delay={0.35}>
+              <AnimatedPage delay={0.42}>
                 <Card>
                   <CardContent>
                     <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Risk Indicators</Typography>
@@ -383,33 +757,62 @@ export default function AiInsightsPage() {
             </Grid>
           )}
 
-          {/* Weekly Usage Chart */}
-          <Grid size={{ xs: 12, md: insights && insights.indicators.length > 0 ? 6 : 12 }}>
-            <AnimatedPage delay={0.4}>
-              <Card>
-                <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Weekly Usage Trend</Typography>
-                  <Box sx={{ height: 250 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={weeklyChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                        <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Area type="monotone" dataKey="usage" stroke="#7B1FA2" fill="#F3E5F5" name="Usage (min)" />
-                        <Area type="monotone" dataKey="risk" stroke="#E53935" fill="#FFEBEE" name="Risk Score" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-            </AnimatedPage>
-          </Grid>
+          {/* ── AI Anomaly Events ── */}
+          {(insights?.anomalies?.length ?? 0) > 0 && (
+            <Grid size={{ xs: 12, md: (insights?.indicators?.length ?? 0) > 0 ? 6 : 12 }}>
+              <AnimatedPage delay={0.44}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="subtitle1" fontWeight={600}>AI Anomaly Alerts</Typography>
+                      <Chip
+                        label={`${insights!.anomalies.length} detected`}
+                        size="small"
+                        sx={{ bgcolor: '#FFEBEE', color: '#C62828', fontWeight: 700 }}
+                      />
+                    </Box>
+                    <Stack spacing={1.5}>
+                      {insights!.anomalies.map((ev, i) => (
+                        <AnomalyRow key={i} event={ev} />
+                      ))}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </AnimatedPage>
+            </Grid>
+          )}
 
-          {/* Social Monitoring Alerts */}
+          {/* ── Smart Recommendations ── */}
+          {(insights?.recommendations?.length ?? 0) > 0 && (
+            <Grid size={12}>
+              <AnimatedPage delay={0.46}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="subtitle1" fontWeight={600}>Smart Recommendations</Typography>
+                      <Chip
+                        label={`${insights!.recommendations.length} suggestions`}
+                        size="small"
+                        sx={{ bgcolor: '#F3E5F5', color: '#7B1FA2', fontWeight: 600 }}
+                      />
+                    </Box>
+                    <Grid container spacing={2}>
+                      {insights!.recommendations.map((rec, i) => (
+                        <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
+                          <RecommendationCard rec={rec} />
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </AnimatedPage>
+            </Grid>
+          )}
+
+          {/* ── Social Monitoring Alerts ── */}
           {(socialAlerts && socialAlerts.length > 0) && (
             <Grid size={12}>
-              <AnimatedPage delay={0.42}>
+              <AnimatedPage delay={0.48}>
                 <Card>
                   <CardContent>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -476,10 +879,10 @@ export default function AiInsightsPage() {
             </Grid>
           )}
 
-          {/* Keyword Analysis */}
+          {/* ── Keyword Analysis ── */}
           {keywordChartData.length > 0 && (
             <Grid size={12}>
-              <AnimatedPage delay={0.45}>
+              <AnimatedPage delay={0.5}>
                 <Card>
                   <CardContent>
                     <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Top Search Keywords</Typography>

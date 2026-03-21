@@ -74,6 +74,7 @@ const sections = [
     title: 'System',
     items: [
       { label: 'AI Models', icon: <PsychologyIcon />, path: '/admin/ai-models' },
+      { label: 'AI Insights', icon: <PsychologyIcon />, path: '/admin/ai-insights' },
       { label: 'Services', icon: <MonitorHeartIcon />, path: '/admin/health' },
       { label: 'Notifications', icon: <NotificationsIcon />, path: '/admin/notifications' },
       { label: 'Invoices', icon: <ReceiptLongIcon />, path: '/admin/invoices' },

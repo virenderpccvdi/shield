@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getShieldTheme } from './theme/theme';
 import { useAuthStore } from './store/auth.store';
 import { useThemeStore } from './store/theme.store';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 import CustomerLayout from './layouts/CustomerLayout';
 import AdminLayout from './layouts/AdminLayout';
@@ -78,8 +79,27 @@ import CheckoutCancelPage from './pages/customer/CheckoutCancelPage';
 import NewChildProfilePage from './pages/customer/NewChildProfilePage';
 import CustomerChildProfilesPage from './pages/customer/CustomerChildProfilesPage';
 import IspPlansPage from './pages/isp-admin/IspPlansPage';
+import IspAiInsightsPage from './pages/isp-admin/IspAiInsightsPage';
+import AdminAiInsightsPage from './pages/global-admin/AdminAiInsightsPage';
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30000, retry: 1 } } });
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30000,
+      retry: (failureCount, error: unknown) => {
+        // Do not retry on 401/403/404 — these are logic errors, not transient failures
+        const status = (error as { response?: { status?: number } })?.response?.status;
+        if (status === 401 || status === 403 || status === 404) return false;
+        return failureCount < 1;
+      },
+    },
+    mutations: {
+      onError: (error: unknown) => {
+        console.error('[QueryClient] Mutation error:', error);
+      },
+    },
+  },
+});
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuth = useAuthStore((s) => s.isAuthenticated());
@@ -125,7 +145,7 @@ export default function App() {
 
             <Route path="/" element={<PrivateRoute><RoleRouter /></PrivateRoute>} />
 
-            <Route element={<PrivateRoute><CustomerLayout /></PrivateRoute>}>
+            <Route element={<PrivateRoute><ErrorBoundary><CustomerLayout /></ErrorBoundary></PrivateRoute>}>
               <Route path="/dashboard" element={<CustomerDashboardPage />} />
               <Route path="/profiles/:profileId" element={<ChildProfilePage />} />
               <Route path="/profiles/:profileId/activity" element={<ActivityPage />} />
@@ -150,7 +170,7 @@ export default function App() {
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
-            <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
+            <Route element={<AdminRoute><ErrorBoundary><AdminLayout /></ErrorBoundary></AdminRoute>}>
               <Route path="/admin/dashboard" element={<PlatformDashboardPage />} />
               <Route path="/admin/tenants" element={<TenantsPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
@@ -170,6 +190,7 @@ export default function App() {
               <Route path="/admin/customers/:id" element={<CustomerDetailPage />} />
               <Route path="/admin/blocklist" element={<GlobalBlocklistPage />} />
               <Route path="/admin/ai-models" element={<AiModelsPage />} />
+              <Route path="/admin/ai-insights" element={<AdminAiInsightsPage />} />
               <Route path="/admin/features" element={<FeatureManagementPage />} />
               <Route path="/admin/roles" element={<RolePermissionsPage />} />
               <Route path="/admin/url-activity" element={<AdminUrlActivityPage />} />
@@ -179,7 +200,7 @@ export default function App() {
               <Route path="/admin/settings" element={<SettingsPage />} />
             </Route>
 
-            <Route element={<IspRoute><IspLayout /></IspRoute>}>
+            <Route element={<IspRoute><ErrorBoundary><IspLayout /></ErrorBoundary></IspRoute>}>
               <Route path="/isp/dashboard" element={<IspDashboardPage />} />
               <Route path="/isp/customers" element={<CustomersPage />} />
               <Route path="/isp/customers/:id" element={<CustomerDetailPage />} />
@@ -198,6 +219,7 @@ export default function App() {
               <Route path="/billing/success" element={<CheckoutSuccessPage />} />
               <Route path="/billing/cancel" element={<CheckoutCancelPage />} />
               <Route path="/isp/settings" element={<IspSettingsPage />} />
+              <Route path="/isp/ai-insights" element={<IspAiInsightsPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

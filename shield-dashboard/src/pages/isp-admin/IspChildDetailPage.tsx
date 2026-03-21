@@ -175,11 +175,11 @@ function ScheduleTab({ profileId }: { profileId: string }) {
                   {HOURS.map(h => {
                     const val = grid[dayKey]?.[h] ?? 1;
                     return (
-                      <Tooltip key={h} title={`${day} ${h}:00 - ${val === 1 ? 'Allowed' : 'Blocked'}`} arrow>
+                      <Tooltip key={h} title={`${day} ${h}:00 - ${val === 1 ? 'Blocked' : 'Allowed'}`} arrow>
                         <Box onClick={() => toggle(dayKey, h)} sx={{
                           width: 26, height: 28, borderRadius: '6px', mr: 0.25, cursor: 'pointer',
-                          bgcolor: val === 0 ? '#FFCDD2' : '#C8E6C9',
-                          border: '1.5px solid', borderColor: val === 0 ? '#EF9A9A' : '#A5D6A7',
+                          bgcolor: val === 1 ? '#FFCDD2' : '#C8E6C9',
+                          border: '1.5px solid', borderColor: val === 1 ? '#EF9A9A' : '#A5D6A7',
                           transition: 'all 0.15s ease',
                           '&:hover': { transform: 'scale(1.15)', zIndex: 1 },
                         }} />

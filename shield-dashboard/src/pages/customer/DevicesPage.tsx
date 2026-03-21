@@ -76,6 +76,18 @@ function formatDate(iso?: string) {
   return d.toLocaleDateString();
 }
 
+/**
+ * Calculate online status from lastSeenAt (within 5 minutes).
+ * Falls back to the backend `online` boolean only when lastSeenAt is absent.
+ */
+function isOnline(device: Device): boolean {
+  if (device.lastSeenAt) {
+    const diffMin = (Date.now() - new Date(device.lastSeenAt).getTime()) / 1000 / 60;
+    return diffMin < 5;
+  }
+  return device.online;
+}
+
 function SetupDnsDialog({ child, open, onClose }: { child: ChildProfile; open: boolean; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const privateDns = child.dnsClientId ? `${child.dnsClientId}.dns.shield.rstglobal.in` : '';
@@ -265,7 +277,7 @@ export default function DevicesPage() {
     );
   }
 
-  const onlineCount = (devices || []).filter(d => d.online).length;
+  const onlineCount = (devices || []).filter(d => isOnline(d)).length;
 
   return (
     <AnimatedPage>
@@ -340,7 +352,7 @@ export default function DevicesPage() {
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={device.id}>
                 <AnimatedPage delay={0.1 + i * 0.05}>
                   <Card sx={{
-                    borderTop: `4px solid ${device.online ? '#43A047' : '#E0E0E0'}`,
+                    borderTop: `4px solid ${isOnline(device) ? '#43A047' : '#E0E0E0'}`,
                     transition: 'all 0.2s ease',
                     '&:hover': { transform: 'translateY(-3px)' },
                   }}>
@@ -380,9 +392,9 @@ export default function DevicesPage() {
                           <Typography variant="caption" color="text.secondary">Status</Typography>
                           <Chip
                             size="small"
-                            icon={device.online ? <WifiIcon sx={{ fontSize: 14 }} /> : <WifiOffIcon sx={{ fontSize: 14 }} />}
-                            label={device.online ? 'Online' : 'Offline'}
-                            color={device.online ? 'success' : 'default'}
+                            icon={isOnline(device) ? <WifiIcon sx={{ fontSize: 14 }} /> : <WifiOffIcon sx={{ fontSize: 14 }} />}
+                            label={isOnline(device) ? 'Online' : (device.lastSeenAt ? formatDate(device.lastSeenAt) : 'Offline')}
+                            color={isOnline(device) ? 'success' : 'default'}
                             sx={{ height: 22, fontSize: 11, fontWeight: 600 }}
                           />
                         </Box>

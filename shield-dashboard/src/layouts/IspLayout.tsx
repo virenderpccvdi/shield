@@ -6,6 +6,7 @@ import {
   MenuItem, Tooltip, useMediaQuery, useTheme,
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import PsychologyIcon from '@mui/icons-material/Psychology';
 import PeopleIcon from '@mui/icons-material/People';
 import BrushIcon from '@mui/icons-material/Brush';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -46,6 +47,7 @@ const sections = [
       { label: 'Analytics', icon: <BarChartIcon />, path: '/isp/analytics' },
       { label: 'Reports', icon: <AssessmentIcon />, path: '/isp/reports' },
       { label: 'URL Activity', icon: <TimelineIcon />, path: '/isp/url-activity' },
+      { label: 'AI Insights', icon: <PsychologyIcon />, path: '/isp/ai-insights' },
     ],
   },
   {

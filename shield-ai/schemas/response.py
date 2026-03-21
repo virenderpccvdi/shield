@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from enum import Enum
 
 
@@ -38,6 +38,33 @@ class WeeklyDigestResponse(BaseModel):
     generatedAt: datetime
 
 
+# ─── Enriched Insights models ────────────────────────────────────────────────
+
+class CategoryStat(BaseModel):
+    name: str
+    minutes: int
+    blocked: int
+
+
+class Recommendation(BaseModel):
+    type: str          # "limit" | "schedule" | "block" | "reward"
+    title: str
+    description: str
+    icon: str          # material icon name string
+
+
+class AnomalyEvent(BaseModel):
+    severity: RiskLevel
+    description: str
+    detectedAt: str    # ISO-8601 string
+
+
+class DayTrend(BaseModel):
+    date: str          # YYYY-MM-DD
+    allowed: int
+    blocked: int
+
+
 class InsightsResponse(BaseModel):
     profileId: str
     riskScore: int
@@ -45,6 +72,16 @@ class InsightsResponse(BaseModel):
     indicators: List[RiskIndicator] = []
     addictionScore: int
     mentalHealthSignals: List[str] = []
+    # --- enriched fields (new) ---
+    hasData: bool = False
+    screenTimeMinutes: int = 0
+    dailyAvgMinutes: int = 0
+    totalBlocked: int = 0
+    topCategories: List[CategoryStat] = []
+    recommendations: List[Recommendation] = []
+    anomalies: List[AnomalyEvent] = []
+    weeklyTrend: List[DayTrend] = []
+    summary: str = ""
 
 
 class AnomalyResult(BaseModel):

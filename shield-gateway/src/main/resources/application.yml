@@ -142,6 +142,18 @@ spring:
                     name: adminCB
                     fallbackUri: forward:/fallback/service-unavailable
 
+            # ── AI / Insights Service (FastAPI on 8291) ──────────────────────
+            - id: shield-ai
+              uri: http://localhost:8291
+              predicates:
+                - Path=/api/v1/ai/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: aiCB
+                    fallbackUri: forward:/fallback/service-unavailable
+                - RewritePath=/api/v1/ai/(?<segment>.*), /api/v1/ai/${segment}
+
             # ── Billing Webhook (public) ─────────────────────────────────────────
             - id: shield-billing-webhook
               uri: lb://SHIELD-ADMIN
@@ -277,12 +289,19 @@ resilience4j:
         slidingWindowSize: 10
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
+      aiCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 2
   timelimiter:
     instances:
       default:
         timeoutDuration: 5s
       adminCB:
         timeoutDuration: 30s
+      aiCB:
+        timeoutDuration: 60s
 
 # Actuator
 management:

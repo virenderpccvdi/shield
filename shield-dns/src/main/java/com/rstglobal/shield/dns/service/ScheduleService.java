@@ -1,10 +1,13 @@
 package com.rstglobal.shield.dns.service;
 
 import com.rstglobal.shield.common.exception.ShieldException;
+import com.rstglobal.shield.dns.client.AdGuardClient;
 import com.rstglobal.shield.dns.dto.request.ScheduleOverrideRequest;
 import com.rstglobal.shield.dns.dto.request.UpdateScheduleRequest;
 import com.rstglobal.shield.dns.dto.response.ScheduleResponse;
+import com.rstglobal.shield.dns.entity.DnsRules;
 import com.rstglobal.shield.dns.entity.Schedule;
+import com.rstglobal.shield.dns.repository.DnsRulesRepository;
 import com.rstglobal.shield.dns.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +15,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 @Slf4j
@@ -20,7 +25,16 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ScheduleService {
 
+    /**
+     * Special key stored in dns_rules.enabled_categories to signal that the
+     * schedule grid is currently in a "blocked" hour.  The key is read by
+     * AdGuard sync / any DNS-filter logic that checks enabled_categories.
+     */
+    public static final String SCHEDULE_BLOCKED_KEY = "__schedule_blocked__";
+
     private final ScheduleRepository scheduleRepo;
+    private final DnsRulesRepository dnsRulesRepo;
+    private final AdGuardClient adGuard;
 
     @Transactional
     public Schedule initSchedule(UUID tenantId, UUID profileId) {
@@ -107,6 +121,79 @@ public class ScheduleService {
                 });
     }
 
+    // ── Schedule enforcement (runs every minute) ───────────────────────────────
+
+    /**
+     * Every minute: check every profile's schedule grid against the current
+     * local hour and set/clear the {@code __schedule_blocked__} flag in
+     * dns_rules.enabled_categories so AdGuard sync and DNS filtering can
+     * honour the schedule.
+     *
+     * <p>Override rules:
+     * <ul>
+     *   <li>PAUSE  → always blocked regardless of grid</li>
+     *   <li>HOMEWORK / FOCUS / BEDTIME_NOW → always blocked regardless of grid</li>
+     *   <li>No active override → grid determines blocked/allowed</li>
+     * </ul>
+     */
+    @Scheduled(fixedDelay = 60_000)
+    @Transactional
+    public void enforceSchedules() {
+        OffsetDateTime now = OffsetDateTime.now(ZoneId.systemDefault());
+        int hour = now.getHour();
+        DayOfWeek dow = now.getDayOfWeek();
+        // Map Java DayOfWeek (MON=1..SUN=7) to grid keys
+        String dayKey = switch (dow) {
+            case MONDAY    -> "monday";
+            case TUESDAY   -> "tuesday";
+            case WEDNESDAY -> "wednesday";
+            case THURSDAY  -> "thursday";
+            case FRIDAY    -> "friday";
+            case SATURDAY  -> "saturday";
+            case SUNDAY    -> "sunday";
+        };
+
+        List<Schedule> schedules = scheduleRepo.findAll();
+        int blocked = 0, allowed = 0;
+
+        for (Schedule s : schedules) {
+            boolean shouldBlock;
+
+            if (Boolean.TRUE.equals(s.getOverrideActive())) {
+                // Any active override = block all internet for the child
+                shouldBlock = true;
+            } else {
+                // Check grid: 1 = blocked, 0 = allowed
+                List<Integer> hours = s.getGrid() != null ? s.getGrid().get(dayKey) : null;
+                shouldBlock = hours != null && hours.size() > hour && hours.get(hour) == 1;
+            }
+
+            // Write __schedule_blocked__ flag into the corresponding DnsRules row
+            // and trigger AdGuard sync only when the value changes
+            final boolean finalShouldBlock = shouldBlock;
+            dnsRulesRepo.findByProfileId(s.getProfileId()).ifPresent(rules -> {
+                Map<String, Boolean> cats = rules.getEnabledCategories();
+                if (cats == null) cats = new LinkedHashMap<>();
+                Boolean current = cats.get(SCHEDULE_BLOCKED_KEY);
+                if (!Objects.equals(current, finalShouldBlock)) {
+                    cats.put(SCHEDULE_BLOCKED_KEY, finalShouldBlock);
+                    rules.setEnabledCategories(new LinkedHashMap<>(cats));
+                    dnsRulesRepo.save(rules);
+                    log.info("Schedule enforcement: profileId={} day={} hour={} blocked={}",
+                            s.getProfileId(), dayKey, hour, finalShouldBlock);
+                    // Sync to AdGuard so the change takes effect immediately
+                    syncScheduleToAdGuard(rules, finalShouldBlock);
+                }
+            });
+
+            if (shouldBlock) blocked++; else allowed++;
+        }
+
+        if (!schedules.isEmpty()) {
+            log.debug("Schedule enforcement tick: {} profiles blocked, {} allowed", blocked, allowed);
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private Schedule findOrThrow(UUID profileId) {
@@ -182,5 +269,35 @@ public class ScheduleService {
                 .overrideType(s.getOverrideType())
                 .overrideEndsAt(s.getOverrideEndsAt())
                 .build();
+    }
+
+    /**
+     * Notify AdGuard of schedule enforcement change (best-effort, errors are swallowed).
+     * When {@code blocked} is true, all filtering is disabled (= internet blocked).
+     * When false, normal filtering is restored.
+     */
+    private void syncScheduleToAdGuard(DnsRules rules, boolean blocked) {
+        String clientId = rules.getDnsClientId();
+        if (clientId == null || clientId.isBlank()) return;
+        try {
+            if (blocked) {
+                adGuard.updateClient(clientId, clientId, new AdGuardClient.AdGuardClientData(
+                        false, false, false,
+                        Map.of("enabled", false, "google", false, "bing", false,
+                                "duckduckgo", false, "youtube", false),
+                        List.of()
+                ));
+            } else {
+                // Restore normal filtering — re-enable with default safe settings
+                adGuard.updateClient(clientId, clientId, new AdGuardClient.AdGuardClientData(
+                        true, true, true,
+                        Map.of("enabled", true, "google", true, "bing", true,
+                                "duckduckgo", true, "youtube", Boolean.TRUE.equals(rules.getYoutubeRestricted())),
+                        List.of()
+                ));
+            }
+        } catch (Exception e) {
+            log.warn("Schedule AdGuard sync failed for profileId={}: {}", rules.getProfileId(), e.getMessage());
+        }
     }
 }

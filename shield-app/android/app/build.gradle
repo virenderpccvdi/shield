@@ -48,9 +48,29 @@ android {
         release {
             signingConfig = signingConfigs.release
             minifyEnabled = true
-            shrinkResources = false
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            minifyEnabled = false
+            shrinkResources = false
+        }
+    }
+
+    // Split APKs by ABI — dramatically reduces per-device download size
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a'
+            universalApk false
+        }
+    }
+
+    bundle {
+        language { enableSplit = true }
+        density { enableSplit = true }
+        abi { enableSplit = true }
     }
 }
 

@@ -53,6 +53,18 @@ function timeAgo(dateStr?: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+/**
+ * Calculate online status from lastSeenAt (within 5 minutes).
+ * Falls back to the backend `online` boolean only when lastSeenAt is absent.
+ */
+function isOnline(device: Device): boolean {
+  if (device.lastSeenAt) {
+    const diffMin = (Date.now() - new Date(device.lastSeenAt).getTime()) / 1000 / 60;
+    return diffMin < 5;
+  }
+  return device.online;
+}
+
 export default function DevicesPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
@@ -151,7 +163,7 @@ export default function DevicesPage() {
                   }}>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ color: d.online ? '#2E7D32' : '#9E9E9E' }}>
+                        <Box sx={{ color: isOnline(d) ? '#2E7D32' : '#9E9E9E' }}>
                           {DEVICE_ICONS[d.deviceType] || <DevicesIcon fontSize="small" />}
                         </Box>
                         <Typography fontWeight={600} fontSize={14}>{d.name}</Typography>
@@ -161,8 +173,8 @@ export default function DevicesPage() {
                       <Typography variant="body2" color="text.secondary">{d.deviceType || '—'}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip size="small" label={d.online ? 'Online' : 'Offline'}
-                        color={d.online ? 'success' : 'default'}
+                      <Chip size="small" label={isOnline(d) ? 'Online' : (d.lastSeenAt ? timeAgo(d.lastSeenAt) : 'Offline')}
+                        color={isOnline(d) ? 'success' : 'default'}
                         icon={<FiberManualRecordIcon sx={{ fontSize: '10px !important' }} />}
                         sx={{ height: 22, fontSize: 11, fontWeight: 600 }} />
                     </TableCell>

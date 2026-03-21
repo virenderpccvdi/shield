@@ -168,7 +168,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                   itemCount: _devices.length,
                   itemBuilder: (_, i) {
                     final d = _devices[i];
-                    final online = d['online'] == true || d['status'] == 'ONLINE';
+                    final online = _isOnline(d);
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: Padding(
@@ -197,24 +197,25 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 4),
-                                    Text(online ? 'Online' : 'Offline',
-                                      style: TextStyle(fontSize: 12, color: online ? Colors.green : Colors.grey)),
-                                    if (d['lastSeenAt'] != null) ...[
-                                      const SizedBox(width: 8),
-                                      Text('Last seen: ${_formatTime(d['lastSeenAt'])}',
-                                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                                    ],
+                                    Text(
+                                      online
+                                          ? 'Online'
+                                          : (d['lastSeenAt'] != null
+                                              ? 'Last seen ${_formatTime(d['lastSeenAt'] as String)}'
+                                              : 'Offline'),
+                                      style: TextStyle(fontSize: 12, color: online ? Colors.green : Colors.grey),
+                                    ),
                                   ]),
                                   if (d['batteryPct'] != null || d['speedKmh'] != null) ...[
                                     const SizedBox(height: 4),
                                     Row(children: [
                                       if (d['batteryPct'] != null) ...[
                                         Icon(Icons.battery_full, size: 14,
-                                          color: (d['batteryPct'] as int) < 20 ? Colors.red
-                                              : (d['batteryPct'] as int) < 50 ? Colors.orange
+                                          color: (d['batteryPct'] as num).toInt() < 20 ? Colors.red
+                                              : (d['batteryPct'] as num).toInt() < 50 ? Colors.orange
                                               : Colors.green),
                                         const SizedBox(width: 2),
-                                        Text('${d['batteryPct']}%',
+                                        Text('${(d['batteryPct'] as num).toInt()}%',
                                           style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
                                         const SizedBox(width: 8),
                                       ],
@@ -247,6 +248,19 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                 ),
           ),
     );
+  }
+
+  /// Returns true if lastSeenAt is within the last 5 minutes.
+  /// Falls back to the backend `online` boolean only if lastSeenAt is absent.
+  bool _isOnline(Map<String, dynamic> device) {
+    final lastSeen = device['lastSeenAt'] as String?;
+    if (lastSeen != null) {
+      final ts = DateTime.tryParse(lastSeen);
+      if (ts != null) {
+        return DateTime.now().difference(ts.toLocal()).inMinutes < 5;
+      }
+    }
+    return device['online'] == true;
   }
 
   String _formatTime(String ts) {
