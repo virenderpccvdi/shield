@@ -12,11 +12,13 @@ import java.util.UUID;
 
 public interface ChildProfileRepository extends JpaRepository<ChildProfile, UUID>,
         JpaSpecificationExecutor<ChildProfile> {
-    List<ChildProfile> findByCustomerId(UUID customerId);
+    List<ChildProfile> findByCustomerIdAndActiveTrue(UUID customerId);
     Optional<ChildProfile> findByDnsClientId(String dnsClientId);
+    Optional<ChildProfile> findByIdAndActiveTrue(UUID id);
     boolean existsByDnsClientId(String dnsClientId);
-    int countByCustomerId(UUID customerId);
-    Page<ChildProfile> findByNameContainingIgnoreCase(String name, Pageable pageable);
-    Page<ChildProfile> findByTenantId(UUID tenantId, Pageable pageable);
-    Page<ChildProfile> findByTenantIdAndNameContainingIgnoreCase(UUID tenantId, String name, Pageable pageable);
+    int countByCustomerIdAndActiveTrue(UUID customerId);
+    Page<ChildProfile> findByActiveTrue(Pageable pageable);
+    Page<ChildProfile> findByNameContainingIgnoreCaseAndActiveTrue(String name, Pageable pageable);
+    Page<ChildProfile> findByTenantIdAndActiveTrue(UUID tenantId, Pageable pageable);
+    Page<ChildProfile> findByTenantIdAndNameContainingIgnoreCaseAndActiveTrue(UUID tenantId, String name, Pageable pageable);
 }

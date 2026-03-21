@@ -66,7 +66,7 @@ public class ChildProfileController {
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role,
             @PathVariable UUID id,
-            @RequestBody UpdateChildProfileRequest req) {
+            @Valid @RequestBody UpdateChildProfileRequest req) {
         UUID customerId = resolveCustomerId(userId, role);
         return ApiResponse.ok(childProfileService.update(id, customerId, req));
     }

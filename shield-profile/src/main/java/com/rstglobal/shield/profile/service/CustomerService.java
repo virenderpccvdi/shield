@@ -93,7 +93,7 @@ public class CustomerService {
     }
 
     private CustomerResponse toResponse(Customer c) {
-        int profileCount = childProfileRepository.countByCustomerId(c.getId());
+        int profileCount = childProfileRepository.countByCustomerIdAndActiveTrue(c.getId());
         return CustomerResponse.builder()
                 .id(c.getId())
                 .tenantId(c.getTenantId())

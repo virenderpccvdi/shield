@@ -7,6 +7,7 @@ import com.rstglobal.shield.profile.dto.response.ChildProfileResponse;
 import com.rstglobal.shield.profile.service.ChildProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
@@ -46,7 +47,7 @@ public class AdminProfileController {
     public ApiResponse<ChildProfileResponse> update(
             @RequestHeader("X-User-Role") String role,
             @PathVariable UUID id,
-            @RequestBody UpdateChildProfileRequest req) {
+            @Valid @RequestBody UpdateChildProfileRequest req) {
         requireGlobalAdmin(role);
         return ApiResponse.ok(childProfileService.updateAdmin(id, req));
     }

@@ -22,6 +22,8 @@ public class ChildProfileResponse {
     private String notes;
     private Instant createdAt;
     private Instant updatedAt;
+    // Soft-delete flag
+    private boolean active;
     // Device status — populated from profile.devices table
     private boolean online;
     private Instant lastSeenAt;

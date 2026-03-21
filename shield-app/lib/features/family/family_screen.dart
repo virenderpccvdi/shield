@@ -124,7 +124,7 @@ class _ChildCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name        = profile['name'] as String? ?? 'Child ${index + 1}';
     final filterLevel = profile['filterLevel'] as String? ?? 'MODERATE';
-    final age         = profile['age'];
+    final ageGroup    = profile['ageGroup'] as String?;
     final initial     = name.isNotEmpty ? name[0].toUpperCase() : 'C';
     final color       = _avatarColors[name.codeUnitAt(0) % _avatarColors.length];
 
@@ -175,8 +175,8 @@ class _ChildCard extends StatelessWidget {
                   Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
                   Row(children: [
-                    if (age != null) ...[
-                      Text('$age yrs',
+                    if (ageGroup != null) ...[
+                      Text(ageGroup.toLowerCase().replaceFirst(ageGroup[0], ageGroup[0].toUpperCase()),
                         style: const TextStyle(fontSize: 12, color: ShieldTheme.textSecondary)),
                       Container(width: 3, height: 3, margin: const EdgeInsets.symmetric(horizontal: 6),
                         decoration: const BoxDecoration(color: ShieldTheme.textSecondary, shape: BoxShape.circle)),

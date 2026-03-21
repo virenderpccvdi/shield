@@ -38,4 +38,8 @@ public class ChildProfile extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
 }

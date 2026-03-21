@@ -43,7 +43,7 @@ public class ChildProfileService {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> ShieldException.notFound("Customer", customerId));
 
-        int count = childProfileRepository.countByCustomerId(customerId);
+        int count = childProfileRepository.countByCustomerIdAndActiveTrue(customerId);
         if (count >= customer.getMaxProfiles()) {
             throw ShieldException.badRequest(
                     "Profile limit reached (" + customer.getMaxProfiles() + " max)");
@@ -85,7 +85,7 @@ public class ChildProfileService {
     }
 
     public List<ChildProfileResponse> listByCustomer(UUID customerId) {
-        List<ChildProfile> profiles = childProfileRepository.findByCustomerId(customerId);
+        List<ChildProfile> profiles = childProfileRepository.findByCustomerIdAndActiveTrue(customerId);
         if (profiles.isEmpty()) return List.of();
         List<UUID> profileIds = profiles.stream().map(ChildProfile::getId).toList();
         Map<UUID, List<com.rstglobal.shield.profile.entity.Device>> devicesByProfile =
@@ -126,8 +126,9 @@ public class ChildProfileService {
         if (!profile.getCustomerId().equals(customerId)) {
             throw ShieldException.forbidden("Access denied to this profile");
         }
-        childProfileRepository.delete(profile);
-        log.info("Deleted child profile {} for customer {}", id, customerId);
+        profile.setActive(false);
+        childProfileRepository.save(profile);
+        log.info("Soft-deleted child profile {} for customer {}", id, customerId);
     }
 
     /**
@@ -172,27 +173,32 @@ public class ChildProfileService {
         PageRequest pr = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<ChildProfile> profiles;
         if (search != null && !search.isBlank()) {
-            profiles = childProfileRepository.findByNameContainingIgnoreCase(search.trim(), pr);
+            profiles = childProfileRepository.findByNameContainingIgnoreCaseAndActiveTrue(search.trim(), pr);
         } else {
-            profiles = childProfileRepository.findAll(pr);
+            profiles = childProfileRepository.findByActiveTrue(pr);
         }
         return profiles.map(this::toResponse);
     }
 
     public ChildProfileResponse getByIdAdmin(UUID id) {
-        return toResponse(findOrThrow(id));
+        ChildProfile profile = childProfileRepository.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("ChildProfile", id));
+        return toResponse(profile);
     }
 
     @Transactional
     public void deleteAdmin(UUID id) {
-        ChildProfile profile = findOrThrow(id);
-        childProfileRepository.delete(profile);
-        log.info("Admin deleted child profile {}", id);
+        ChildProfile profile = childProfileRepository.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("ChildProfile", id));
+        profile.setActive(false);
+        childProfileRepository.save(profile);
+        log.info("Admin soft-deleted child profile {}", id);
     }
 
     @Transactional
     public ChildProfileResponse updateAdmin(UUID id, UpdateChildProfileRequest req) {
-        ChildProfile profile = findOrThrow(id);
+        ChildProfile profile = childProfileRepository.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("ChildProfile", id));
         if (req.getName()        != null) profile.setName(req.getName());
         if (req.getAvatarUrl()   != null) profile.setAvatarUrl(req.getAvatarUrl());
         if (req.getDateOfBirth() != null) profile.setDateOfBirth(req.getDateOfBirth());
@@ -208,16 +214,16 @@ public class ChildProfileService {
         PageRequest pr = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<ChildProfile> profiles;
         if (search != null && !search.isBlank()) {
-            profiles = childProfileRepository.findByTenantIdAndNameContainingIgnoreCase(tenantId, search.trim(), pr);
+            profiles = childProfileRepository.findByTenantIdAndNameContainingIgnoreCaseAndActiveTrue(tenantId, search.trim(), pr);
         } else {
-            profiles = childProfileRepository.findByTenantId(tenantId, pr);
+            profiles = childProfileRepository.findByTenantIdAndActiveTrue(tenantId, pr);
         }
         return profiles.map(this::toResponse);
     }
 
     public ChildProfileResponse getByIdIsp(UUID id, UUID tenantId) {
         ChildProfile profile = findOrThrow(id);
-        if (!tenantId.equals(profile.getTenantId())) {
+        if (profile.getTenantId() == null || !tenantId.equals(profile.getTenantId())) {
             throw ShieldException.forbidden("Profile not in your tenant");
         }
         return toResponse(profile);
@@ -226,7 +232,7 @@ public class ChildProfileService {
     @Transactional
     public ChildProfileResponse updateIsp(UUID id, UUID tenantId, UpdateChildProfileRequest req) {
         ChildProfile profile = findOrThrow(id);
-        if (!tenantId.equals(profile.getTenantId())) {
+        if (profile.getTenantId() == null || !tenantId.equals(profile.getTenantId())) {
             throw ShieldException.forbidden("Profile not in your tenant");
         }
         if (req.getName()        != null) profile.setName(req.getName());
@@ -241,17 +247,18 @@ public class ChildProfileService {
     @Transactional
     public void deleteIsp(UUID id, UUID tenantId) {
         ChildProfile profile = findOrThrow(id);
-        if (!tenantId.equals(profile.getTenantId())) {
+        if (profile.getTenantId() == null || !tenantId.equals(profile.getTenantId())) {
             throw ShieldException.forbidden("Profile not in your tenant");
         }
-        childProfileRepository.delete(profile);
-        log.info("ISP admin deleted child profile {}", id);
+        profile.setActive(false);
+        childProfileRepository.save(profile);
+        log.info("ISP admin soft-deleted child profile {}", id);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private ChildProfile findOrThrow(UUID id) {
-        return childProfileRepository.findById(id)
+        return childProfileRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> ShieldException.notFound("ChildProfile", id));
     }
 
@@ -302,6 +309,7 @@ public class ChildProfileService {
                 .dnsClientId(p.getDnsClientId())
                 .dohUrl(buildDohUrl(p.getDnsClientId()))
                 .notes(p.getNotes())
+                .active(p.isActive())
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())
                 .online(online)

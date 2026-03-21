@@ -90,7 +90,10 @@ function isOnline(device: Device): boolean {
 
 function SetupDnsDialog({ child, open, onClose }: { child: ChildProfile; open: boolean; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
-  const privateDns = child.dnsClientId ? `${child.dnsClientId}.dns.shield.rstglobal.in` : '';
+  // Derive the Private DNS hostname from dohUrl if available, otherwise fall back to dnsClientId
+  const privateDns = child.dohUrl
+    ? child.dohUrl.replace(/^https?:\/\//, '').replace('/dns-query', '')
+    : child.dnsClientId ? `${child.dnsClientId}.dns.shield.rstglobal.in` : '';
 
   const { data: qrUrl, isLoading: qrLoading } = useQuery({
     queryKey: ['qr-image', child.id],

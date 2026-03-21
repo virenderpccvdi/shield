@@ -35,6 +35,7 @@ const filterColors: Record<string, { bg: string; text: string }> = {
 const ageGroupColors: Record<string, { bg: string; text: string }> = {
   TODDLER: { bg: '#FCE4EC', text: '#AD1457' },
   CHILD: { bg: '#E3F2FD', text: '#1565C0' },
+  PRETEEN: { bg: '#E8F5E9', text: '#2E7D32' },
   TEEN: { bg: '#F3E5F5', text: '#7B1FA2' },
 };
 

@@ -35,6 +35,7 @@ const filterColors: Record<string, { bg: string; text: string }> = {
 const ageGroupColors: Record<string, { bg: string; text: string }> = {
   TODDLER: { bg: '#FCE4EC', text: '#AD1457' },
   CHILD: { bg: '#E3F2FD', text: '#1565C0' },
+  PRETEEN: { bg: '#E8F5E9', text: '#2E7D32' },
   TEEN: { bg: '#F3E5F5', text: '#7B1FA2' },
 };
 
@@ -187,9 +188,10 @@ export default function CustomerChildProfilesPage() {
             <Grid size={12}><TextField fullWidth label="Name" value={editName} onChange={e => setEditName(e.target.value)} /></Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField fullWidth select label="Age Group" value={editAgeGroup} onChange={e => setEditAgeGroup(e.target.value)}>
-                <MenuItem value="TODDLER">Toddler</MenuItem>
-                <MenuItem value="CHILD">Child</MenuItem>
-                <MenuItem value="TEEN">Teen</MenuItem>
+                <MenuItem value="TODDLER">Toddler (2–5)</MenuItem>
+                <MenuItem value="CHILD">Child (6–10)</MenuItem>
+                <MenuItem value="PRETEEN">Preteen (11–13)</MenuItem>
+                <MenuItem value="TEEN">Teen (14+)</MenuItem>
               </TextField>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>

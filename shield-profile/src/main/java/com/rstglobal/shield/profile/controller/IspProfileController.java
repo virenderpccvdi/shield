@@ -7,6 +7,7 @@ import com.rstglobal.shield.profile.dto.response.ChildProfileResponse;
 import com.rstglobal.shield.profile.service.ChildProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -52,7 +53,7 @@ public class IspProfileController {
             @RequestHeader("X-User-Role") String role,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @PathVariable UUID id,
-            @RequestBody UpdateChildProfileRequest req) {
+            @Valid @RequestBody UpdateChildProfileRequest req) {
         requireIspAdmin(role);
         UUID tenantId = parseTenantId(tenantIdStr);
         return ApiResponse.ok(childProfileService.updateIsp(id, tenantId, req));

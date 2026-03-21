@@ -49,6 +49,7 @@ export default function NewChildProfilePage() {
       });
       const profileId = res.data?.data?.id ?? res.data?.id;
       qc.invalidateQueries({ queryKey: ['children'] });
+      qc.invalidateQueries({ queryKey: ['customer-child-profiles'] });
       navigate(profileId ? `/profiles/${profileId}` : '/dashboard');
     } catch (e: any) {
       setError(e?.response?.data?.message ?? 'Failed to create profile. Please try again.');
