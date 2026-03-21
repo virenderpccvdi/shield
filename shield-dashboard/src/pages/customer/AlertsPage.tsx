@@ -3,7 +3,9 @@ import CheckIcon from '@mui/icons-material/Check';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAlertStore, AlertItem } from '../../store/alert.store';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAuthStore } from '../../store/auth.store';
@@ -24,6 +26,7 @@ const severityStyles: Record<string, { border: string; glow: string; bg: string 
 
 export default function AlertsPage() {
   const [tab, setTab] = useState(0);
+  const navigate = useNavigate();
   const { alerts, unreadCount, markRead, markAllRead, addAlert } = useAlertStore();
   const user = useAuthStore((s) => s.user);
 
@@ -36,7 +39,7 @@ export default function AlertsPage() {
       <PageHeader
         icon={<NotificationsActiveIcon />}
         title="Alert Centre"
-        subtitle={`${alerts.length} total alerts`}
+        subtitle={`${alerts.length} total alert${alerts.length !== 1 ? 's' : ''}`}
         iconColor="#E53935"
         action={
           unreadCount > 0 ? (
@@ -51,19 +54,12 @@ export default function AlertsPage() {
       <AnimatedPage delay={0.1}>
         <Card>
           <Tabs value={tab} onChange={(_, v: number) => setTab(v)}
-            sx={{
-              borderBottom: '1px solid #E8EDF2', px: 2,
-              '& .MuiTab-root': { fontWeight: 600, textTransform: 'none' },
-            }}
-          >
+            sx={{ borderBottom: '1px solid #E8EDF2', px: 2, '& .MuiTab-root': { fontWeight: 600, textTransform: 'none' } }}>
             <Tab label="All Alerts" />
             <Tab label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 Unread
-                {unreadCount > 0 && (
-                  <Chip size="small" label={unreadCount} color="error"
-                    sx={{ height: 20, minWidth: 20, fontSize: 11, fontWeight: 700 }} />
-                )}
+                {unreadCount > 0 && <Chip size="small" label={unreadCount} color="error" sx={{ height: 20, minWidth: 20, fontSize: 11, fontWeight: 700 }} />}
               </Box>
             } />
           </Tabs>
@@ -79,54 +75,39 @@ export default function AlertsPage() {
               {filtered.map((alert, i) => {
                 const style = severityStyles[alert.severity] || severityStyles.LOW;
                 return (
-                  <Box
-                    key={alert.id}
-                    sx={{
-                      display: 'flex', alignItems: 'center', gap: 2,
-                      px: 2.5, py: 2,
-                      borderBottom: i < filtered.length - 1 ? '1px solid #F1F5F9' : 'none',
-                      borderLeft: `4px solid ${style.border}`,
-                      bgcolor: alert.read ? 'transparent' : style.bg,
-                      boxShadow: !alert.read ? style.glow : 'none',
-                      transition: 'all 0.2s ease',
-                      '&:hover': { bgcolor: '#FAFBFC' },
-                      '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(8px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
-                      animation: `fadeInUp 0.3s ease ${Math.min(i * 0.05, 0.5)}s both`,
-                    }}
+                  <Box key={alert.id} sx={{
+                    display: 'flex', alignItems: 'center', gap: 2,
+                    px: 2.5, py: 2,
+                    borderBottom: i < filtered.length - 1 ? '1px solid #F1F5F9' : 'none',
+                    borderLeft: `4px solid ${style.border}`,
+                    bgcolor: alert.read ? 'transparent' : style.bg,
+                    boxShadow: !alert.read ? style.glow : 'none',
+                    cursor: alert.profileId ? 'pointer' : 'default',
+                    transition: 'all 0.2s ease',
+                    '&:hover': { bgcolor: '#FAFBFC' },
+                    '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(8px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+                    animation: `fadeInUp 0.3s ease ${Math.min(i * 0.05, 0.5)}s both`,
+                  }}
+                    onClick={() => { if (alert.profileId) { markRead(alert.id); navigate(`/profiles/${alert.profileId}`); } }}
                   >
                     <Box sx={{ flex: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                        <Chip
-                          size="small"
-                          label={alert.severity}
-                          color={severityColor[alert.severity] || 'default'}
-                          sx={{
-                            height: 20, fontSize: 10, fontWeight: 700,
+                        <Chip size="small" label={alert.severity} color={severityColor[alert.severity] || 'default'}
+                          sx={{ height: 20, fontSize: 10, fontWeight: 700,
                             ...(alert.severity === 'CRITICAL' && {
-                              '@keyframes subtlePulse': {
-                                '0%, 100%': { opacity: 1 },
-                                '50%': { opacity: 0.7 },
-                              },
+                              '@keyframes subtlePulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.7 } },
                               animation: 'subtlePulse 2s ease-in-out infinite',
-                            }),
-                          }}
-                        />
+                            }) }} />
                         <Typography variant="body2" fontWeight={alert.read ? 400 : 600}>{alert.message}</Typography>
+                        {alert.profileId && <OpenInNewIcon sx={{ fontSize: 14, color: 'text.secondary', ml: 'auto' }} />}
                       </Box>
                       <Typography variant="caption" color="text.secondary">
                         {alert.profileName} &middot; {new Date(alert.timestamp).toLocaleString()}
                       </Typography>
                     </Box>
                     {!alert.read && (
-                      <IconButton
-                        size="small"
-                        onClick={() => markRead(alert.id)}
-                        title="Mark read"
-                        sx={{
-                          bgcolor: '#F1F5F9',
-                          '&:hover': { bgcolor: '#E8EDF2' },
-                        }}
-                      >
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); markRead(alert.id); }} title="Mark read"
+                        sx={{ bgcolor: '#F1F5F9', '&:hover': { bgcolor: '#E8EDF2' } }}>
                         <CheckIcon fontSize="small" />
                       </IconButton>
                     )}

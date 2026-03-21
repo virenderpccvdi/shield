@@ -43,8 +43,13 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           _grid[dayIdx][h] = true;
         }
       }
-    } catch (_) {
-      // Use empty grid if API unavailable
+    } catch (e) {
+      debugPrint('[Shield] Schedule load failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load schedule'), backgroundColor: Colors.orange),
+        );
+      }
     }
     if (mounted) setState(() => _loading = false);
   }

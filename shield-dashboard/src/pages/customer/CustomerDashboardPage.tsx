@@ -194,7 +194,14 @@ export default function CustomerDashboardPage() {
     <AnimatedPage>
       {/* High block alert banner */}
       {highBlockChildren.length > 0 && (
-        <Alert severity="warning" icon={<WarningAmberIcon />} sx={{ mb: 2, borderRadius: 2 }}>
+        <Alert severity="warning" icon={<WarningAmberIcon />} sx={{ mb: 2, borderRadius: 2 }}
+          action={
+            highBlockChildren.length === 1 ? (
+              <Button color="warning" size="small" variant="outlined" onClick={() => navigate(`/profiles/${highBlockChildren[0].id}`)}>
+                View Activity
+              </Button>
+            ) : undefined
+          }>
           <strong>{highBlockChildren.map(c => c.name).join(', ')}</strong>{' '}
           {highBlockChildren.length === 1 ? 'has' : 'have'} unusually high blocked requests today. Review their activity.
         </Alert>

@@ -81,7 +81,9 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
       final profileId = ref.read(authProvider).childProfileId;
       if (profileId == null) return;
       await client.post('/profiles/devices/heartbeat', data: {'profileId': profileId});
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Shield] Heartbeat failed: $e');
+    }
   }
 
   Future<void> _sendBackgroundLocation() async {
@@ -96,7 +98,9 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
         'latitude': position.latitude,
         'longitude': position.longitude,
       });
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Shield] Background location failed: $e');
+    }
   }
 
   Future<void> _syncInstalledApps() async {
@@ -122,7 +126,9 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
         'profileId': profileId,
         'apps': appList,
       });
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Shield] App sync failed: $e');
+    }
   }
 
   Future<Position?> _getCurrentPosition() async {

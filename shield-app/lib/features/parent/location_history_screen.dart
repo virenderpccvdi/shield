@@ -60,8 +60,18 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen> {
           c.animateCamera(CameraUpdate.newLatLngZoom(LatLng(lat, lng), 14));
         }
       }
-    } catch (_) {
-      _points = [];
+    } catch (e) {
+      debugPrint('[Shield] Location history load failed: $e');
+      if (mounted) {
+        setState(() {
+          _points = [];
+          _loading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load location history'), backgroundColor: Colors.orange),
+        );
+      }
+      return;
     }
     if (mounted) setState(() => _loading = false);
   }

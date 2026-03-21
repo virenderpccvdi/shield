@@ -144,8 +144,14 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
 
     if (result == null) return;
 
-    final parsedLat = double.tryParse(latCtrl.text);
-    final parsedLng = double.tryParse(lngCtrl.text);
+    final parsedLat = double.tryParse(latCtrl.text.trim());
+    final parsedLng = double.tryParse(lngCtrl.text.trim());
+    if (parsedLat == null || parsedLng == null || parsedLat < -90 || parsedLat > 90 || parsedLng < -180 || parsedLng > 180) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid coordinates. Latitude must be -90 to 90, longitude -180 to 180.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
 
     if (result == true) {
       // Create or update

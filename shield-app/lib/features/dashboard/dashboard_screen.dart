@@ -11,13 +11,34 @@ final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
     final profilesRes = await client.get('/profiles/children');
     final d = profilesRes.data['data'];
     final profiles = (d is Map ? (d['content'] ?? d['items'] ?? [d]) : d) as List? ?? [];
+
     int activeAlerts = 0;
+    int blockedToday = 0;
+
+    // Fetch alerts count
     try {
       final alertsRes = await client.get('/notifications/my/unread');
       final alertData = alertsRes.data['data'];
       activeAlerts = alertData is List ? alertData.length : (alertData?['totalElements'] ?? 0) as int;
     } catch (_) {}
-    return {'totalProfiles': profiles.length, 'activeAlerts': activeAlerts, 'blockedToday': 0, 'profiles': profiles};
+
+    // Fetch blocked count across all profiles
+    for (final profile in profiles) {
+      try {
+        final profileId = profile['id']?.toString();
+        if (profileId == null) continue;
+        final statsRes = await client.get('/analytics/$profileId/stats', queryParameters: {'period': 'TODAY'});
+        final stats = statsRes.data['data'] ?? statsRes.data;
+        blockedToday += (stats['blockedQueries'] as int? ?? stats['blocked'] as int? ?? 0);
+      } catch (_) {}
+    }
+
+    return {
+      'totalProfiles': profiles.length,
+      'activeAlerts': activeAlerts,
+      'blockedToday': blockedToday,
+      'profiles': profiles,
+    };
   } catch (_) {
     return {'totalProfiles': 0, 'activeAlerts': 0, 'blockedToday': 0, 'profiles': []};
   }
