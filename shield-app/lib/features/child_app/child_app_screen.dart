@@ -392,15 +392,26 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                     ],
                     flexibleSpace: FlexibleSpaceBar(
                       titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                      title: Column(
+                      title: Row(
                         mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text('Hi, ${auth.childName ?? auth.name ?? 'there'}! 👋',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white,
-                              shadows: [Shadow(color: Colors.black26, blurRadius: 4)])),
-                          Text(_isCheckedIn ? '✓ Checked in' : 'Not checked in',
-                            style: TextStyle(fontSize: 11, color: _isCheckedIn ? Colors.greenAccent.shade100 : Colors.white60)),
+                          Flexible(
+                            child: Text('Hi, ${auth.childName ?? auth.name ?? 'there'}! 👋',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white,
+                                shadows: [Shadow(color: Colors.black26, blurRadius: 4)]),
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _isCheckedIn ? Colors.green.shade700 : Colors.white24,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(_isCheckedIn ? '● In' : '○ Out',
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ),
                         ],
                       ),
                       background: Stack(
@@ -610,7 +621,7 @@ class _CheckInCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isCheckedIn
@@ -632,51 +643,60 @@ class _CheckInCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 56, height: 56,
+            width: 44, height: 44,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(14),
+              color: Colors.white.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              isCheckedIn ? Icons.location_on : Icons.location_off,
-              color: Colors.white, size: 28,
+              isCheckedIn ? Icons.location_on : Icons.location_off_outlined,
+              color: Colors.white, size: 22,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   isCheckedIn ? 'Checked In ✓' : 'Not Checked In',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   isCheckedIn && checkedInAt != null
                       ? 'Since ${_formatTime(checkedInAt!)}'
-                      : isCheckedIn ? 'Location shared with parents' : 'Tap to let parents know where you are',
-                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+                      : isCheckedIn ? 'Parents can see you' : 'Tap to share location',
+                  style: TextStyle(color: Colors.white.withOpacity(0.82), fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            onPressed: onTap,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: isCheckedIn ? Colors.green.shade700 : const Color(0xFF1565C0),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              elevation: 0,
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 88,
+            child: ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: isCheckedIn ? Colors.green.shade700 : const Color(0xFF1565C0),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                elevation: 0,
+              ),
+              child: loading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(
+                      isCheckedIn ? 'Check Out' : 'Check In',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                      maxLines: 1,
+                    ),
             ),
-            child: loading
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : Text(
-                    isCheckedIn ? 'Check Out' : 'Check In',
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                  ),
           ),
         ],
       ),
