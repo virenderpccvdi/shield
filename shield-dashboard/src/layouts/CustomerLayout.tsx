@@ -16,6 +16,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import DevicesIcon from '@mui/icons-material/Devices';
 import PhonelinkSetupIcon from '@mui/icons-material/PhonelinkSetup';
+import ChildCareIcon from '@mui/icons-material/ChildCare';
 import MenuIcon from '@mui/icons-material/Menu';
 import ShieldIcon from '@mui/icons-material/Shield';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -48,6 +49,7 @@ const sections = [
   {
     title: 'Controls',
     items: [
+      { label: 'Child Profiles', icon: <ChildCareIcon />, path: '/profiles' },
       { label: 'App & Content Control', icon: <PhonelinkSetupIcon />, path: '/app-control' },
       { label: 'Time Limits', icon: <AccessTimeIcon />, path: '/time-limits' },
       { label: 'Geofences', icon: <FenceIcon />, path: '/geofences' },

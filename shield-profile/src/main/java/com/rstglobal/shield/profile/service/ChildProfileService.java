@@ -202,6 +202,52 @@ public class ChildProfileService {
         return toResponse(childProfileRepository.save(profile));
     }
 
+    // ── ISP methods (tenant-scoped) ──────────────────────────────────────────
+
+    public Page<ChildProfileResponse> listByTenant(UUID tenantId, int page, int size, String search) {
+        PageRequest pr = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<ChildProfile> profiles;
+        if (search != null && !search.isBlank()) {
+            profiles = childProfileRepository.findByTenantIdAndNameContainingIgnoreCase(tenantId, search.trim(), pr);
+        } else {
+            profiles = childProfileRepository.findByTenantId(tenantId, pr);
+        }
+        return profiles.map(this::toResponse);
+    }
+
+    public ChildProfileResponse getByIdIsp(UUID id, UUID tenantId) {
+        ChildProfile profile = findOrThrow(id);
+        if (!tenantId.equals(profile.getTenantId())) {
+            throw ShieldException.forbidden("Profile not in your tenant");
+        }
+        return toResponse(profile);
+    }
+
+    @Transactional
+    public ChildProfileResponse updateIsp(UUID id, UUID tenantId, UpdateChildProfileRequest req) {
+        ChildProfile profile = findOrThrow(id);
+        if (!tenantId.equals(profile.getTenantId())) {
+            throw ShieldException.forbidden("Profile not in your tenant");
+        }
+        if (req.getName()        != null) profile.setName(req.getName());
+        if (req.getAvatarUrl()   != null) profile.setAvatarUrl(req.getAvatarUrl());
+        if (req.getDateOfBirth() != null) profile.setDateOfBirth(req.getDateOfBirth());
+        if (req.getAgeGroup()    != null) profile.setAgeGroup(req.getAgeGroup());
+        if (req.getFilterLevel() != null) profile.setFilterLevel(req.getFilterLevel());
+        if (req.getNotes()       != null) profile.setNotes(req.getNotes());
+        return toResponse(childProfileRepository.save(profile));
+    }
+
+    @Transactional
+    public void deleteIsp(UUID id, UUID tenantId) {
+        ChildProfile profile = findOrThrow(id);
+        if (!tenantId.equals(profile.getTenantId())) {
+            throw ShieldException.forbidden("Profile not in your tenant");
+        }
+        childProfileRepository.delete(profile);
+        log.info("ISP admin deleted child profile {}", id);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private ChildProfile findOrThrow(UUID id) {

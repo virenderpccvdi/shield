@@ -63,6 +63,8 @@ import IspSettingsPage from './pages/isp-admin/IspSettingsPage';
 import IspUrlActivityPage from './pages/isp-admin/IspUrlActivityPage';
 import IspAppControlPage from './pages/isp-admin/IspAppControlPage';
 import IspDevicesPage from './pages/isp-admin/IspDevicesPage';
+import IspChildProfilesPage from './pages/isp-admin/IspChildProfilesPage';
+import IspChildDetailPage from './pages/isp-admin/IspChildDetailPage';
 import AdminUrlActivityPage from './pages/global-admin/AdminUrlActivityPage';
 import RolePermissionsPage from './pages/global-admin/RolePermissionsPage';
 import AdminAppControlPage from './pages/global-admin/AdminAppControlPage';
@@ -74,6 +76,7 @@ import SubscriptionPage from './pages/customer/SubscriptionPage';
 import CheckoutSuccessPage from './pages/customer/CheckoutSuccessPage';
 import CheckoutCancelPage from './pages/customer/CheckoutCancelPage';
 import NewChildProfilePage from './pages/customer/NewChildProfilePage';
+import CustomerChildProfilesPage from './pages/customer/CustomerChildProfilesPage';
 import IspPlansPage from './pages/isp-admin/IspPlansPage';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30000, retry: 1 } } });
@@ -140,6 +143,7 @@ export default function App() {
               <Route path="/map" element={<LocationMapPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/subscription" element={<SubscriptionPage />} />
+              <Route path="/profiles" element={<CustomerChildProfilesPage />} />
               <Route path="/profiles/new" element={<NewChildProfilePage />} />
               <Route path="/billing/success" element={<CheckoutSuccessPage />} />
               <Route path="/billing/cancel" element={<CheckoutCancelPage />} />
@@ -189,6 +193,8 @@ export default function App() {
               <Route path="/isp/url-activity" element={<IspUrlActivityPage />} />
               <Route path="/isp/app-control" element={<IspAppControlPage />} />
               <Route path="/isp/devices" element={<IspDevicesPage />} />
+              <Route path="/isp/child-profiles" element={<IspChildProfilesPage />} />
+              <Route path="/isp/child-profiles/:profileId" element={<IspChildDetailPage />} />
               <Route path="/billing/success" element={<CheckoutSuccessPage />} />
               <Route path="/billing/cancel" element={<CheckoutCancelPage />} />
               <Route path="/isp/settings" element={<IspSettingsPage />} />

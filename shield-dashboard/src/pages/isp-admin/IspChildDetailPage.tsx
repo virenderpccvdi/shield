@@ -21,12 +21,13 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BlockIcon from '@mui/icons-material/Block';
 import DnsIcon from '@mui/icons-material/Dns';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 
 interface ChildProfile {
-  id: string; customerId: string; name: string;
+  id: string; customerId: string; tenantId: string; name: string;
   ageGroup: string; filterLevel: string; dnsClientId: string; dohUrl: string;
   dateOfBirth?: string; notes?: string; createdAt: string;
 }
@@ -69,7 +70,7 @@ function ScheduleTab({ profileId }: { profileId: string }) {
   const [overrideMins, setOverrideMins] = useState(60);
 
   const { data: schedule, isLoading } = useQuery({
-    queryKey: ['cust-schedule', profileId],
+    queryKey: ['isp-schedule', profileId],
     queryFn: () => api.get(`/dns/schedules/${profileId}`).then(r => {
       const d = (r.data?.data || r.data) as ScheduleData;
       if (d?.grid) setGrid(d.grid);
@@ -79,22 +80,22 @@ function ScheduleTab({ profileId }: { profileId: string }) {
 
   const saveMutation = useMutation({
     mutationFn: () => api.put(`/dns/schedules/${profileId}`, { grid }),
-    onSuccess: () => { setSnack('Schedule saved'); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onSuccess: () => { setSnack('Schedule saved'); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
   });
 
   const presetMutation = useMutation({
     mutationFn: (preset: string) => api.post(`/dns/schedules/${profileId}/preset?preset=${preset}`),
-    onSuccess: () => { setSnack('Preset applied'); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onSuccess: () => { setSnack('Preset applied'); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
   });
 
   const overrideMutation = useMutation({
     mutationFn: () => api.post(`/dns/schedules/${profileId}/override`, { overrideType, durationMinutes: overrideMins }),
-    onSuccess: () => { setSnack('Override applied'); setOverrideDialog(false); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onSuccess: () => { setSnack('Override applied'); setOverrideDialog(false); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
   });
 
   const cancelOverrideMutation = useMutation({
     mutationFn: () => api.delete(`/dns/schedules/${profileId}/override`),
-    onSuccess: () => { setSnack('Override cancelled'); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onSuccess: () => { setSnack('Override cancelled'); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
   });
 
   const toggle = (day: string, hour: number) => {
@@ -189,7 +190,7 @@ function ScheduleTab({ profileId }: { profileId: string }) {
           <Box sx={{ mt: 3 }}>
             <Button variant="contained" startIcon={<SaveIcon />}
               onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
-              sx={{ background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)', borderRadius: 2, px: 3 }}>
+              sx={{ background: 'linear-gradient(135deg, #14532D 0%, #052E16 100%)', borderRadius: 2, px: 3 }}>
               {saveMutation.isPending ? 'Saving...' : 'Save Schedule'}
             </Button>
           </Box>
@@ -228,7 +229,7 @@ function BudgetsTab({ profileId }: { profileId: string }) {
   const [snack, setSnack] = useState('');
 
   const { isLoading } = useQuery({
-    queryKey: ['cust-budgets', profileId],
+    queryKey: ['isp-budgets', profileId],
     queryFn: () => api.get(`/dns/budgets/${profileId}`).then(r => {
       const d = r.data?.data || r.data;
       if (d && typeof d === 'object') setBudgets(d);
@@ -237,13 +238,13 @@ function BudgetsTab({ profileId }: { profileId: string }) {
   });
 
   const { data: todayData } = useQuery({
-    queryKey: ['cust-budgets-today', profileId],
+    queryKey: ['isp-budgets-today', profileId],
     queryFn: () => api.get(`/dns/budgets/${profileId}/today`).then(r => r.data?.data || r.data).catch(() => null),
   });
 
   const saveMutation = useMutation({
     mutationFn: () => api.put(`/dns/budgets/${profileId}`, { budgets }),
-    onSuccess: () => { setSnack('Budgets saved'); queryClient.invalidateQueries({ queryKey: ['cust-budgets', profileId] }); },
+    onSuccess: () => { setSnack('Budgets saved'); queryClient.invalidateQueries({ queryKey: ['isp-budgets', profileId] }); },
   });
 
   const defaultApps = ['youtube', 'tiktok', 'gaming', 'social', 'streaming', 'education'];
@@ -309,7 +310,7 @@ function RulesTab({ profileId }: { profileId: string }) {
   const [snack, setSnack] = useState('');
 
   const { isLoading } = useQuery({
-    queryKey: ['cust-rules', profileId],
+    queryKey: ['isp-rules', profileId],
     queryFn: () => api.get(`/dns/rules/${profileId}`).then(r => {
       const d = r.data?.data || r.data;
       if (d?.enabledCategories) setCategories(d.enabledCategories);
@@ -326,15 +327,15 @@ function RulesTab({ profileId }: { profileId: string }) {
 
   const saveCatMutation = useMutation({
     mutationFn: () => api.put(`/dns/rules/${profileId}/categories`, { enabledCategories: categories }),
-    onSuccess: () => { setSnack('Categories saved'); queryClient.invalidateQueries({ queryKey: ['cust-rules', profileId] }); },
+    onSuccess: () => { setSnack('Categories saved'); queryClient.invalidateQueries({ queryKey: ['isp-rules', profileId] }); },
   });
   const saveBlockMutation = useMutation({
     mutationFn: () => api.put(`/dns/rules/${profileId}/blocklist`, { domains: blocklist }),
-    onSuccess: () => { setSnack('Blocklist saved'); queryClient.invalidateQueries({ queryKey: ['cust-rules', profileId] }); },
+    onSuccess: () => { setSnack('Blocklist saved'); queryClient.invalidateQueries({ queryKey: ['isp-rules', profileId] }); },
   });
   const saveAllowMutation = useMutation({
     mutationFn: () => api.put(`/dns/rules/${profileId}/allowlist`, { domains: allowlist }),
-    onSuccess: () => { setSnack('Allowlist saved'); queryClient.invalidateQueries({ queryKey: ['cust-rules', profileId] }); },
+    onSuccess: () => { setSnack('Allowlist saved'); queryClient.invalidateQueries({ queryKey: ['isp-rules', profileId] }); },
   });
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
@@ -418,7 +419,7 @@ function ExtensionsTab({ profileId }: { profileId: string }) {
   const [snack, setSnack] = useState('');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['cust-extensions', profileId],
+    queryKey: ['isp-extensions', profileId],
     queryFn: () => api.get('/dns/budgets/extension-requests').then(r => {
       const all = (r.data?.data || r.data || []) as ExtensionRequest[];
       return all.filter(e => e.profileId === profileId);
@@ -427,11 +428,11 @@ function ExtensionsTab({ profileId }: { profileId: string }) {
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.post(`/dns/budgets/extension-requests/${id}/approve`),
-    onSuccess: () => { setSnack('Request approved'); queryClient.invalidateQueries({ queryKey: ['cust-extensions'] }); },
+    onSuccess: () => { setSnack('Request approved'); queryClient.invalidateQueries({ queryKey: ['isp-extensions'] }); },
   });
   const rejectMutation = useMutation({
     mutationFn: (id: string) => api.post(`/dns/budgets/extension-requests/${id}/reject`),
-    onSuccess: () => { setSnack('Request rejected'); queryClient.invalidateQueries({ queryKey: ['cust-extensions'] }); },
+    onSuccess: () => { setSnack('Request rejected'); queryClient.invalidateQueries({ queryKey: ['isp-extensions'] }); },
   });
 
   const requests = data || [];
@@ -480,14 +481,14 @@ function ExtensionsTab({ profileId }: { profileId: string }) {
   );
 }
 
-export default function ChildProfilePage() {
+export default function IspChildDetailPage() {
   const { profileId } = useParams();
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
 
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['child-profile', profileId],
-    queryFn: () => api.get(`/profiles/children/${profileId}`).then(r => (r.data?.data || r.data) as ChildProfile),
+    queryKey: ['isp-child-profile', profileId],
+    queryFn: () => api.get(`/profiles/isp/children/${profileId}`).then(r => (r.data?.data || r.data) as ChildProfile),
   });
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
@@ -503,17 +504,17 @@ export default function ChildProfilePage() {
 
   return (
     <AnimatedPage>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/profiles')}
+      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/isp/child-profiles')}
         sx={{ mb: 2, color: 'text.secondary', '&:hover': { bgcolor: '#F8FAFC' } }}>
         Back to Child Profiles
       </Button>
       <AnimatedPage delay={0.1}>
         <Card sx={{ mb: 3, overflow: 'hidden' }}>
-          <Box sx={{ height: 6, background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)' }} />
+          <Box sx={{ height: 6, background: 'linear-gradient(135deg, #14532D 0%, #052E16 100%)' }} />
           <CardContent sx={{ pt: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
-              <Avatar sx={{ width: 64, height: 64, background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)',
-                fontWeight: 700, fontSize: 22, boxShadow: '0 4px 14px rgba(21,101,192,0.3)' }}>
+              <Avatar sx={{ width: 64, height: 64, background: 'linear-gradient(135deg, #14532D 0%, #052E16 100%)',
+                fontWeight: 700, fontSize: 22, boxShadow: '0 4px 14px rgba(20,83,45,0.3)' }}>
                 {getInitials(profile.name)}
               </Avatar>
               <Box sx={{ flex: 1 }}>
@@ -529,7 +530,7 @@ export default function ChildProfilePage() {
           <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto"
             sx={{ borderTop: '1px solid #E8EDF2',
               '& .MuiTab-root': { fontWeight: 600, fontSize: 13, textTransform: 'none', minHeight: 48 },
-              '& .Mui-selected': { color: '#1565C0' } }}>
+              '& .Mui-selected': { color: '#14532D' } }}>
             {tabs.map(t => <Tab key={t.label} label={t.label} icon={t.icon} iconPosition="start" />)}
           </Tabs>
         </Card>

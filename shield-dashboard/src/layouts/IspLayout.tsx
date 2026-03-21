@@ -13,6 +13,7 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import PhonelinkSetupIcon from '@mui/icons-material/PhonelinkSetup';
 import DevicesIcon from '@mui/icons-material/Devices';
+import ChildCareIcon from '@mui/icons-material/ChildCare';
 import PaymentIcon from '@mui/icons-material/Payment';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import BlockIcon from '@mui/icons-material/Block';
@@ -54,6 +55,7 @@ const sections = [
       { label: 'Plans', icon: <CardMembershipIcon />, path: '/isp/plans' },
       { label: 'App Control', icon: <PhonelinkSetupIcon />, path: '/isp/app-control' },
       { label: 'Devices', icon: <DevicesIcon />, path: '/isp/devices' },
+      { label: 'Child Profiles', icon: <ChildCareIcon />, path: '/isp/child-profiles' },
       { label: 'Branding', icon: <BrushIcon />, path: '/isp/branding' },
     ],
   },

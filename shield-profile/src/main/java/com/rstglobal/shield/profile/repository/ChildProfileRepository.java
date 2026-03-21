@@ -17,4 +17,6 @@ public interface ChildProfileRepository extends JpaRepository<ChildProfile, UUID
     boolean existsByDnsClientId(String dnsClientId);
     int countByCustomerId(UUID customerId);
     Page<ChildProfile> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    Page<ChildProfile> findByTenantId(UUID tenantId, Pageable pageable);
+    Page<ChildProfile> findByTenantIdAndNameContainingIgnoreCase(UUID tenantId, String name, Pageable pageable);
 }
