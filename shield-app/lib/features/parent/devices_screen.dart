@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 
 class DevicesScreen extends ConsumerStatefulWidget {
@@ -141,6 +142,13 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Devices', style: TextStyle(fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.phonelink_setup_rounded),
+            tooltip: 'Child Device Setup',
+            onPressed: () => context.push('/child-setup'),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addDevice,
@@ -154,13 +162,19 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
         : RefreshIndicator(
             onRefresh: () async => _load(),
             child: _devices.isEmpty
-              ? const Center(child: Column(
+              ? Center(child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.devices, size: 64, color: Colors.grey),
-                    SizedBox(height: 16),
-                    Text('No devices registered', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
-                    Text('Add a device to start monitoring', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    const Icon(Icons.devices, size: 64, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    const Text('No devices registered', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
+                    const Text('Add a device to start monitoring', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () => context.push('/child-setup'),
+                      icon: const Icon(Icons.phonelink_setup_rounded),
+                      label: const Text('Set Up Child Device'),
+                    ),
                   ],
                 ))
               : ListView.builder(

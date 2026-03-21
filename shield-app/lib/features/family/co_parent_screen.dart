@@ -170,13 +170,46 @@ class _CoParentScreenState extends ConsumerState<CoParentScreen> {
     }
   }
 
-  Future<void> _resendInvite(Map<String, dynamic> invite) async {
-    // Cancel existing: no backend endpoint, so we just re-invite (will fail if still PENDING — inform user)
-    // Best approach: re-POST; backend will reject duplicate PENDING, so tell user it's still active
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Invite to ${invite['email']} is still active. Ask them to check their email.'),
-      behavior: SnackBarBehavior.floating,
-    ));
+  Future<void> _cancelInvite(Map<String, dynamic> invite) async {
+    final email = invite['email'] as String? ?? 'this person';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Cancel Invite', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: Text('Cancel the pending invite to $email?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: ShieldTheme.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Cancel Invite'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true || !mounted) return;
+
+    try {
+      await ref.read(dioProvider).delete('/profiles/family/invites/${invite['id']}');
+      ref.invalidate(familyMembersProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Invite to $email cancelled'),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        final msg = e.response?.data?['message'] ?? 'Failed to cancel invite';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(msg),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
   }
 
   Future<void> _removeMember(Map<String, dynamic> member) async {
@@ -304,7 +337,7 @@ class _CoParentScreenState extends ConsumerState<CoParentScreen> {
                 const SizedBox(height: 8),
                 ...data.invites.map((inv) => _InviteCard(
                   invite: inv,
-                  onResend: () => _resendInvite(inv),
+                  onCancel: () => _cancelInvite(inv),
                 )),
               ],
 
@@ -386,8 +419,8 @@ class _MemberCard extends StatelessWidget {
 
 class _InviteCard extends StatelessWidget {
   final Map<String, dynamic> invite;
-  final VoidCallback onResend;
-  const _InviteCard({required this.invite, required this.onResend});
+  final VoidCallback onCancel;
+  const _InviteCard({required this.invite, required this.onCancel});
 
   @override
   Widget build(BuildContext context) {
@@ -448,15 +481,15 @@ class _InviteCard extends StatelessWidget {
           _RoleBadge(role: role, color: const Color(0xFF6A1B9A)),
           const SizedBox(width: 6),
           TextButton.icon(
-            icon: const Icon(Icons.refresh_rounded, size: 14),
-            label: const Text('Resend', style: TextStyle(fontSize: 12)),
+            icon: const Icon(Icons.cancel_outlined, size: 14),
+            label: const Text('Cancel', style: TextStyle(fontSize: 12)),
             style: TextButton.styleFrom(
-              foregroundColor: ShieldTheme.primary,
+              foregroundColor: ShieldTheme.danger,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            onPressed: onResend,
+            onPressed: onCancel,
           ),
         ]),
       ),

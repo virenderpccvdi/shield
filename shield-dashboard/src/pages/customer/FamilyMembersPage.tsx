@@ -8,7 +8,7 @@ import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
-import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import SendIcon from '@mui/icons-material/Send';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
@@ -92,6 +92,10 @@ export default function FamilyMembersPage() {
   const [inviting, setInviting]       = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
+  // Cancel invite dialog
+  const [cancelTarget, setCancelTarget] = useState<FamilyInvite | null>(null);
+  const [cancelling, setCancelling]     = useState(false);
+
   // Remove dialog
   const [removeTarget, setRemoveTarget] = useState<FamilyMember | null>(null);
   const [removing, setRemoving]         = useState(false);
@@ -147,10 +151,23 @@ export default function FamilyMembersPage() {
     }
   };
 
-  // ── Resend ────────────────────────────────────────────────────────────────
+  // ── Cancel invite ─────────────────────────────────────────────────────────
 
-  const handleResend = (invite: FamilyInvite) => {
-    showSnack(`Invite to ${invite.email} is still active — ask them to check their inbox.`, 'info');
+  const handleCancelInviteConfirm = async () => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    try {
+      await api.delete(`/profiles/family/invites/${cancelTarget.id}`);
+      setCancelTarget(null);
+      showSnack(`Invite to ${cancelTarget.email} cancelled`);
+      await loadFamily();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      showSnack(e.response?.data?.message ?? 'Failed to cancel invite', 'error');
+      setCancelTarget(null);
+    } finally {
+      setCancelling(false);
+    }
   };
 
   // ── Remove member ─────────────────────────────────────────────────────────
@@ -360,14 +377,15 @@ export default function FamilyMembersPage() {
                                   fontWeight: 700, fontSize: 11,
                                 }}
                               />
-                              <Tooltip title="Resend invite reminder">
+                              <Tooltip title="Cancel this invite">
                                 <Button
                                   size="small"
-                                  startIcon={<MarkEmailReadIcon fontSize="small" />}
-                                  onClick={() => handleResend(invite)}
+                                  color="error"
+                                  startIcon={<CancelOutlinedIcon fontSize="small" />}
+                                  onClick={() => setCancelTarget(invite)}
                                   sx={{ ml: 0.5, borderRadius: 2, fontSize: 12, whiteSpace: 'nowrap' }}
                                 >
-                                  Resend
+                                  Cancel
                                 </Button>
                               </Tooltip>
                             </Box>
@@ -522,6 +540,35 @@ export default function FamilyMembersPage() {
             sx={{ borderRadius: 2 }}
           >
             {removing ? <CircularProgress size={20} color="inherit" /> : 'Remove'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Cancel invite dialog ───────────────────────────────────────────── */}
+      <Dialog
+        open={!!cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: 'error.main' }}>Cancel Invite</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Cancel the pending invite to <strong>{cancelTarget?.email}</strong>?
+            They will no longer be able to accept this invitation.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, pt: 1, gap: 1 }}>
+          <Button onClick={() => setCancelTarget(null)} sx={{ borderRadius: 2 }}>Keep</Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleCancelInviteConfirm}
+            disabled={cancelling}
+            sx={{ borderRadius: 2 }}
+          >
+            {cancelling ? <CircularProgress size={20} color="inherit" /> : 'Cancel Invite'}
           </Button>
         </DialogActions>
       </Dialog>

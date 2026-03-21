@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress,
   Chip, Stack, Alert, Divider, IconButton, Tooltip as MuiTooltip,
-  Button, LinearProgress,
+  Button, LinearProgress, Tab, Tabs, TextField, InputAdornment,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -10,6 +10,8 @@ import {
   ResponsiveContainer, BarChart, Bar,
 } from 'recharts';
 import PsychologyIcon from '@mui/icons-material/Psychology';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import SendIcon from '@mui/icons-material/Send';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -437,10 +439,233 @@ function TopCategoriesCard({ categories }: { categories: CategoryStat[] }) {
   );
 }
 
+// ─── Ask AI types ─────────────────────────────────────────────────────────────
+
+interface ChatMsg {
+  text: string;
+  isUser: boolean;
+  suggestions?: string[];
+}
+
+// ─── Ask AI tab component ─────────────────────────────────────────────────────
+
+const STARTER_SUGGESTIONS = [
+  "Why is my child's risk score high?",
+  "What categories should I block?",
+  "Is my child's usage normal for their age?",
+  "What time does my child use internet most?",
+];
+
+function AskAiTab({ profileId }: { profileId: string | null }) {
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  const sendQuestion = async (question: string) => {
+    if (!question.trim() || !profileId || loading) return;
+    const q = question.trim();
+    setInput('');
+    setMessages(prev => {
+      const next = [...prev, { text: q, isUser: true }];
+      // Keep last 3 Q&A pairs (6 messages)
+      return next.slice(-6);
+    });
+    setLoading(true);
+
+    try {
+      const res = await api.post('/ai/chat', { profileId, question: q });
+      const data = res.data?.data ?? res.data;
+      const answer = data?.answer ?? 'Sorry, no answer available.';
+      const suggestions: string[] = Array.isArray(data?.suggestions) ? data.suggestions : [];
+      setMessages(prev => [...prev, { text: answer, isUser: false, suggestions }]);
+    } catch {
+      setMessages(prev => [
+        ...prev,
+        { text: 'Unable to reach Shield AI right now. Please try again.', isUser: false },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!profileId) {
+    return (
+      <Card sx={{ textAlign: 'center', p: 4 }}>
+        <CardContent>
+          <SmartToyIcon sx={{ fontSize: 48, color: '#1565C0', mb: 2 }} />
+          <Typography variant="h6" fontWeight={700}>Select a child profile</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Choose a child above to start chatting with Shield AI.
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+        {/* Header */}
+        <Box sx={{
+          display: 'flex', alignItems: 'center', gap: 1.5,
+          px: 2.5, py: 2, borderBottom: '1px solid #F0F0F0',
+        }}>
+          <Box sx={{
+            width: 36, height: 36, borderRadius: 2,
+            bgcolor: '#E3F2FD', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <SmartToyIcon sx={{ color: '#1565C0', fontSize: 20 }} />
+          </Box>
+          <Box>
+            <Typography variant="subtitle1" fontWeight={700}>Shield AI Assistant</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Ask anything about your child's online activity
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Starter suggestions (only shown when no messages yet) */}
+        {messages.length === 0 && (
+          <Box sx={{ px: 2.5, py: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600 }}>
+              Try asking:
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {STARTER_SUGGESTIONS.map((s, i) => (
+                <Chip
+                  key={i}
+                  label={s}
+                  size="small"
+                  onClick={() => sendQuestion(s)}
+                  sx={{
+                    cursor: 'pointer', bgcolor: '#E3F2FD', color: '#1565C0',
+                    fontWeight: 600, fontSize: 12,
+                    '&:hover': { bgcolor: '#BBDEFB' },
+                    mb: 0.5,
+                  }}
+                />
+              ))}
+            </Stack>
+          </Box>
+        )}
+
+        {/* Message list */}
+        {messages.length > 0 && (
+          <Box sx={{
+            px: 2.5, py: 2,
+            maxHeight: 400, overflowY: 'auto',
+            display: 'flex', flexDirection: 'column', gap: 1.5,
+          }}>
+            {messages.map((msg, i) => (
+              <Box key={i}>
+                <Box sx={{
+                  display: 'flex',
+                  justifyContent: msg.isUser ? 'flex-end' : 'flex-start',
+                  gap: 1,
+                }}>
+                  {!msg.isUser && (
+                    <Box sx={{
+                      width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                      bgcolor: '#E3F2FD', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      mt: 0.3,
+                    }}>
+                      <SmartToyIcon sx={{ fontSize: 16, color: '#1565C0' }} />
+                    </Box>
+                  )}
+                  <Box sx={{
+                    maxWidth: '75%',
+                    px: 2, py: 1.2,
+                    borderRadius: msg.isUser
+                      ? '16px 4px 16px 16px'
+                      : '4px 16px 16px 16px',
+                    bgcolor: msg.isUser ? '#7B1FA2' : '#E3F2FD',
+                    color: msg.isUser ? 'white' : 'text.primary',
+                  }}>
+                    <Typography variant="body2" sx={{ lineHeight: 1.55 }}>
+                      {msg.text}
+                    </Typography>
+                  </Box>
+                </Box>
+                {/* Suggestion chips below AI reply */}
+                {!msg.isUser && msg.suggestions && msg.suggestions.length > 0 && (
+                  <Box sx={{ pl: 5, mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    {msg.suggestions.map((s, j) => (
+                      <Chip
+                        key={j}
+                        label={s}
+                        size="small"
+                        onClick={() => sendQuestion(s)}
+                        sx={{
+                          cursor: 'pointer', bgcolor: '#E3F2FD', color: '#1565C0',
+                          fontWeight: 600, fontSize: 11,
+                          '&:hover': { bgcolor: '#BBDEFB' },
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            ))}
+            {loading && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{
+                  width: 28, height: 28, borderRadius: '50%',
+                  bgcolor: '#E3F2FD', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <SmartToyIcon sx={{ fontSize: 16, color: '#1565C0' }} />
+                </Box>
+                <CircularProgress size={16} sx={{ color: '#1565C0' }} />
+                <Typography variant="caption" color="text.secondary">Shield AI is thinking…</Typography>
+              </Box>
+            )}
+            <div ref={bottomRef} />
+          </Box>
+        )}
+
+        {/* Input */}
+        <Box sx={{ px: 2.5, py: 1.5, borderTop: '1px solid #F0F0F0' }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Ask about your child's activity…"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(input); } }}
+            disabled={loading}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      disabled={loading || !input.trim()}
+                      onClick={() => sendQuestion(input)}
+                      sx={{ color: '#1565C0' }}
+                    >
+                      <SendIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+          />
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AiInsightsPage() {
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
   const qc = useQueryClient();
 
   const { data: children } = useQuery({
@@ -553,11 +778,30 @@ export default function AiInsightsPage() {
         }
       />
 
-      {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
-      ) : showNoData ? (
-        <NoDataEmptyState profileName={selectedChildObj?.name} />
-      ) : (
+      {/* Tab bar */}
+      <Box sx={{ borderBottom: '1px solid #F0F0F0', mb: 2.5 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, v) => setActiveTab(v)}
+          sx={{ '& .MuiTab-root': { fontWeight: 600, fontSize: 13, textTransform: 'none', minHeight: 44 } }}
+        >
+          <Tab label="Overview" />
+          <Tab label="Trends" />
+          <Tab label="Alerts" />
+          <Tab label="Ask AI" icon={<SmartToyIcon sx={{ fontSize: 16 }} />} iconPosition="start" />
+        </Tabs>
+      </Box>
+
+      {/* Ask AI tab */}
+      {activeTab === 3 && <AskAiTab profileId={profileId} />}
+
+      {/* Analytics tabs 0-2 */}
+      {activeTab !== 3 && (
+        isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
+        ) : showNoData ? (
+          <NoDataEmptyState profileName={selectedChildObj?.name} />
+        ) : (
         <Grid container spacing={2.5}>
 
           {/* ── Row 1: Risk Score + Addiction + Trend + Mental Health ── */}
@@ -903,6 +1147,7 @@ export default function AiInsightsPage() {
             </Grid>
           )}
         </Grid>
+        )
       )}
     </AnimatedPage>
   );

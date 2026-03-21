@@ -6,6 +6,7 @@ import '../../core/auth_state.dart';
 import '../../core/api_client.dart';
 import '../../core/shield_logo.dart';
 import '../../app/theme.dart';
+import '../notifications/notification_history_screen.dart';
 
 // ── Data providers ─────────────────────────────────────────────────────────
 
@@ -117,16 +118,19 @@ class DashboardScreen extends ConsumerWidget {
 
 // ── Hero Header ────────────────────────────────────────────────────────────
 
-class _HeroHeader extends StatelessWidget {
+class _HeroHeader extends ConsumerWidget {
   final dynamic auth;
   final Map<String, dynamic> data;
   const _HeroHeader({required this.auth, required this.data});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final alerts   = (data['activeAlerts'] as int? ?? 0);
     final safe     = alerts == 0;
     final firstName = (auth.name as String? ?? 'Parent').split(' ').first;
+    // Unread notification count for bell badge
+    final unreadAsync = ref.watch(unreadNotifCountProvider);
+    final unreadCount = unreadAsync.valueOrNull ?? alerts;
 
     return SliverToBoxAdapter(
       child: Container(
@@ -151,8 +155,8 @@ class _HeroHeader extends StatelessWidget {
                     const Spacer(),
                     _HeaderAction(
                       icon: Icons.notifications_outlined,
-                      badge: alerts,
-                      onTap: () => context.go('/alerts'),
+                      badge: unreadCount,
+                      onTap: () => context.go('/notifications'),
                     ),
                     const SizedBox(width: 4),
                     _HeaderAction(

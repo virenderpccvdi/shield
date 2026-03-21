@@ -207,6 +207,23 @@ public class FamilyService {
     }
 
     /**
+     * Cancel a pending co-parent invite (only the sender can cancel).
+     */
+    @Transactional
+    public void cancelInvite(UUID inviteId, UUID requesterId) {
+        FamilyInvite invite = familyInviteRepository.findById(inviteId)
+                .orElseThrow(() -> ShieldException.notFound("invite", inviteId));
+        if (!invite.getInvitedBy().equals(requesterId)) {
+            throw ShieldException.forbidden("Not your invite");
+        }
+        if (!"PENDING".equals(invite.getStatus())) {
+            throw ShieldException.badRequest("Invite is not pending");
+        }
+        familyInviteRepository.delete(invite);
+        log.info("User {} cancelled family invite {}", requesterId, inviteId);
+    }
+
+    /**
      * Remove a family member (GUARDIAN only).
      */
     @Transactional

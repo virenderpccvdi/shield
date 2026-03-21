@@ -20,6 +20,12 @@ spring:
         default_schema: location
   flyway:
     enabled: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:shield}
+    password: ${RABBITMQ_PASSWORD:Shield@Rabbit2026}
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}

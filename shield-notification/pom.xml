@@ -132,6 +132,12 @@
             <version>10.6.7</version>
         </dependency>
 
+        <!-- RabbitMQ / AMQP event bus -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

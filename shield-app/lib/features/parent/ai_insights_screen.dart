@@ -5,6 +5,19 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../app/theme.dart';
 import '../../core/api_client.dart';
 
+// ─── Ask AI State ─────────────────────────────────────────────────────────────
+
+class _ChatMessage {
+  final String text;
+  final bool isUser;
+  final List<String> suggestions;
+  const _ChatMessage({
+    required this.text,
+    required this.isUser,
+    this.suggestions = const [],
+  });
+}
+
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 final aiInsightsProvider =
@@ -206,7 +219,7 @@ class AiInsightsScreen extends ConsumerWidget {
 
 // ─── Body ────────────────────────────────────────────────────────────────────
 
-class _InsightsBody extends StatelessWidget {
+class _InsightsBody extends ConsumerStatefulWidget {
   final Map<String, dynamic> data;
   final String profileId;
   final Future<void> Function() onRefresh;
@@ -218,7 +231,112 @@ class _InsightsBody extends StatelessWidget {
   });
 
   @override
+  ConsumerState<_InsightsBody> createState() => _InsightsBodyState();
+}
+
+class _InsightsBodyState extends ConsumerState<_InsightsBody> {
+  final _chatController = TextEditingController();
+  final _chatScrollController = ScrollController();
+  final List<_ChatMessage> _messages = [];
+  bool _chatLoading = false;
+
+  @override
+  void dispose() {
+    _chatController.dispose();
+    _chatScrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendQuestion(String question) async {
+    if (question.trim().isEmpty) return;
+    final q = question.trim();
+    _chatController.clear();
+
+    setState(() {
+      _messages.add(_ChatMessage(text: q, isUser: true));
+      _chatLoading = true;
+    });
+
+    // Keep only last 3 Q&A pairs (6 messages)
+    if (_messages.length > 6) {
+      _messages.removeRange(0, _messages.length - 6);
+    }
+
+    _scrollToBottom();
+
+    try {
+      final dio = ref.read(dioProvider);
+      final res = await dio.post('/ai/chat', data: {
+        'profileId': widget.profileId,
+        'question': q,
+      });
+      final body = res.data is Map ? res.data as Map<String, dynamic> : <String, dynamic>{};
+      final answer = body['answer'] as String? ?? 'Sorry, no answer available.';
+      final rawSuggestions = body['suggestions'];
+      final suggestions = rawSuggestions is List
+          ? rawSuggestions.map((s) => s.toString()).toList()
+          : <String>[];
+
+      if (mounted) {
+        setState(() {
+          _chatLoading = false;
+          _messages.add(_ChatMessage(
+            text: answer,
+            isUser: false,
+            suggestions: suggestions,
+          ));
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _chatLoading = false;
+          _messages.add(const _ChatMessage(
+            text: 'Unable to reach Shield AI right now. Please try again.',
+            isUser: false,
+          ));
+        });
+      }
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  List<double> _toDoubleList(dynamic raw) {
+    if (raw is List) {
+      return raw.map((e) => (e as num).toDouble()).toList();
+    }
+    return List.generate(7, (_) => 0);
+  }
+
+  List<Map<String, dynamic>> _toCategoryList(dynamic raw) {
+    if (raw is List) {
+      return raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
+
+  List<Map<String, dynamic>> _toMapList(dynamic raw) {
+    if (raw is List) {
+      return raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data = widget.data;
     final stats =
         (data['analyticsStats'] as Map?)?.cast<String, dynamic>() ?? {};
 
@@ -251,7 +369,7 @@ class _InsightsBody extends StatelessWidget {
     final totalBlocked = (data['totalBlocked'] as num?)?.toInt() ?? 0;
 
     return RefreshIndicator(
-      onRefresh: onRefresh,
+      onRefresh: widget.onRefresh,
       color: ShieldTheme.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -338,35 +456,20 @@ class _InsightsBody extends StatelessWidget {
                       ),
                     ),
                   ),
+
+            // 7. Ask AI
+            const SizedBox(height: 24),
+            _AskAiSection(
+              messages: _messages,
+              chatLoading: _chatLoading,
+              chatController: _chatController,
+              scrollController: _chatScrollController,
+              onSend: _sendQuestion,
+            ),
           ],
         ),
       ),
     );
-  }
-
-  List<double> _toDoubleList(dynamic raw) {
-    if (raw is List) {
-      return raw.map((e) => (e as num).toDouble()).toList();
-    }
-    return List.generate(7, (_) => 0);
-  }
-
-  List<Map<String, dynamic>> _toCategoryList(dynamic raw) {
-    if (raw is List) {
-      return raw
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
-    }
-    return [];
-  }
-
-  List<Map<String, dynamic>> _toMapList(dynamic raw) {
-    if (raw is List) {
-      return raw
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
-    }
-    return [];
   }
 }
 
@@ -1539,6 +1642,296 @@ class _EmptyAnomalies extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Ask AI Section ───────────────────────────────────────────────────────────
+
+class _AskAiSection extends StatelessWidget {
+  final List<_ChatMessage> messages;
+  final bool chatLoading;
+  final TextEditingController chatController;
+  final ScrollController scrollController;
+  final void Function(String) onSend;
+
+  const _AskAiSection({
+    required this.messages,
+    required this.chatLoading,
+    required this.chatController,
+    required this.scrollController,
+    required this.onSend,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1565C0).withOpacity(0.10),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.smart_toy_rounded,
+                  size: 18, color: Color(0xFF1565C0)),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ask AI',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: ShieldTheme.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    'Ask anything about your child\'s online activity',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: ShieldTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Chat history (last 3 Q&A pairs)
+        if (messages.isNotEmpty) ...[
+          Container(
+            constraints: const BoxConstraints(maxHeight: 320),
+            decoration: BoxDecoration(
+              color: ShieldTheme.cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: ShieldTheme.divider),
+            ),
+            child: ListView.builder(
+              controller: scrollController,
+              padding: const EdgeInsets.all(12),
+              shrinkWrap: true,
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final msg = messages[index];
+                return _ChatBubble(message: msg, onSuggestionTap: onSend);
+              },
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+
+        // Loading indicator
+        if (chatLoading)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1565C0).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.smart_toy_rounded,
+                      size: 16, color: Color(0xFF1565C0)),
+                ),
+                const SizedBox(width: 10),
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 8),
+                const Text('Shield AI is thinking…',
+                    style: TextStyle(
+                        fontSize: 13, color: ShieldTheme.textSecondary)),
+              ],
+            ),
+          ),
+
+        // Input row
+        Container(
+          decoration: BoxDecoration(
+            color: ShieldTheme.cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: ShieldTheme.divider),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: chatController,
+                  decoration: const InputDecoration(
+                    hintText: 'Ask about your child\'s activity…',
+                    hintStyle: TextStyle(
+                        fontSize: 14, color: ShieldTheme.textSecondary),
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: chatLoading ? null : onSend,
+                  maxLines: 1,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: const Icon(Icons.send_rounded),
+                  color: const Color(0xFF1565C0),
+                  onPressed: chatLoading
+                      ? null
+                      : () => onSend(chatController.text),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Chat Bubble ──────────────────────────────────────────────────────────────
+
+class _ChatBubble extends StatelessWidget {
+  final _ChatMessage message;
+  final void Function(String) onSuggestionTap;
+
+  const _ChatBubble({
+    required this.message,
+    required this.onSuggestionTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (message.isUser) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: ShieldTheme.primary,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(4),
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  message.text,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.white,
+                      height: 1.4),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // AI reply
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1565C0).withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.smart_toy_rounded,
+                    size: 16, color: Color(0xFF1565C0)),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    message.text,
+                    style: const TextStyle(
+                        fontSize: 13,
+                        color: ShieldTheme.textPrimary,
+                        height: 1.5),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Suggestion chips
+          if (message.suggestions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 36),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: message.suggestions.map((s) {
+                  return GestureDetector(
+                    onTap: () => onSuggestionTap(s),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1565C0).withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: const Color(0xFF1565C0).withOpacity(0.25)),
+                      ),
+                      child: Text(
+                        s,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

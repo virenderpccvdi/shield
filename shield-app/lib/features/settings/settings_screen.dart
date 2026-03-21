@@ -92,6 +92,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () => _launchWeb(context, 'settings')),
           _SettingsTile(icon: Icons.group_add_rounded, title: 'Family Members', subtitle: 'Invite co-parents and manage family access',
             onTap: () => context.go('/family/members')),
+          _SettingsTile(icon: Icons.phonelink_setup_rounded, title: 'Child Device Setup', subtitle: 'Link this phone as a child device',
+            onTap: () => context.push('/child-setup')),
           if (_biometricAvailable)
             SwitchListTile(
               secondary: const Icon(Icons.fingerprint, color: Color(0xFF1565C0)),
@@ -111,6 +113,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const Divider(height: 1),
           _SectionHeader('Notifications'),
+          _SettingsTile(icon: Icons.notifications_rounded, title: 'Notification History', subtitle: 'View all past alerts and notifications',
+            onTap: () => context.go('/notifications')),
           _SettingsTile(icon: Icons.notifications_outlined, title: 'Alert Preferences', subtitle: 'DNS blocks, geofence, SOS alerts',
             onTap: () => _showNotificationPrefs(context)),
           _SettingsTile(icon: Icons.do_not_disturb_outlined, title: 'Quiet Hours', subtitle: 'Silence notifications at night',

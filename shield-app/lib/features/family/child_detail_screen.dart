@@ -421,6 +421,13 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
             color: Colors.deepPurple,
             onTap: () => context.go('/family/${widget.profileId}/devices'),
           ),
+          _NavCard(
+            icon: Icons.phonelink_setup_rounded,
+            title: 'Child Device Setup',
+            subtitle: 'Guided QR setup for child\'s phone',
+            color: Colors.indigo,
+            onTap: () => context.go('/child-setup'),
+          ),
           const SizedBox(height: 8),
         ],
       ),

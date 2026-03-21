@@ -16,6 +16,12 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_schema: notification
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:shield}
+    password: ${RABBITMQ_PASSWORD:Shield@Rabbit2026}
+
   # Thymeleaf for email templates
   thymeleaf:
     prefix: classpath:/templates/email/

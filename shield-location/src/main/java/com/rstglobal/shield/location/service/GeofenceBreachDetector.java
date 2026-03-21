@@ -1,10 +1,12 @@
 package com.rstglobal.shield.location.service;
 
+import com.rstglobal.shield.location.config.RabbitMQConfig;
 import com.rstglobal.shield.location.entity.Geofence;
 import com.rstglobal.shield.location.entity.GeofenceEvent;
 import com.rstglobal.shield.location.entity.LocationPoint;
 import com.rstglobal.shield.location.repository.GeofenceEventRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,18 +43,21 @@ public class GeofenceBreachDetector {
     private final DiscoveryClient discoveryClient;
     private final JdbcTemplate jdbcTemplate;
     private final RestClient restClient;
+    private final RabbitTemplate rabbitTemplate;
 
     public GeofenceBreachDetector(GeofenceService geofenceService,
                                   GeofenceEventRepository geofenceEventRepository,
                                   StringRedisTemplate redisTemplate,
                                   DiscoveryClient discoveryClient,
-                                  JdbcTemplate jdbcTemplate) {
+                                  JdbcTemplate jdbcTemplate,
+                                  RabbitTemplate rabbitTemplate) {
         this.geofenceService = geofenceService;
         this.geofenceEventRepository = geofenceEventRepository;
         this.redisTemplate = redisTemplate;
         this.discoveryClient = discoveryClient;
         this.jdbcTemplate = jdbcTemplate;
         this.restClient = RestClient.builder().build();
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     /**
@@ -190,6 +197,9 @@ public class GeofenceBreachDetector {
                     .retrieve()
                     .toBodilessEntity();
 
+            // Also publish to RabbitMQ event bus for fan-out consumers
+            publishBreachEvent(point, geofence, eventType, parentUserId, tenantId);
+
             // Mark the geofence event as notified
             geofenceEventRepository.findById(eventId).ifPresent(ev -> {
                 ev.setNotified(true);
@@ -201,6 +211,40 @@ public class GeofenceBreachDetector {
         } catch (Exception e) {
             log.warn("Failed to send breach notification for geofence '{}': {}",
                     geofence.getName(), e.getMessage());
+        }
+    }
+
+    /**
+     * Publish a geofence breach event to the shield.events RabbitMQ exchange.
+     * This enables any service bound to the exchange to react to breach events
+     * independently of the direct REST call to shield-notification.
+     */
+    private void publishBreachEvent(LocationPoint point, Geofence geofence,
+                                    String eventType, UUID parentUserId, UUID tenantId) {
+        try {
+            Map<String, Object> data = new HashMap<>();
+            data.put("breachType", eventType);
+            data.put("geofenceName", geofence.getName());
+            data.put("latitude", point.getLatitude());
+            data.put("longitude", point.getLongitude());
+            data.put("timestamp", Instant.now().toString());
+
+            Map<String, Object> event = new HashMap<>();
+            event.put("eventType", "GEOFENCE_BREACH");
+            event.put("profileId", point.getProfileId().toString());
+            event.put("userId", parentUserId.toString());
+            event.put("tenantId", tenantId.toString());
+            event.put("data", data);
+
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.EXCHANGE_NAME,
+                    RabbitMQConfig.ROUTING_KEY_GEOFENCE_BREACH,
+                    event);
+
+            log.debug("Published geofence breach event to RabbitMQ: geofence='{}' type={}",
+                    geofence.getName(), eventType);
+        } catch (Exception e) {
+            log.warn("Failed to publish breach event to RabbitMQ (non-fatal): {}", e.getMessage());
         }
     }
 

@@ -70,6 +70,17 @@ public class FamilyController {
         return ApiResponse.ok(familyService.updateRole(userId, tenantId, memberId, req.getRole()));
     }
 
+    @DeleteMapping("/invites/{inviteId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Cancel a pending co-parent invite (sender only)")
+    public void cancelInvite(
+            @PathVariable UUID inviteId,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role) {
+        requireCustomer(role);
+        familyService.cancelInvite(inviteId, userId);
+    }
+
     @DeleteMapping("/{memberId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Remove a family member (GUARDIAN only)")

@@ -31,6 +31,7 @@ import '../features/parent/panic_alert_screen.dart';
 import '../features/child/child_tasks_screen.dart';
 import '../features/child/child_sos_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
+import '../features/notifications/notification_history_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
@@ -65,7 +66,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/family/new', builder: (_, __) => const NewChildProfileScreen()),
           GoRoute(path: '/family/members', builder: (_, __) => const CoParentScreen()),
           GoRoute(path: '/family/:profileId', builder: (_, state) => ChildDetailScreen(profileId: state.pathParameters['profileId']!)),
-          GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
+          GoRoute(
+            path: '/map',
+            builder: (_, state) => MapScreen(
+              profileId: state.uri.queryParameters['profileId'],
+            ),
+          ),
           GoRoute(path: '/alerts', builder: (_, __) => const AlertsScreen()),
           GoRoute(path: '/alerts/sos', builder: (_, __) => const PanicAlertScreen()),
           GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
@@ -80,6 +86,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/family/:profileId/location-history', builder: (_, state) => LocationHistoryScreen(profileId: state.pathParameters['profileId']!)),
           GoRoute(path: '/family/:profileId/ai-insights', builder: (_, state) => AiInsightsScreen(profileId: state.pathParameters['profileId']!)),
           GoRoute(path: '/family/:profileId/devices', builder: (_, state) => DevicesScreen(profileId: state.pathParameters['profileId']!)),
+          GoRoute(path: '/notifications', builder: (_, __) => const NotificationHistoryScreen()),
         ],
       ),
     ],
