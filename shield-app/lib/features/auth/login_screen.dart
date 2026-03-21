@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/auth_state.dart';
 import '../../core/constants.dart';
+import '../../core/shield_logo.dart';
 import 'package:dio/dio.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -41,20 +42,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF1565C0),
-      body: SafeArea(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF6A1B9A), Color(0xFF283593), Color(0xFF1565C0)],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 40),
-              const Icon(Icons.shield, color: Colors.white, size: 64),
-              const SizedBox(height: 12),
+              const SizedBox(height: 48),
+              const Center(child: ShieldLogoHero(size: 80)),
+              const SizedBox(height: 20),
               const Text('Shield', textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
+                style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5)),
+              const SizedBox(height: 4),
               const Text('Family Internet Protection', textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 15)),
+                style: TextStyle(color: Colors.white70, fontSize: 14, letterSpacing: 0.5)),
               const SizedBox(height: 40),
               Card(
                 child: Padding(
@@ -126,6 +137,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
+        ),
     );
   }
 

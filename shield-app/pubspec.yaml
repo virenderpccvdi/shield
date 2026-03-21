@@ -41,6 +41,9 @@ dependencies:
   # WebSocket
   stomp_dart_client: ^2.0.0
 
+  # QR Code Scanner
+  mobile_scanner: ^5.2.3
+
   # Installed apps
   installed_apps: ^1.4.0
 
