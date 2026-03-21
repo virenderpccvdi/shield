@@ -23,44 +23,53 @@ public class ScheduleController {
     @GetMapping("/{profileId}")
     public ResponseEntity<ApiResponse<ScheduleResponse>> getSchedule(
             @PathVariable UUID profileId,
-            @RequestHeader("X-User-Role") String role) {
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
         requireCustomer(role);
-        return ResponseEntity.ok(ApiResponse.ok(scheduleService.getSchedule(profileId)));
+        return ResponseEntity.ok(ApiResponse.ok(scheduleService.getSchedule(profileId, parseUuid(tenantId))));
     }
 
     @PutMapping("/{profileId}")
     public ResponseEntity<ApiResponse<ScheduleResponse>> updateSchedule(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
             @Valid @RequestBody UpdateScheduleRequest req) {
         requireCustomer(role);
-        return ResponseEntity.ok(ApiResponse.ok(scheduleService.updateSchedule(profileId, req)));
+        return ResponseEntity.ok(ApiResponse.ok(scheduleService.updateSchedule(profileId, req, parseUuid(tenantId))));
     }
 
     @PostMapping("/{profileId}/preset")
     public ResponseEntity<ApiResponse<ScheduleResponse>> applyPreset(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
             @RequestParam String preset) {
         requireCustomer(role);
-        return ResponseEntity.ok(ApiResponse.ok(scheduleService.applyPreset(profileId, preset)));
+        return ResponseEntity.ok(ApiResponse.ok(scheduleService.applyPreset(profileId, preset, parseUuid(tenantId))));
     }
 
     @PostMapping("/{profileId}/override")
     public ResponseEntity<ApiResponse<ScheduleResponse>> applyOverride(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
             @Valid @RequestBody ScheduleOverrideRequest req) {
         requireCustomer(role);
-        return ResponseEntity.ok(ApiResponse.ok(scheduleService.applyOverride(profileId, req)));
+        return ResponseEntity.ok(ApiResponse.ok(scheduleService.applyOverride(profileId, req, parseUuid(tenantId))));
     }
 
     @DeleteMapping("/{profileId}/override")
     public ResponseEntity<ApiResponse<ScheduleResponse>> cancelOverride(
             @PathVariable UUID profileId,
-            @RequestHeader("X-User-Role") String role) {
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
         requireCustomer(role);
-        return ResponseEntity.ok(ApiResponse.ok(scheduleService.cancelOverride(profileId)));
+        return ResponseEntity.ok(ApiResponse.ok(scheduleService.cancelOverride(profileId, parseUuid(tenantId))));
+    }
+
+    private UUID parseUuid(String val) {
+        try { return val != null && !val.isBlank() ? UUID.fromString(val) : null; } catch (Exception e) { return null; }
     }
 
     private void requireCustomer(String role) {
