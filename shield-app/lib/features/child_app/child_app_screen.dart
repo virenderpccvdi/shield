@@ -381,33 +381,38 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                       ),
                     ],
                     flexibleSpace: FlexibleSpaceBar(
-                      titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                       title: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Hi, ${auth.childName ?? auth.name ?? 'there'}! 👋',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white,
+                              shadows: [Shadow(color: Colors.black26, blurRadius: 4)])),
                           Text(_isCheckedIn ? '✓ Checked in' : 'Not checked in',
-                            style: TextStyle(fontSize: 11, color: _isCheckedIn ? Colors.green.shade200 : Colors.white60)),
+                            style: TextStyle(fontSize: 11, color: _isCheckedIn ? Colors.greenAccent.shade100 : Colors.white60)),
                         ],
                       ),
-                      background: Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF1565C0), Color(0xFF0D47A1), Color(0xFF1A237E)],
+                      background: Stack(
+                        children: [
+                          Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF1565C0), Color(0xFF0D47A1), Color(0xFF1A237E)],
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Positioned(
-                          right: -20,
-                          top: -20,
-                          child: Opacity(
-                            opacity: 0.08,
-                            child: Icon(Icons.shield, size: 180, color: Colors.white),
+                          Positioned(
+                            right: -20,
+                            top: -20,
+                            child: Opacity(
+                              opacity: 0.08,
+                              child: Icon(Icons.shield, size: 180, color: Colors.white),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
@@ -682,13 +687,32 @@ class _StatsRow extends StatelessWidget {
     final screenMins = data['screenTimeMinutes'] as int? ?? 0;
     final blockPct = queries > 0 ? ((blocked / queries) * 100).round() : 0;
 
-    return Row(children: [
-      Expanded(child: _StatTile(icon: Icons.dns, label: 'Requests', value: '$queries', color: const Color(0xFF1565C0))),
-      const SizedBox(width: 10),
-      Expanded(child: _StatTile(icon: Icons.block, label: 'Blocked', value: '$blockPct%', color: Colors.red)),
-      const SizedBox(width: 10),
-      Expanded(child: _StatTile(icon: Icons.timer, label: 'Screen', value: screenMins > 0 ? '${screenMins}m' : '--', color: Colors.orange)),
-    ]);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(children: [
+            Icon(Icons.bar_chart_rounded, color: Color(0xFF1565C0), size: 20),
+            SizedBox(width: 8),
+            Text("Today's Activity", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          ]),
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(child: _StatTile(icon: Icons.dns_rounded, label: 'Requests', value: '$queries', color: const Color(0xFF1565C0))),
+            const SizedBox(width: 10),
+            Expanded(child: _StatTile(icon: Icons.block_rounded, label: 'Blocked', value: '$blockPct%', color: Colors.red.shade400)),
+            const SizedBox(width: 10),
+            Expanded(child: _StatTile(icon: Icons.timer_rounded, label: 'Screen', value: screenMins > 0 ? '${screenMins}m' : '--', color: Colors.orange.shade600)),
+          ]),
+        ],
+      ),
+    );
   }
 }
 
@@ -702,18 +726,21 @@ class _StatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: color.withOpacity(0.06),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
       ),
       child: Column(children: [
-        Icon(icon, color: color, size: 22),
-        const SizedBox(height: 6),
-        Text(value, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: color)),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(height: 8),
+        Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
       ]),
     );
   }
@@ -727,7 +754,6 @@ class _TasksCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -736,59 +762,145 @@ class _TasksCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(children: [
-            Icon(Icons.emoji_events, color: Color(0xFFFFA726), size: 22),
-            SizedBox(width: 8),
-            Text('My Tasks', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-          ]),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.amber.shade50, borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.emoji_events_rounded, color: Colors.amber.shade700, size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(child: Text('My Tasks', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+                tasksAsync.maybeWhen(
+                  data: (tasks) {
+                    final done = tasks.where((t) => t['completed'] == true).length;
+                    final total = tasks.length;
+                    if (total == 0) return const SizedBox.shrink();
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: done == total ? Colors.green.shade50 : Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: done == total ? Colors.green.shade200 : Colors.blue.shade100),
+                      ),
+                      child: Text('$done/$total done',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                              color: done == total ? Colors.green.shade700 : Colors.blue.shade700)),
+                    );
+                  },
+                  orElse: () => const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 12),
           tasksAsync.when(
             data: (tasks) {
               if (tasks.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Center(child: Text('No tasks assigned yet 🎉', style: TextStyle(color: Colors.grey))),
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                  child: Center(
+                    child: Column(children: [
+                      Icon(Icons.check_circle_outline, size: 40, color: Colors.grey.shade300),
+                      const SizedBox(height: 8),
+                      Text('No tasks assigned yet',
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text('Your parent will assign tasks here 🎯',
+                          style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                    ]),
+                  ),
                 );
               }
+              final totalPts = tasks.fold<int>(0, (s, t) => s + ((t['points'] as int?) ?? 0));
+              final earnedPts = tasks.where((t) => t['completed'] == true)
+                  .fold<int>(0, (s, t) => s + ((t['points'] as int?) ?? 0));
               return Column(
-                children: tasks.map((task) {
-                  final done = task['completed'] == true;
-                  final pts = task['points'] as int? ?? 0;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: done ? Colors.green.shade50 : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: done ? Colors.green.shade200 : Colors.grey.shade200),
-                    ),
-                    child: Row(children: [
-                      Icon(done ? Icons.check_circle : Icons.radio_button_unchecked,
-                          color: done ? Colors.green : Colors.grey, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text(
-                        task['title'] as String? ?? 'Task',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          decoration: done ? TextDecoration.lineThrough : null,
-                          color: done ? Colors.grey : const Color(0xFF1A1A2E),
-                        ),
-                      )),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                children: [
+                  if (totalPts > 0)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade100,
-                          borderRadius: BorderRadius.circular(20),
+                          gradient: LinearGradient(colors: [Colors.amber.shade400, Colors.orange.shade400]),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text('$pts pts', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.amber.shade800)),
+                        child: Row(children: [
+                          const Icon(Icons.stars_rounded, color: Colors.white, size: 22),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text('$earnedPts / $totalPts points earned',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14))),
+                          Text('${totalPts > 0 ? (earnedPts * 100 / totalPts).round() : 0}%',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                        ]),
                       ),
-                    ]),
-                  );
-                }).toList(),
+                    ),
+                  ...tasks.map((task) {
+                    final done = task['completed'] == true;
+                    final pts = task['points'] as int? ?? 0;
+                    return Container(
+                      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: done ? Colors.green.shade50 : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color: done ? Colors.green.shade200 : Colors.grey.shade200,
+                            width: done ? 1.5 : 1),
+                      ),
+                      child: Row(children: [
+                        Container(
+                          width: 28, height: 28,
+                          decoration: BoxDecoration(
+                            color: done ? Colors.green.shade100 : Colors.grey.shade100,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(done ? Icons.check_rounded : Icons.circle_outlined,
+                              color: done ? Colors.green.shade700 : Colors.grey.shade400, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(
+                          task['title'] as String? ?? 'Task',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            decoration: done ? TextDecoration.lineThrough : null,
+                            color: done ? Colors.grey.shade500 : const Color(0xFF1A1A2E),
+                          ),
+                        )),
+                        if (pts > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: done ? Colors.green.shade100 : Colors.amber.shade100,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.star_rounded, size: 12,
+                                  color: done ? Colors.green.shade600 : Colors.amber.shade700),
+                              const SizedBox(width: 3),
+                              Text('$pts', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800,
+                                  color: done ? Colors.green.shade700 : Colors.amber.shade800)),
+                            ]),
+                          ),
+                      ]),
+                    );
+                  }),
+                  const SizedBox(height: 8),
+                ],
               );
             },
-            loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(strokeWidth: 2))),
-            error: (_, __) => const Text('Could not load tasks', style: TextStyle(color: Colors.grey)),
+            loading: () => const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+            error: (_, __) => Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              child: Text('Could not load tasks', style: TextStyle(color: Colors.grey.shade500)),
+            ),
           ),
         ],
       ),

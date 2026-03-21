@@ -10,7 +10,10 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    final token = await SecureStorage.getAccessToken();
+    // Read token from AuthNotifier state — always correct for both parent and child mode.
+    // Do NOT use SecureStorage.getAccessToken() which always reads the parent key
+    // ('access_token') and will return null in child mode (stored under 'child_access_token').
+    final token = _authNotifier.state.accessToken;
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -20,14 +23,20 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     if (err.response?.statusCode == 401) {
-      // Try refresh token
+      // In child mode there is no refresh token — clear child mode only (restores
+      // parent session if one exists, or redirects to login on a child-only device).
+      if (_authNotifier.state.isChildMode) {
+        await _authNotifier.clearChildMode();
+        handler.next(err);
+        return;
+      }
+      // Parent mode: try to refresh
       final refresh = await SecureStorage.getRefreshToken();
       if (refresh != null) {
         try {
           final response = await dio.post('/auth/refresh', data: {'refreshToken': refresh});
           final newToken = response.data['data']['accessToken'] as String;
           await SecureStorage.saveTokens(access: newToken, refresh: refresh);
-          // Retry original request with the new token
           final opts = err.requestOptions;
           opts.headers['Authorization'] = 'Bearer $newToken';
           final cloneReq = await dio.request(
@@ -38,13 +47,9 @@ class AuthInterceptor extends Interceptor {
           );
           return handler.resolve(cloneReq);
         } catch (_) {
-          // Refresh failed — clear storage AND update AuthNotifier state so the
-          // router redirects to /login. Without this, storage is cleared but the
-          // in-memory AuthState still shows isAuthenticated=true.
           await _authNotifier.logout();
         }
       } else {
-        // No refresh token at all — session is definitively expired
         await _authNotifier.logout();
       }
     }
