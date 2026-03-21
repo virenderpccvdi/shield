@@ -517,13 +517,33 @@ export default function ChildProfilePage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isError, error } = useQuery({
     queryKey: ['child-profile', profileId],
     queryFn: () => api.get(`/profiles/children/${profileId}`).then(r => (r.data?.data || r.data) as ChildProfile),
+    retry: 1,
   });
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
-  if (!profile) return <Typography color="error">Profile not found</Typography>;
+  if (isError || !profile) {
+    const status = (error as any)?.response?.status;
+    const msg = status === 401 ? 'Your session has expired. Please log in again.'
+      : status === 403 ? 'You do not have permission to view this profile.'
+      : status === 404 ? 'This child profile was not found or has been deleted.'
+      : 'Could not load the child profile. Please try again.';
+    return (
+      <Box sx={{ mt: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ShieldIcon sx={{ fontSize: 36, color: '#EF5350' }} />
+        </Box>
+        <Typography variant="h6" fontWeight={700} color="text.primary">Profile Unavailable</Typography>
+        <Typography color="text.secondary" textAlign="center" maxWidth={400}>{msg}</Typography>
+        <Button variant="contained" startIcon={<ArrowBackIcon />} onClick={() => navigate('/profiles')}
+          sx={{ mt: 1, bgcolor: '#1565C0', borderRadius: 2 }}>
+          Back to Child Profiles
+        </Button>
+      </Box>
+    );
+  }
 
   const fc = filterColors[profile.filterLevel] || filterColors.MODERATE;
   const tabs = [

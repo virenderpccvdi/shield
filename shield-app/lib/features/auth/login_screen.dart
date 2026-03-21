@@ -29,6 +29,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(authProvider.notifier).setAuth(
         userId: d['userId'], accessToken: d['accessToken'],
         name: d['name'] ?? '', email: d['email'] ?? '', role: d['role'] ?? 'CUSTOMER',
+        refreshToken: d['refreshToken'] as String?,
       );
       if (mounted) context.go('/dashboard');
     } on DioException catch (e) {

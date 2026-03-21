@@ -12,10 +12,12 @@ final dioProvider = Provider<Dio>((ref) {
     headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
   ));
 
-  // AuthInterceptor handles: token injection, 401 → auto token refresh, logout on refresh failure
-  dio.interceptors.add(AuthInterceptor(dio));
+  // AuthInterceptor handles: token injection, 401 → auto token refresh, logout on refresh failure.
+  // Pass the AuthNotifier so it can update app state (not just clear storage) on refresh failure.
+  dio.interceptors.add(AuthInterceptor(dio, ref.read(authProvider.notifier)));
 
-  // Global error handler: connection timeouts, network errors, and fallback 401 logout
+  // Global error handler: connection timeouts and network errors only.
+  // Do NOT call logout() here — AuthInterceptor already handles 401 exhaustion via the notifier.
   dio.interceptors.add(InterceptorsWrapper(
     onError: (err, handler) {
       if (err.type == DioExceptionType.connectionTimeout ||
@@ -39,10 +41,6 @@ final dioProvider = Provider<Dio>((ref) {
           ),
         );
         return;
-      }
-      // Fallback 401 logout if AuthInterceptor did not handle it (e.g. refresh also 401'd)
-      if (err.response?.statusCode == 401) {
-        ref.read(authProvider.notifier).logout();
       }
       handler.next(err);
     },

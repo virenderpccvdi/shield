@@ -41,11 +41,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       final authState = ref.read(authProvider);
       final isAuth = authState.isAuthenticated;
       final isChildMode = authState.isChildMode;
-      final publicRoutes = ['/login', '/register', '/forgot-password', '/child-setup'];
+      // /child-setup is accessible to both authenticated parents and unauthenticated
+      // users (e.g. first-time child device setup).  It must NOT be in publicRoutes
+      // or an authenticated parent navigating to it will be bounced back to /dashboard.
+      final publicRoutes = ['/login', '/register', '/forgot-password'];
       final isPublicRoute = publicRoutes.contains(state.matchedLocation);
-      // Child mode: always redirect to /child
-      if (isChildMode && isAuth && state.matchedLocation != '/child') return '/child';
-      if (!isAuth && !isPublicRoute && state.matchedLocation != '/onboarding') return '/login';
+      // Child mode: always redirect to /child (but NOT during setup)
+      if (isChildMode && isAuth && state.matchedLocation != '/child' && state.matchedLocation != '/child-setup') return '/child';
+      if (!isAuth && !isPublicRoute && state.matchedLocation != '/onboarding' && state.matchedLocation != '/child-setup') return '/login';
       if (isAuth && !isChildMode && isPublicRoute) return '/dashboard';
       return null;
     },
