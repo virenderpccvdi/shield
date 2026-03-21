@@ -125,7 +125,7 @@ export default function CustomerDashboardPage() {
       const results: (SosEvent & { childName: string })[] = [];
       await Promise.all(children.map(async (child: ChildProfile) => {
         try {
-          const r = await api.get(`/location/sos/${child.id}/all?limit=5`);
+          const r = await api.get(`/location/${child.id}/sos?all=false`);
           const events: SosEvent[] = r.data?.data ?? r.data ?? [];
           events.filter((e: SosEvent) => e.status === 'ACTIVE').forEach((ev: SosEvent) => {
             results.push({ ...ev, childName: child.name });

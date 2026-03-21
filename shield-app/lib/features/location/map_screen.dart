@@ -15,7 +15,9 @@ class _ChildLocation {
   final double latitude;
   final double longitude;
   final String? address;
-  final bool isBreaching; // true when inside a breached geofence
+  final bool isBreaching;
+  final int? batteryPct;
+  final double? speedKmh;
 
   const _ChildLocation({
     required this.profileId,
@@ -24,6 +26,8 @@ class _ChildLocation {
     required this.longitude,
     this.address,
     this.isBreaching = false,
+    this.batteryPct,
+    this.speedKmh,
   });
 }
 
@@ -112,6 +116,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               longitude: lng,
               address: raw['address'] as String?,
               isBreaching: raw['isBreaching'] as bool? ?? false,
+              batteryPct: raw['batteryPct'] as int?,
+              speedKmh: _parseDouble(raw['speedKmh']),
             ));
           }
         }
@@ -150,6 +156,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               longitude: lng,
               address: raw['address'] as String?,
               isBreaching: raw['isBreaching'] as bool? ?? false,
+              batteryPct: raw['batteryPct'] as int?,
+              speedKmh: _parseDouble(raw['speedKmh']),
             );
           } catch (_) {
             return null;
@@ -245,7 +253,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ),
         infoWindow: InfoWindow(
           title: loc.name,
-          snippet: loc.address ?? '${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)}',
+          snippet: [
+            if (loc.address != null) loc.address!
+            else '${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)}',
+            if (loc.batteryPct != null && loc.batteryPct! > 0) '🔋 ${loc.batteryPct}%',
+            if (loc.speedKmh != null && loc.speedKmh! > 0) '🚗 ${loc.speedKmh!.toStringAsFixed(1)} km/h',
+          ].join(' · '),
         ),
       ));
     }
@@ -442,11 +455,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   loc.name,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text(
-                  loc.address ??
-                      '${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      loc.address ?? '${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)}',
+                      maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12),
+                    ),
+                    if ((loc.batteryPct != null && loc.batteryPct! > 0) || (loc.speedKmh != null && loc.speedKmh! > 0))
+                      Row(children: [
+                        if (loc.batteryPct != null && loc.batteryPct! > 0) ...[
+                          Icon(Icons.battery_full, size: 12,
+                            color: loc.batteryPct! < 20 ? Colors.red : loc.batteryPct! < 50 ? Colors.orange : Colors.green),
+                          const SizedBox(width: 2),
+                          Text('${loc.batteryPct}%', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                          const SizedBox(width: 8),
+                        ],
+                        if (loc.speedKmh != null && loc.speedKmh! > 0) ...[
+                          Icon(Icons.speed, size: 12, color: Colors.grey.shade500),
+                          const SizedBox(width: 2),
+                          Text('${loc.speedKmh!.toStringAsFixed(1)} km/h', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                        ],
+                      ]),
+                  ],
                 ),
                 trailing: Chip(
                   label: Text(

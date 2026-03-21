@@ -44,6 +44,14 @@ final childBankProvider = FutureProvider.family<Map<String, dynamic>, String>((r
   } catch (_) { return {}; }
 });
 
+final childGeofencesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, profileId) async {
+  final client = ref.read(dioProvider);
+  try {
+    final res = await client.get('/profiles/geofences', queryParameters: {'profileId': profileId});
+    return (res.data['data'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  } catch (_) { return []; }
+});
+
 /// Check-in status stored in SharedPreferences
 class CheckInState {
   final bool isCheckedIn;
@@ -476,6 +484,10 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
 
                         // ── Rewards ──────────────────────────────────────────
                         _RewardsCard(bankAsync: bank, profileId: profileId),
+                        const SizedBox(height: 16),
+
+                        // ── Safe Zones ───────────────────────────────────────
+                        _GeofenceCard(profileId: profileId),
                         const SizedBox(height: 80),
                       ]),
                     ),
@@ -1136,5 +1148,82 @@ class _MiniStat extends StatelessWidget {
       Text(label,
           style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
     ]);
+  }
+}
+
+// ── Geofence Card (child read-only safe zones view) ───────────────────────────
+
+class _GeofenceCard extends ConsumerWidget {
+  final String profileId;
+  const _GeofenceCard({required this.profileId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final geofencesAsync = ref.watch(childGeofencesProvider(profileId));
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.shield_outlined, color: colorScheme.primary, size: 20),
+            const SizedBox(width: 8),
+            Text('My Safe Zones',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: colorScheme.onSurface)),
+          ]),
+          const SizedBox(height: 14),
+          geofencesAsync.when(
+            data: (zones) {
+              if (zones.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No zones configured',
+                        style: TextStyle(color: colorScheme.onSurface.withOpacity(0.45), fontSize: 13)),
+                  ),
+                );
+              }
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: zones.map((zone) {
+                  final name = zone['name'] as String? ?? 'Zone';
+                  final type = (zone['type'] as String? ?? '').toUpperCase();
+                  final isRestricted = type == 'RESTRICTED' || type == 'SCHOOL';
+                  return Chip(
+                    avatar: Icon(
+                      isRestricted ? Icons.block_rounded : Icons.home_rounded,
+                      size: 16,
+                      color: isRestricted ? Colors.red.shade700 : Colors.green.shade700,
+                    ),
+                    label: Text(name,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isRestricted ? Colors.red.shade800 : Colors.green.shade800,
+                        )),
+                    backgroundColor: isRestricted ? Colors.red.shade50 : Colors.green.shade50,
+                    side: BorderSide(
+                      color: isRestricted ? Colors.red.shade200 : Colors.green.shade200,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  );
+                }).toList(),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            error: (_, __) => Text('Could not load zones',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
   }
 }

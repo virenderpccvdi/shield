@@ -13,4 +13,6 @@ public interface SosEventRepository extends JpaRepository<SosEvent, UUID> {
     List<SosEvent> findByProfileIdAndStatusOrderByTriggeredAtDesc(UUID profileId, String status);
 
     List<SosEvent> findByProfileIdOrderByTriggeredAtDesc(UUID profileId);
+
+    List<SosEvent> findByStatusOrderByTriggeredAtDesc(String status);
 }

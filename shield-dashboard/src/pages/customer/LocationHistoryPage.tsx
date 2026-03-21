@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress,
-  Chip, Stack, List, ListItem, ListItemIcon, ListItemText
+  Chip, Stack, List, ListItem, ListItemIcon, ListItemText, Button, Tooltip
 } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -32,6 +33,7 @@ interface LocationPoint {
   longitude: number;
   accuracy?: number;
   speed?: number;
+  batteryPct?: number;
   recordedAt: string;
   address?: string;
 }
@@ -215,6 +217,32 @@ export default function LocationHistoryPage() {
 
   const points = locationData || [];
 
+  const exportCsv = () => {
+    if (points.length === 0) return;
+    const childName = (children || []).find(c => c.id === profileId)?.name ?? 'child';
+    const header = 'Date,Time,Latitude,Longitude,Speed (km/h),Battery (%),Address';
+    const rows = points.map(p => {
+      const d = dayjs(p.recordedAt);
+      return [
+        d.format('YYYY-MM-DD'),
+        d.format('HH:mm:ss'),
+        p.latitude,
+        p.longitude,
+        p.speed != null ? p.speed.toFixed(1) : '',
+        p.batteryPct ?? '',
+        (p.address ?? '').replace(/,/g, ';'),
+      ].join(',');
+    });
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shield-location-${childName}-${fromDate.format('YYYY-MM-DD')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Compute map center: first point or default
   const mapCenter = points.length > 0
     ? { lat: points[0].latitude, lng: points[0].longitude }
@@ -242,6 +270,17 @@ export default function LocationHistoryPage() {
                 }}
               />
             ))}
+            <Tooltip title="Export CSV">
+              <span>
+                <Button
+                  size="small" variant="outlined" startIcon={<DownloadIcon />}
+                  onClick={exportCsv} disabled={points.length === 0}
+                  sx={{ borderRadius: 2, fontWeight: 600, borderColor: '#1565C020', color: '#1565C0' }}
+                >
+                  Export
+                </Button>
+              </span>
+            </Tooltip>
           </Stack>
         }
       />

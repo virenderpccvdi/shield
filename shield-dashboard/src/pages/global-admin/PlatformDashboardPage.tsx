@@ -1,7 +1,8 @@
-import { Box, Grid, Card, CardContent, Typography, Skeleton, Chip, Stack } from '@mui/material';
+import { Box, Grid, Card, CardContent, Typography, Skeleton, Chip, Stack, Alert } from '@mui/material';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
 import DnsIcon from '@mui/icons-material/Dns';
@@ -36,6 +37,48 @@ function timeAgo(dateStr: string): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function PlatformSosBanner() {
+  const { data: sosCount = 0 } = useQuery({
+    queryKey: ['platform-sos-active'],
+    queryFn: async () => {
+      const r = await api.get('/location/sos/platform');
+      const list = r.data?.data ?? [];
+      return Array.isArray(list) ? list.length : 0;
+    },
+    refetchInterval: 30000,
+  });
+
+  if (sosCount === 0) return null;
+
+  return (
+    <Alert
+      severity="error"
+      icon={<WarningAmberIcon sx={{ animation: 'pulse 1.5s infinite' }} />}
+      sx={{
+        mb: 3,
+        borderRadius: 2,
+        fontWeight: 600,
+        '@keyframes pulse': {
+          '0%, 100%': { opacity: 1 },
+          '50%': { opacity: 0.4 },
+        },
+      }}
+      action={
+        <Typography
+          component="a"
+          href="/app/alerts"
+          variant="body2"
+          sx={{ fontWeight: 700, color: 'error.dark', textDecoration: 'underline', cursor: 'pointer', alignSelf: 'center' }}
+        >
+          View Details
+        </Typography>
+      }
+    >
+      {sosCount} active SOS alert{sosCount !== 1 ? 's' : ''} — immediate attention required
+    </Alert>
+  );
 }
 
 export default function PlatformDashboardPage() {
@@ -104,6 +147,8 @@ export default function PlatformDashboardPage() {
   return (
     <AnimatedPage>
       <PageHeader icon={<DashboardIcon />} title="Platform Dashboard" subtitle="Overview of all platform metrics" />
+
+      <PlatformSosBanner />
 
       {/* Row 1: Primary stats */}
       <Grid container spacing={3} sx={{ mb: 3 }}>

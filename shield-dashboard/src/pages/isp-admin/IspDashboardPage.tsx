@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Box, Grid, Card, CardContent, Typography, Avatar, Chip, Stack, CircularProgress } from '@mui/material';
+import { useState, useEffect, useRef } from 'react';
+import { Box, Grid, Card, CardContent, Typography, Avatar, Chip, Stack, CircularProgress, Alert } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
 import DnsIcon from '@mui/icons-material/Dns';
@@ -7,6 +7,7 @@ import BlockIcon from '@mui/icons-material/Block';
 import ShieldIcon from '@mui/icons-material/Shield';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell,
@@ -19,6 +20,56 @@ import { gradients } from '../../theme/theme';
 import { useAuthStore } from '../../store/auth.store';
 
 const PIE_COLORS = ['#E53935', '#7B1FA2', '#FB8C00', '#1565C0', '#78909C', '#00897B'];
+
+function PlatformSosBanner() {
+  const [sosCount, setSosCount] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchSos = () => {
+    api.get('/location/sos/platform')
+      .then(r => {
+        const list = r.data?.data ?? [];
+        setSosCount(Array.isArray(list) ? list.length : 0);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchSos();
+    timerRef.current = setInterval(fetchSos, 30000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  if (sosCount === 0) return null;
+
+  return (
+    <Alert
+      severity="error"
+      icon={<WarningAmberIcon sx={{ animation: 'pulse 1.5s infinite' }} />}
+      sx={{
+        mb: 3,
+        borderRadius: 2,
+        fontWeight: 600,
+        '@keyframes pulse': {
+          '0%, 100%': { opacity: 1 },
+          '50%': { opacity: 0.4 },
+        },
+      }}
+      action={
+        <Typography
+          component="a"
+          href="/app/alerts"
+          variant="body2"
+          sx={{ fontWeight: 700, color: 'error.dark', textDecoration: 'underline', cursor: 'pointer', alignSelf: 'center' }}
+        >
+          View Details
+        </Typography>
+      }
+    >
+      {sosCount} active SOS alert{sosCount !== 1 ? 's' : ''} — immediate attention required
+    </Alert>
+  );
+}
 
 function formatK(value: number) {
   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
@@ -128,6 +179,8 @@ export default function IspDashboardPage() {
         subtitle="Monitor your customers and DNS infrastructure"
         iconColor="#00897B"
       />
+
+      <PlatformSosBanner />
 
       {/* Stat Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

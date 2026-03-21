@@ -77,7 +77,7 @@ function SosPanelSection() {
       const results: (SosEvent & { childName: string })[] = [];
       await Promise.all(children.map(async (child) => {
         try {
-          const r = await api.get(`/location/sos/${child.id}/all?limit=10`);
+          const r = await api.get(`/location/${child.id}/sos?all=true`);
           const events: SosEvent[] = r.data?.data ?? r.data ?? [];
           events.forEach(ev => results.push({ ...ev, childName: child.name }));
         } catch {
@@ -93,12 +93,12 @@ function SosPanelSection() {
   const activeSos = allSosEvents.filter(e => e.status === 'ACTIVE');
 
   const acknowledgeMutation = useMutation({
-    mutationFn: (id: string) => api.patch(`/location/sos/${id}/acknowledge`),
+    mutationFn: (id: string) => api.post(`/location/sos/${id}/acknowledge`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sos-all-events'] }),
   });
 
   const resolveMutation = useMutation({
-    mutationFn: (id: string) => api.patch(`/location/sos/${id}/resolve`),
+    mutationFn: (id: string) => api.post(`/location/sos/${id}/resolve`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sos-all-events'] }),
   });
 

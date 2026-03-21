@@ -25,8 +25,10 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
     try {
       final client = ref.read(dioProvider);
       final tasksRes = await client.get('/rewards/tasks/${widget.profileId}');
-      _tasks = ((tasksRes.data['data'] as List?) ?? [])
-          .map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      final rawTasks = tasksRes.data is List
+          ? tasksRes.data as List
+          : (tasksRes.data['data'] as List? ?? []);
+      _tasks = rawTasks.map((e) => Map<String, dynamic>.from(e as Map)).toList();
 
       try {
         final bankRes = await client.get('/rewards/bank/${widget.profileId}');
@@ -109,7 +111,8 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
           'profileId': widget.profileId,
           'title': titleCtrl.text,
           'description': descCtrl.text,
-          'points': int.tryParse(pointsCtrl.text) ?? 10,
+          'rewardPoints': int.tryParse(pointsCtrl.text) ?? 10,
+          'rewardMinutes': 30,
         });
         _load();
       } catch (e) {
@@ -185,7 +188,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                     final status = task['status'] as String? ?? 'PENDING';
                     final completed = status == 'COMPLETED' || task['completed'] == true;
                     final pendingApproval = status == 'PENDING_APPROVAL';
-                    final points = task['points'] as int? ?? task['rewardMinutes'] as int? ?? 0;
+                    final points = task['rewardPoints'] as int? ?? task['points'] as int? ?? task['rewardMinutes'] as int? ?? 0;
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),

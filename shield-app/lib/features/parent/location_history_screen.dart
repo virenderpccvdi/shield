@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
@@ -170,6 +171,101 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen> {
     }
   }
 
+  void _exportCsv() {
+    final buf = StringBuffer();
+    buf.writeln('Date,Time,Latitude,Longitude,Speed,Address');
+    for (final p in _points) {
+      final ts = p['recordedAt'] as String? ?? p['timestamp'] as String? ?? '';
+      String date = '';
+      String time = '';
+      if (ts.isNotEmpty) {
+        try {
+          final dt = DateTime.parse(ts).toLocal();
+          date = DateFormat('yyyy-MM-dd').format(dt);
+          time = DateFormat('HH:mm:ss').format(dt);
+        } catch (_) {
+          date = ts;
+        }
+      }
+      final lat = p['latitude']?.toString() ?? '';
+      final lng = p['longitude']?.toString() ?? '';
+      final speed = p['speed']?.toString() ?? '';
+      final address = (p['address'] as String? ?? '').replaceAll(',', ';');
+      buf.writeln('$date,$time,$lat,$lng,$speed,$address');
+    }
+    final csv = buf.toString();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.55,
+        maxChildSize: 0.85,
+        builder: (_, scrollController) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(children: [
+                const Icon(Icons.download_rounded, color: Color(0xFF1565C0)),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Export CSV',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  label: const Text('Copy'),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: csv));
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('CSV copied to clipboard')),
+                    );
+                  },
+                ),
+              ]),
+              const SizedBox(height: 8),
+              Text('${_points.length} location point${_points.length != 1 ? 's' : ''}',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              const SizedBox(height: 12),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: SelectableText(
+                      csv,
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -188,6 +284,13 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Location History', style: TextStyle(fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Export CSV',
+            onPressed: _points.isEmpty ? null : _exportCsv,
+          ),
+        ],
       ),
       body: Column(
         children: [

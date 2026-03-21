@@ -203,6 +203,14 @@ public class SosService {
     }
 
     @Transactional(readOnly = true)
+    public List<SosEventResponse> getAllActiveSosPlatform() {
+        return sosEventRepository.findByStatusOrderByTriggeredAtDesc("ACTIVE")
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<SosEventResponse> getActiveSosEvents(UUID profileId) {
         return sosEventRepository.findByProfileIdAndStatusOrderByTriggeredAtDesc(profileId, "ACTIVE")
                 .stream()

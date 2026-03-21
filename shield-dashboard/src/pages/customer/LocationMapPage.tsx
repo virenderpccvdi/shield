@@ -92,14 +92,14 @@ function LocationMarkers({
               <Typography variant="caption" display="block">
                 Last seen: {new Date(loc.recordedAt).toLocaleTimeString()}
               </Typography>
-              {loc.batteryPct !== undefined && (
+              {loc.batteryPct != null && loc.batteryPct > 0 && (
                 <Typography variant="caption" display="block">
-                  Battery: {loc.batteryPct}%
+                  🔋 Battery: {loc.batteryPct}%
                 </Typography>
               )}
-              {loc.speed !== undefined && (
+              {loc.speed != null && loc.speed > 0 && (
                 <Typography variant="caption" display="block">
-                  Speed: {typeof loc.speed === 'number' ? loc.speed.toFixed(1) : loc.speed} km/h
+                  🚗 Speed: {typeof loc.speed === 'number' ? loc.speed.toFixed(1) : loc.speed} km/h
                 </Typography>
               )}
               {loc.isMoving !== undefined && (
