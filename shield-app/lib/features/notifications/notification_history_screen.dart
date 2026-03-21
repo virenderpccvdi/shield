@@ -379,7 +379,7 @@ class _NotificationTile extends StatelessWidget {
       case 'AI_ANOMALY':
       case 'ANOMALY':
       case 'AI_INSIGHT':
-        return (Icons.psychology_rounded, const Color(0xFF7B1FA2));
+        return (Icons.psychology_rounded, const Color(0xFF1565C0));
       case 'SCHEDULE':
       case 'SCHEDULE_START':
       case 'SCHEDULE_END':

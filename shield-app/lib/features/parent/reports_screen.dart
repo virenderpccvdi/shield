@@ -549,7 +549,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
 
   static const _pieColors = [
     Color(0xFF1565C0), Color(0xFF43A047), Color(0xFFFFA726), Color(0xFFE53935),
-    Color(0xFF8E24AA), Color(0xFF00897B), Color(0xFFF4511E), Color(0xFF3949AB),
+    Color(0xFF1976D2), Color(0xFF00897B), Color(0xFFF4511E), Color(0xFF1E88E5),
     Color(0xFFD81B60), Color(0xFF039BE5),
   ];
 }

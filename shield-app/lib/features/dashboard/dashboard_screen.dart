@@ -474,7 +474,7 @@ class _QuickActions extends StatelessWidget {
               children: [
                 _ActionChip(icon: Icons.map_rounded,          label: 'Live Map',    color: ShieldTheme.primary,       onTap: () => context.go('/map')),
                 const SizedBox(width: 10),
-                _ActionChip(icon: Icons.people_rounded,       label: 'Family',      color: const Color(0xFF7B1FA2),   onTap: () => context.go('/family')),
+                _ActionChip(icon: Icons.people_rounded,       label: 'Family',      color: const Color(0xFF1565C0),   onTap: () => context.go('/family')),
                 const SizedBox(width: 10),
                 _ActionChip(icon: Icons.notifications_rounded,label: 'Alerts',      color: ShieldTheme.dangerLight,   onTap: () => context.go('/alerts')),
                 const SizedBox(width: 10),
@@ -883,7 +883,7 @@ class _RecentActivitySection extends StatelessWidget {
             ),
             _MenuRow(
               icon: Icons.schedule_rounded,
-              color: const Color(0xFF7B1FA2),
+              color: const Color(0xFF1565C0),
               label: 'Screen Time',
               subtitle: 'Set schedules and limits',
               onTap: () => context.go('/family'),

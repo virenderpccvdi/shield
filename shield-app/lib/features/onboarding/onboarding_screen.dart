@@ -322,7 +322,7 @@ class _ProtectionPage extends StatelessWidget {
             runSpacing: 10,
             children: const [
               _FeatureChip(label: 'DNS Filtering', icon: Icons.dns_rounded, color: Color(0xFF1565C0)),
-              _FeatureChip(label: 'Screen Time', icon: Icons.access_time_rounded, color: Color(0xFF7B1FA2)),
+              _FeatureChip(label: 'Screen Time', icon: Icons.access_time_rounded, color: Color(0xFF1565C0)),
               _FeatureChip(label: 'AI Insights', icon: Icons.psychology_rounded, color: Color(0xFFBF360C)),
             ],
           ),

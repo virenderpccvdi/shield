@@ -270,7 +270,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                             child: Row(children: [
                               _PresetBtn(label: 'School Hours', icon: Icons.school, color: const Color(0xFF1565C0), onTap: () => _applyServerPreset('SCHOOL')),
                               const SizedBox(width: 8),
-                              _PresetBtn(label: 'Bedtime', icon: Icons.bedtime, color: const Color(0xFF7B1FA2), onTap: () => _applyServerPreset('BEDTIME')),
+                              _PresetBtn(label: 'Bedtime', icon: Icons.bedtime, color: const Color(0xFF1565C0), onTap: () => _applyServerPreset('BEDTIME')),
                               const SizedBox(width: 8),
                               _PresetBtn(label: 'Weekend', icon: Icons.weekend, color: const Color(0xFFFB8C00), onTap: () => _applyServerPreset('WEEKEND')),
                               const SizedBox(width: 8),
