@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Shield</string>
+    <string name="accessibility_service_description">Shield Parental Controls monitors which apps are open to enforce app restrictions set by your parent.</string>
+    <string name="app_blocked_title">App Blocked</string>
+    <string name="app_blocked_message">This app is restricted by your parent.</string>
+</resources>

@@ -9,6 +9,12 @@ export function useWebSocket(
 ) {
   const clientRef = useRef<Client | null>(null);
   const token = useAuthStore((s) => s.accessToken);
+  const onMessageRef = useRef(onMessage);
+
+  // Keep ref up-to-date without causing reconnects
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
 
   useEffect(() => {
     if (!enabled || !token) return;
@@ -17,7 +23,7 @@ export function useWebSocket(
       connectHeaders: { Authorization: `Bearer ${token}` },
       onConnect: () => {
         client.subscribe(topic, (msg) => {
-          try { onMessage(JSON.parse(msg.body)); } catch { /* ignore */ }
+          try { onMessageRef.current(JSON.parse(msg.body)); } catch { /* ignore */ }
         });
       },
       reconnectDelay: 5000,

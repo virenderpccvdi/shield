@@ -204,7 +204,15 @@ public class SosService {
 
     @Transactional(readOnly = true)
     public List<SosEventResponse> getAllActiveSosPlatform() {
-        return sosEventRepository.findByStatusOrderByTriggeredAtDesc("ACTIVE")
+        return sosEventRepository.findTop50ByStatusOrderByTriggeredAtDesc("ACTIVE")
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<SosEventResponse> getAllSosPlatform() {
+        return sosEventRepository.findTop50ByOrderByTriggeredAtDesc()
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -212,7 +220,7 @@ public class SosService {
 
     @Transactional(readOnly = true)
     public List<SosEventResponse> getActiveSosEvents(UUID profileId) {
-        return sosEventRepository.findByProfileIdAndStatusOrderByTriggeredAtDesc(profileId, "ACTIVE")
+        return sosEventRepository.findTop50ByProfileIdAndStatusOrderByTriggeredAtDesc(profileId, "ACTIVE")
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -220,7 +228,7 @@ public class SosService {
 
     @Transactional(readOnly = true)
     public List<SosEventResponse> getAllSosEvents(UUID profileId) {
-        return sosEventRepository.findByProfileIdOrderByTriggeredAtDesc(profileId)
+        return sosEventRepository.findTop50ByProfileIdOrderByTriggeredAtDesc(profileId)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());

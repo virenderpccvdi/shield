@@ -7,11 +7,15 @@ import com.rstglobal.shield.rewards.entity.Task;
 import com.rstglobal.shield.rewards.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -23,6 +27,11 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final RewardBankService rewardBankService;
     private final AchievementService achievementService;
+
+    @Value("${shield.notification.base-url:http://localhost:8286}")
+    private String notifBaseUrl;
+
+    private final RestClient restClient = RestClient.builder().build();
 
     @Transactional
     public TaskResponse createTask(CreateTaskRequest req, UUID createdBy, UUID tenantId) {
@@ -42,7 +51,49 @@ public class TaskService {
 
         task = taskRepository.save(task);
         log.info("Task created: {} for profile {}", task.getId(), task.getProfileId());
+        final Task saved = task;
+        // Notify child device via FCM so the task list updates in real-time
+        sendTaskCreatedPush(saved);
         return toResponse(task);
+    }
+
+    /**
+     * Fire-and-forget: push FCM notification to child's device when a task is created.
+     * The child FCM token is registered under userId=profileId (child JWT sub = profileId).
+     */
+    @Async
+    protected void sendTaskCreatedPush(Task task) {
+        sendPush(task.getProfileId(),
+                "📋 New Task Assigned!",
+                task.getTitle() + " — earn " + task.getRewardPoints() + " points",
+                Map.of("type", "TASK_CREATED", "taskId", task.getId().toString()));
+    }
+
+    @Async
+    protected void sendTaskApprovedPush(Task task) {
+        sendPush(task.getProfileId(),
+                "🎉 Task Approved!",
+                "You earned " + task.getRewardPoints() + " points for: " + task.getTitle(),
+                Map.of("type", "TASK_APPROVED", "taskId", task.getId().toString()));
+    }
+
+    private void sendPush(UUID profileId, String title, String body, Map<String, String> data) {
+        try {
+            // userId for child devices = profileId (child JWT uses profileId as subject)
+            Map<String, Object> payload = new java.util.LinkedHashMap<>();
+            payload.put("userId",   profileId);
+            payload.put("title",    title);
+            payload.put("body",     body);
+            payload.put("priority", "HIGH");
+            payload.put("data",     data);
+            restClient.post()
+                    .uri(notifBaseUrl + "/internal/notifications/push")
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception e) {
+            log.warn("Task push notification failed for profile {}: {}", profileId, e.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)
@@ -106,6 +157,8 @@ public class TaskService {
 
             log.info("Task {} approved by {}, awarded {} points and {} minutes",
                     taskId, approverId, task.getRewardPoints(), task.getRewardMinutes());
+            final Task approvedTask = task;
+            sendTaskApprovedPush(approvedTask);
         } else {
             task.setStatus("REJECTED");
             task.setRejectionNote(req.getRejectionNote());

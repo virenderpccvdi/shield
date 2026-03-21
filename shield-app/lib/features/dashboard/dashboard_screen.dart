@@ -11,29 +11,38 @@ import '../notifications/notification_history_screen.dart';
 // ── Active SOS provider ─────────────────────────────────────────────────────
 
 /// Returns list of active SOS events across all child profiles.
-final activeSosProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final activeSosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   try {
     final client = ref.read(dioProvider);
     final profilesRes = await client.get('/profiles/children');
     final profiles = profilesRes.data['data'] as List? ?? [];
 
-    final active = <Map<String, dynamic>>[];
-    for (final p in profiles) {
-      final profileId = p['id']?.toString() ?? '';
-      final childName = p['name']?.toString() ?? 'Child';
-      if (profileId.isEmpty) continue;
-      try {
-        // GET active only (all=false is default)
-        final res = await client.get('/location/$profileId/sos');
-        final items = res.data['data'] as List? ?? [];
-        for (final item in items) {
-          final m = Map<String, dynamic>.from(item as Map);
-          m['childName'] = childName;
-          active.add(m);
+    // Filter out profiles with empty IDs before parallel fetch
+    final validProfiles = profiles
+        .where((p) => (p['id']?.toString() ?? '').isNotEmpty)
+        .toList();
+
+    // Fetch all profile SOS events in parallel
+    final results = await Future.wait(
+      validProfiles.map((p) async {
+        final profileId = p['id']!.toString();
+        final childName = p['name']?.toString() ?? 'Child';
+        try {
+          final res = await client.get('/location/$profileId/sos');
+          final items = res.data['data'] as List? ?? [];
+          return items.map((item) {
+            final m = Map<String, dynamic>.from(item as Map);
+            m['childName'] = childName;
+            return m;
+          }).toList();
+        } catch (_) {
+          return <Map<String, dynamic>>[];
         }
-      } catch (_) {}
-    }
-    return active;
+      }),
+      eagerError: false,
+    );
+
+    return results.expand((list) => list).toList();
   } catch (_) {
     return [];
   }
@@ -41,62 +50,99 @@ final activeSosProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async
 
 // ── Data providers ─────────────────────────────────────────────────────────
 
-final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+final dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final client = ref.read(dioProvider);
   try {
+    // Step 1: fetch profiles first (needed for subsequent calls)
     final profilesRes = await client.get('/profiles/children');
     final d = profilesRes.data['data'];
     final profiles = (d is Map ? (d['content'] ?? d['items'] ?? []) : d) as List? ?? [];
 
+    // Step 2: fetch notifications + per-profile stats + per-profile devices — all in parallel
+    final parallelResults = await Future.wait([
+      // 2a: unread notifications count
+      client.get('/notifications/my/unread').then((r) => r).catchError((_) => null),
+      // 2b: per-profile stats (all in parallel, eagerError:false)
+      Future.wait(
+        profiles.map((profile) {
+          final profileId = profile['id']?.toString();
+          if (profileId == null) return Future.value(null);
+          return client.get('/analytics/$profileId/stats', queryParameters: {'period': 'TODAY'})
+              .then((r) => r).catchError((_) => null);
+        }).toList(),
+        eagerError: false,
+      ),
+      // 2c: per-profile devices (all in parallel, eagerError:false)
+      Future.wait(
+        profiles.map((profile) {
+          final id = profile['id']?.toString();
+          if (id == null) return Future.value(null);
+          return client.get('/profiles/devices/profile/$id')
+              .then((r) => r).catchError((_) => null);
+        }).toList(),
+        eagerError: false,
+      ),
+    ], eagerError: false);
+
+    // Parse results
     int activeAlerts = 0;
     int blockedToday  = 0;
     int safeChildren  = 0;
 
-    // Fetch unread alerts
+    // 2a: unread alerts
     try {
-      final alertsRes = await client.get('/notifications/my/unread');
-      final alertData = alertsRes.data['data'];
-      activeAlerts = alertData is List
-          ? alertData.length
-          : (alertData?['totalElements'] as int? ?? 0);
+      final alertsRes = parallelResults[0];
+      if (alertsRes != null) {
+        final alertData = (alertsRes as dynamic).data['data'];
+        activeAlerts = alertData is List
+            ? alertData.length
+            : (alertData?['totalElements'] as int? ?? 0);
+      }
     } catch (_) {}
 
-    // Fetch per-profile stats
-    for (final profile in profiles) {
-      final profileId = profile['id']?.toString();
-      if (profileId == null) continue;
-      try {
-        final statsRes = await client.get(
-          '/analytics/$profileId/stats',
-          queryParameters: {'period': 'TODAY'},
-        );
-        final stats = statsRes.data['data'] ?? statsRes.data;
-        blockedToday += (stats['blockedQueries'] as int? ?? stats['blocked'] as int? ?? 0);
-      } catch (_) {}
-      if (profile['online'] == true) safeChildren++;
-    }
+    // 2b: stats per profile
+    final statsResults = parallelResults[1] as List?;
 
-    // Fetch devices for battery / online
+    // 2c: devices per profile
+    final devicesResults = parallelResults[2] as List?;
+
+    // Build enriched profiles
     final List<Map<String, dynamic>> enrichedProfiles = [];
-    for (final profile in profiles) {
-      Map<String, dynamic> p = Map<String, dynamic>.from(profile as Map);
+    for (int i = 0; i < profiles.length; i++) {
+      Map<String, dynamic> p = Map<String, dynamic>.from(profiles[i] as Map);
+
+      // Apply stats
       try {
-        final devRes = await client.get('/profiles/${p['id']}/devices');
-        final devices = devRes.data['data'] as List? ?? [];
-        if (devices.isNotEmpty) {
-          final dev = devices.first as Map<String, dynamic>;
-          p['battery']   = dev['batteryPct'];
-          p['speed']     = dev['speedKmh'];
-          p['lastSeenAt'] = dev['lastSeenAt'];
-          // online if seen in last 5 min
-          if (dev['lastSeenAt'] != null) {
-            final seen = DateTime.tryParse(dev['lastSeenAt'].toString());
-            if (seen != null && DateTime.now().difference(seen).inMinutes < 5) {
-              p['online'] = true;
+        final statsRes = statsResults?[i];
+        if (statsRes != null) {
+          final stats = (statsRes as dynamic).data['data'] ?? (statsRes as dynamic).data;
+          blockedToday += (stats['blockedQueries'] as int? ?? stats['blocked'] as int? ?? 0);
+        }
+      } catch (_) {}
+
+      if (p['online'] == true) safeChildren++;
+
+      // Apply device data
+      try {
+        final devRes = devicesResults?[i];
+        if (devRes != null) {
+          final devices = (devRes as dynamic).data['data'] as List? ?? [];
+          if (devices.isNotEmpty) {
+            final dev = devices.first as Map<String, dynamic>;
+            p['battery']    = dev['batteryPct'];
+            p['speed']      = dev['speedKmh'];
+            p['lastSeenAt'] = dev['lastSeenAt'];
+            // online if seen in last 5 min
+            if (dev['lastSeenAt'] != null) {
+              final seen = DateTime.tryParse(dev['lastSeenAt'].toString());
+              if (seen != null && DateTime.now().difference(seen).inMinutes < 5) {
+                p['online'] = true;
+              }
             }
           }
         }
       } catch (_) {}
+
       enrichedProfiles.add(p);
     }
 

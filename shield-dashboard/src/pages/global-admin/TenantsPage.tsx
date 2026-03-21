@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell,
-  TableBody, Chip, TextField, InputAdornment, CircularProgress, Button,
+  TableBody, TablePagination, Chip, TextField, InputAdornment, CircularProgress, Button,
   Dialog, DialogTitle, DialogContent, DialogActions, Grid,
   MenuItem, IconButton, Tooltip, Alert, Snackbar, Stack, FormControlLabel, Switch,
 } from '@mui/material';
@@ -50,7 +50,11 @@ export default function TenantsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => { setPage(0); }, [search]);
   const [editing, setEditing] = useState<Tenant | null>(null);
   const [form, setForm] = useState<TenantForm>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<Tenant | null>(null);
@@ -58,10 +62,17 @@ export default function TenantsPage() {
   const [formError, setFormError] = useState('');
   const [addIspOpen, setAddIspOpen] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['tenants'],
-    queryFn: () => api.get('/tenants').then(r => (r.data.data?.content ?? r.data.data) as Tenant[]).catch(() => EMPTY_TENANTS),
+  const { data: tenantsData, isLoading } = useQuery({
+    queryKey: ['tenants', page, rowsPerPage],
+    queryFn: () => api.get(`/tenants?page=${page}&size=${rowsPerPage}`)
+      .then(r => {
+        const d = r.data.data;
+        return { tenants: (d?.content ?? d ?? EMPTY_TENANTS) as Tenant[], total: d?.totalElements ?? 0 };
+      })
+      .catch(() => ({ tenants: EMPTY_TENANTS, total: 0 })),
   });
+  const data = tenantsData?.tenants ?? EMPTY_TENANTS;
+  const totalElements = tenantsData?.total ?? 0;
 
   const createMutation = useMutation({
     mutationFn: (body: TenantForm) => api.post('/tenants', body),
@@ -78,7 +89,7 @@ export default function TenantsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tenants'] }); setSnack('ISP tenant deleted'); setDeleteTarget(null); },
   });
 
-  const tenants = (data || EMPTY_TENANTS).filter(t =>
+  const tenants = data.filter(t =>
     `${t.name} ${t.slug} ${t.contactEmail}`.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -103,7 +114,7 @@ export default function TenantsPage() {
       <PageHeader
         icon={<BusinessIcon />}
         title="ISP Tenants"
-        subtitle={`${(data || EMPTY_TENANTS).length} tenants registered`}
+        subtitle={`${totalElements} tenants registered`}
         action={
           <Stack direction="row" spacing={2}>
             <TextField size="small" placeholder="Search tenants..." value={search} onChange={e => setSearch(e.target.value)}
@@ -119,12 +130,12 @@ export default function TenantsPage() {
           const g = PLAN_GRADIENT[plan];
           return (
             <Chip key={plan}
-              label={`${plan}: ${(data || EMPTY_TENANTS).filter(t => t.plan === plan).length}`}
+              label={`${plan}: ${data.filter(t => t.plan === plan).length}`}
               sx={{ background: g.bg, color: g.color, fontWeight: 600, border: 'none' }}
             />
           );
         })}
-        <Chip label={`SUSPENDED: ${(data || EMPTY_TENANTS).filter(t => t.status === 'SUSPENDED').length}`}
+        <Chip label={`SUSPENDED: ${data.filter(t => t.status === 'SUSPENDED').length}`}
           sx={{ background: 'linear-gradient(135deg, #FFEBEE, #FFCDD2)', color: '#C62828', fontWeight: 600, border: 'none' }} />
       </Stack>
 
@@ -212,6 +223,15 @@ export default function TenantsPage() {
                 ))}
               </TableBody>
             </Table>
+            <TablePagination
+              component="div"
+              count={totalElements}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+              rowsPerPageOptions={[10, 25, 50]}
+            />
           </Paper>
         </Card>
       )}

@@ -11,6 +11,8 @@ import java.util.UUID;
 @Builder
 public class DnsRulesResponse {
     private UUID profileId;
+    private String dnsClientId;
+    private String dohUrl;
     private Map<String, Boolean> enabledCategories;
     private List<String> customAllowlist;
     private List<String> customBlocklist;

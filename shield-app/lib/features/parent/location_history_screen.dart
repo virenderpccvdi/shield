@@ -156,11 +156,13 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen> {
       _playTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
         if (_playbackIndex >= _points.length - 1) {
           timer.cancel();
-          setState(() => _playing = false);
+          // Only rebuild to update play/pause button
+          if (mounted) setState(() => _playing = false);
           return;
         }
-        setState(() => _playbackIndex++);
-        // Move camera
+        // Increment index without setState — camera move doesn't need a widget rebuild
+        _playbackIndex++;
+        // Move camera directly — no rebuild needed
         final lat = _d(_points[_playbackIndex]['latitude']);
         final lng = _d(_points[_playbackIndex]['longitude']);
         if (lat != null && lng != null && _mapController.isCompleted) {

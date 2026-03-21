@@ -10,9 +10,11 @@ import java.util.UUID;
 @Repository
 public interface SosEventRepository extends JpaRepository<SosEvent, UUID> {
 
-    List<SosEvent> findByProfileIdAndStatusOrderByTriggeredAtDesc(UUID profileId, String status);
+    List<SosEvent> findTop50ByProfileIdAndStatusOrderByTriggeredAtDesc(UUID profileId, String status);
 
-    List<SosEvent> findByProfileIdOrderByTriggeredAtDesc(UUID profileId);
+    List<SosEvent> findTop50ByProfileIdOrderByTriggeredAtDesc(UUID profileId);
 
-    List<SosEvent> findByStatusOrderByTriggeredAtDesc(String status);
+    List<SosEvent> findTop50ByStatusOrderByTriggeredAtDesc(String status);
+
+    List<SosEvent> findTop50ByOrderByTriggeredAtDesc();
 }

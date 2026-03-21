@@ -101,6 +101,8 @@
           "priceCurrency": "USD"
         },
         "downloadUrl": "https://shield.rstglobal.in/static/shield-app.apk",
+        "version": "1.0.29",
+        "softwareVersion": "1.0.23",
         "description": "Complete parental control app with DNS filtering, screen time limits, GPS tracking, and real-time alerts.",
         "screenshot": "https://shield.rstglobal.in/og-image.svg",
         "featureList": "DNS Content Filtering, Screen Time Schedules, Time Budgets, Real-Time Alerts, Multiple Child Profiles, WhatsApp Alerts, Telegram Alerts",
@@ -687,7 +689,7 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.523 15.341a.66.66 0 01-.66-.66V9.318a.66.66 0 011.32 0v5.363a.66.66 0 01-.66.66zM6.477 15.341a.66.66 0 01-.66-.66V9.318a.66.66 0 011.32 0v5.363a.66.66 0 01-.66.66zm5.046 3.978a.66.66 0 01-.66-.66V12.9a.66.66 0 111.32 0v5.759a.66.66 0 01-.66.66zm5.516-12.15l1.116-2.18a.231.231 0 00-.1-.309.232.232 0 00-.31.1L16.62 7.009A7.378 7.378 0 0012 5.93a7.378 7.378 0 00-4.62 1.08L6.255 4.779a.232.232 0 00-.31-.1.231.231 0 00-.1.31l1.116 2.18A6.745 6.745 0 005 12.34h14a6.745 6.745 0 00-1.961-5.171zM9.5 10.5a1 1 0 110-2 1 1 0 010 2zm5 0a1 1 0 110-2 1 1 0 010 2z"/></svg>
           <div>
             <div class="btn-label">Download APK</div>
-            <div class="btn-sub">Android 8.0+ &nbsp;·&nbsp; 21 MB</div>
+            <div class="btn-sub">Android 8.0+ &nbsp;&middot;&nbsp; 106M</div>
           </div>
         </a>
         <div class="ios-coming" aria-label="iOS app coming soon">
@@ -700,7 +702,7 @@
       </div>
 
       <div class="download-note">
-        Requires Android 8.0 or higher &nbsp;·&nbsp; Version 1.0.22 &nbsp;·&nbsp; 21 MB &nbsp;·&nbsp; Released 21 Mar 2026
+        Requires Android 8.0 or higher &nbsp;·&nbsp; Version 1.0.29 &nbsp;·&nbsp; 106M &nbsp;&middot;&nbsp; Released 21 Mar 2026
       </div>
     </div>
 
@@ -775,75 +777,87 @@
       <div class="release-info-card">
         <div class="release-version-badge">
           <span class="release-dot"></span>
-          Latest Release &nbsp;·&nbsp; v1.0.22 &nbsp;·&nbsp; 21 Mar 2026
+          Latest Release &nbsp;·&nbsp; v1.0.29 &nbsp;·&nbsp; 21 Mar 2026
         </div>
-        <h3 class="release-title">What's New in v1.0.22</h3>
+        <h3 class="release-title">What's New in v1.0.29</h3>
         <ul class="release-list">
           <li>
             <span class="release-icon ri-blue">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-            </span>
-            <div><strong>Child Device Setup</strong> — Prominent "Set Up Child Device" tile on home screen; Link Child Device button on Family screen; no longer gets lost after navigation</div>
-          </li>
-          <li>
-            <span class="release-icon ri-green">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-            </span>
-            <div><strong>Router Fix (permanent)</strong> — Navigation stack is no longer wiped on auth state changes; GoRouter created once with refreshListenable</div>
-          </li>
-          <li>
-            <span class="release-icon ri-blue">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-            </span>
-            <div><strong>Child Mode Fixed</strong> — Device attachment no longer logs parent out; child API calls use correct token</div>
-          </li>
-          <li>
-            <span class="release-icon ri-green">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
             </span>
-            <div><strong>Push Notifications</strong> — Real Firebase FCM connected (was placeholder)</div>
+            <div><strong>VPN Starts Automatically</strong> — DNS protection now starts as soon as the child opens the app. If Android needs permission, a clear "Enable DNS Protection" dialog guides the child through approval — no silent failures</div>
           </li>
           <li>
             <span class="release-icon ri-orange">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
             </span>
-            <div><strong>Schedule Fixed</strong> — Child profile page no longer shows error on refresh</div>
+            <div><strong>Chrome &amp; Firefox DNS Captured</strong> — Blocks built-in DoH from Google, Cloudflare, Quad9 and OpenDNS so all browser traffic is now filtered and visible to parents — not just app DNS</div>
+          </li>
+          <li>
+            <span class="release-icon ri-green">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+            </span>
+            <div><strong>Full Browsing History for Parents</strong> — Parent dashboard now shows every URL visited (blocked + allowed) with 30-second live refresh. ISP Admin and Super Admin can also view Reports, Activity and Tasks from the child detail page</div>
+          </li>
+          <li>
+            <span class="release-icon ri-blue">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+            </span>
+            <div><strong>App Blocking</strong> — Block specific apps on your child's device; blocked apps are instantly closed when opened. Uses Android Usage Access — no Accessibility Service required, fully Play Store compatible</div>
+          </li>
+          <li>
+            <span class="release-icon ri-orange">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H8l4-8v4h3l-4 8z"/></svg>
+            </span>
+            <div><strong>SOS Fixed for All Roles</strong> — SOS alert button now works for child, co-parent, and teen profiles; pipeline fixed end-to-end</div>
           </li>
           <li>
             <span class="release-icon ri-purple">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
             </span>
-            <div><strong>Dark Mode</strong> — Full dark theme, switch in Settings</div>
+            <div><strong>Task Real-Time Push</strong> — Child receives instant push notification when a task is assigned; parent gets notified when child marks it complete</div>
           </li>
           <li>
             <span class="release-icon ri-green">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
             </span>
-            <div><strong>Geofence Alerts</strong> — Instant push when child enters or exits a zone</div>
-          </li>
-          <li>
-            <span class="release-icon ri-orange">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
-            </span>
-            <div><strong>Screen Time Cut-off</strong> — Internet blocks automatically when daily budget is exhausted</div>
-          </li>
-          <li>
-            <span class="release-icon ri-purple">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 100 10A5 5 0 0012 2zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z"/></svg>
-            </span>
-            <div><strong>Co-Parent Invite</strong> — Share family management with a partner</div>
+            <div><strong>Geofences in Child App</strong> — Safe zones are now visible on the child's map screen; child can see their own allowed areas</div>
           </li>
           <li>
             <span class="release-icon ri-teal">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 20.29L18 16.61A9 9 0 1016.61 18l3.68 3.68a1 1 0 001.42-1.39zM11 18a7 7 0 110-14 7 7 0 010 14z"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
             </span>
-            <div><strong>AI Insights</strong> — Risk gauge, behavior trends, and smart recommendations</div>
+            <div><strong>Real-Time Data Refresh</strong> — Child screen auto-refreshes location, tasks, and rewards every 60 seconds without manual pull-to-refresh</div>
+          </li>
+          <li>
+            <span class="release-icon ri-blue">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+            </span>
+            <div><strong>DNS Traffic Analytics</strong> — Real-time DNS query logging via Vector pipeline; parent dashboard shows blocked/allowed domains per child</div>
+          </li>
+          <li>
+            <span class="release-icon ri-green">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </span>
+            <div><strong>Rewards Screen Fix</strong> — Reward cards no longer overflow on small screens; layout adapts to all phone sizes</div>
+          </li>
+          <li>
+            <span class="release-icon ri-orange">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </span>
+            <div><strong>Location Export</strong> — Parent can export child's location history as CSV directly from the app</div>
           </li>
           <li>
             <span class="release-icon ri-blue">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
             </span>
-            <div><strong>Guided Onboarding</strong> — Step-by-step setup for new parents</div>
+            <div><strong>FCM Push Ready</strong> — App is Firebase Cloud Messaging enabled; add your google-services.json to activate real-time alerts</div>
+          </li>
+          <li>
+            <span class="release-icon ri-purple">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 20.29L18 16.61A9 9 0 1016.61 18l3.68 3.68a1 1 0 001.42-1.39zM11 18a7 7 0 110-14 7 7 0 010 14z"/></svg>
+            </span>
+            <div><strong>AI Insights</strong> — Risk gauge, behavior trends, and smart recommendations powered by Claude AI</div>
           </li>
         </ul>
         <div class="release-meta">
@@ -853,7 +867,7 @@
           </span>
           <span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm7 14l8-8-1.5-1.5L12 14 8.5 10.5 7 12l5 5z"/></svg>
-            21 MB &nbsp;(universal release build)
+            106M &nbsp;(release build)
           </span>
           <span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
@@ -862,9 +876,51 @@
         </div>
         <a href="/static/shield-app.apk" class="btn btn-primary btn-download-inline" download>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download v1.0.22 Free
+          Download v1.0.29 Free
         </a>
       </div>
+
+
+    <!-- ── Installation Guide ──────────────────────────────────── -->
+    <div class="install-guide" id="install-guide">
+      <div class="install-guide-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <strong>Installation Guide</strong> — Shield uses parental control permissions that require a one-time setup
+      </div>
+      <div class="install-steps">
+        <div class="install-step">
+          <div class="install-step-num">1</div>
+          <div class="install-step-body">
+            <strong>Allow installs from your browser</strong>
+            <p>Open <em>Settings → Apps → Special App Access → Install Unknown Apps</em>, find your browser (Chrome / Files), and tap <em>Allow from this source</em>.</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">2</div>
+          <div class="install-step-body">
+            <strong>Download &amp; install</strong>
+            <p>Tap the Download button above, open the downloaded file, and tap <em>Install</em>. No need to disable Play Protect — v1.0.29 uses standard Android APIs.</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">3</div>
+          <div class="install-step-body">
+            <strong>Grant Usage Access (child device only)</strong>
+            <p>For app blocking to work on the child's device, go to <em>Settings → Apps → Special App Access → Usage Access</em> and enable Shield.</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">4</div>
+          <div class="install-step-body">
+            <strong>Sign in &amp; set up</strong>
+            <p>Open Shield, log in as parent or scan the QR code on the child's device to link it to your family account.</p>
+          </div>
+        </div>
+      </div>
+      <div class="install-why">
+        <strong>Why sideload?</strong> Shield is pending Play Store review. v1.0.29 no longer uses Accessibility Service or screen overlay — only standard Usage Access and VPN APIs — so Play Protect will not block the installation.
+      </div>
+    </div>
 
     </div><!-- /release-grid -->
 
@@ -925,6 +981,15 @@
         </div>
       </div>
       <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          Why does Google Play Protect block the Shield app?
+          <span class="faq-arrow" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" role="region">
+          <p>v1.0.29 no longer uses Accessibility Service or SYSTEM_ALERT_WINDOW — the two permissions that previously triggered Play Protect. App blocking now uses Android's standard <em>Usage Access</em> (PACKAGE_USAGE_STATS) API, which is permitted for parental control apps. If you are installing an older version of the APK you may see a warning — download the latest v1.0.29 from the <a href="#download">Download page</a> to install without any Play Protect warning.</p>
+        </div>
+      </div>
+            <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
           Does Shield work on iPhones?
           <span class="faq-arrow" aria-hidden="true">&#9660;</span>

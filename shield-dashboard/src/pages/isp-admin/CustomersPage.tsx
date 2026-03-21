@@ -1,4 +1,4 @@
-import { Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, TextField, InputAdornment, Avatar, Button, Stack, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody, TablePagination, Chip, TextField, InputAdornment, Avatar, Button, Stack, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import PeopleIcon from '@mui/icons-material/People';
@@ -6,7 +6,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
@@ -63,7 +63,11 @@ export default function CustomersPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [addOpen, setAddOpen] = useState(false);
+
+  useEffect(() => { setPage(0); }, [search]);
   const [snack, setSnack] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -84,8 +88,8 @@ export default function CustomersPage() {
     setDeleting(true);
     setDeleteTarget(null);
     // Optimistically remove from cache immediately so stale rows can't be re-clicked
-    qc.setQueryData(['isp-customers'], (old: Customer[] | undefined) =>
-      old ? old.filter(c => c.id !== target.id) : old
+    qc.setQueryData(['isp-customers', page, rowsPerPage], (old: { list: Customer[]; total: number } | undefined) =>
+      old ? { list: old.list.filter(c => c.id !== target.id), total: Math.max(0, old.total - 1) } : old
     );
     try {
       await api.delete(`/profiles/customers/${target.id}`);
@@ -104,11 +108,12 @@ export default function CustomersPage() {
     setDeleting(false);
   };
   const { data, isLoading } = useQuery({
-    queryKey: ['isp-customers'],
+    queryKey: ['isp-customers', page, rowsPerPage],
     queryFn: async () => {
-      const r = await api.get('/profiles/customers').catch(() => ({ data: { data: [] } }));
+      const r = await api.get(`/profiles/customers?page=${page}&size=${rowsPerPage}`).catch(() => ({ data: { data: [] } }));
       const d = r.data?.data;
       const list: Customer[] = (d?.content ?? d) as Customer[];
+      const total: number = d?.totalElements ?? list.length;
       // Enrich with user name/email for records that don't have them stored
       const missing = list.filter(c => !c.name && !c.email && c.userId);
       if (missing.length > 0) {
@@ -118,18 +123,18 @@ export default function CustomersPage() {
           const users: any[] = (ud?.content ?? ud ?? []);
           const userMap: Record<string, any> = {};
           users.forEach(u => { userMap[u.id] = u; });
-          return list.map(c => {
-            if (!c.name && userMap[c.userId!]) {
-              return { ...c, name: userMap[c.userId!].name, email: userMap[c.userId!].email };
-            }
-            return c;
-          });
+          return {
+            list: list.map(c => (!c.name && userMap[c.userId!]) ? { ...c, name: userMap[c.userId!].name, email: userMap[c.userId!].email } : c),
+            total,
+          };
         }
       }
-      return list;
+      return { list, total };
     },
   });
-  const customers = (data || []).filter(c =>
+  const allCustomers = data?.list ?? [];
+  const totalElements = data?.total ?? 0;
+  const customers = allCustomers.filter(c =>
     `${c.name ?? ''} ${c.email ?? ''} ${c.userId ?? ''} ${c.subscriptionPlan ?? ''}`.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -138,7 +143,7 @@ export default function CustomersPage() {
       <PageHeader
         icon={<PeopleIcon />}
         title="Customers"
-        subtitle={`${(data || []).length} registered customers`}
+        subtitle={`${totalElements} registered customers`}
         iconColor="#00897B"
         action={
           <Stack direction="row" spacing={2}>
@@ -256,6 +261,17 @@ export default function CustomersPage() {
                   ))}
                 </TableBody>
               </Table>
+            )}
+            {!isLoading && totalElements > 0 && (
+              <TablePagination
+                component="div"
+                count={totalElements}
+                page={page}
+                onPageChange={(_, p) => setPage(p)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                rowsPerPageOptions={[10, 25, 50, 100]}
+              />
             )}
           </Paper>
         </Card>

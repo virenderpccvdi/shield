@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress,
   Chip, Stack, Alert, Divider, IconButton, Tooltip as MuiTooltip,
-  Button, LinearProgress, Tab, Tabs, TextField, InputAdornment,
+  Button, LinearProgress, Tab, Tabs, TextField, InputAdornment, Skeleton,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -24,6 +24,7 @@ import NightlightIcon from '@mui/icons-material/Nightlight';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import NewReleasesIcon from '@mui/icons-material/NewReleases';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import BlockIcon from '@mui/icons-material/Block';
 import TodayIcon from '@mui/icons-material/Today';
@@ -666,7 +667,19 @@ function AskAiTab({ profileId }: { profileId: string | null }) {
 export default function AiInsightsPage() {
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [lastAnalyze, setLastAnalyze] = useState<number>(0);
   const qc = useQueryClient();
+
+  const canAnalyze = Date.now() - lastAnalyze > 30000;
+
+  const handleRefreshAnalysis = useCallback(() => {
+    if (!canAnalyze) return;
+    setLastAnalyze(Date.now());
+    qc.invalidateQueries({ queryKey: ['ai-insights'] });
+    qc.invalidateQueries({ queryKey: ['ai-weekly'] });
+    qc.invalidateQueries({ queryKey: ['ai-keywords'] });
+    qc.invalidateQueries({ queryKey: ['social-alerts'] });
+  }, [canAnalyze, qc]);
 
   const { data: children } = useQuery({
     queryKey: ['children'],
@@ -760,7 +773,7 @@ export default function AiInsightsPage() {
         subtitle="AI-powered behavior analysis and risk assessment"
         iconColor="#7B1FA2"
         action={
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
             {(children || []).map(c => (
               <Chip
                 key={c.id}
@@ -774,22 +787,41 @@ export default function AiInsightsPage() {
                 }}
               />
             ))}
+            <MuiTooltip title={canAnalyze ? 'Refresh AI analysis' : 'Please wait 30 seconds between refreshes'}>
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<RefreshIcon />}
+                  disabled={!canAnalyze}
+                  onClick={handleRefreshAnalysis}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, fontSize: 12 }}
+                >
+                  {canAnalyze ? 'Refresh Analysis' : 'Please wait…'}
+                </Button>
+              </span>
+            </MuiTooltip>
           </Stack>
         }
       />
 
       {/* Tab bar */}
       <Box sx={{ borderBottom: '1px solid #F0F0F0', mb: 2.5 }}>
-        <Tabs
-          value={activeTab}
-          onChange={(_, v) => setActiveTab(v)}
-          sx={{ '& .MuiTab-root': { fontWeight: 600, fontSize: 13, textTransform: 'none', minHeight: 44 } }}
-        >
-          <Tab label="Overview" />
-          <Tab label="Trends" />
-          <Tab label="Alerts" />
-          <Tab label="Ask AI" icon={<SmartToyIcon sx={{ fontSize: 16 }} />} iconPosition="start" />
-        </Tabs>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, v) => setActiveTab(v)}
+            sx={{ '& .MuiTab-root': { fontWeight: 600, fontSize: 13, textTransform: 'none', minHeight: 44 } }}
+          >
+            <Tab label="Overview" />
+            <Tab label="Trends" />
+            <Tab label="Alerts" />
+            <Tab label="Ask AI" icon={<SmartToyIcon sx={{ fontSize: 16 }} />} iconPosition="start" />
+          </Tabs>
+          <Typography variant="caption" color="text.disabled" sx={{ pr: 1, display: { xs: 'none', sm: 'block' } }}>
+            AI analysis updates every 30 seconds
+          </Typography>
+        </Box>
       </Box>
 
       {/* Ask AI tab */}
@@ -798,7 +830,19 @@ export default function AiInsightsPage() {
       {/* Analytics tabs 0-2 */}
       {activeTab !== 3 && (
         isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
+          <Grid container spacing={2.5}>
+            {[1, 2, 3, 4].map(i => (
+              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
+                <Skeleton variant="rounded" height={160} />
+              </Grid>
+            ))}
+            <Grid size={{ xs: 12, md: 8 }}>
+              <Skeleton variant="rounded" height={260} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Skeleton variant="rounded" height={260} />
+            </Grid>
+          </Grid>
         ) : showNoData ? (
           <NoDataEmptyState profileName={selectedChildObj?.name} />
         ) : (

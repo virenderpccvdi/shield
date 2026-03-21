@@ -53,7 +53,7 @@ class QuickControlSheet extends ConsumerWidget {
             Expanded(child: _QuickAction(
               icon: Icons.bedtime,
               label: 'Bedtime\nMode',
-              color: Colors.indigo,
+              color: Colors.blue.shade700,
               onTap: () => _applyAction(context, ref, 'bedtime'),
             )),
             const SizedBox(width: 12),
@@ -87,7 +87,7 @@ class QuickControlSheet extends ConsumerWidget {
           break;
         case 'bedtime':
           await client.post('/dns/schedules/$profileId/override', data: {'mode': 'BEDTIME'});
-          messenger.showSnackBar(const SnackBar(content: Text('Bedtime mode activated'), backgroundColor: Colors.indigo));
+          messenger.showSnackBar(const SnackBar(content: Text('Bedtime mode activated'), backgroundColor: Color(0xFF1565C0)));
           break;
         case 'resume':
           await client.delete('/dns/schedules/$profileId/override');

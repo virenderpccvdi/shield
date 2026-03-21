@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/api_client.dart';
+import '../../core/auth_state.dart';
 
 class ChildSosScreen extends ConsumerStatefulWidget {
   const ChildSosScreen({super.key});
@@ -13,10 +14,10 @@ class ChildSosScreen extends ConsumerStatefulWidget {
 class _ChildSosScreenState extends ConsumerState<ChildSosScreen> with SingleTickerProviderStateMixin {
   bool _sending = false;
   bool _sent = false;
-  int _countdown = 3;
-  Timer? _countdownTimer;
   String? _error;
   late AnimationController _pulseController;
+  // Key to reset the _CountdownDisplay widget when countdown starts
+  final GlobalKey<_CountdownDisplayState> _countdownKey = GlobalKey();
 
   @override
   void initState() {
@@ -29,26 +30,19 @@ class _ChildSosScreenState extends ConsumerState<ChildSosScreen> with SingleTick
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
 
   void _startCountdown() {
-    setState(() { _countdown = 3; _sending = true; _error = null; _sent = false; });
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_countdown <= 1) {
-        timer.cancel();
-        _sendSos();
-      } else {
-        setState(() => _countdown--);
-      }
-    });
+    setState(() { _sending = true; _error = null; _sent = false; });
+    // The _CountdownDisplay widget owns its own timer — no setState needed here for ticks
+    _countdownKey.currentState?.start(onDone: _sendSos);
   }
 
   void _cancelCountdown() {
-    _countdownTimer?.cancel();
-    setState(() { _sending = false; _countdown = 3; });
+    _countdownKey.currentState?.cancel();
+    setState(() => _sending = false);
   }
 
   Future<void> _sendSos() async {
@@ -70,11 +64,13 @@ class _ChildSosScreenState extends ConsumerState<ChildSosScreen> with SingleTick
       } catch (_) {}
 
       final client = ref.read(dioProvider);
+      final profileId = ref.read(authProvider).childProfileId;
       await client.post('/location/child/panic', data: {
-        if (position != null) 'latitude': position.latitude,
-        if (position != null) 'longitude': position.longitude,
+        'profileId': profileId,                          // required by @NotNull validation
+        'latitude': position?.latitude ?? 0.0,
+        'longitude': position?.longitude ?? 0.0,
         if (position != null) 'accuracy': position.accuracy,
-        'timestamp': DateTime.now().toIso8601String(),
+        'message': 'Child SOS alert${position == null ? " — location unavailable" : ""}',
       });
 
       setState(() { _sent = true; _sending = false; });
@@ -119,7 +115,7 @@ class _ChildSosScreenState extends ConsumerState<ChildSosScreen> with SingleTick
                     child: const Text('Go Back', style: TextStyle(fontSize: 16)),
                   ),
                 ] else if (_sending) ...[
-                  // Countdown
+                  // Countdown — owned by _CountdownDisplay to avoid full-screen rebuilds
                   AnimatedBuilder(
                     animation: _pulseController,
                     builder: (_, __) => Container(
@@ -131,8 +127,7 @@ class _ChildSosScreenState extends ConsumerState<ChildSosScreen> with SingleTick
                         border: Border.all(color: Colors.white.withAlpha(80), width: 3),
                       ),
                       child: Center(
-                        child: Text('$_countdown',
-                          style: const TextStyle(color: Colors.white, fontSize: 80, fontWeight: FontWeight.w900)),
+                        child: _CountdownDisplay(key: _countdownKey),
                       ),
                     ),
                   ),
@@ -208,6 +203,54 @@ class _ChildSosScreenState extends ConsumerState<ChildSosScreen> with SingleTick
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Countdown display widget — owns its own timer so only this tiny widget
+// rebuilds each second, not the entire screen.
+class _CountdownDisplay extends StatefulWidget {
+  const _CountdownDisplay({super.key});
+
+  @override
+  _CountdownDisplayState createState() => _CountdownDisplayState();
+}
+
+class _CountdownDisplayState extends State<_CountdownDisplay> {
+  int _value = 3;
+  Timer? _timer;
+
+  /// Start the countdown. Calls [onDone] when it reaches zero.
+  void start({required VoidCallback onDone}) {
+    _timer?.cancel();
+    setState(() => _value = 3);
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_value <= 1) {
+        timer.cancel();
+        onDone();
+      } else {
+        setState(() => _value--);
+      }
+    });
+  }
+
+  /// Cancel the countdown without calling onDone.
+  void cancel() {
+    _timer?.cancel();
+    if (mounted) setState(() => _value = 3);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '$_value',
+      style: const TextStyle(color: Colors.white, fontSize: 80, fontWeight: FontWeight.w900),
     );
   }
 }

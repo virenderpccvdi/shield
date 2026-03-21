@@ -82,7 +82,8 @@ export default function AdminAiInsightsPage() {
       if (severity) params.set('severity', severity);
       return api.get(`/ai/alerts?${params.toString()}`).then(r => r.data as AlertItem[]).catch(() => [] as AlertItem[]);
     },
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
+    staleTime: 30000,
   });
 
   // AI model health
@@ -90,13 +91,15 @@ export default function AdminAiInsightsPage() {
     queryKey: ['admin-ai-model-health'],
     queryFn: () => api.get('/ai/model/health').then(r => r.data as ModelHealth).catch(() => null),
     refetchInterval: 60_000,
+    staleTime: 30000,
   });
 
   // Training status
   const { data: trainingStatus, refetch: refetchTraining } = useQuery({
     queryKey: ['admin-ai-training-status'],
     queryFn: () => api.get('/ai/train/status').then(r => r.data as TrainingStatus).catch(() => null),
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
+    staleTime: 30000,
   });
 
   // Retrain model

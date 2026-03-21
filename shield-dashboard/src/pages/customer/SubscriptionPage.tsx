@@ -42,7 +42,10 @@ export default function SubscriptionPage() {
 
   const { data: invoices } = useQuery({
     queryKey: ['my-invoices'],
-    queryFn: () => getMyInvoices(0, 5),
+    queryFn: () => getMyInvoices(0, 5).then(raw => {
+      const content = raw?.content ?? (Array.isArray(raw) ? raw : []);
+      return { content };
+    }),
   });
 
   const checkoutMutation = useMutation({

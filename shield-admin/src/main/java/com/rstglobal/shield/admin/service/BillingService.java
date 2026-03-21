@@ -141,9 +141,7 @@ public class BillingService {
             if (lineItem.getPrice() != null && lineItem.getPrice().getProduct() != null) {
                 // Try to find plan by stripe product
                 String productId = lineItem.getPrice().getProduct();
-                planName = planRepo.findAll().stream()
-                        .filter(p -> productId.equals(p.getStripeProductId()))
-                        .findFirst()
+                planName = planRepo.findByStripeProductId(productId)
                         .map(SubscriptionPlan::getName)
                         .orElse(planName);
             }

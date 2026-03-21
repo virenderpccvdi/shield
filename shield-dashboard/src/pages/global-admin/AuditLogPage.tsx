@@ -288,7 +288,8 @@ export default function AuditLogPage() {
         return { content: (d?.content ?? d) as AuditEntry[], totalElements: d?.totalElements ?? 0 };
       }).catch(() => ({ content: [], totalElements: 0 }));
     },
-    refetchInterval: autoRefresh ? 30000 : false,
+    refetchInterval: autoRefresh ? 60000 : false,
+    staleTime: 30000,
   });
 
   const handleAutoRefreshToggle = useCallback((enabled: boolean) => {

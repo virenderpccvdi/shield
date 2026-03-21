@@ -31,13 +31,15 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
   String _filterLevel = 'MODERATE';
   bool _levelSaving   = false;
 
+  // ── DNS pause/resume ─────────────────────────────────────────────────────
+  bool _paused        = false;
+  bool _pauseSaving   = false;
+
   @override
   void initState() {
     super.initState();
     _tabs = TabController(length: 3, vsync: this);
-    _loadCategories();
-    _loadCustomLists();
-    _loadFilterLevel();
+    _loadAll();
   }
 
   @override
@@ -48,53 +50,94 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
 
   // ── Loaders ─────────────────────────────────────────────────────────────
 
-  Future<void> _loadCategories() async {
-    setState(() { _catsLoading = true; _catsError = null; });
+  /// Loads categories, custom lists, filter level, and DNS pause status in parallel.
+  Future<void> _loadAll() async {
+    setState(() { _catsLoading = true; _listsLoading = true; _catsError = null; });
     try {
-      final res = await ref.read(dioProvider).get('/dns/rules/${widget.profileId}');
+      final client = ref.read(dioProvider);
+      // Fetch rules and DNS status in parallel
+      final results = await Future.wait([
+        client.get('/dns/rules/${widget.profileId}'),
+        client.get('/dns/${widget.profileId}/status').catchError((_) => null),
+      ], eagerError: false);
+
+      final res = results[0] as dynamic;
       final data = res.data['data'] as Map<String, dynamic>? ?? {};
-      final cats = data['categories'] as Map<String, dynamic>? ?? {};
-      setState(() {
-        _categories = cats.map((k, v) => MapEntry(k, v == true));
-        _catsLoading = false;
-      });
+
+      // Categories
+      final cats = data['enabledCategories'] as Map<String, dynamic>? ?? {};
+
+      // Filter level
+      final level = data['filterLevel'] as String? ?? 'MODERATE';
+
+      // DNS pause status
+      bool paused = false;
+      try {
+        final statusRes = results[1];
+        if (statusRes != null) {
+          final sd = (statusRes as dynamic).data;
+          final sdMap = sd is Map ? sd : (sd['data'] as Map? ?? {});
+          paused = sdMap['paused'] == true;
+        }
+      } catch (_) {}
+
+      if (mounted) {
+        setState(() {
+          _categories = cats.map((k, v) => MapEntry(k, v == true));
+          _catsLoading = false;
+          _blocklist = List<String>.from(data['customBlocklist'] ?? []);
+          _allowlist = List<String>.from(data['customAllowlist'] ?? []);
+          _listsLoading = false;
+          _filterLevel = level;
+          _paused = paused;
+        });
+      }
     } catch (_) {
-      setState(() {
-        _catsError = 'Using defaults';
-        _categories = {
-          'ADULT': true,  'GAMBLING': true,  'MALWARE': true,  'PHISHING': true,
-          'SOCIAL_MEDIA': false, 'GAMING': false, 'STREAMING': false,
-          'DATING': true, 'DRUGS': true, 'WEAPONS': true, 'VIOLENCE': true,
-          'CRYPTO': false, 'VPN_PROXY': true, 'ADVERTISING': false,
-          'PIRACY': true, 'HATE_SPEECH': true, 'SELF_HARM': true,
-        };
-        _catsLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _catsError = 'Using defaults';
+          _categories = {
+            'ADULT': true,  'GAMBLING': true,  'MALWARE': true,  'PHISHING': true,
+            'SOCIAL_MEDIA': false, 'GAMING': false, 'STREAMING': false,
+            'DATING': true, 'DRUGS': true, 'WEAPONS': true, 'VIOLENCE': true,
+            'CRYPTO': false, 'VPN_PROXY': true, 'ADVERTISING': false,
+            'PIRACY': true, 'HATE_SPEECH': true, 'SELF_HARM': true,
+          };
+          _catsLoading = false;
+          _listsLoading = false;
+        });
+      }
     }
   }
 
-  Future<void> _loadCustomLists() async {
-    setState(() => _listsLoading = true);
+  Future<void> _togglePause() async {
+    setState(() => _pauseSaving = true);
     try {
-      final res = await ref.read(dioProvider).get('/dns/rules/${widget.profileId}');
-      final data = res.data['data'] as Map<String, dynamic>? ?? {};
-      setState(() {
-        _blocklist = List<String>.from(data['customBlocklist'] ?? []);
-        _allowlist = List<String>.from(data['customAllowlist'] ?? []);
-        _listsLoading = false;
-      });
-    } catch (_) {
-      setState(() => _listsLoading = false);
+      final client = ref.read(dioProvider);
+      if (_paused) {
+        await client.post('/dns/${widget.profileId}/resume');
+        if (mounted) {
+          setState(() => _paused = false);
+          _showSnack('DNS protection resumed', success: true);
+        }
+      } else {
+        await client.post('/dns/${widget.profileId}/pause');
+        if (mounted) {
+          setState(() => _paused = true);
+          _showSnack('DNS protection paused', success: false);
+        }
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Failed: $e', success: false);
+    } finally {
+      if (mounted) setState(() => _pauseSaving = false);
     }
   }
 
-  Future<void> _loadFilterLevel() async {
-    try {
-      final res = await ref.read(dioProvider).get('/dns/rules/${widget.profileId}');
-      final data = res.data['data'] as Map<String, dynamic>? ?? {};
-      if (mounted) setState(() => _filterLevel = data['filterLevel'] as String? ?? 'MODERATE');
-    } catch (_) {}
-  }
+  /// Keep individual reload methods so tabs can refresh independently after saves.
+  Future<void> _loadCategories() async => _loadAll();
+  Future<void> _loadCustomLists() async => _loadAll();
+  Future<void> _loadFilterLevel() async => _loadAll();
 
   // ── Savers ───────────────────────────────────────────────────────────────
 
@@ -217,9 +260,17 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
           unselectedLabelColor: ShieldTheme.textSecondary,
         ),
       ),
-      body: TabBarView(
-        controller: _tabs,
+      body: Column(
         children: [
+          // DNS protection status card
+          _DnsStatusCard(
+            paused: _paused,
+            saving: _pauseSaving,
+            onToggle: _togglePause,
+          ),
+          Expanded(child: TabBarView(
+            controller: _tabs,
+            children: [
           _CategoriesTab(
             categories: _categories,
             loading: _catsLoading,
@@ -272,6 +323,70 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
             onSave: _saveLists,
           ),
         ],
+          )),
+        ],
+      ),
+    );
+  }
+}
+
+// ── DNS Status Card ─────────────────────────────────────────────────────────
+
+class _DnsStatusCard extends StatelessWidget {
+  final bool paused, saving;
+  final VoidCallback onToggle;
+  const _DnsStatusCard({required this.paused, required this.saving, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: paused ? Colors.orange.shade200 : Colors.green.shade200,
+          width: 1,
+        ),
+      ),
+      color: paused ? Colors.orange.shade50 : Colors.green.shade50,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Icon(
+              paused ? Icons.warning_amber_rounded : Icons.security,
+              color: paused ? Colors.orange : Colors.green,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                paused ? 'Protection Paused' : 'Protection Active',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: paused ? Colors.orange.shade800 : Colors.green.shade800,
+                ),
+              ),
+            ),
+            saving
+              ? const SizedBox(
+                  width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : ElevatedButton(
+                  onPressed: onToggle,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: paused ? Colors.green : Colors.orange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    minimumSize: const Size(0, 32),
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  child: Text(paused ? 'Resume' : 'Pause'),
+                ),
+          ],
+        ),
       ),
     );
   }

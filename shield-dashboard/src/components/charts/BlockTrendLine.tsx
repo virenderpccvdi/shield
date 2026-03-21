@@ -1,3 +1,4 @@
+import React from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 interface DataPoint {
@@ -9,7 +10,7 @@ interface Props {
   data: DataPoint[];
 }
 
-export default function BlockTrendLine({ data }: Props) {
+const BlockTrendLine = React.memo(function BlockTrendLine({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -21,4 +22,6 @@ export default function BlockTrendLine({ data }: Props) {
       </LineChart>
     </ResponsiveContainer>
   );
-}
+});
+
+export default BlockTrendLine;

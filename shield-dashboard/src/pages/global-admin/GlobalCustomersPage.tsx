@@ -1,5 +1,5 @@
 import {
-  Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody,
+  Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody, TablePagination,
   Chip, TextField, InputAdornment, Avatar, Button, Stack, Snackbar, IconButton, Tooltip,
   CircularProgress,
 } from '@mui/material';
@@ -9,7 +9,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BusinessIcon from '@mui/icons-material/Business';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
@@ -63,6 +63,10 @@ export default function GlobalCustomersPage() {
   const [search, setSearch] = useState('');
   const [snack, setSnack] = useState('');
   const [ispFilter, setIspFilter] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+
+  useEffect(() => { setPage(0); }, [search, ispFilter]);
 
   // Fetch all tenants to build ISP name map
   const { data: tenantsData } = useQuery({
@@ -78,40 +82,41 @@ export default function GlobalCustomersPage() {
 
   // Fetch ALL customers (GLOBAL_ADMIN gets all, no tenant filter)
   const { data, isLoading } = useQuery({
-    queryKey: ['all-customers-global'],
+    queryKey: ['all-customers-global', page, rowsPerPage],
     queryFn: async () => {
-      const r = await api.get('/profiles/customers?size=500').catch(() => ({ data: { data: [] } }));
+      const r = await api.get(`/profiles/customers?page=${page}&size=${rowsPerPage}`).catch(() => ({ data: { data: [] } }));
       const d = r.data?.data;
       const list: Customer[] = (d?.content ?? d) as Customer[];
+      const total: number = d?.totalElements ?? list.length;
       // Enrich with user name/email for records that don't have them stored
       const missing = list.filter(c => !c.name && !c.email && c.userId);
       if (missing.length > 0) {
-        const ur = await api.get('/auth/users', { params: { size: 1000, role: 'CUSTOMER' } }).catch(() => null);
+        const ur = await api.get('/auth/users', { params: { size: 500, role: 'CUSTOMER' } }).catch(() => null);
         if (ur) {
           const users: any[] = ur.data?.data?.content ?? ur.data?.data ?? [];
           const userMap: Record<string, any> = {};
           users.forEach(u => { userMap[u.id] = u; });
-          return list.map(c => {
-            if (!c.name && c.userId && userMap[c.userId]) {
-              return { ...c, name: userMap[c.userId].name, email: userMap[c.userId].email };
-            }
-            return c;
-          });
+          return {
+            list: list.map(c => (!c.name && c.userId && userMap[c.userId]) ? { ...c, name: userMap[c.userId].name, email: userMap[c.userId].email } : c),
+            total,
+          };
         }
       }
-      return list;
+      return { list, total };
     },
   });
 
-  const customers = (data ?? []).filter(c => {
+  const allCustomers = data?.list ?? [];
+  const totalElements = data?.total ?? 0;
+  const customers = allCustomers.filter(c => {
     const ispName = c.tenantId ? (tenantMap[c.tenantId]?.name ?? '') : '';
     const matchesSearch = `${c.name ?? ''} ${c.email ?? ''} ${c.subscriptionPlan ?? ''} ${ispName}`.toLowerCase().includes(search.toLowerCase());
     const matchesIsp = !ispFilter || c.tenantId === ispFilter;
     return matchesSearch && matchesIsp;
   });
 
-  // Unique ISPs in the data
-  const uniqueIsps = Array.from(new Set((data ?? []).map(c => c.tenantId).filter(Boolean))) as string[];
+  // Unique ISPs in the data (from current page — ISP filter chips use tenant list)
+  const uniqueIsps = Array.from(new Set(allCustomers.map(c => c.tenantId).filter(Boolean))) as string[];
 
   const handleToggleSuspend = async (c: Customer, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -128,7 +133,7 @@ export default function GlobalCustomersPage() {
       <PageHeader
         icon={<PeopleIcon />}
         title="All Customers"
-        subtitle={`${(data ?? []).length} total customers across ${uniqueIsps.length} ISPs`}
+        subtitle={`${totalElements} total customers across ${(tenantsData ?? []).length} ISPs`}
         iconColor="#00897B"
         action={
           <TextField
@@ -273,6 +278,17 @@ export default function GlobalCustomersPage() {
                   })}
                 </TableBody>
               </Table>
+            )}
+            {!isLoading && totalElements > 0 && (
+              <TablePagination
+                component="div"
+                count={totalElements}
+                page={page}
+                onPageChange={(_, p) => setPage(p)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                rowsPerPageOptions={[10, 25, 50, 100]}
+              />
             )}
           </Paper>
         </Card>

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell,
-  TableBody, Chip, TextField, InputAdornment, CircularProgress, Button,
+  TableBody, TablePagination, Chip, TextField, InputAdornment, CircularProgress, Button,
   Dialog, DialogTitle, DialogContent, DialogActions, Grid,
   MenuItem, Alert, Snackbar, Stack, Avatar, IconButton, Tooltip,
   Switch, FormControlLabel, Select, FormControl, InputLabel,
@@ -63,6 +63,8 @@ export default function UsersPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [tenantFilter, setTenantFilter] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<UserForm>(EMPTY_FORM);
   const [formError, setFormError] = useState('');
@@ -76,13 +78,21 @@ export default function UsersPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
-  const { data: users = [], isLoading } = useQuery<User[]>({
-    queryKey: ['admin-users'],
+  // Reset page when search or filter changes
+  useEffect(() => { setPage(0); }, [search, tenantFilter]);
+
+  const { data: usersData, isLoading } = useQuery<{ users: User[]; total: number }>({
+    queryKey: ['admin-users', page, rowsPerPage],
     queryFn: () =>
-      api.get('/auth/users?size=200')
-        .then(r => (r.data.data?.content ?? r.data.data) as User[])
-        .catch(() => []),
+      api.get(`/auth/users?page=${page}&size=${rowsPerPage}`)
+        .then(r => {
+          const d = r.data.data;
+          return { users: (d?.content ?? d ?? []) as User[], total: d?.totalElements ?? 0 };
+        })
+        .catch(() => ({ users: [], total: 0 })),
   });
+  const users = usersData?.users ?? [];
+  const totalElements = usersData?.total ?? 0;
 
   const { data: tenants = [] } = useQuery<Tenant[]>({
     queryKey: ['tenants-simple'],
@@ -154,7 +164,7 @@ export default function UsersPage() {
       <PageHeader
         icon={<PeopleIcon />}
         title="Users"
-        subtitle={`${users.length} users across all tenants`}
+        subtitle={`${totalElements} users across all tenants`}
         action={
           <Stack direction="row" spacing={2} flexWrap="wrap">
             <TextField size="small" placeholder="Search users..." value={search} onChange={e => setSearch(e.target.value)}
@@ -201,6 +211,7 @@ export default function UsersPage() {
               </TableHead>
               <TableBody>
                 {filtered.map((u, idx) => (
+
                   <TableRow key={u.id} hover onClick={() => navigate(`/admin/users/${u.id}`)} sx={{
                     cursor: 'pointer',
                     '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
@@ -245,6 +256,15 @@ export default function UsersPage() {
                 ))}
               </TableBody>
             </Table>
+            <TablePagination
+              component="div"
+              count={totalElements}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+              rowsPerPageOptions={[10, 25, 50, 100]}
+            />
           </Paper>
         </Card>
       )}

@@ -79,7 +79,7 @@ public class BudgetEnforcementService {
 
     @Scheduled(fixedRate = 60_000)
     public void enforceTimeBudgets() {
-        List<DnsRules> allRules = rulesRepo.findAll();
+        List<DnsRules> allRules = rulesRepo.findAllWithTimeBudgets();
         int checked = 0;
 
         for (DnsRules rules : allRules) {
@@ -210,7 +210,7 @@ public class BudgetEnforcementService {
     public void midnightReset() {
         log.info("Midnight budget reset started");
         LocalDate yesterday = LocalDate.now().minusDays(1);
-        List<DnsRules> allRules = rulesRepo.findAll();
+        List<DnsRules> allRules = rulesRepo.findAllWithTimeBudgets();
         int persisted = 0;
 
         for (DnsRules rules : allRules) {

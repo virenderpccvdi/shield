@@ -11,6 +11,9 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import TimerIcon from '@mui/icons-material/Timer';
 import ShieldIcon from '@mui/icons-material/Shield';
 import ExtensionIcon from '@mui/icons-material/Extension';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import TimelineIcon from '@mui/icons-material/Timeline';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import SaveIcon from '@mui/icons-material/Save';
 import SchoolIcon from '@mui/icons-material/School';
 import BedtimeIcon from '@mui/icons-material/Bedtime';
@@ -25,6 +28,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
+import ActivityPage from '../customer/ActivityPage';
+import ReportsPage from '../customer/ReportsPage';
+import RewardsPage from '../customer/RewardsPage';
 
 interface ChildProfile {
   id: string; customerId: string; tenantId: string; name: string;
@@ -504,6 +510,9 @@ export default function IspChildDetailPage() {
     { label: 'Screen Time', icon: <TimerIcon sx={{ fontSize: 18 }} /> },
     { label: 'Content Rules', icon: <ShieldIcon sx={{ fontSize: 18 }} /> },
     { label: 'Extensions', icon: <ExtensionIcon sx={{ fontSize: 18 }} /> },
+    { label: 'Activity', icon: <TimelineIcon sx={{ fontSize: 18 }} /> },
+    { label: 'Reports', icon: <AssessmentIcon sx={{ fontSize: 18 }} /> },
+    { label: 'Tasks & Rewards', icon: <EmojiEventsIcon sx={{ fontSize: 18 }} /> },
   ];
 
   return (
@@ -544,6 +553,9 @@ export default function IspChildDetailPage() {
         {tab === 1 && <BudgetsTab profileId={profileId!} />}
         {tab === 2 && <RulesTab profileId={profileId!} />}
         {tab === 3 && <ExtensionsTab profileId={profileId!} />}
+        {tab === 4 && <ActivityPage profileId={profileId!} />}
+        {tab === 5 && <ReportsPage profileId={profileId!} />}
+        {tab === 6 && <RewardsPage profileId={profileId!} />}
       </AnimatedPage>
     </AnimatedPage>
   );

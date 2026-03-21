@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell,
-  TableBody, Chip, TextField, InputAdornment, Stack, Grid, IconButton, Tooltip,
+  TableBody, TablePagination, Chip, TextField, InputAdornment, Stack, Grid, IconButton, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -56,7 +56,11 @@ function timeAgo(dateStr?: string): string {
 export default function IspDevicesPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [confirmDelete, setConfirmDelete] = useState<Device | null>(null);
+
+  useEffect(() => { setPage(0); }, [search]);
 
   const { data: statsData } = useQuery({
     queryKey: ['isp-device-stats'],
@@ -64,11 +68,11 @@ export default function IspDevicesPage() {
   });
 
   const { data: devicesData, isLoading } = useQuery({
-    queryKey: ['isp-devices'],
-    queryFn: () => api.get('/profiles/devices/all?size=100').then(r => {
+    queryKey: ['isp-devices', page, rowsPerPage],
+    queryFn: () => api.get(`/profiles/devices/all?page=${page}&size=${rowsPerPage}`).then(r => {
       const d = r.data?.data;
-      return (d?.content ?? d ?? []) as Device[];
-    }).catch(() => []),
+      return { devices: (d?.content ?? d ?? []) as Device[], total: d?.totalElements ?? 0 };
+    }).catch(() => ({ devices: [], total: 0 })),
   });
 
   const deleteMutation = useMutation({
@@ -81,7 +85,9 @@ export default function IspDevicesPage() {
   });
 
   const stats = statsData || { totalDevices: 0, onlineDevices: 0 };
-  const devices = (devicesData || []).filter(d =>
+  const allDevices = devicesData?.devices ?? [];
+  const totalElements = devicesData?.total ?? 0;
+  const devices = allDevices.filter(d =>
     `${d.name} ${d.deviceType} ${d.macAddress || ''} ${d.dnsMethod}`.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -113,7 +119,7 @@ export default function IspDevicesPage() {
 
       <Stack direction="row" spacing={1} sx={{ mb: 3 }} flexWrap="wrap">
         {['PHONE', 'TABLET', 'LAPTOP', 'TV', 'CONSOLE'].map(type => {
-          const count = (devicesData || []).filter(d => d.deviceType === type).length;
+          const count = allDevices.filter(d => d.deviceType === type).length;
           return count > 0 ? (
             <Chip key={type} icon={DEVICE_ICONS[type] as any} label={`${type}: ${count}`} size="small"
               sx={{ fontWeight: 600 }} variant="outlined" />
@@ -198,6 +204,15 @@ export default function IspDevicesPage() {
                 ))}
               </TableBody>
             </Table>
+            <TablePagination
+              component="div"
+              count={totalElements}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+              rowsPerPageOptions={[10, 25, 50, 100]}
+            />
           </Paper>
         </Card>
       )}

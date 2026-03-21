@@ -10,7 +10,7 @@ import java.util.UUID;
 @Repository
 public interface GeofenceEventRepository extends JpaRepository<GeofenceEvent, UUID> {
 
-    List<GeofenceEvent> findByProfileIdOrderByOccurredAtDesc(UUID profileId);
+    List<GeofenceEvent> findTop100ByProfileIdOrderByOccurredAtDesc(UUID profileId);
 
-    List<GeofenceEvent> findByGeofenceIdOrderByOccurredAtDesc(UUID geofenceId);
+    List<GeofenceEvent> findTop100ByGeofenceIdOrderByOccurredAtDesc(UUID geofenceId);
 }

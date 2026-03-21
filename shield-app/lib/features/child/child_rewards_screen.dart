@@ -273,37 +273,40 @@ class _BankHeader extends StatelessWidget {
                   child: Text('Could not load balance',
                       style: TextStyle(color: Colors.white60, fontSize: 14)),
                 )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _HeaderStat(
-                      icon: Icons.stars_rounded,
-                      value: '$points',
-                      label: 'Points',
-                      iconColor: Colors.amber.shade300,
-                    ),
-                    _VertDivider(),
-                    _HeaderStat(
-                      icon: Icons.timer_rounded,
-                      value: '${minutes}m',
-                      label: 'Screen Time',
-                      iconColor: Colors.lightBlue.shade200,
-                    ),
-                    _VertDivider(),
-                    _HeaderStat(
-                      icon: Icons.local_fire_department_rounded,
-                      value: '$streak',
-                      label: 'Day Streak',
-                      iconColor: Colors.orange.shade300,
-                    ),
-                    _VertDivider(),
-                    _HeaderStat(
-                      icon: Icons.emoji_events_rounded,
-                      value: '$totalEarned',
-                      label: 'Total Earned',
-                      iconColor: Colors.green.shade300,
-                    ),
-                  ],
+              : FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _HeaderStat(
+                        icon: Icons.stars_rounded,
+                        value: '$points',
+                        label: 'Points',
+                        iconColor: Colors.amber.shade300,
+                      ),
+                      _VertDivider(),
+                      _HeaderStat(
+                        icon: Icons.timer_rounded,
+                        value: '${minutes}m',
+                        label: 'Screen Time',
+                        iconColor: Colors.lightBlue.shade200,
+                      ),
+                      _VertDivider(),
+                      _HeaderStat(
+                        icon: Icons.local_fire_department_rounded,
+                        value: '$streak',
+                        label: 'Day Streak',
+                        iconColor: Colors.orange.shade300,
+                      ),
+                      _VertDivider(),
+                      _HeaderStat(
+                        icon: Icons.emoji_events_rounded,
+                        value: '$totalEarned',
+                        label: 'Total Earned',
+                        iconColor: Colors.green.shade300,
+                      ),
+                    ],
+                  ),
                 ),
         ),
       ),
@@ -396,7 +399,7 @@ class _RedeemTab extends StatelessWidget {
         icon: Icons.videogame_asset_rounded,
         pointCost: 60,
         minutes: 30,
-        color: Colors.purple.shade600,
+        color: Colors.blue.shade600,
       ),
       _RewardItem(
         name: '1 Hour Screen Time',
@@ -404,7 +407,7 @@ class _RedeemTab extends StatelessWidget {
         icon: Icons.sports_esports_rounded,
         pointCost: 120,
         minutes: 60,
-        color: Colors.deepPurple.shade600,
+        color: Colors.blue.shade800,
       ),
       _RewardItem(
         name: '2 Hours Screen Time',
@@ -674,13 +677,13 @@ class _TransactionTile extends StatelessWidget {
             : Icons.remove_circle_rounded;
 
     final iconColor = isRedeem
-        ? Colors.purple.shade400
+        ? Colors.blue.shade400
         : isCredit
             ? Colors.green.shade600
             : Colors.red.shade400;
 
     final bgColor = isRedeem
-        ? Colors.purple.shade50
+        ? Colors.blue.shade50
         : isCredit
             ? Colors.green.shade50
             : Colors.red.shade50;

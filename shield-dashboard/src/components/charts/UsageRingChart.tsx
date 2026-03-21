@@ -1,3 +1,4 @@
+import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from 'recharts';
 
@@ -7,7 +8,7 @@ interface Props {
   label: string;
 }
 
-export default function UsageRingChart({ used, total, label }: Props) {
+const UsageRingChart = React.memo(function UsageRingChart({ used, total, label }: Props) {
   const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
   const color = pct >= 90 ? '#E53935' : pct >= 70 ? '#FB8C00' : '#43A047';
   const data = [{ value: pct }];
@@ -26,4 +27,6 @@ export default function UsageRingChart({ used, total, label }: Props) {
       </Box>
     </Box>
   );
-}
+});
+
+export default UsageRingChart;

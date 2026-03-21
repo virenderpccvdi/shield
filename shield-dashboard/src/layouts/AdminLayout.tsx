@@ -18,6 +18,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import DevicesIcon from '@mui/icons-material/Devices';
 import SettingsIcon from '@mui/icons-material/Settings';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
 import BlockIcon from '@mui/icons-material/Block';
 import PsychologyIcon from '@mui/icons-material/Psychology';
@@ -50,6 +51,7 @@ const sections = [
     title: 'Overview',
     items: [
       { label: 'Dashboard', icon: <DashboardIcon />, path: '/admin/dashboard' },
+      { label: 'Alerts', icon: <NotificationsActiveIcon />, path: '/admin/alerts' },
       { label: 'Analytics', icon: <BarChartIcon />, path: '/admin/analytics' },
     ],
   },

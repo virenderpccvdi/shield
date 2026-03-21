@@ -26,12 +26,11 @@ public class ChannelAdminService {
 
     @Transactional(readOnly = true)
     public List<ChannelResponse> listChannels(UUID tenantId) {
-        return channelRepo.findAll().stream()
-                .filter(c -> tenantId == null
-                        ? c.getTenantId() == null
-                        : tenantId.equals(c.getTenantId()))
-                .map(this::toResponse)
-                .toList();
+        List<com.rstglobal.shield.notification.entity.NotificationChannel> channels =
+                tenantId == null
+                        ? channelRepo.findByTenantIdIsNull()
+                        : channelRepo.findByTenantId(tenantId);
+        return channels.stream().map(this::toResponse).toList();
     }
 
     @Transactional

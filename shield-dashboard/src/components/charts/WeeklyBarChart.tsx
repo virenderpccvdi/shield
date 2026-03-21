@@ -1,3 +1,4 @@
+import React from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 interface DayData {
@@ -10,7 +11,7 @@ interface Props {
   data: DayData[];
 }
 
-export default function WeeklyBarChart({ data }: Props) {
+const WeeklyBarChart = React.memo(function WeeklyBarChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -24,4 +25,6 @@ export default function WeeklyBarChart({ data }: Props) {
       </BarChart>
     </ResponsiveContainer>
   );
-}
+});
+
+export default WeeklyBarChart;

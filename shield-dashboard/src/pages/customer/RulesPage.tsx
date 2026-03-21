@@ -273,11 +273,14 @@ export default function RulesPage() {
 
   const toggleMutation = useMutation({
     mutationFn: ({ key, blocked }: { key: string; blocked: boolean }) => {
-      // Backend stores: true = allowed, false = blocked → invert UI "blocked" flag
+      // Backend stores enabledCategories: true = allowed, false = blocked
+      // UI "blocked" flag is the inverse of backend "enabled"
+      // Block action (blocked=true)  → send enabled=false
+      // Allow action (blocked=false) → send enabled=true
       const currentCategories: Record<string, boolean> = {};
       categories.forEach(c => {
-        const uiBlocked = c.key === key ? blocked : c.blocked;
-        currentCategories[c.key] = !uiBlocked; // flip to backend "enabled" semantics
+        const isBlocked = c.key === key ? blocked : c.blocked;
+        currentCategories[c.key] = !isBlocked; // convert UI-blocked → backend-enabled
       });
       return api.put(`/dns/rules/${profileId}/categories`, { categories: currentCategories });
     },

@@ -126,11 +126,14 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
-    public Page<DnsQueryLog> getBlockedHistory(UUID profileId, Pageable pageable) {
+    public Page<DnsQueryLog> getBrowsingHistory(UUID profileId, String action, Pageable pageable) {
         Instant from = Instant.EPOCH;
         Instant to = Instant.now();
-        return dnsQueryLogRepository.findByProfileIdAndActionAndQueriedAtBetween(
-                profileId, "BLOCKED", from, to, pageable);
+        if (action != null && (action.equals("BLOCKED") || action.equals("ALLOWED"))) {
+            return dnsQueryLogRepository.findByProfileIdAndActionAndQueriedAtBetween(
+                    profileId, action, from, to, pageable);
+        }
+        return dnsQueryLogRepository.findByProfileIdAndQueriedAtBetween(profileId, from, to, pageable);
     }
 
     @Transactional

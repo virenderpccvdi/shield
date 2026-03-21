@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Grid, Typography, Box, Card, CardContent, Button, Chip, CircularProgress,
@@ -20,6 +21,7 @@ import DnsIcon from '@mui/icons-material/Dns';
 import SecurityIcon from '@mui/icons-material/Security';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PsychologyIcon from '@mui/icons-material/Psychology';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
@@ -171,7 +173,13 @@ export default function CustomerDashboardPage() {
         await Promise.all(children.map(async c => {
           try {
             const r = await api.get(`/analytics/${c.id}/stats?period=TODAY`);
-            results[c.id] = r.data?.data ?? r.data;
+            const raw = r.data?.data ?? r.data;
+            // Normalise field names: API returns blockedQueries/allowedQueries
+            results[c.id] = {
+              totalQueries: raw?.totalQueries ?? 0,
+              totalBlocks:  raw?.totalBlocked ?? raw?.blockedQueries ?? 0,
+              blockRate:    raw?.blockRate ?? 0,
+            };
           } catch { results[c.id] = { totalQueries: 0, totalBlocks: 0, blockRate: 0 }; }
         }));
         return results;
@@ -189,6 +197,23 @@ export default function CustomerDashboardPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['children'] }),
   });
 
+  const chartData = useMemo(() =>
+    (dailyStats || []).map(d => ({
+      day: shortDate(d.date),
+      Allowed: (d.totalQueries || 0) - (d.totalBlocks || 0),
+      Blocked: d.totalBlocks || 0,
+    })).slice(-7),
+    [dailyStats]
+  );
+
+  const topCategories = useMemo(() =>
+    (categories || [])
+      .filter(c => (c.blocked ?? (c as { blockedQueries?: number }).blockedQueries ?? 0) > 0)
+      .sort((a, b) => (b.blocked ?? (b as { blockedQueries?: number }).blockedQueries ?? 0) - (a.blocked ?? (a as { blockedQueries?: number }).blockedQueries ?? 0))
+      .slice(0, 5),
+    [categories]
+  );
+
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
   if (error) return <Alert severity="error" sx={{ mt: 2 }}>Failed to load dashboard. Check your connection.</Alert>;
 
@@ -200,17 +225,6 @@ export default function CustomerDashboardPage() {
   const totalQueries7d = (dailyStats || []).reduce((s, d) => s + (d.totalQueries || 0), 0);
   const totalBlocks7d = (dailyStats || []).reduce((s, d) => s + (d.totalBlocks || 0), 0);
   const blockRate7d = totalQueries7d > 0 ? Math.round((totalBlocks7d / totalQueries7d) * 100) : 0;
-
-  const chartData = (dailyStats || []).map(d => ({
-    day: shortDate(d.date),
-    Allowed: (d.totalQueries || 0) - (d.totalBlocks || 0),
-    Blocked: d.totalBlocks || 0,
-  })).slice(-7);
-
-  const topCategories = (categories || [])
-    .filter(c => c.blocked > 0)
-    .sort((a, b) => b.blocked - a.blocked)
-    .slice(0, 5);
 
   return (
     <AnimatedPage>
@@ -305,6 +319,34 @@ export default function CustomerDashboardPage() {
           </Stack>
         </Stack>
       </Box>
+
+      {/* Onboarding empty state — shown inline when no children profiles exist */}
+      {!isLoading && children.length === 0 && (
+        <Box sx={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', py: 8, gap: 3,
+        }}>
+          <Box sx={{ fontSize: 80 }}>🛡️</Box>
+          <Typography variant="h5" fontWeight={700}>Welcome to Shield!</Typography>
+          <Typography color="text.secondary" textAlign="center" maxWidth={400}>
+            Add your first child profile to start protecting their internet experience.
+          </Typography>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<PersonAddIcon />}
+            onClick={() => navigate('/profiles/new')}
+            sx={{ background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)', borderRadius: 2 }}
+          >
+            Add First Child
+          </Button>
+          <Box sx={{ display: 'flex', gap: 1.5, mt: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {['DNS Filtering', 'Screen Time', 'Location Tracking', 'Safe Rewards'].map(feature => (
+              <Chip key={feature} label={feature} variant="outlined" color="primary" />
+            ))}
+          </Box>
+        </Box>
+      )}
 
       {/* Top stats row */}
       <Grid container spacing={2} sx={{ mb: 3 }}>

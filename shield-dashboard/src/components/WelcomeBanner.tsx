@@ -176,7 +176,7 @@ export default function WelcomeBanner({ hasChildren = false }: WelcomeBannerProp
           <Button
             variant="contained"
             endIcon={<ArrowForwardIcon />}
-            onClick={() => navigate('/customer/children/new')}
+            onClick={() => navigate('/profiles/new')}
             sx={{
               bgcolor: 'white',
               color: '#1565C0',

@@ -22,11 +22,15 @@ public class SosController {
 
     @GetMapping("/sos/platform")
     public ResponseEntity<ApiResponse<List<SosEventResponse>>> getAllActiveSos(
-            @RequestHeader("X-User-Role") String role) {
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam(defaultValue = "false") boolean all) {
         if (!List.of("GLOBAL_ADMIN", "ISP_ADMIN").contains(role)) {
             return ResponseEntity.status(403).body(ApiResponse.error("FORBIDDEN", "Forbidden"));
         }
-        return ResponseEntity.ok(ApiResponse.ok(sosService.getAllActiveSosPlatform()));
+        List<SosEventResponse> result = all
+                ? sosService.getAllSosPlatform()
+                : sosService.getAllActiveSosPlatform();
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     @GetMapping("/{profileId}/sos")

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Box, Grid, Card, CardContent, Typography, Avatar, Chip, Stack, CircularProgress, Alert } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import { Box, Grid, Card, CardContent, Typography, Avatar, Chip, Stack, Skeleton, Alert } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
 import DnsIcon from '@mui/icons-material/Dns';
@@ -22,24 +22,19 @@ import { useAuthStore } from '../../store/auth.store';
 const PIE_COLORS = ['#E53935', '#7B1FA2', '#FB8C00', '#1565C0', '#78909C', '#00897B'];
 
 function PlatformSosBanner() {
-  const [sosCount, setSosCount] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { data: sosList = [] } = useQuery<unknown[]>({
+    queryKey: ['isp-sos-platform'],
+    queryFn: () =>
+      api.get('/location/sos/platform')
+        .then(r => {
+          const list = r.data?.data ?? [];
+          return Array.isArray(list) ? list : [];
+        })
+        .catch(() => []),
+    refetchInterval: 30000,
+  });
 
-  const fetchSos = () => {
-    api.get('/location/sos/platform')
-      .then(r => {
-        const list = r.data?.data ?? [];
-        setSosCount(Array.isArray(list) ? list.length : 0);
-      })
-      .catch(() => {});
-  };
-
-  useEffect(() => {
-    fetchSos();
-    timerRef.current = setInterval(fetchSos, 30000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
-
+  const sosCount = sosList.length;
   if (sosCount === 0) return null;
 
   return (
@@ -94,79 +89,117 @@ interface RecentCustomer {
   profileCount?: number;
 }
 
+interface DailyPoint { day: string; queries: number; }
+interface CategoryEntry { name: string; value: number; color: string; }
+
+interface DashboardData {
+  customerCount: number;
+  profileCount: number;
+  recentSignups: RecentCustomer[];
+  trend: DailyPoint[];
+  blockRate: number;
+  categories: CategoryEntry[];
+}
+
 export default function IspDashboardPage() {
   const tenantId = useAuthStore(s => s.user?.tenantId);
-  const [loading, setLoading] = useState(true);
-  const [customerCount, setCustomerCount] = useState(0);
-  const [profileCount, setProfileCount] = useState(0);
-  const [trend, setTrend] = useState<{ day: string; queries: number }[]>([]);
-  const [blockRate, setBlockRate] = useState(0);
-  const [recentSignups, setRecentSignups] = useState<RecentCustomer[]>([]);
-  const [categories, setCategories] = useState<{ name: string; value: number; color: string }[]>([]);
-  const [growth, setGrowth] = useState<{ month: string; customers: number }[]>([]);
+  const tId = tenantId || '';
 
-  useEffect(() => {
-    const tId = tenantId || '';
-    Promise.all([
-      // Customers list
-      api.get('/profiles/customers').then(r => {
-        const d = r.data?.data;
+  const { data, isLoading } = useQuery<DashboardData>({
+    queryKey: ['isp-dashboard', tId],
+    queryFn: async () => {
+      const [customersRes, dailyRes, overviewRes, catRes] = await Promise.allSettled([
+        api.get('/profiles/customers'),
+        tId
+          ? api.get(`/analytics/tenant/${tId}/daily?days=7`)
+          : api.get('/analytics/platform/daily?days=7'),
+        tId
+          ? api.get(`/analytics/tenant/${tId}/overview?period=today`)
+          : api.get('/analytics/platform/overview?period=today'),
+        tId
+          ? api.get(`/analytics/tenant/${tId}/categories?period=week`)
+          : api.get('/analytics/platform/categories?period=week'),
+      ]);
+
+      let customerCount = 0;
+      let profileCount = 0;
+      let recentSignups: RecentCustomer[] = [];
+      if (customersRes.status === 'fulfilled') {
+        const d = customersRes.value.data?.data;
         const list = (d?.content ?? d) as RecentCustomer[];
         if (Array.isArray(list)) {
-          setCustomerCount(d?.totalElements ?? list.length);
-          setProfileCount(list.reduce((s, c) => s + (c.profileCount || c.profiles || 0), 0));
-          setRecentSignups(list.slice(0, 5));
+          customerCount = d?.totalElements ?? list.length;
+          profileCount = list.reduce((s, c) => s + (c.profileCount || c.profiles || 0), 0);
+          recentSignups = list.slice(0, 5);
         }
-      }).catch(() => {}),
+      }
 
-      // Daily trend (tenant-scoped if tenantId exists)
-      (tId
-        ? api.get(`/analytics/tenant/${tId}/daily?days=7`)
-        : api.get('/analytics/platform/daily?days=7')
-      ).then(r => {
-        const d = Array.isArray(r.data) ? r.data : r.data?.data || [];
+      let trend: DailyPoint[] = [];
+      if (dailyRes.status === 'fulfilled') {
+        const d = Array.isArray(dailyRes.value.data) ? dailyRes.value.data : dailyRes.value.data?.data || [];
         if (d.length) {
-          setTrend(d.map((p: any) => ({
+          trend = d.map((p: { date: string; totalQueries?: number }) => ({
             day: new Date(p.date).toLocaleDateString('en', { weekday: 'short' }),
             queries: p.totalQueries || 0,
-          })));
+          }));
         }
-      }).catch(() => {}),
+      }
 
-      // Overview for block rate
-      (tId
-        ? api.get(`/analytics/tenant/${tId}/overview?period=today`)
-        : api.get('/analytics/platform/overview?period=today')
-      ).then(r => {
-        const d = r.data;
-        if (d?.blockRate) setBlockRate(d.blockRate);
-      }).catch(() => {}),
+      let blockRate = 0;
+      if (overviewRes.status === 'fulfilled') {
+        const d = overviewRes.value.data;
+        if (d?.blockRate) blockRate = d.blockRate;
+      }
 
-      // Blocked categories
-      (tId
-        ? api.get(`/analytics/tenant/${tId}/categories?period=week`)
-        : api.get('/analytics/platform/categories?period=week')
-      ).then(r => {
-        const d = Array.isArray(r.data) ? r.data : [];
+      let categories: CategoryEntry[] = [];
+      if (catRes.status === 'fulfilled') {
+        const d = Array.isArray(catRes.value.data) ? catRes.value.data : [];
         if (d.length) {
-          const total = d.reduce((s: number, c: any) => s + c.count, 0);
-          setCategories(d.slice(0, 5).map((c: any, i: number) => ({
+          const total = d.reduce((s: number, c: { count: number }) => s + c.count, 0);
+          categories = d.slice(0, 5).map((c: { category?: string; count: number }, i: number) => ({
             name: c.category || 'Unknown',
             value: total > 0 ? Math.round(c.count / total * 100) : 0,
             color: PIE_COLORS[i % PIE_COLORS.length],
-          })));
+          }));
         }
-      }).catch(() => {}),
-    ]).finally(() => setLoading(false));
-  }, [tenantId]);
+      }
 
+      return { customerCount, profileCount, recentSignups, trend, blockRate, categories };
+    },
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+
+  const customerCount = data?.customerCount ?? 0;
+  const profileCount = data?.profileCount ?? 0;
+  const recentSignups = data?.recentSignups ?? [];
+  const trend = data?.trend ?? [];
+  const blockRate = data?.blockRate ?? 0;
+  const categories = data?.categories ?? [];
   const totalQueries = trend.reduce((s, d) => s + d.queries, 0);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <AnimatedPage>
         <PageHeader icon={<BusinessIcon />} title="ISP Dashboard" subtitle="Monitor your customers and DNS infrastructure" iconColor="#00897B" />
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+        <Box sx={{ p: 0 }}>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {[1, 2, 3, 4].map(i => (
+              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
+                <Skeleton variant="rounded" height={120} />
+              </Grid>
+            ))}
+          </Grid>
+          <Skeleton variant="rounded" height={300} sx={{ mb: 3 }} />
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Skeleton variant="rounded" height={300} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 8 }}>
+              <Skeleton variant="rounded" height={300} />
+            </Grid>
+          </Grid>
+        </Box>
       </AnimatedPage>
     );
   }

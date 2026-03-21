@@ -905,3 +905,77 @@ body {
   border-radius: 12px;
   text-decoration: none;
 }
+
+/* ── Installation Guide ──────────────────────────────── */
+.install-guide {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin: 28px 0 0;
+  color: rgba(255,255,255,0.92);
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.install-guide-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: rgba(255,255,255,0.75);
+}
+.install-guide-header strong { color: #fff; }
+.install-steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 640px) {
+  .install-steps { grid-template-columns: 1fr; }
+}
+.install-step {
+  display: flex;
+  gap: 14px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 16px;
+}
+.install-step-num {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  background: #3B82F6;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+.install-step-body {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.install-step-body strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  color: #fff;
+}
+.install-step-body p {
+  margin: 0;
+  color: rgba(255,255,255,0.7);
+}
+.install-why {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  border-top: 1px solid rgba(255,255,255,0.12);
+  padding-top: 14px;
+  line-height: 1.7;
+}
+.install-why strong { color: rgba(255,255,255,0.8); }

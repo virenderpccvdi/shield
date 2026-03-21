@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../app/theme.dart';
 
-final profilesProvider = FutureProvider<List<dynamic>>((ref) async {
+final profilesProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
   final client = ref.read(dioProvider);
   try {
     final res = await client.get('/profiles/children');

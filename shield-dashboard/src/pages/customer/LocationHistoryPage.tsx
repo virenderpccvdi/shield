@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress,
   Chip, Stack, List, ListItem, ListItemIcon, ListItemText, Button, Tooltip
@@ -176,14 +176,16 @@ export default function LocationHistoryPage() {
   const profileId = selectedChild || (children && children.length > 0 ? children[0].id : null);
 
   const isToday = fromDate.isSame(dayjs(), 'day') && toDate.isSame(dayjs(), 'day');
-  const historyQueryKey = ['location-history', profileId, fromDate.toISOString(), toDate.toISOString()];
+  const fromISO = useMemo(() => fromDate.toISOString(), [fromDate]);
+  const toISO = useMemo(() => toDate.toISOString(), [toDate]);
+  const historyQueryKey = ['location-history', profileId, fromISO, toISO];
 
   const { data: locationData, isLoading } = useQuery({
     queryKey: historyQueryKey,
     queryFn: () => api.get(`/location/${profileId}/history`, {
       params: {
-        from: fromDate.toISOString(),
-        to: toDate.toISOString(),
+        from: fromISO,
+        to: toISO,
         size: 500,
       },
     }).then(r => {
@@ -202,7 +204,7 @@ export default function LocationHistoryPage() {
       if (prev.some(p => p.id === pt.id)) return prev;
       return [...prev, pt];
     });
-  }, [profileId, fromDate.toISOString(), toDate.toISOString()]);
+  }, [profileId, fromISO, toISO]);
 
   useWebSocket(`/topic/location/${profileId}`, handleLiveLocation, !!profileId && isToday);
 

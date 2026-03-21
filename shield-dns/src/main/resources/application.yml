@@ -8,6 +8,16 @@ spring:
   config:
     import: optional:configserver:http://localhost:8288
 
+  datasource:
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      pool-name: ShieldDnsPool
+      leak-detection-threshold: 60000
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -20,6 +30,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_schema: dns
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
 
 eureka:
   client:

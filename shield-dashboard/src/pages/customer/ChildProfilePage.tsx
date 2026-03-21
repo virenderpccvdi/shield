@@ -4,7 +4,7 @@ import {
   CircularProgress, Avatar, Tooltip, TextField, MenuItem, Snackbar, Alert,
   IconButton, Switch, Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
 import ScheduleIcon from '@mui/icons-material/Schedule';
@@ -20,6 +20,8 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BlockIcon from '@mui/icons-material/Block';
 import DnsIcon from '@mui/icons-material/Dns';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import AddIcon from '@mui/icons-material/Add';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
@@ -512,10 +514,18 @@ function ExtensionsTab({ profileId }: { profileId: string }) {
   );
 }
 
+// Lazy-load heavy pages so they don't bloat the profile page bundle
+import { lazy, Suspense } from 'react';
+const RewardsPage   = lazy(() => import('./RewardsPage'));
+const ReportsPage   = lazy(() => import('./ReportsPage'));
+
 export default function ChildProfilePage() {
   const { profileId } = useParams();
   const navigate = useNavigate();
-  const [tab, setTab] = useState(0);
+  const location = useLocation();
+  // Derive active tab from URL hash so direct links work
+  const hashTab = location.hash === '#tasks' ? 4 : location.hash === '#reports' ? 5 : null;
+  const [tab, setTab] = useState(hashTab ?? 0);
 
   const { data: profile, isLoading, isError, error } = useQuery({
     queryKey: ['child-profile', profileId],
@@ -547,10 +557,12 @@ export default function ChildProfilePage() {
 
   const fc = filterColors[profile.filterLevel] || filterColors.MODERATE;
   const tabs = [
-    { label: 'Schedule', icon: <ScheduleIcon sx={{ fontSize: 18 }} /> },
-    { label: 'Screen Time', icon: <TimerIcon sx={{ fontSize: 18 }} /> },
-    { label: 'Content Rules', icon: <ShieldIcon sx={{ fontSize: 18 }} /> },
-    { label: 'Extensions', icon: <ExtensionIcon sx={{ fontSize: 18 }} /> },
+    { label: 'Schedule',      icon: <ScheduleIcon    sx={{ fontSize: 18 }} /> },
+    { label: 'Screen Time',   icon: <TimerIcon       sx={{ fontSize: 18 }} /> },
+    { label: 'Content Rules', icon: <ShieldIcon      sx={{ fontSize: 18 }} /> },
+    { label: 'Extensions',    icon: <ExtensionIcon   sx={{ fontSize: 18 }} /> },
+    { label: 'Tasks & Rewards', icon: <EmojiEventsIcon sx={{ fontSize: 18 }} /> },
+    { label: 'Activity Report', icon: <AssessmentIcon  sx={{ fontSize: 18 }} /> },
   ];
 
   return (
@@ -591,6 +603,16 @@ export default function ChildProfilePage() {
         {tab === 1 && <BudgetsTab profileId={profileId!} />}
         {tab === 2 && <RulesTab profileId={profileId!} />}
         {tab === 3 && <ExtensionsTab profileId={profileId!} />}
+        {tab === 4 && (
+          <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>}>
+            <RewardsPage />
+          </Suspense>
+        )}
+        {tab === 5 && (
+          <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>}>
+            <ReportsPage />
+          </Suspense>
+        )}
       </AnimatedPage>
     </AnimatedPage>
   );

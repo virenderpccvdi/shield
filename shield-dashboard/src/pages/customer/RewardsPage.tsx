@@ -1,6 +1,6 @@
 import {
   Box, Typography, Card, CardContent, Button, CircularProgress, LinearProgress,
-  Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Stack,
+  Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Stack, Tooltip,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
@@ -40,8 +40,13 @@ function statusLabel(status: string) {
   return 'Pending';
 }
 
-export default function RewardsPage() {
-  const { profileId } = useParams();
+interface RewardsPageProps {
+  profileId?: string;
+}
+
+export default function RewardsPage({ profileId: profileIdProp }: RewardsPageProps) {
+  const { profileId: profileIdParam } = useParams();
+  const profileId = profileIdProp ?? profileIdParam;
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -58,6 +63,8 @@ export default function RewardsPage() {
           return (Array.isArray(raw) ? raw : raw?.data ?? []) as Task[];
         })
         .catch(() => [] as Task[]),
+    refetchInterval: 30000,   // auto-refresh so newly created tasks appear
+    enabled: !!profileId,
   });
 
   const createMutation = useMutation({
@@ -74,7 +81,12 @@ export default function RewardsPage() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (id: string) => api.post(`/rewards/tasks/${id}/approve`, {}),
+    mutationFn: (id: string) => api.post(`/rewards/tasks/${id}/approve`, { approved: true }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', profileId] }),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/rewards/tasks/${id}/reject`, { approved: false }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', profileId] }),
   });
 
@@ -160,10 +172,17 @@ export default function RewardsPage() {
                     </Box>
                     <Chip size="small" label={`+${task.rewardPoints || 0} pts`} sx={{ fontWeight: 700, bgcolor: '#FFF3E0', color: '#E65100' }} />
                     <Button size="small" variant="contained" onClick={() => approveMutation.mutate(task.id)}
-                      disabled={approveMutation.isPending}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
                       sx={{ borderRadius: 2, bgcolor: '#43A047', '&:hover': { bgcolor: '#2E7D32' }, fontWeight: 700 }}>
                       {approveMutation.isPending ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : 'Approve'}
                     </Button>
+                    <Tooltip title="Reject task">
+                      <Button size="small" variant="outlined" color="error" onClick={() => rejectMutation.mutate(task.id)}
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                        sx={{ borderRadius: 2, fontWeight: 600 }}>
+                        Reject
+                      </Button>
+                    </Tooltip>
                   </Box>
                 ))}
               </Stack>

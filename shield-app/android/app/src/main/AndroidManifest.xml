@@ -7,7 +7,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
@@ -15,6 +14,9 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission"/>
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions"/>
+    <uses-permission android:name="android.permission.BIND_VPN_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"
         tools:ignore="ProtectedPermissions"/>
 
     <application
@@ -36,8 +38,40 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- Blocked-app full-screen activity (replaces SYSTEM_ALERT_WINDOW overlay) -->
+        <activity
+            android:name=".BlockedAppActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity="com.rstglobal.shield_app.blocker"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"/>
+
         <meta-data android:name="com.google.android.geo.API_KEY" android:value="AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M"/>
         <meta-data android:name="flutterEmbedding" android:value="2"/>
+
+        <!-- Shield DNS VPN Service -->
+        <service
+            android:name=".ShieldVpnService"
+            android:exported="false"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:foregroundServiceType="specialUse">
+            <intent-filter>
+                <action android:name="android.net.VpnService"/>
+            </intent-filter>
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="parental_controls_dns_filter"/>
+        </service>
+
+        <!-- Shield App Blocker Service (UsageStats-based, no AccessibilityService needed) -->
+        <service
+            android:name=".AppBlockerService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"/>
+
         <!-- FCM default notification channel -->
         <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="shield_default"/>
         <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@mipmap/ic_launcher"/>

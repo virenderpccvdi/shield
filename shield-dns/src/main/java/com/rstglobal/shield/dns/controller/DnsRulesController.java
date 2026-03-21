@@ -62,6 +62,35 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(rulesService.updateBlocklist(profileId, parseUuid(tenantIdStr), req)));
     }
 
+    /** Combined endpoint: update both blocklist and allowlist in one call (used by mobile app). */
+    @PutMapping("/rules/{profileId}/custom-lists")
+    public ResponseEntity<ApiResponse<DnsRulesResponse>> updateCustomLists(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
+            @RequestBody Map<String, Object> body) {
+        requireCustomer(role);
+        @SuppressWarnings("unchecked")
+        java.util.List<String> blocklist = (java.util.List<String>) body.get("customBlocklist");
+        @SuppressWarnings("unchecked")
+        java.util.List<String> allowlist = (java.util.List<String>) body.get("customAllowlist");
+        return ResponseEntity.ok(ApiResponse.ok(
+                rulesService.updateCustomLists(profileId, parseUuid(tenantIdStr), blocklist, allowlist)));
+    }
+
+    /** Apply a preset filter level (MILD, MODERATE, STRICT) — resets categories to defaults for that level. */
+    @PutMapping("/rules/{profileId}/filter-level")
+    public ResponseEntity<ApiResponse<DnsRulesResponse>> updateFilterLevel(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
+            @RequestBody Map<String, String> body) {
+        requireCustomer(role);
+        String level = body.getOrDefault("filterLevel", "MODERATE").toUpperCase();
+        return ResponseEntity.ok(ApiResponse.ok(
+                rulesService.updateFilterLevel(profileId, parseUuid(tenantIdStr), level)));
+    }
+
     @PostMapping("/rules/{profileId}/domain/action")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> domainAction(
             @PathVariable UUID profileId,
@@ -85,12 +114,23 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<java.util.List<Map<String, Object>>>> getActivity(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
-            @RequestParam(defaultValue = "20") int limit) {
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
+            @RequestParam(defaultValue = "50") int limit) {
         requireCustomer(role);
-        // Returns mock/empty list — AdGuard is not deployed; real data would come from analytics service
-        java.util.List<Map<String, Object>> activity = new java.util.ArrayList<>();
-        // Placeholder: in production, query the analytics service for recent DNS queries
-        return ResponseEntity.ok(ApiResponse.ok(activity, "DNS activity for profile (AdGuard not deployed — empty list)"));
+        com.rstglobal.shield.dns.entity.DnsRules rules = rulesService.getRulesEntity(profileId, parseUuid(tenantIdStr));
+        String clientId = rules != null ? rules.getDnsClientId() : null;
+        java.util.List<Map<String, Object>> activity = rulesService.getActivity(clientId, limit);
+        return ResponseEntity.ok(ApiResponse.ok(activity));
+    }
+
+    /** Force re-sync current DB rules to AdGuard for a profile (parent triggers after config change). */
+    @PostMapping("/rules/{profileId}/sync")
+    public ResponseEntity<ApiResponse<com.rstglobal.shield.dns.dto.response.DnsRulesResponse>> forceSync(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr) {
+        requireCustomer(role);
+        return ResponseEntity.ok(ApiResponse.ok(rulesService.forceSync(profileId, parseUuid(tenantIdStr))));
     }
 
     // ── Pause / Resume filtering ─────────────────────────────────────────────

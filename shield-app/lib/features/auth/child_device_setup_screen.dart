@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/auth_state.dart';
 import '../../core/constants.dart';
+import '../../core/dns_vpn_service.dart';
 
 class ChildDeviceSetupScreen extends ConsumerStatefulWidget {
   const ChildDeviceSetupScreen({super.key});
@@ -26,6 +27,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
   String? _error;
   List<Map<String, dynamic>> _profiles = [];
   String? _accessToken;
+  String? _parentUserId;   // needed to call /auth/child/token
   String? _selectedProfileId;
   String? _selectedProfileName;
   bool _saving = false;
@@ -41,16 +43,37 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
   bool _qrLoading = false;
   String? _qrError;
   bool _scannerPaused = false;
+  late final MobileScannerController _scannerController = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+  );
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
+    // Start scanner when first tab (QR) is the default
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_tabController.index == 0 && !_qrScanned) {
+        _scannerController.start();
+      }
+    });
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    if (_tabController.index == 0 && !_qrScanned) {
+      _scannerController.start();
+    } else {
+      _scannerController.stop();
+    }
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
+    _scannerController.dispose();
     _email.dispose();
     _password.dispose();
     _qrPasswordCtrl.dispose();
@@ -75,6 +98,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
       });
       final d = res.data['data'];
       _accessToken = d['accessToken'] as String?;
+      _parentUserId = d['userId']?.toString();
       if (_accessToken == null) throw Exception('No token returned');
 
       final profRes = await dio.get(
@@ -107,6 +131,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
     required String token,
     required String profileId,
     required String profileName,
+    String? parentUserId,
   }) async {
     setState(() { _saving = true; _qrLoading = true; });
     try {
@@ -115,6 +140,8 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
         connectTimeout: AppConstants.connectTimeout,
         receiveTimeout: AppConstants.receiveTimeout,
       ));
+
+      // Register this device under the child profile (best-effort)
       await dio.post(
         '/profiles/devices',
         data: {
@@ -126,8 +153,50 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       ).catchError((_) => Response(requestOptions: RequestOptions()));
 
+      // Issue a long-lived child token (365-day expiry) instead of using the
+      // parent's short-lived access token.
+      String childToken = token;
+      final uid = parentUserId ?? _parentUserId;
+      if (uid != null) {
+        try {
+          final childTokenRes = await dio.post(
+            '/auth/child/token',
+            data: {
+              'parentUserId': uid,
+              'childProfileId': profileId,
+              'pin': '0000',
+            },
+          );
+          final issued = childTokenRes.data['data']?['accessToken'] as String?;
+          if (issued != null) childToken = issued;
+        } catch (_) {}
+      }
+
+      // ── Request VPN permission DURING setup ─────────────────────────────────
+      // Android shows the system VPN consent dialog only once (on first use).
+      // We trigger it here, while the parent is still present at setup, so the
+      // child home screen never shows an unexpected permission popup.
+      // After this call succeeds, VpnService.prepare() returns null forever →
+      // the child screen starts DNS protection silently on every launch.
+      try {
+        final rulesRes = await dio.get(
+          '/dns/rules/$profileId',
+          options: Options(headers: {'Authorization': 'Bearer $childToken'}),
+        );
+        final d = rulesRes.data['data'] as Map? ?? rulesRes.data as Map? ?? {};
+        final dohUrl = d['dohUrl']?.toString();
+        if (dohUrl != null && dohUrl.isNotEmpty) {
+          // This call shows the Android VPN permission dialog if not yet granted.
+          // On subsequent launches it returns true immediately (permission cached).
+          await DnsVpnService.start(dohUrl);
+        }
+      } catch (_) {
+        // Best-effort — if DNS rules fetch fails, child screen will retry on load.
+      }
+      // ────────────────────────────────────────────────────────────────────────
+
       await ref.read(authProvider.notifier).setChildMode(
-        accessToken: token,
+        accessToken: childToken,
         profileId: profileId,
         childName: profileName,
       );
@@ -170,6 +239,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
         _qrDnsClientId = dnsClientId;
         _qrError = null;
       });
+      _scannerController.stop();
     } catch (_) {
       setState(() { _qrError = 'Could not read QR code. Make sure you scan the Shield setup QR from the parent portal.'; });
     }
@@ -192,10 +262,12 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
         'password': _qrPasswordCtrl.text,
       });
       final token = res.data['data']['accessToken'] as String?;
+      final parentUserId = res.data['data']['userId']?.toString();
       if (token == null) throw Exception('No token');
 
       await _activateChildMode(
         token: token,
+        parentUserId: parentUserId,
         profileId: _qrProfileId!,
         profileName: _qrProfileName!,
       );
@@ -260,6 +332,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
           child: Stack(
             children: [
               MobileScanner(
+                controller: _scannerController,
                 onDetect: _onQrDetected,
               ),
               // Overlay frame
@@ -427,14 +500,17 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                   ),
                   const SizedBox(height: 8),
                   TextButton(
-                    onPressed: () => setState(() {
-                      _qrScanned = false;
-                      _scannerPaused = false;
-                      _qrProfileId = null;
-                      _qrProfileName = null;
-                      _qrDnsClientId = null;
-                      _qrError = null;
-                    }),
+                    onPressed: () {
+                      setState(() {
+                        _qrScanned = false;
+                        _scannerPaused = false;
+                        _qrProfileId = null;
+                        _qrProfileName = null;
+                        _qrDnsClientId = null;
+                        _qrError = null;
+                      });
+                      _scannerController.start();
+                    },
                     child: const Text('← Scan again'),
                   ),
                 ],

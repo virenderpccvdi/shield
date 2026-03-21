@@ -1,95 +1,105 @@
+import { lazy, Suspense, useMemo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import { ThemeProvider, CssBaseline, CircularProgress, Box } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getShieldTheme } from './theme/theme';
 import { useAuthStore } from './store/auth.store';
 import { useThemeStore } from './store/theme.store';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
+// Layouts are small — keep eager so nav renders instantly
 import CustomerLayout from './layouts/CustomerLayout';
 import AdminLayout from './layouts/AdminLayout';
 import IspLayout from './layouts/IspLayout';
 
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+// ── Auth pages (loaded on first visit, always small) ─────────────────────────
+const LoginPage          = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage       = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
 
-import CustomerDashboardPage from './pages/customer/CustomerDashboardPage';
-import ChildProfilePage from './pages/customer/ChildProfilePage';
-import ActivityPage from './pages/customer/ActivityPage';
-import RulesPage from './pages/customer/RulesPage';
-import SchedulePage from './pages/customer/SchedulePage';
-import LocationMapPage from './pages/customer/LocationMapPage';
-import AlertsPage from './pages/customer/AlertsPage';
-import RewardsPage from './pages/customer/RewardsPage';
-import ReportsPage from './pages/customer/ReportsPage';
-import SettingsPage from './pages/customer/SettingsPage';
-import TimeLimitsPage from './pages/customer/TimeLimitsPage';
-import GeofencesPage from './pages/customer/GeofencesPage';
-import LocationHistoryPage from './pages/customer/LocationHistoryPage';
-import AiInsightsPage from './pages/customer/AiInsightsPage';
-import CustomerDevicesPage from './pages/customer/DevicesPage';
+// ── Customer pages ────────────────────────────────────────────────────────────
+const CustomerDashboardPage    = lazy(() => import('./pages/customer/CustomerDashboardPage'));
+const ChildProfilePage         = lazy(() => import('./pages/customer/ChildProfilePage'));
+const ActivityPage             = lazy(() => import('./pages/customer/ActivityPage'));
+const RulesPage                = lazy(() => import('./pages/customer/RulesPage'));
+const SchedulePage             = lazy(() => import('./pages/customer/SchedulePage'));
+const LocationMapPage          = lazy(() => import('./pages/customer/LocationMapPage'));
+const AlertsPage               = lazy(() => import('./pages/customer/AlertsPage'));
+const RewardsPage              = lazy(() => import('./pages/customer/RewardsPage'));
+const ReportsPage              = lazy(() => import('./pages/customer/ReportsPage'));
+const SettingsPage             = lazy(() => import('./pages/customer/SettingsPage'));
+const TimeLimitsPage           = lazy(() => import('./pages/customer/TimeLimitsPage'));
+const GeofencesPage            = lazy(() => import('./pages/customer/GeofencesPage'));
+const LocationHistoryPage      = lazy(() => import('./pages/customer/LocationHistoryPage'));
+const AiInsightsPage           = lazy(() => import('./pages/customer/AiInsightsPage'));
+const CustomerDevicesPage      = lazy(() => import('./pages/customer/DevicesPage'));
+const AppControlPage           = lazy(() => import('./pages/customer/AppControlPage'));
+const ChildAppsPage            = lazy(() => import('./pages/customer/ChildAppsPage'));
+const SubscriptionPage         = lazy(() => import('./pages/customer/SubscriptionPage'));
+const CheckoutSuccessPage      = lazy(() => import('./pages/customer/CheckoutSuccessPage'));
+const CheckoutCancelPage       = lazy(() => import('./pages/customer/CheckoutCancelPage'));
+const NewChildProfilePage      = lazy(() => import('./pages/customer/NewChildProfilePage'));
+const CustomerChildProfilesPage = lazy(() => import('./pages/customer/CustomerChildProfilesPage'));
+const FamilyMembersPage        = lazy(() => import('./pages/customer/FamilyMembersPage'));
 
-import PlatformDashboardPage from './pages/global-admin/PlatformDashboardPage';
-import TenantsPage from './pages/global-admin/TenantsPage';
-import UsersPage from './pages/global-admin/UsersPage';
-import SystemHealthPage from './pages/global-admin/SystemHealthPage';
-import DnsRulesPage from './pages/global-admin/DnsRulesPage';
-import PlatformAnalyticsPage from './pages/global-admin/PlatformAnalyticsPage';
-import AdminAnalyticsPage from './pages/admin/AdminAnalyticsPage';
-import SubscriptionPlansPage from './pages/global-admin/SubscriptionPlansPage';
-import AuditLogPage from './pages/global-admin/AuditLogPage';
-import DevicesPage from './pages/global-admin/DevicesPage';
-import TenantDetailPage from './pages/global-admin/TenantDetailPage';
-import UserDetailPage from './pages/global-admin/UserDetailPage';
-import NotificationChannelsPage from './pages/global-admin/NotificationChannelsPage';
-import ChildProfilesPage from './pages/global-admin/ChildProfilesPage';
-import AdminChildDetailPage from './pages/global-admin/AdminChildDetailPage';
+// ── Global-admin pages ────────────────────────────────────────────────────────
+const PlatformDashboardPage    = lazy(() => import('./pages/global-admin/PlatformDashboardPage'));
+const TenantsPage              = lazy(() => import('./pages/global-admin/TenantsPage'));
+const UsersPage                = lazy(() => import('./pages/global-admin/UsersPage'));
+const SystemHealthPage         = lazy(() => import('./pages/global-admin/SystemHealthPage'));
+const DnsRulesPage             = lazy(() => import('./pages/global-admin/DnsRulesPage'));
+const PlatformAnalyticsPage    = lazy(() => import('./pages/global-admin/PlatformAnalyticsPage'));
+const AdminAnalyticsPage       = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
+const SubscriptionPlansPage    = lazy(() => import('./pages/global-admin/SubscriptionPlansPage'));
+const AuditLogPage             = lazy(() => import('./pages/global-admin/AuditLogPage'));
+const DevicesPage              = lazy(() => import('./pages/global-admin/DevicesPage'));
+const TenantDetailPage         = lazy(() => import('./pages/global-admin/TenantDetailPage'));
+const UserDetailPage           = lazy(() => import('./pages/global-admin/UserDetailPage'));
+const NotificationChannelsPage = lazy(() => import('./pages/global-admin/NotificationChannelsPage'));
+const ChildProfilesPage        = lazy(() => import('./pages/global-admin/ChildProfilesPage'));
+const AdminChildDetailPage     = lazy(() => import('./pages/global-admin/AdminChildDetailPage'));
+const InvoicesPage             = lazy(() => import('./pages/global-admin/InvoicesPage'));
+const GlobalCustomersPage      = lazy(() => import('./pages/global-admin/GlobalCustomersPage'));
+const GlobalBlocklistPage      = lazy(() => import('./pages/global-admin/GlobalBlocklistPage'));
+const AiModelsPage             = lazy(() => import('./pages/global-admin/AiModelsPage'));
+const FeatureManagementPage    = lazy(() => import('./pages/global-admin/FeatureManagementPage'));
+const RolePermissionsPage      = lazy(() => import('./pages/global-admin/RolePermissionsPage'));
+const AdminUrlActivityPage     = lazy(() => import('./pages/global-admin/AdminUrlActivityPage'));
+const AdminAppControlPage      = lazy(() => import('./pages/global-admin/AdminAppControlPage'));
+const AdminAiInsightsPage      = lazy(() => import('./pages/global-admin/AdminAiInsightsPage'));
+const LeadsPage                = lazy(() => import('./pages/global-admin/LeadsPage'));
+const VisitorsPage             = lazy(() => import('./pages/global-admin/VisitorsPage'));
 
-import IspDashboardPage from './pages/isp-admin/IspDashboardPage';
-import CustomersPage from './pages/isp-admin/CustomersPage';
-import IspAnalyticsPage from './pages/isp-admin/IspAnalyticsPage';
-import IspBillingPage from './pages/isp-admin/IspBillingPage';
-import BrandingPage from './pages/isp-admin/BrandingPage';
-import CustomerDetailPage from './pages/isp-admin/CustomerDetailPage';
+// ── ISP-admin pages ───────────────────────────────────────────────────────────
+const IspDashboardPage     = lazy(() => import('./pages/isp-admin/IspDashboardPage'));
+const CustomersPage        = lazy(() => import('./pages/isp-admin/CustomersPage'));
+const IspAnalyticsPage     = lazy(() => import('./pages/isp-admin/IspAnalyticsPage'));
+const IspBillingPage       = lazy(() => import('./pages/isp-admin/IspBillingPage'));
+const BrandingPage         = lazy(() => import('./pages/isp-admin/BrandingPage'));
+const CustomerDetailPage   = lazy(() => import('./pages/isp-admin/CustomerDetailPage'));
+const IspBlocklistPage     = lazy(() => import('./pages/isp-admin/IspBlocklistPage'));
+const IspFilteringPage     = lazy(() => import('./pages/isp-admin/IspFilteringPage'));
+const IspReportsPage       = lazy(() => import('./pages/isp-admin/IspReportsPage'));
+const IspSettingsPage      = lazy(() => import('./pages/isp-admin/IspSettingsPage'));
+const IspUrlActivityPage   = lazy(() => import('./pages/isp-admin/IspUrlActivityPage'));
+const IspAppControlPage    = lazy(() => import('./pages/isp-admin/IspAppControlPage'));
+const IspDevicesPage       = lazy(() => import('./pages/isp-admin/IspDevicesPage'));
+const IspChildProfilesPage = lazy(() => import('./pages/isp-admin/IspChildProfilesPage'));
+const IspChildDetailPage   = lazy(() => import('./pages/isp-admin/IspChildDetailPage'));
+const IspPlansPage         = lazy(() => import('./pages/isp-admin/IspPlansPage'));
+const IspAiInsightsPage    = lazy(() => import('./pages/isp-admin/IspAiInsightsPage'));
 
-import InvoicesPage from './pages/global-admin/InvoicesPage';
-import GlobalCustomersPage from './pages/global-admin/GlobalCustomersPage';
-import GlobalBlocklistPage from './pages/global-admin/GlobalBlocklistPage';
-import AiModelsPage from './pages/global-admin/AiModelsPage';
-import FeatureManagementPage from './pages/global-admin/FeatureManagementPage';
-import IspBlocklistPage from './pages/isp-admin/IspBlocklistPage';
-import IspFilteringPage from './pages/isp-admin/IspFilteringPage';
-import IspReportsPage from './pages/isp-admin/IspReportsPage';
-import IspSettingsPage from './pages/isp-admin/IspSettingsPage';
-import IspUrlActivityPage from './pages/isp-admin/IspUrlActivityPage';
-import IspAppControlPage from './pages/isp-admin/IspAppControlPage';
-import IspDevicesPage from './pages/isp-admin/IspDevicesPage';
-import IspChildProfilesPage from './pages/isp-admin/IspChildProfilesPage';
-import IspChildDetailPage from './pages/isp-admin/IspChildDetailPage';
-import AdminUrlActivityPage from './pages/global-admin/AdminUrlActivityPage';
-import RolePermissionsPage from './pages/global-admin/RolePermissionsPage';
-import AdminAppControlPage from './pages/global-admin/AdminAppControlPage';
-import LeadsPage from './pages/global-admin/LeadsPage';
-import VisitorsPage from './pages/global-admin/VisitorsPage';
-import AppControlPage from './pages/customer/AppControlPage';
-import ChildAppsPage from './pages/customer/ChildAppsPage';
-import SubscriptionPage from './pages/customer/SubscriptionPage';
-import CheckoutSuccessPage from './pages/customer/CheckoutSuccessPage';
-import CheckoutCancelPage from './pages/customer/CheckoutCancelPage';
-import NewChildProfilePage from './pages/customer/NewChildProfilePage';
-import CustomerChildProfilesPage from './pages/customer/CustomerChildProfilesPage';
-import FamilyMembersPage from './pages/customer/FamilyMembersPage';
-import IspPlansPage from './pages/isp-admin/IspPlansPage';
-import IspAiInsightsPage from './pages/isp-admin/IspAiInsightsPage';
-import AdminAiInsightsPage from './pages/global-admin/AdminAiInsightsPage';
+// ── Shared pages ──────────────────────────────────────────────────────────────
+const PlatformAlertsPage   = lazy(() => import('./pages/PlatformAlertsPage'));
+const NotFoundPage         = lazy(() => import('./pages/NotFoundPage'));
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30000,
       retry: (failureCount, error: unknown) => {
-        // Do not retry on 401/403/404 — these are logic errors, not transient failures
         const status = (error as { response?: { status?: number } })?.response?.status;
         if (status === 401 || status === 403 || status === 404) return false;
         return failureCount < 1;
@@ -102,6 +112,14 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function PageLoader() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
+      <CircularProgress size={36} />
+    </Box>
+  );
+}
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuth = useAuthStore((s) => s.isAuthenticated());
@@ -134,100 +152,107 @@ function RoleRouter() {
 
 export default function App() {
   const mode = useThemeStore((s) => s.mode);
-  const theme = getShieldTheme(mode);
+  const theme = useMemo(() => getShieldTheme(mode), [mode]);
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <BrowserRouter basename="/app">
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login"          element={<LoginPage />} />
+              <Route path="/register"       element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-            <Route path="/" element={<PrivateRoute><RoleRouter /></PrivateRoute>} />
+              <Route path="/" element={<PrivateRoute><RoleRouter /></PrivateRoute>} />
 
-            <Route element={<PrivateRoute><ErrorBoundary><CustomerLayout /></ErrorBoundary></PrivateRoute>}>
-              <Route path="/dashboard" element={<CustomerDashboardPage />} />
-              <Route path="/profiles/:profileId" element={<ChildProfilePage />} />
-              <Route path="/profiles/:profileId/activity" element={<ActivityPage />} />
-              <Route path="/profiles/:profileId/rules" element={<RulesPage />} />
-              <Route path="/profiles/:profileId/schedules" element={<SchedulePage />} />
-              <Route path="/profiles/:profileId/rewards" element={<RewardsPage />} />
-              <Route path="/profiles/:profileId/reports" element={<ReportsPage />} />
-              <Route path="/time-limits" element={<TimeLimitsPage />} />
-              <Route path="/geofences" element={<GeofencesPage />} />
-              <Route path="/location-history" element={<LocationHistoryPage />} />
-              <Route path="/ai-insights" element={<AiInsightsPage />} />
-              <Route path="/app-control" element={<AppControlPage />} />
-              <Route path="/profiles/:profileId/apps" element={<ChildAppsPage />} />
-              <Route path="/devices" element={<CustomerDevicesPage />} />
-              <Route path="/map" element={<LocationMapPage />} />
-              <Route path="/alerts" element={<AlertsPage />} />
-              <Route path="/subscription" element={<SubscriptionPage />} />
-              <Route path="/profiles" element={<CustomerChildProfilesPage />} />
-              <Route path="/profiles/new" element={<NewChildProfilePage />} />
-              <Route path="/billing/success" element={<CheckoutSuccessPage />} />
-              <Route path="/billing/cancel" element={<CheckoutCancelPage />} />
-              <Route path="/family-members" element={<FamilyMembersPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Route>
+              {/* ── Customer ── */}
+              <Route element={<PrivateRoute><ErrorBoundary><CustomerLayout /></ErrorBoundary></PrivateRoute>}>
+                <Route path="/dashboard"                          element={<CustomerDashboardPage />} />
+                <Route path="/profiles/:profileId"                element={<ChildProfilePage />} />
+                <Route path="/profiles/:profileId/activity"       element={<ActivityPage />} />
+                <Route path="/profiles/:profileId/rules"          element={<RulesPage />} />
+                <Route path="/profiles/:profileId/schedules"      element={<SchedulePage />} />
+                <Route path="/profiles/:profileId/rewards"        element={<RewardsPage />} />
+                <Route path="/profiles/:profileId/reports"        element={<ReportsPage />} />
+                <Route path="/profiles/:profileId/apps"           element={<ChildAppsPage />} />
+                <Route path="/time-limits"                        element={<TimeLimitsPage />} />
+                <Route path="/geofences"                          element={<GeofencesPage />} />
+                <Route path="/location-history"                   element={<LocationHistoryPage />} />
+                <Route path="/ai-insights"                        element={<AiInsightsPage />} />
+                <Route path="/app-control"                        element={<AppControlPage />} />
+                <Route path="/devices"                            element={<CustomerDevicesPage />} />
+                <Route path="/map"                                element={<LocationMapPage />} />
+                <Route path="/alerts"                             element={<AlertsPage />} />
+                <Route path="/subscription"                       element={<SubscriptionPage />} />
+                <Route path="/profiles"                           element={<CustomerChildProfilesPage />} />
+                <Route path="/profiles/new"                       element={<NewChildProfilePage />} />
+                <Route path="/billing/success"                    element={<CheckoutSuccessPage />} />
+                <Route path="/billing/cancel"                     element={<CheckoutCancelPage />} />
+                <Route path="/family-members"                     element={<FamilyMembersPage />} />
+                <Route path="/settings"                           element={<SettingsPage />} />
+              </Route>
 
-            <Route element={<AdminRoute><ErrorBoundary><AdminLayout /></ErrorBoundary></AdminRoute>}>
-              <Route path="/admin/dashboard" element={<PlatformDashboardPage />} />
-              <Route path="/admin/tenants" element={<TenantsPage />} />
-              <Route path="/admin/users" element={<UsersPage />} />
-              <Route path="/admin/dns-rules" element={<DnsRulesPage />} />
-              <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
-              <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
-              <Route path="/admin/plans" element={<SubscriptionPlansPage />} />
-              <Route path="/admin/audit-logs" element={<AuditLogPage />} />
-              <Route path="/admin/devices" element={<DevicesPage />} />
-              <Route path="/admin/tenants/:tenantId" element={<TenantDetailPage />} />
-              <Route path="/admin/users/:userId" element={<UserDetailPage />} />
-              <Route path="/admin/health" element={<SystemHealthPage />} />
-              <Route path="/admin/notifications" element={<NotificationChannelsPage />} />
-              <Route path="/admin/child-profiles" element={<ChildProfilesPage />} />
-              <Route path="/admin/child-profiles/:profileId" element={<AdminChildDetailPage />} />
-              <Route path="/admin/invoices" element={<InvoicesPage />} />
-              <Route path="/admin/customers" element={<GlobalCustomersPage />} />
-              <Route path="/admin/customers/:id" element={<CustomerDetailPage />} />
-              <Route path="/admin/blocklist" element={<GlobalBlocklistPage />} />
-              <Route path="/admin/ai-models" element={<AiModelsPage />} />
-              <Route path="/admin/ai-insights" element={<AdminAiInsightsPage />} />
-              <Route path="/admin/features" element={<FeatureManagementPage />} />
-              <Route path="/admin/roles" element={<RolePermissionsPage />} />
-              <Route path="/admin/url-activity" element={<AdminUrlActivityPage />} />
-              <Route path="/admin/app-control" element={<AdminAppControlPage />} />
-              <Route path="/admin/leads" element={<LeadsPage />} />
-              <Route path="/admin/visitors" element={<VisitorsPage />} />
-              <Route path="/admin/settings" element={<SettingsPage />} />
-            </Route>
+              {/* ── Global Admin ── */}
+              <Route element={<AdminRoute><ErrorBoundary><AdminLayout /></ErrorBoundary></AdminRoute>}>
+                <Route path="/admin/dashboard"                    element={<PlatformDashboardPage />} />
+                <Route path="/admin/alerts"                       element={<PlatformAlertsPage />} />
+                <Route path="/admin/tenants"                      element={<TenantsPage />} />
+                <Route path="/admin/tenants/:tenantId"            element={<TenantDetailPage />} />
+                <Route path="/admin/users"                        element={<UsersPage />} />
+                <Route path="/admin/users/:userId"                element={<UserDetailPage />} />
+                <Route path="/admin/dns-rules"                    element={<DnsRulesPage />} />
+                <Route path="/admin/analytics"                    element={<AdminAnalyticsPage />} />
+                <Route path="/admin/platform-analytics"           element={<PlatformAnalyticsPage />} />
+                <Route path="/admin/plans"                        element={<SubscriptionPlansPage />} />
+                <Route path="/admin/audit-logs"                   element={<AuditLogPage />} />
+                <Route path="/admin/devices"                      element={<DevicesPage />} />
+                <Route path="/admin/health"                       element={<SystemHealthPage />} />
+                <Route path="/admin/notifications"                element={<NotificationChannelsPage />} />
+                <Route path="/admin/child-profiles"               element={<ChildProfilesPage />} />
+                <Route path="/admin/child-profiles/:profileId"    element={<AdminChildDetailPage />} />
+                <Route path="/admin/invoices"                     element={<InvoicesPage />} />
+                <Route path="/admin/customers"                    element={<GlobalCustomersPage />} />
+                <Route path="/admin/customers/:id"                element={<CustomerDetailPage />} />
+                <Route path="/admin/blocklist"                    element={<GlobalBlocklistPage />} />
+                <Route path="/admin/ai-models"                    element={<AiModelsPage />} />
+                <Route path="/admin/ai-insights"                  element={<AdminAiInsightsPage />} />
+                <Route path="/admin/features"                     element={<FeatureManagementPage />} />
+                <Route path="/admin/roles"                        element={<RolePermissionsPage />} />
+                <Route path="/admin/url-activity"                 element={<AdminUrlActivityPage />} />
+                <Route path="/admin/app-control"                  element={<AdminAppControlPage />} />
+                <Route path="/admin/leads"                        element={<LeadsPage />} />
+                <Route path="/admin/visitors"                     element={<VisitorsPage />} />
+                <Route path="/admin/settings"                     element={<SettingsPage />} />
+              </Route>
 
-            <Route element={<IspRoute><ErrorBoundary><IspLayout /></ErrorBoundary></IspRoute>}>
-              <Route path="/isp/dashboard" element={<IspDashboardPage />} />
-              <Route path="/isp/customers" element={<CustomersPage />} />
-              <Route path="/isp/customers/:id" element={<CustomerDetailPage />} />
-              <Route path="/isp/branding" element={<BrandingPage />} />
-              <Route path="/isp/analytics" element={<IspAnalyticsPage />} />
-              <Route path="/isp/billing" element={<IspBillingPage />} />
-              <Route path="/isp/plans" element={<IspPlansPage />} />
-              <Route path="/isp/blocklist" element={<IspBlocklistPage />} />
-              <Route path="/isp/filtering" element={<IspFilteringPage />} />
-              <Route path="/isp/reports" element={<IspReportsPage />} />
-              <Route path="/isp/url-activity" element={<IspUrlActivityPage />} />
-              <Route path="/isp/app-control" element={<IspAppControlPage />} />
-              <Route path="/isp/devices" element={<IspDevicesPage />} />
-              <Route path="/isp/child-profiles" element={<IspChildProfilesPage />} />
-              <Route path="/isp/child-profiles/:profileId" element={<IspChildDetailPage />} />
-              <Route path="/billing/success" element={<CheckoutSuccessPage />} />
-              <Route path="/billing/cancel" element={<CheckoutCancelPage />} />
-              <Route path="/isp/settings" element={<IspSettingsPage />} />
-              <Route path="/isp/ai-insights" element={<IspAiInsightsPage />} />
-            </Route>
+              {/* ── ISP Admin ── */}
+              <Route element={<IspRoute><ErrorBoundary><IspLayout /></ErrorBoundary></IspRoute>}>
+                <Route path="/isp/dashboard"                      element={<IspDashboardPage />} />
+                <Route path="/isp/alerts"                         element={<PlatformAlertsPage />} />
+                <Route path="/isp/customers"                      element={<CustomersPage />} />
+                <Route path="/isp/customers/:id"                  element={<CustomerDetailPage />} />
+                <Route path="/isp/branding"                       element={<BrandingPage />} />
+                <Route path="/isp/analytics"                      element={<IspAnalyticsPage />} />
+                <Route path="/isp/billing"                        element={<IspBillingPage />} />
+                <Route path="/isp/plans"                          element={<IspPlansPage />} />
+                <Route path="/isp/blocklist"                      element={<IspBlocklistPage />} />
+                <Route path="/isp/filtering"                      element={<IspFilteringPage />} />
+                <Route path="/isp/reports"                        element={<IspReportsPage />} />
+                <Route path="/isp/url-activity"                   element={<IspUrlActivityPage />} />
+                <Route path="/isp/app-control"                    element={<IspAppControlPage />} />
+                <Route path="/isp/devices"                        element={<IspDevicesPage />} />
+                <Route path="/isp/child-profiles"                 element={<IspChildProfilesPage />} />
+                <Route path="/isp/child-profiles/:profileId"      element={<IspChildDetailPage />} />
+                <Route path="/billing/success"                    element={<CheckoutSuccessPage />} />
+                <Route path="/billing/cancel"                     element={<CheckoutCancelPage />} />
+                <Route path="/isp/settings"                       element={<IspSettingsPage />} />
+                <Route path="/isp/ai-insights"                    element={<IspAiInsightsPage />} />
+              </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>

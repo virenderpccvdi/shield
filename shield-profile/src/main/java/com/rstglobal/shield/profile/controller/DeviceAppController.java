@@ -90,6 +90,17 @@ public class DeviceAppController {
         return ApiResponse.ok(Map.of("message", "Uninstall protection PIN set successfully"));
     }
 
+    /**
+     * Child app fetches its own blocked-app list.
+     * X-User-Id is set to profileId by the gateway (child JWT sub = profileId).
+     */
+    @GetMapping("/blocked")
+    @Operation(summary = "Get blocked apps for the requesting child profile")
+    public ApiResponse<List<DeviceAppResponse>> getMyBlockedApps(
+            @RequestHeader("X-User-Id") UUID profileId) {
+        return ApiResponse.ok(appService.getBlockedApps(profileId));
+    }
+
     /** Child app verifies uninstall PIN before allowing uninstall */
     @PostMapping("/verify-uninstall-pin")
     @Operation(summary = "Verify uninstall PIN (called by child app)")

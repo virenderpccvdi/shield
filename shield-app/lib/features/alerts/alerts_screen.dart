@@ -4,7 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/api_client.dart';
 import '../../core/badge_service.dart';
 
-final alertsProvider = FutureProvider<List<dynamic>>((ref) async {
+final alertsProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
   try {
     final res = await ref.read(dioProvider).get('/notifications/my/unread');
     return res.data['data'] as List? ?? [];
@@ -13,7 +13,7 @@ final alertsProvider = FutureProvider<List<dynamic>>((ref) async {
   }
 });
 
-final spoofingAlertsProvider = FutureProvider.family<List<dynamic>, String>((ref, profileId) async {
+final spoofingAlertsProvider = FutureProvider.autoDispose.family<List<dynamic>, String>((ref, profileId) async {
   try {
     final res = await ref.read(dioProvider).get('/location/$profileId/spoofing-alerts');
     return res.data['data'] as List? ?? [];
@@ -57,32 +57,41 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> with SingleTickerPr
       final profilesRes = await client.get('/profiles/children');
       final profiles = profilesRes.data['data'] as List? ?? [];
 
-      final allEvents = <_SosEvent>[];
-      for (final p in profiles) {
-        final profileId = p['id']?.toString() ?? '';
-        final childName = p['name']?.toString() ?? 'Child';
-        if (profileId.isEmpty) continue;
-        try {
-          // GET /{profileId}/sos?all=true returns all events
-          final res = await client.get('/location/$profileId/sos', queryParameters: {'all': 'true'});
-          final items = res.data['data'] as List? ?? [];
-          for (final item in items) {
-            final m = item as Map<String, dynamic>;
-            allEvents.add(_SosEvent(
-              id: m['id']?.toString() ?? '',
-              childName: childName,
-              profileId: profileId,
-              status: m['status']?.toString() ?? 'ACTIVE',
-              latitude: _parseDouble(m['latitude']),
-              longitude: _parseDouble(m['longitude']),
-              message: m['message']?.toString() ?? '',
-              timestamp: m['timestamp']?.toString() ?? m['createdAt']?.toString() ?? '',
-            ));
+      // Filter valid profiles, then fetch all SOS events in parallel
+      final validProfiles = profiles
+          .where((p) => (p['id']?.toString() ?? '').isNotEmpty)
+          .toList();
+
+      final perProfileResults = await Future.wait(
+        validProfiles.map((p) async {
+          final profileId = p['id']!.toString();
+          final childName = p['name']?.toString() ?? 'Child';
+          try {
+            // GET /{profileId}/sos?all=true returns all events
+            final res = await client.get('/location/$profileId/sos', queryParameters: {'all': 'true'});
+            final items = res.data['data'] as List? ?? [];
+            return items.map((item) {
+              final m = item as Map<String, dynamic>;
+              return _SosEvent(
+                id: m['id']?.toString() ?? '',
+                childName: childName,
+                profileId: profileId,
+                status: m['status']?.toString() ?? 'ACTIVE',
+                latitude: _parseDouble(m['latitude']),
+                longitude: _parseDouble(m['longitude']),
+                message: m['message']?.toString() ?? '',
+                timestamp: m['timestamp']?.toString() ?? m['createdAt']?.toString() ?? '',
+              );
+            }).toList();
+          } catch (_) {
+            // Skip failed profile — continue with others
+            return <_SosEvent>[];
           }
-        } catch (_) {
-          // Skip failed profile — continue with others
-        }
-      }
+        }),
+        eagerError: false,
+      );
+
+      final allEvents = perProfileResults.expand((list) => list).toList();
 
       // Sort: active first, then newest
       allEvents.sort((a, b) {

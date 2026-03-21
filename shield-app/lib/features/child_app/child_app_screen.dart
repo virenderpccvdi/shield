@@ -12,12 +12,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_state.dart';
 import '../../core/app_lock_service.dart';
+import '../../core/app_blocking_service.dart';
+import '../../core/dns_vpn_service.dart';
 import 'pin_verify_dialog.dart';
 
-final childUsageSummaryProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, profileId) async {
+final childUsageSummaryProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, profileId) async {
   final client = ref.read(dioProvider);
   try {
-    final res = await client.get('/analytics/dns/$profileId/stats');
+    final res = await client.get('/analytics/$profileId/stats');
     final d = res.data['data'] as Map? ?? {};
     return {
       'dnsQueries': d['totalQueries'] ?? 0,
@@ -27,7 +29,7 @@ final childUsageSummaryProvider = FutureProvider.family<Map<String, dynamic>, St
   } catch (_) { return {}; }
 });
 
-final childTasksProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, profileId) async {
+final childTasksProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, profileId) async {
   final client = ref.read(dioProvider);
   try {
     final res = await client.get('/rewards/tasks', queryParameters: {'profileId': profileId});
@@ -35,7 +37,7 @@ final childTasksProvider = FutureProvider.family<List<Map<String, dynamic>>, Str
   } catch (_) { return []; }
 });
 
-final childBankProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, profileId) async {
+final childBankProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, profileId) async {
   final client = ref.read(dioProvider);
   try {
     final res = await client.get('/rewards/bank/$profileId');
@@ -44,11 +46,15 @@ final childBankProvider = FutureProvider.family<Map<String, dynamic>, String>((r
   } catch (_) { return {}; }
 });
 
-final childGeofencesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, profileId) async {
+final childGeofencesProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, profileId) async {
+  if (profileId.isEmpty) return [];
   final client = ref.read(dioProvider);
   try {
-    final res = await client.get('/profiles/geofences', queryParameters: {'profileId': profileId});
-    return (res.data['data'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    // Geofences live in shield-location: GET /location/{profileId}/geofences
+    final res = await client.get('/location/$profileId/geofences');
+    final raw = res.data['data'];
+    final list = raw is List ? raw : (raw is Map ? (raw['content'] ?? []) : []);
+    return (list as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   } catch (_) { return []; }
 });
 
@@ -83,6 +89,9 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
   bool _sosSending = false;
   String? _sosResult;
   bool _loading = true;
+  bool _vpnActive = false;
+  AppBlockingStatus _blockingStatus = AppBlockingStatus.unavailable;
+  Timer? _refreshTimer;
   bool _checkingIn = false;
   bool _isCheckedIn = false;
   String? _checkedInAt;
@@ -97,12 +106,16 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
     super.initState();
     _sosController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
     _loadInitialState();
+    _startDnsVpn();
     _sendHeartbeat();
+    // Refresh all data providers every 60 seconds for real-time feel
+    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) => _refreshProviders());
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) => _sendHeartbeat());
     _sendBackgroundLocation();
     _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) => _sendBackgroundLocation());
     _syncInstalledApps();
     _appsTimer = Timer.periodic(const Duration(minutes: 30), (_) => _syncInstalledApps());
+    _startAppBlocking();
   }
 
   @override
@@ -111,6 +124,9 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
     _heartbeatTimer?.cancel();
     _locationTimer?.cancel();
     _appsTimer?.cancel();
+    _refreshTimer?.cancel();
+    // Note: VPN service is intentionally NOT stopped here — it should keep running
+    // even if the app goes to background so filtering stays active.
     super.dispose();
   }
 
@@ -128,6 +144,122 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
         _loading = false;
       });
     }
+  }
+
+  /// Invalidate all FutureProviders to force re-fetch (real-time updates).
+  void _refreshProviders() {
+    final profileId = ref.read(authProvider).childProfileId ?? '';
+    if (profileId.isEmpty || !mounted) return;
+    ref.invalidate(childUsageSummaryProvider(profileId));
+    ref.invalidate(childTasksProvider(profileId));
+    ref.invalidate(childBankProvider(profileId));
+    ref.invalidate(childGeofencesProvider(profileId));
+  }
+
+  /// Fetch the child profile's DoH URL from the server and start the DNS VPN.
+  /// Called on every app launch — idempotent (VPN service ignores if already running).
+  Future<void> _startDnsVpn() async {
+    final profileId = ref.read(authProvider).childProfileId;
+    if (profileId == null) return;
+    try {
+      final client = ref.read(dioProvider);
+      final res = await client.get('/dns/rules/$profileId');
+      final data = res.data['data'] as Map? ?? res.data as Map? ?? {};
+      final dohUrl = data['dohUrl']?.toString();
+      if (dohUrl == null || dohUrl.isEmpty) return;
+
+      final started = await DnsVpnService.start(dohUrl);
+      if (mounted) setState(() => _vpnActive = started);
+      // VPN permission is requested during device setup (child_device_setup_screen.dart).
+      // By the time this screen loads, permission is already granted so VPN starts
+      // silently. No dialog needed here — the setup flow handles first-time consent.
+    } catch (e) {
+      // DNS VPN is best-effort — don't crash the child app if it fails
+    }
+  }
+
+  /// Show a dialog explaining why VPN permission is needed, with a Retry button.
+  void _promptVpnPermission(String dohUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Enable DNS Protection', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text(
+          'Shield needs to create a VPN connection to filter your internet and keep you safe.\n\n'
+          'Tap "Enable" and then tap "OK" on the system dialog that appears.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Later'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final started = await DnsVpnService.start(dohUrl);
+              if (mounted) setState(() => _vpnActive = started);
+            },
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Fetch blocked app list from server and activate app blocking enforcement.
+  Future<void> _startAppBlocking() async {
+    final auth = ref.read(authProvider);
+    final profileId = auth.childProfileId;
+    final childName = auth.childName ?? 'Child';
+    if (profileId == null) return;
+    try {
+      final client = ref.read(dioProvider);
+      final res = await client.get('/profiles/$profileId/apps/blocked');
+      final raw = res.data['data'];
+      final blocked = (raw is List ? raw : [])
+          .map((e) => (e as Map)['packageName']?.toString() ?? '')
+          .where((p) => p.isNotEmpty)
+          .toList();
+
+      final status = await AppBlockingService.setup(
+        blockedPackages: blocked,
+        childName: childName,
+      );
+      if (mounted) setState(() => _blockingStatus = status);
+
+      if (status == AppBlockingStatus.needsUsageStatsPermission) {
+        _promptUsageStatsPermission();
+      }
+    } catch (e) {
+      // App blocking is best-effort — not critical
+      debugPrint('[Shield] App blocking setup failed: $e');
+    }
+  }
+
+  void _promptUsageStatsPermission() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Enable App Blocking'),
+        content: const Text(
+          'Your parent has restricted some apps on this device.\n\n'
+          'To enforce app restrictions, Shield needs Usage Access permission.\n\n'
+          'Tap "Enable" → find "Shield" in the list → turn it ON.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Later')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              AppBlockingService.openUsageStatsSettings();
+            },
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _sendHeartbeat() async {
@@ -388,6 +520,18 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     actions: [
+                      // DNS protection status indicator
+                      Padding(
+                        padding: const EdgeInsets.only(right: 2),
+                        child: Tooltip(
+                          message: _vpnActive ? 'DNS protection active' : 'DNS protection inactive',
+                          child: Icon(
+                            _vpnActive ? Icons.security : Icons.security_outlined,
+                            size: 18,
+                            color: _vpnActive ? Colors.greenAccent : Colors.white38,
+                          ),
+                        ),
+                      ),
                       if (_batteryPct >= 0)
                         Padding(
                           padding: const EdgeInsets.only(right: 4),

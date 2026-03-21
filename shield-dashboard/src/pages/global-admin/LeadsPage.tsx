@@ -148,7 +148,8 @@ export default function LeadsPage() {
   const { data: stats } = useQuery<LeadStats>({
     queryKey: ['lead-stats'],
     queryFn: () => api.get('/admin/contact/leads/stats').then(r => r.data?.data ?? r.data),
-    refetchInterval: 30000,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
@@ -160,7 +161,8 @@ export default function LeadsPage() {
         r.data?.data?.content ?? r.data?.content ?? []
       ).catch(() => []);
     },
-    refetchInterval: 30000,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   const { data: activities = [] } = useQuery<Activity[]>({

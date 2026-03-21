@@ -54,13 +54,24 @@ function relativeTime(iso: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-interface DnsEvent { id: string; domain: string; action: 'ALLOWED' | 'BLOCKED'; category: string; timestamp: string; }
+interface DnsEvent { id: string; domain: string; action: 'ALLOWED' | 'BLOCKED'; category: string; queriedAt: string; }
 interface TopDomain { domain: string; count: number; action?: string; }
 interface CategoryStat { name: string; value: number; percent: number; }
 interface DailyPoint { day: string; queries: number; blocks: number; allowed: number; }
+interface AppUsageItem {
+  appName: string;
+  packageName: string;
+  totalMinutes: number;
+  blockedCount?: number;
+}
 
-export default function ReportsPage() {
-  const { profileId } = useParams<{ profileId: string }>();
+interface ReportsPageProps {
+  profileId?: string;
+}
+
+export default function ReportsPage({ profileId: profileIdProp }: ReportsPageProps) {
+  const { profileId: profileIdParam } = useParams<{ profileId: string }>();
+  const profileId = profileIdProp ?? profileIdParam;
   const [period, setPeriod] = useState<Period>('WEEK');
   const [chartTab, setChartTab] = useState(0);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -94,16 +105,19 @@ export default function ReportsPage() {
     queryKey: ['report-stats', profileId, period],
     queryFn: async () => {
       const r = await api.get(`/analytics/${profileId}/stats`, { params: { period } });
-      return (r.data?.data ?? r.data) as {
-        totalQueries: number;
-        totalBlocked: number;
-        totalAllowed: number;
-        blockRate: number;
-        uniqueDomains?: number;
-      };
+      const raw = r.data?.data ?? r.data;
+      // Normalise: API returns blockedQueries/allowedQueries
+      return {
+        totalQueries: raw?.totalQueries ?? 0,
+        totalBlocked: raw?.totalBlocked ?? raw?.blockedQueries ?? 0,
+        totalAllowed: raw?.totalAllowed ?? raw?.allowedQueries ?? 0,
+        blockRate:    Number.isFinite(raw?.blockRate) ? raw.blockRate : 0,
+      } as { totalQueries: number; totalBlocked: number; totalAllowed: number; blockRate: number; };
     },
     enabled: !!profileId,
     retry: 1,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   // Daily chart data
@@ -129,6 +143,8 @@ export default function ReportsPage() {
     },
     enabled: !!profileId,
     retry: 1,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   // Category breakdown
@@ -151,6 +167,8 @@ export default function ReportsPage() {
     },
     enabled: !!profileId,
     retry: 1,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   // Top blocked domains
@@ -162,17 +180,36 @@ export default function ReportsPage() {
     },
     enabled: !!profileId,
     retry: 1,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
-  // Recent activity
+  // Recent activity — all queries (blocked + allowed), auto-refreshes every 60s
   const historyQuery = useQuery({
     queryKey: ['report-history', profileId],
     queryFn: async () => {
-      const r = await api.get(`/analytics/${profileId}/history`, { params: { page: 0, size: 20 } });
-      return (r.data?.data ?? r.data?.content ?? r.data) as DnsEvent[];
+      const r = await api.get(`/analytics/${profileId}/history`, { params: { page: 0, size: 50 } });
+      const raw = r.data?.content ?? r.data?.data?.content ?? r.data?.data ?? r.data;
+      return (Array.isArray(raw) ? raw : []) as DnsEvent[];
     },
     enabled: !!profileId,
     retry: 1,
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+
+  // App usage query
+  const appUsageQuery = useQuery({
+    queryKey: ['app-usage', profileId],
+    queryFn: async () => {
+      const r = await api.get(`/analytics/${profileId}/apps`);
+      const raw = r.data?.data ?? r.data;
+      return (Array.isArray(raw) ? raw : raw?.content ?? []) as AppUsageItem[];
+    },
+    enabled: !!profileId,
+    retry: 1,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   const stats = statsQuery.data;
@@ -180,6 +217,7 @@ export default function ReportsPage() {
   const categories = catQuery.data ?? [];
   const topBlocked = (topBlockedQuery.data ?? []) as TopDomain[];
   const history = (historyQuery.data ?? []) as DnsEvent[];
+  const appUsage = (appUsageQuery.data ?? []) as AppUsageItem[];
   const loading = statsQuery.isLoading;
 
   const totalQ = stats?.totalQueries ?? daily.reduce((s, d) => s + d.queries, 0);
@@ -312,6 +350,7 @@ export default function ReportsPage() {
                 <Tab label="Category Breakdown" />
                 <Tab label="Top Blocked Domains" />
                 <Tab label="Recent Activity" />
+                <Tab label="App Usage" />
               </Tabs>
 
               {/* Tab 0: Daily Activity BarChart */}
@@ -606,7 +645,7 @@ export default function ReportsPage() {
                               </TableCell>
                               <TableCell align="right">
                                 <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 11 }}>
-                                  {relativeTime(ev.timestamp)}
+                                  {relativeTime(ev.queriedAt)}
                                 </Typography>
                               </TableCell>
                             </TableRow>
@@ -617,6 +656,67 @@ export default function ReportsPage() {
                   </CardContent>
                 </Card>
               )}
+              {/* Tab 4: App Usage */}
+              {chartTab === 4 && (
+                <Card>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
+                      App Usage
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      Time spent per app (top 10)
+                    </Typography>
+                    {appUsageQuery.isLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+                    ) : appUsage.length === 0 ? (
+                      <EmptyState
+                        icon={<LanguageIcon sx={{ fontSize: 36, color: '#1565C0' }} />}
+                        title="No app usage data yet"
+                        description="App usage will appear here after the child uses the Shield app on their device"
+                      />
+                    ) : (
+                      <Stack spacing={1.5}>
+                        {[...appUsage]
+                          .sort((a, b) => b.totalMinutes - a.totalMinutes)
+                          .slice(0, 10)
+                          .map(app => {
+                            const maxMins = appUsage.reduce((m, a) => Math.max(m, a.totalMinutes), 1);
+                            return (
+                              <Box key={app.packageName} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Typography
+                                  sx={{ width: 150, flexShrink: 0, fontSize: 13, fontWeight: 600 }}
+                                  noWrap
+                                >
+                                  {app.appName}
+                                </Typography>
+                                <Box sx={{ flex: 1, bgcolor: '#F1F5F9', borderRadius: 1, overflow: 'hidden' }}>
+                                  <Box sx={{
+                                    height: 20,
+                                    width: `${(app.totalMinutes / maxMins) * 100}%`,
+                                    bgcolor: 'primary.main',
+                                    borderRadius: 1,
+                                    minWidth: app.totalMinutes > 0 ? 4 : 0,
+                                  }} />
+                                </Box>
+                                <Typography sx={{ width: 60, textAlign: 'right', fontSize: 13, color: 'text.secondary', flexShrink: 0 }}>
+                                  {app.totalMinutes}m
+                                </Typography>
+                                {(app.blockedCount ?? 0) > 0 && (
+                                  <Chip
+                                    label={`${app.blockedCount} blocked`}
+                                    size="small"
+                                    sx={{ height: 20, fontSize: 10, bgcolor: '#FFEBEE', color: '#C62828', fontWeight: 700, flexShrink: 0 }}
+                                  />
+                                )}
+                              </Box>
+                            );
+                          })}
+                      </Stack>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
             </Box>
           </AnimatedPage>
 

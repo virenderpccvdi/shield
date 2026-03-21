@@ -61,7 +61,23 @@ public class AdGuardClient {
     /** Update client settings (categories, blocked services, safe-search). */
     public void updateClient(String clientId, String displayName, AdGuardClientData data) {
         if (!enabled) { log.debug("AdGuard disabled — skipping updateClient({})", clientId); return; }
-        Map<String, Object> body = Map.of("name", displayName, "data", data);
+        // Build inner data with snake_case keys (AdGuard Home API requirement)
+        Map<String, Object> innerData = new java.util.LinkedHashMap<>();
+        innerData.put("name", displayName);
+        innerData.put("ids", List.of(clientId));
+        innerData.put("use_global_settings", false);
+        innerData.put("use_global_blocked_services", false);
+        innerData.put("filtering_enabled", data.filteringEnabled());
+        innerData.put("parental_enabled", data.parentalEnabled());
+        innerData.put("safebrowsing_enabled", data.safebrowsingEnabled());
+        innerData.put("safe_search", data.safeSearch());
+        innerData.put("blocked_services", data.blockedServices());
+        innerData.put("tags", List.of("device_phone"));
+        innerData.put("ignore_querylog", false);
+        innerData.put("ignore_statistics", false);
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("name", displayName); // existing client name to look up
+        body.put("data", innerData);
         post("/control/clients/update", body);
     }
 
@@ -69,6 +85,34 @@ public class AdGuardClient {
     public void deleteClient(String clientId) {
         if (!enabled) { log.debug("AdGuard disabled — skipping deleteClient({})", clientId); return; }
         post("/control/clients/delete", Map.of("name", clientId));
+    }
+
+    /**
+     * Fetch DNS query log entries for a specific client.
+     * Returns raw AdGuard response as a List of Maps.
+     */
+    @SuppressWarnings("unchecked")
+    public java.util.List<java.util.Map<String, Object>> getQueryLog(String clientId, int limit) {
+        if (!enabled) return java.util.List.of();
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", authHeader);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            String url = baseUrl + "/control/querylog?limit=" + limit
+                    + (clientId != null && !clientId.isBlank() ? "&search=" + clientId : "");
+            ResponseEntity<String> resp = rest.exchange(url, HttpMethod.GET, entity, String.class);
+            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
+                java.util.Map<String, Object> parsed = mapper.readValue(resp.getBody(),
+                        new com.fasterxml.jackson.core.type.TypeReference<>() {});
+                Object data = parsed.get("data");
+                if (data instanceof java.util.List) {
+                    return (java.util.List<java.util.Map<String, Object>>) data;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("AdGuard querylog failed: {}", e.getMessage());
+        }
+        return java.util.List.of();
     }
 
     // ── Internal helpers ─────────────────────────────────────────────────────

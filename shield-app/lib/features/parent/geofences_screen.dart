@@ -18,6 +18,7 @@ class GeofencesScreen extends ConsumerStatefulWidget {
 class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
   final Completer<GoogleMapController> _mapController = Completer();
   List<Map<String, dynamic>> _geofences = [];
+  List<Map<String, dynamic>> _breaches = [];
   bool _loading = true;
 
   static const _defaultCamera =
@@ -33,15 +34,44 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
     setState(() => _loading = true);
     try {
       final client = ref.read(dioProvider);
-      final res =
-          await client.get('/location/${widget.profileId}/geofences');
-      _geofences = ((res.data['data'] as List?) ?? [])
+      // Load geofences and breach history in parallel
+      final results = await Future.wait([
+        client.get('/location/${widget.profileId}/geofences'),
+        client.get('/location/${widget.profileId}/geofences/breaches',
+            queryParameters: {'size': 20}).catchError((_) => null),
+      ], eagerError: false);
+
+      _geofences = ((results[0] as dynamic).data['data'] as List? ?? [])
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList();
+
+      try {
+        final bRes = results[1];
+        if (bRes != null) {
+          final raw = (bRes as dynamic).data;
+          final list = raw is List ? raw : (raw is Map ? (raw['data'] as List? ?? raw['content'] as List? ?? []) : <dynamic>[]);
+          _breaches = list.take(20).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        } else {
+          _breaches = [];
+        }
+      } catch (_) { _breaches = []; }
     } catch (_) {
       _geofences = [];
+      _breaches = [];
     }
     if (mounted) setState(() => _loading = false);
+  }
+
+  String _timeAgo(String? iso) {
+    if (iso == null || iso.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      return '${diff.inDays}d ago';
+    } catch (_) { return iso; }
   }
 
   double? _d(dynamic v) {
@@ -299,94 +329,153 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
+          : CustomScrollView(
+              slivers: [
                 // Overview map
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.40,
-                  child: GoogleMap(
-                    initialCameraPosition: _defaultCamera,
-                    onMapCreated: (c) {
-                      if (!_mapController.isCompleted) {
-                        _mapController.complete(c);
-                      }
-                      if (_geofences.isNotEmpty) {
-                        final f = _geofences.first;
-                        final lat = _gfLat(f);
-                        final lng = _gfLng(f);
-                        if (lat != null && lng != null) {
-                          c.animateCamera(CameraUpdate.newLatLngZoom(
-                              LatLng(lat, lng), 14));
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.40,
+                    child: GoogleMap(
+                      initialCameraPosition: _defaultCamera,
+                      onMapCreated: (c) {
+                        if (!_mapController.isCompleted) {
+                          _mapController.complete(c);
                         }
-                      }
-                    },
-                    markers: _buildMarkers(),
-                    circles: _buildCircles(),
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: true,
+                        if (_geofences.isNotEmpty) {
+                          final f = _geofences.first;
+                          final lat = _gfLat(f);
+                          final lng = _gfLng(f);
+                          if (lat != null && lng != null) {
+                            c.animateCamera(CameraUpdate.newLatLngZoom(
+                                LatLng(lat, lng), 14));
+                          }
+                        }
+                      },
+                      markers: _buildMarkers(),
+                      circles: _buildCircles(),
+                      myLocationEnabled: true,
+                      myLocationButtonEnabled: true,
+                    ),
                   ),
                 ),
-                // Geofence list
-                Expanded(
-                  child: _geofences.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.fence,
-                                  size: 48, color: Colors.grey),
-                              SizedBox(height: 8),
-                              Text('No geofences set up',
-                                  style: TextStyle(
-                                      color: Colors.grey,
-                                      fontWeight: FontWeight.w600)),
-                              Text('Tap "Add Geofence" to draw a safe zone',
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 13)),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding:
-                              const EdgeInsets.only(bottom: 80),
-                          itemCount: _geofences.length,
-                          itemBuilder: (_, i) {
-                            final f = _geofences[i];
-                            final type =
-                                f['type'] as String? ?? 'OTHER';
-                            final color = _typeColor(type);
-                            final radius = _d(f['radiusMeters'] ??
-                                    f['radius'])
-                                ?.round() ??
-                                200;
-                            return Card(
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 4),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor:
-                                      color.withValues(alpha: 0.15),
-                                  child: Icon(_typeIcon(type),
-                                      color: color),
-                                ),
-                                title: Text(
-                                    f['name'] as String? ??
-                                        'Geofence ${i + 1}',
-                                    style: const TextStyle(
-                                        fontWeight:
-                                            FontWeight.w600)),
-                                subtitle: Text(
-                                    '${_gfLat(f)?.toStringAsFixed(4) ?? '?'}, '
-                                    '${_gfLng(f)?.toStringAsFixed(4) ?? '?'}  ·  '
-                                    '${radius}m  ·  $type'),
-                                trailing: const Icon(Icons.edit,
-                                    size: 18),
-                                onTap: () => _editGeofence(f),
-                              ),
-                            );
-                          },
-                        ),
+
+                // Geofence list header
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Text('Geofences (${_geofences.length})',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  ),
                 ),
+
+                // Geofences
+                _geofences.isEmpty
+                  ? SliverToBoxAdapter(
+                      child: const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            Icon(Icons.fence, size: 48, color: Colors.grey),
+                            SizedBox(height: 8),
+                            Text('No geofences set up',
+                                style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                            Text('Tap "Add Geofence" to draw a safe zone',
+                                style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    )
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) {
+                          final f = _geofences[i];
+                          final type = f['type'] as String? ?? 'OTHER';
+                          final color = _typeColor(type);
+                          final radius = _d(f['radiusMeters'] ?? f['radius'])?.round() ?? 200;
+                          return Card(
+                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: color.withValues(alpha: 0.15),
+                                child: Icon(_typeIcon(type), color: color),
+                              ),
+                              title: Text(
+                                  f['name'] as String? ?? 'Geofence ${i + 1}',
+                                  style: const TextStyle(fontWeight: FontWeight.w600)),
+                              subtitle: Text(
+                                  '${_gfLat(f)?.toStringAsFixed(4) ?? '?'}, '
+                                  '${_gfLng(f)?.toStringAsFixed(4) ?? '?'}  ·  '
+                                  '${radius}m  ·  $type'),
+                              trailing: const Icon(Icons.edit, size: 18),
+                              onTap: () => _editGeofence(f),
+                            ),
+                          );
+                        },
+                        childCount: _geofences.length,
+                      ),
+                    ),
+
+                // Recent Breaches header
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+                    child: Row(children: [
+                      const Icon(Icons.notifications_active, size: 18, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      const Text('Recent Breaches',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    ]),
+                  ),
+                ),
+
+                // Breach history list
+                _breaches.isEmpty
+                  ? SliverToBoxAdapter(
+                      child: const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        child: Text('No recent breaches',
+                            style: TextStyle(color: Colors.grey, fontSize: 13)),
+                      ),
+                    )
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) {
+                          final breach = _breaches[i];
+                          final isExit = (breach['breachType'] as String? ?? '').toUpperCase() == 'EXIT';
+                          return ListTile(
+                            leading: Icon(
+                              isExit ? Icons.logout : Icons.login,
+                              color: isExit ? Colors.orange : Colors.green,
+                            ),
+                            title: Text(breach['geofenceName'] as String? ?? 'Unknown',
+                                style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Text(
+                              '${breach['profileName'] ?? ''} · ${_timeAgo(breach['occurredAt'] as String?)}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            trailing: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: isExit ? Colors.orange.shade50 : Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                isExit ? 'EXIT' : 'ENTER',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: isExit ? Colors.orange.shade700 : Colors.green.shade700,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        childCount: _breaches.length,
+                      ),
+                    ),
+
+                // Bottom padding for FAB
+                const SliverToBoxAdapter(child: SizedBox(height: 80)),
               ],
             ),
     );

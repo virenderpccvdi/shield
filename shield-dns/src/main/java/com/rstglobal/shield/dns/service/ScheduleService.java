@@ -107,17 +107,14 @@ public class ScheduleService {
     @Transactional
     public void expireOverrides() {
         OffsetDateTime now = OffsetDateTime.now();
-        scheduleRepo.findAll().stream()
-                .filter(s -> Boolean.TRUE.equals(s.getOverrideActive())
-                        && s.getOverrideEndsAt() != null
-                        && s.getOverrideEndsAt().isBefore(now))
-                .forEach(s -> {
-                    s.setOverrideActive(false);
-                    s.setOverrideType(null);
-                    s.setOverrideEndsAt(null);
-                    scheduleRepo.save(s);
-                    log.info("Override expired for profileId={}", s.getProfileId());
-                });
+        List<Schedule> expired = scheduleRepo.findExpiredOverrides(now);
+        for (Schedule s : expired) {
+            s.setOverrideActive(false);
+            s.setOverrideType(null);
+            s.setOverrideEndsAt(null);
+            scheduleRepo.save(s);
+            log.info("Override expired for profileId={}", s.getProfileId());
+        }
     }
 
     // ── Schedule enforcement (runs every minute) ───────────────────────────────
@@ -152,7 +149,7 @@ public class ScheduleService {
             case SUNDAY    -> "sunday";
         };
 
-        List<Schedule> schedules = scheduleRepo.findAll();
+        List<Schedule> schedules = scheduleRepo.findAllSchedules();
         int blocked = 0, allowed = 0;
 
         for (Schedule s : schedules) {

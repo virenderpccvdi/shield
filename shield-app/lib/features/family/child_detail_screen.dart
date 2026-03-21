@@ -7,7 +7,7 @@ import '../../app/theme.dart';
 import '../parent/quick_control_sheet.dart';
 
 // Provider for spoofing check — returns true if spoofing detected within 24h
-final spoofingBannerProvider = FutureProvider.family<bool, String>((ref, profileId) async {
+final spoofingBannerProvider = FutureProvider.autoDispose.family<bool, String>((ref, profileId) async {
   try {
     final res = await ref.read(dioProvider).get(
       '/location/$profileId/spoofing-alerts',
@@ -415,17 +415,24 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
           _SectionLabel(label: 'Devices'),
           const SizedBox(height: 10),
           _NavCard(
+            icon: Icons.block_rounded,
+            title: 'App Blocking',
+            subtitle: 'Block apps on child\'s device',
+            color: Colors.red.shade700,
+            onTap: () => context.go('/family/${widget.profileId}/app-blocking'),
+          ),
+          _NavCard(
             icon: Icons.devices_rounded,
             title: 'Manage Devices',
             subtitle: 'Add or remove child devices',
-            color: Colors.deepPurple,
+            color: Colors.blue.shade800,
             onTap: () => context.go('/family/${widget.profileId}/devices'),
           ),
           _NavCard(
             icon: Icons.phonelink_setup_rounded,
             title: 'Child Device Setup',
             subtitle: 'Guided QR setup for child\'s phone',
-            color: Colors.indigo,
+            color: Colors.blue.shade700,
             onTap: () => context.go('/child-setup'),
           ),
           const SizedBox(height: 8),
@@ -726,7 +733,7 @@ class _InsightsTab extends StatelessWidget {
         _NavCard(
           icon: Icons.psychology, title: 'AI Behavioral Insights',
           subtitle: 'Risk analysis and recommendations',
-          color: Colors.purple,
+          color: Colors.blue,
           onTap: () => context.go('/family/$profileId/ai-insights'),
         ),
         _NavCard(

@@ -27,6 +27,7 @@ import '../features/parent/places_screen.dart';
 import '../features/parent/location_history_screen.dart';
 import '../features/parent/ai_insights_screen.dart';
 import '../features/parent/devices_screen.dart';
+import '../features/parent/app_blocking_screen.dart';
 import '../features/child/child_tasks_screen.dart';
 import '../features/child/child_rewards_screen.dart';
 import '../features/child/child_sos_screen.dart';
@@ -117,6 +118,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/family/:profileId/location-history', builder: (_, state) => LocationHistoryScreen(profileId: state.pathParameters['profileId']!)),
           GoRoute(path: '/family/:profileId/ai-insights', builder: (_, state) => AiInsightsScreen(profileId: state.pathParameters['profileId']!)),
           GoRoute(path: '/family/:profileId/devices', builder: (_, state) => DevicesScreen(profileId: state.pathParameters['profileId']!)),
+          GoRoute(
+            path: '/family/:profileId/app-blocking',
+            builder: (_, state) => AppBlockingScreen(
+              profileId: state.pathParameters['profileId']!,
+              childName: state.uri.queryParameters['name'] ?? 'Child',
+            ),
+          ),
           GoRoute(path: '/notifications', builder: (_, __) => const NotificationHistoryScreen()),
         ],
       ),

@@ -19,6 +19,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import BlockIcon from '@mui/icons-material/Block';
 import DnsIcon from '@mui/icons-material/Dns';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import ShieldIcon from '@mui/icons-material/Shield';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -44,6 +45,7 @@ const sections = [
     title: 'Overview',
     items: [
       { label: 'ISP Dashboard', icon: <DashboardIcon />, path: '/isp/dashboard' },
+      { label: 'Alerts', icon: <NotificationsActiveIcon />, path: '/isp/alerts' },
       { label: 'Analytics', icon: <BarChartIcon />, path: '/isp/analytics' },
       { label: 'Reports', icon: <AssessmentIcon />, path: '/isp/reports' },
       { label: 'URL Activity', icon: <TimelineIcon />, path: '/isp/url-activity' },

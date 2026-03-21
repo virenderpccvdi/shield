@@ -14,6 +14,7 @@ import com.rstglobal.shield.dns.repository.DnsRulesRepository;
 import com.rstglobal.shield.dns.repository.PlatformDefaultsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,9 @@ public class DnsRulesService {
     private final DnsRulesRepository rulesRepo;
     private final PlatformDefaultsRepository platformRepo;
     private final AdGuardClient adGuard;
+
+    @Value("${shield.app.domain:shield.rstglobal.in}")
+    private String appDomain;
 
     /** Called by profile service (internal) or lazily on first GET. */
     @Transactional
@@ -68,14 +72,52 @@ public class DnsRulesService {
     public DnsRulesResponse updateAllowlist(UUID profileId, UUID tenantId, UpdateListRequest req) {
         DnsRules rules = findOrInit(profileId, tenantId);
         rules.setCustomAllowlist(req.getDomains());
-        return toResponse(rulesRepo.save(rules));
+        DnsRules saved = rulesRepo.save(rules);
+        syncToAdGuard(saved);
+        return toResponse(saved);
     }
 
     @Transactional
     public DnsRulesResponse updateBlocklist(UUID profileId, UUID tenantId, UpdateListRequest req) {
         DnsRules rules = findOrInit(profileId, tenantId);
         rules.setCustomBlocklist(req.getDomains());
-        return toResponse(rulesRepo.save(rules));
+        DnsRules saved = rulesRepo.save(rules);
+        syncToAdGuard(saved);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public DnsRulesResponse updateCustomLists(UUID profileId, UUID tenantId,
+                                               List<String> blocklist, List<String> allowlist) {
+        DnsRules rules = findOrInit(profileId, tenantId);
+        if (blocklist != null) rules.setCustomBlocklist(blocklist);
+        if (allowlist != null) rules.setCustomAllowlist(allowlist);
+        DnsRules saved = rulesRepo.save(rules);
+        syncToAdGuard(saved);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public DnsRulesResponse updateFilterLevel(UUID profileId, UUID tenantId, String filterLevel) {
+        DnsRules rules = findOrInit(profileId, tenantId);
+        Map<String, Boolean> cats = rules.getEnabledCategories();
+        if (cats == null) cats = new LinkedHashMap<>();
+        // Preserve special flags, overlay with new filter level defaults
+        Map<String, Boolean> defaults = ContentCategories.defaultsForFilterLevel(filterLevel);
+        defaults.forEach(cats::putIfAbsent);
+        cats.putAll(defaults);
+        // Preserve special flags
+        boolean paused = Boolean.TRUE.equals(cats.get("__paused__"));
+        boolean scheduleBlocked = Boolean.TRUE.equals(cats.get(ScheduleService.SCHEDULE_BLOCKED_KEY));
+        boolean budgetExhausted = Boolean.TRUE.equals(cats.get(BudgetEnforcementService.BUDGET_EXHAUSTED_KEY));
+        cats.putAll(defaults);
+        if (paused) cats.put("__paused__", true);
+        if (scheduleBlocked) cats.put(ScheduleService.SCHEDULE_BLOCKED_KEY, true);
+        if (budgetExhausted) cats.put(BudgetEnforcementService.BUDGET_EXHAUSTED_KEY, true);
+        rules.setEnabledCategories(cats);
+        DnsRules saved = rulesRepo.save(rules);
+        syncToAdGuard(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -98,9 +140,12 @@ public class DnsRulesService {
             allow.remove(domain);
             rules.setCustomAllowlist(allow);
         }
-        return toResponse(rulesRepo.save(rules));
+        DnsRules saved = rulesRepo.save(rules);
+        syncToAdGuard(saved);
+        return toResponse(saved);
     }
 
+    @Transactional(readOnly = true)
     public Map<String, String> getCategories() {
         return ContentCategories.all();
     }
@@ -109,14 +154,14 @@ public class DnsRulesService {
 
     @Transactional(readOnly = true)
     public PlatformDefaultsResponse getPlatformDefaults() {
-        PlatformDefaults pd = platformRepo.findAll().stream().findFirst()
+        PlatformDefaults pd = platformRepo.findFirstByOrderByUpdatedAtDesc()
                 .orElseThrow(() -> ShieldException.notFound("platform-defaults", "singleton"));
         return toPlatformResponse(pd);
     }
 
     @Transactional
     public PlatformDefaultsResponse updatePlatformCategories(UpdateCategoriesRequest req) {
-        PlatformDefaults pd = platformRepo.findAll().stream().findFirst()
+        PlatformDefaults pd = platformRepo.findFirstByOrderByUpdatedAtDesc()
                 .orElseThrow(() -> ShieldException.notFound("platform-defaults", "singleton"));
         Map<String, Boolean> cats = pd.getEnabledCategories();
         if (cats == null) cats = new LinkedHashMap<>();
@@ -127,7 +172,7 @@ public class DnsRulesService {
 
     @Transactional
     public PlatformDefaultsResponse updatePlatformBlocklist(UpdateListRequest req) {
-        PlatformDefaults pd = platformRepo.findAll().stream().findFirst()
+        PlatformDefaults pd = platformRepo.findFirstByOrderByUpdatedAtDesc()
                 .orElseThrow(() -> ShieldException.notFound("platform-defaults", "singleton"));
         pd.setCustomBlocklist(req.getDomains());
         return toPlatformResponse(platformRepo.save(pd));
@@ -135,7 +180,7 @@ public class DnsRulesService {
 
     @Transactional
     public PlatformDefaultsResponse updatePlatformAllowlist(UpdateListRequest req) {
-        PlatformDefaults pd = platformRepo.findAll().stream().findFirst()
+        PlatformDefaults pd = platformRepo.findFirstByOrderByUpdatedAtDesc()
                 .orElseThrow(() -> ShieldException.notFound("platform-defaults", "singleton"));
         pd.setCustomAllowlist(req.getDomains());
         return toPlatformResponse(platformRepo.save(pd));
@@ -148,22 +193,25 @@ public class DnsRulesService {
      */
     @Transactional
     public int propagatePlatformRulesToAllProfiles() {
-        PlatformDefaults pd = platformRepo.findAll().stream().findFirst()
+        PlatformDefaults pd = platformRepo.findFirstByOrderByUpdatedAtDesc()
                 .orElseThrow(() -> ShieldException.notFound("platform-defaults", "singleton"));
         List<String> platformBlocklist = Optional.ofNullable(pd.getCustomBlocklist()).orElse(List.of());
         List<String> platformAllowlist = Optional.ofNullable(pd.getCustomAllowlist()).orElse(List.of());
         List<DnsRules> allRules = rulesRepo.findAll();
-        for (DnsRules rules : allRules) {
-            List<String> block = new ArrayList<>(Optional.ofNullable(rules.getCustomBlocklist()).orElse(List.of()));
-            for (String d : platformBlocklist) { if (!block.contains(d)) block.add(d); }
-            rules.setCustomBlocklist(block);
-            List<String> allow = new ArrayList<>(Optional.ofNullable(rules.getCustomAllowlist()).orElse(List.of()));
-            for (String d : platformAllowlist) { if (!allow.contains(d)) allow.add(d); }
-            rules.setCustomAllowlist(allow);
-            rulesRepo.save(rules);
-        }
-        log.info("Propagated platform rules to {} profiles", allRules.size());
-        return allRules.size();
+        List<DnsRules> modified = allRules.stream()
+                .map(rules -> {
+                    List<String> block = new ArrayList<>(Optional.ofNullable(rules.getCustomBlocklist()).orElse(List.of()));
+                    for (String d : platformBlocklist) { if (!block.contains(d)) block.add(d); }
+                    rules.setCustomBlocklist(block);
+                    List<String> allow = new ArrayList<>(Optional.ofNullable(rules.getCustomAllowlist()).orElse(List.of()));
+                    for (String d : platformAllowlist) { if (!allow.contains(d)) allow.add(d); }
+                    rules.setCustomAllowlist(allow);
+                    return rules;
+                })
+                .collect(java.util.stream.Collectors.toList());
+        rulesRepo.saveAll(modified);
+        log.info("Propagated platform rules to {} profiles", modified.size());
+        return modified.size();
     }
 
     private PlatformDefaultsResponse toPlatformResponse(PlatformDefaults pd) {
@@ -193,6 +241,63 @@ public class DnsRulesService {
         DnsRules saved = rulesRepo.save(rules);
         log.info("Filtering {} for profileId={}", paused ? "paused" : "resumed", profileId);
         return toResponse(saved);
+    }
+
+    /** Exposes the raw entity — used by controller for clientId lookup. */
+    @Transactional(readOnly = true)
+    public DnsRules getRulesEntity(UUID profileId, UUID tenantId) {
+        return rulesRepo.findByProfileId(profileId)
+                .orElseGet(() -> findOrInit(profileId, tenantId));
+    }
+
+    /** Fetch DNS query log from AdGuard filtered by clientId. */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getActivity(String clientId, int limit) {
+        // Fetch more entries to account for filtering
+        List<Map<String, Object>> raw = adGuard.getQueryLog(null, Math.min(limit * 5, 500));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> entry : raw) {
+            // client_id is set when client connects via DoH URL /dns-query/{clientId}
+            String entryClientId = String.valueOf(entry.getOrDefault("client_id", ""));
+            String entryClient   = String.valueOf(entry.getOrDefault("client", ""));
+            if (clientId != null && !clientId.isBlank()) {
+                if (!clientId.equals(entryClientId) && !entryClient.contains(clientId)) continue;
+            }
+
+            Map<String, Object> item = new java.util.LinkedHashMap<>();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> question = (Map<String, Object>) entry.get("question");
+            String domain = question != null ? String.valueOf(question.getOrDefault("name", "")) : "";
+            // Remove trailing dot from domain
+            if (domain.endsWith(".")) domain = domain.substring(0, domain.length() - 1);
+            String reason = String.valueOf(entry.getOrDefault("reason", ""));
+            String time   = String.valueOf(entry.getOrDefault("time", ""));
+
+            item.put("domain", domain);
+            item.put("action", reason.startsWith("Filtered") ? "BLOCKED" : "ALLOWED");
+            item.put("reason", reason);
+            item.put("timestamp", time);
+            // Extract block rule if present (rules is a List in AdGuard log)
+            Object rulesObj = entry.get("rules");
+            if (rulesObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> rulesList = (List<Map<String, Object>>) rulesObj;
+                if (!rulesList.isEmpty()) {
+                    item.put("rule", rulesList.get(0).getOrDefault("text", ""));
+                }
+            }
+            result.add(item);
+            if (result.size() >= limit) break;
+        }
+        return result;
+    }
+
+    /** Force-push current DB rules to AdGuard for a profile. */
+    @Transactional
+    public DnsRulesResponse forceSync(UUID profileId, UUID tenantId) {
+        DnsRules rules = findOrInit(profileId, tenantId);
+        syncToAdGuard(rules);
+        return toResponse(rules);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -234,26 +339,56 @@ public class DnsRulesService {
         }
 
         // Determine blocked services from categories
+        // Maps internal category slug → AdGuard service IDs (one category may block multiple services)
         List<String> blocked = new ArrayList<>();
-        Map<String, String> adguardServiceMap = Map.of(
-                "streaming", "youtube",
-                "social_media", "instagram",
-                "gaming", "twitch",
-                "gambling", "betting"
+        java.util.List<String[]> serviceMapping = java.util.List.of(
+            // Social media (both legacy "social" slug and current "social_media")
+            new String[]{"social_media", "instagram", "facebook", "twitter", "tiktok", "snapchat", "reddit", "pinterest", "vk", "tumblr"},
+            new String[]{"social",       "instagram", "facebook", "twitter", "tiktok", "snapchat", "reddit"},
+            new String[]{"tiktok",       "tiktok"},
+            // Streaming
+            new String[]{"streaming",    "youtube", "netflix", "amazon_prime_video", "hulu", "disneyplus", "twitch"},
+            new String[]{"live_streaming","twitch", "youtube"},
+            new String[]{"music",        "spotify", "soundcloud"},
+            // Gaming
+            new String[]{"gaming",       "twitch", "steam", "roblox", "minecraft"},
+            new String[]{"online_gaming","twitch", "steam", "roblox"},
+            new String[]{"game_stores",  "steam"},
+            // Gambling
+            new String[]{"gambling",     "betway", "bookmaker"},
+            // Messaging / chat
+            new String[]{"messaging",    "whatsapp", "telegram", "viber", "signal"},
+            new String[]{"chat",         "discord", "telegram", "whatsapp"},
+            // Privacy bypass
+            new String[]{"vpn_proxy",    "vpn"},
+            new String[]{"tor",          "i2p"}
         );
-        adguardServiceMap.forEach((category, service) -> {
+        for (String[] entry : serviceMapping) {
+            String category = entry[0];
             if (Boolean.FALSE.equals(cats.get(category))) {
-                blocked.add(service);
+                for (int i = 1; i < entry.length; i++) {
+                    String svc = entry[i];
+                    if (!blocked.contains(svc)) blocked.add(svc);
+                }
             }
-        });
+        }
 
         boolean safesearch = Boolean.TRUE.equals(rules.getSafesearchEnabled());
+        boolean ytRestricted = Boolean.TRUE.equals(rules.getYoutubeRestricted());
+        Map<String, Object> safeSearchMap = new java.util.LinkedHashMap<>();
+        safeSearchMap.put("enabled", safesearch);
+        safeSearchMap.put("google", safesearch);
+        safeSearchMap.put("bing", safesearch);
+        safeSearchMap.put("duckduckgo", safesearch);
+        safeSearchMap.put("youtube", ytRestricted);
+        safeSearchMap.put("yandex", safesearch);
+        safeSearchMap.put("pixabay", false);
+        safeSearchMap.put("ecosia", false);
         AdGuardClient.AdGuardClientData data = new AdGuardClient.AdGuardClientData(
                 true,
                 true,
                 true,
-                Map.of("enabled", safesearch, "google", safesearch, "bing", safesearch,
-                        "duckduckgo", safesearch, "youtube", Boolean.TRUE.equals(rules.getYoutubeRestricted())),
+                safeSearchMap,
                 blocked
         );
         log.debug("AdGuard sync: profileId={} clientId={} blockedServices={}", rules.getProfileId(), clientId, blocked);
@@ -261,8 +396,16 @@ public class DnsRulesService {
     }
 
     private DnsRulesResponse toResponse(DnsRules r) {
+        String clientId = r.getDnsClientId();
+        // Use path-based DoH URL on main domain (valid LE cert) instead of wildcard subdomain
+        // Android Private DNS: https://shield.rstglobal.in/dns/{clientId}/dns-query
+        String dohUrl = (clientId != null && !clientId.isBlank())
+                ? "https://" + appDomain + "/dns/" + clientId + "/dns-query"
+                : null;
         return DnsRulesResponse.builder()
                 .profileId(r.getProfileId())
+                .dnsClientId(clientId)
+                .dohUrl(dohUrl)
                 .enabledCategories(r.getEnabledCategories())
                 .customAllowlist(r.getCustomAllowlist())
                 .customBlocklist(r.getCustomBlocklist())

@@ -1,6 +1,6 @@
 import {
   Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody,
-  Chip, Stack, Grid,
+  Chip, Stack, Grid, Skeleton,
 } from '@mui/material';
 import PublicIcon from '@mui/icons-material/Public';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -144,8 +144,10 @@ export default function VisitorsPage() {
               <Typography variant="caption" color="text.secondary">Last 50 site visits</Typography>
             </Box>
             {isLoading ? (
-              <Box sx={{ p: 4, textAlign: 'center' }}>
-                <Typography color="text.secondary">Loading visitors…</Typography>
+              <Box sx={{ p: 2 }}>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <Skeleton key={i} variant="rectangular" height={44} sx={{ mb: 0.5, borderRadius: 1 }} />
+                ))}
               </Box>
             ) : visitors.length === 0 ? (
               <Box sx={{ py: 8, textAlign: 'center' }}>

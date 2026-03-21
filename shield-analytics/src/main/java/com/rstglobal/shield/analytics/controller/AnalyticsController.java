@@ -104,20 +104,23 @@ public class AnalyticsController {
     }
 
     /**
-     * GET /api/v1/analytics/{profileId}/history?page=0&size=20
+     * GET /api/v1/analytics/{profileId}/history?page=0&size=20&action=BLOCKED|ALLOWED
+     * Returns ALL browsing history when action is omitted; filtered when action=BLOCKED or ALLOWED.
+     * Parent uses this to see every URL the child has visited.
      */
     @GetMapping("/{profileId}/history")
-    public ResponseEntity<Page<DnsQueryLog>> getBlockedHistory(
+    public ResponseEntity<Page<DnsQueryLog>> getBrowsingHistory(
             @PathVariable UUID profileId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) String action,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-User-Role", required = false) String userRole) {
 
         validateAccess(profileId, userId, userRole);
-        int safeSize = Math.min(Math.max(size, 1), 100);
+        int safeSize = Math.min(Math.max(size, 1), 200);
         Pageable pageable = PageRequest.of(page, safeSize, Sort.by("queriedAt").descending());
-        Page<DnsQueryLog> history = analyticsService.getBlockedHistory(profileId, pageable);
+        Page<DnsQueryLog> history = analyticsService.getBrowsingHistory(profileId, action, pageable);
         return ResponseEntity.ok(history);
     }
 

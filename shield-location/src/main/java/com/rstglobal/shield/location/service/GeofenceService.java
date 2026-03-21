@@ -89,6 +89,7 @@ public class GeofenceService {
         return R * c;
     }
 
+    @Transactional(readOnly = true)
     public List<Geofence> getActiveGeofences(UUID profileId) {
         return geofenceRepository.findByProfileIdAndIsActiveTrue(profileId);
     }

@@ -1,10 +1,18 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
+
+// Top-level function required by compute() — must not be a closure or method
+Future<void> _writeFileIsolate(Map<String, dynamic> args) async {
+  final path = args['path'] as String;
+  final bytes = args['bytes'] as List<int>;
+  await File(path).writeAsBytes(bytes, flush: true);
+}
 
 class ReportsScreen extends ConsumerStatefulWidget {
   final String profileId;
@@ -13,18 +21,64 @@ class ReportsScreen extends ConsumerStatefulWidget {
   ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
 }
 
-class _ReportsScreenState extends ConsumerState<ReportsScreen> {
+class _ReportsScreenState extends ConsumerState<ReportsScreen>
+    with SingleTickerProviderStateMixin {
   Map<String, dynamic> _stats = {};
   List<Map<String, dynamic>> _daily = [];
   List<Map<String, dynamic>> _topDomains = [];
   List<Map<String, dynamic>> _categories = [];
+  List<Map<String, dynamic>> _appUsage = [];
   bool _loading = true;
   bool _pdfLoading = false;
+
+  // Browsing history tab
+  late TabController _tabs;
+  List<Map<String, dynamic>> _history = [];
+  bool _historyLoading = false;
+  bool _historyHasMore = true;
+  int _historyPage = 0;
+  String? _historyActionFilter; // null=all, 'BLOCKED', 'ALLOWED'
 
   @override
   void initState() {
     super.initState();
+    _tabs = TabController(length: 3, vsync: this);
+    _tabs.addListener(() {
+      if (_tabs.index == 2 && _history.isEmpty && !_historyLoading) _loadHistory(reset: true);
+    });
     _load();
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadHistory({bool reset = false}) async {
+    if (_historyLoading) return;
+    if (reset) { _historyPage = 0; _historyHasMore = true; }
+    if (!_historyHasMore) return;
+    setState(() => _historyLoading = true);
+    try {
+      final client = ref.read(dioProvider);
+      final params = <String, dynamic>{'page': _historyPage, 'size': 50};
+      if (_historyActionFilter != null) params['action'] = _historyActionFilter;
+      final res = await client.get('/analytics/${widget.profileId}/history', queryParameters: params);
+      final raw = res.data;
+      final content = (raw is Map)
+          ? (raw['content'] as List? ?? raw['data']?['content'] as List? ?? [])
+          : (raw is List ? raw : []);
+      final items = content.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      setState(() {
+        if (reset) _history = items; else _history.addAll(items);
+        _historyPage++;
+        _historyHasMore = items.length == 50;
+        _historyLoading = false;
+      });
+    } catch (_) {
+      setState(() => _historyLoading = false);
+    }
   }
 
   Future<void> _downloadPdf() async {
@@ -38,7 +92,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final bytes = response.data as List<int>;
       final tmpDir = Directory.systemTemp;
       final file = File('${tmpDir.path}/shield-report-${widget.profileId}.pdf');
-      await file.writeAsBytes(bytes, flush: true);
+      await compute(_writeFileIsolate, {'path': file.path, 'bytes': bytes});
       final uri = Uri.file(file.path);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
@@ -67,28 +121,58 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     setState(() => _loading = true);
     final client = ref.read(dioProvider);
 
+    // Fetch all five analytics endpoints in parallel
+    final results = await Future.wait([
+      client.get('/analytics/${widget.profileId}/stats').catchError((_) => null),
+      client.get('/analytics/${widget.profileId}/daily').catchError((_) => null),
+      client.get('/analytics/${widget.profileId}/top-domains').catchError((_) => null),
+      client.get('/analytics/${widget.profileId}/categories').catchError((_) => null),
+      client.get('/analytics/${widget.profileId}/apps').catchError((_) => null),
+    ], eagerError: false);
+
     try {
-      final statsRes = await client.get('/analytics/${widget.profileId}/stats');
-      _stats = Map<String, dynamic>.from(statsRes.data['data'] as Map? ?? {});
+      final r = results[0];
+      _stats = r != null
+          ? Map<String, dynamic>.from((r as dynamic).data['data'] as Map? ?? {})
+          : {};
     } catch (_) { _stats = {}; }
 
     try {
-      final dailyRes = await client.get('/analytics/${widget.profileId}/daily');
-      _daily = ((dailyRes.data['data'] as List?) ?? [])
-          .map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      final r = results[1];
+      _daily = r != null
+          ? (((r as dynamic).data['data'] as List?) ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map)).toList()
+          : [];
     } catch (_) { _daily = []; }
 
     try {
-      final domainsRes = await client.get('/analytics/${widget.profileId}/top-domains');
-      _topDomains = ((domainsRes.data['data'] as List?) ?? [])
-          .map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      final r = results[2];
+      _topDomains = r != null
+          ? (((r as dynamic).data['data'] as List?) ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map)).toList()
+          : [];
     } catch (_) { _topDomains = []; }
 
     try {
-      final catRes = await client.get('/analytics/${widget.profileId}/categories');
-      _categories = ((catRes.data['data'] as List?) ?? [])
-          .map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      final r = results[3];
+      _categories = r != null
+          ? (((r as dynamic).data['data'] as List?) ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map)).toList()
+          : [];
     } catch (_) { _categories = []; }
+
+    try {
+      final r = results[4];
+      if (r != null) {
+        final raw = (r as dynamic).data;
+        final list = raw is List ? raw : (raw['data'] as List? ?? raw['content'] as List? ?? []);
+        _appUsage = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        _appUsage.sort((a, b) => ((b['totalMinutes'] as num?) ?? 0).compareTo((a['totalMinutes'] as num?) ?? 0));
+        if (_appUsage.length > 10) _appUsage = _appUsage.sublist(0, 10);
+      } else {
+        _appUsage = [];
+      }
+    } catch (_) { _appUsage = []; }
 
     if (mounted) setState(() => _loading = false);
   }
@@ -110,19 +194,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               tooltip: 'Download PDF Report',
               onPressed: _downloadPdf,
             ),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: () { _load(); _loadHistory(reset: true); }),
         ],
+        bottom: TabBar(
+          controller: _tabs,
+          tabs: const [
+            Tab(icon: Icon(Icons.bar_chart), text: 'Overview'),
+            Tab(icon: Icon(Icons.history), text: 'Browsing History'),
+            Tab(icon: Icon(Icons.phone_android), text: 'App Usage'),
+          ],
+        ),
       ),
-      body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : RefreshIndicator(
-            onRefresh: () async => _load(),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+      body: TabBarView(
+        controller: _tabs,
+        children: [
+          // ── TAB 1: Overview ──────────────────────────────────────────────
+          _loading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: () async => _load(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   // Stats cards
                   Row(children: [
                     _StatCard(label: 'Queries', value: '${_stats['totalQueries'] ?? 0}', icon: Icons.dns, color: const Color(0xFF1565C0)),
@@ -240,7 +336,210 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ),
             ),
           ),
+
+          // ── TAB 2: App Usage ─────────────────────────────────────────────
+          _loading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: () async => _load(),
+                child: _appUsage.isEmpty
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.phone_android, size: 48, color: Colors.grey),
+                            SizedBox(height: 12),
+                            Text('No app usage data yet',
+                              style: TextStyle(color: Colors.grey, fontSize: 15),
+                              textAlign: TextAlign.center),
+                            SizedBox(height: 8),
+                            Text('App usage appears once the child uses the Shield app on their device.',
+                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                              textAlign: TextAlign.center),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        const Text('App Usage (Top 10)',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                        const SizedBox(height: 16),
+                        ...() {
+                          final maxMins = (_appUsage.first['totalMinutes'] as num?)?.toDouble() ?? 1.0;
+                          return _appUsage.map((app) {
+                            final mins = ((app['totalMinutes'] as num?) ?? 0).toDouble();
+                            final blocked = (app['blockedCount'] as num?) ?? 0;
+                            final ratio = maxMins > 0 ? (mins / maxMins).clamp(0.0, 1.0) : 0.0;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 130,
+                                        child: Text(
+                                          app['appName'] as String? ?? '',
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(3),
+                                          child: LinearProgressIndicator(
+                                            value: ratio,
+                                            minHeight: 8,
+                                            backgroundColor: Colors.grey.shade200,
+                                            color: const Color(0xFF1565C0),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      SizedBox(
+                                        width: 48,
+                                        child: Text(
+                                          _fmtMin(mins.toInt()),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.grey.shade700,
+                                          ),
+                                          textAlign: TextAlign.right,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (blocked > 0)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 130, top: 2),
+                                      child: Text(
+                                        '$blocked blocked attempts',
+                                        style: TextStyle(fontSize: 10, color: Colors.red.shade400),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList();
+                        }(),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+              ),
+
+          // ── TAB 3: Browsing History ──────────────────────────────────────
+          Column(
+            children: [
+              // Filter chips
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    const Text('Filter: ', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 8),
+                    _filterChip('All', null),
+                    const SizedBox(width: 6),
+                    _filterChip('Blocked', 'BLOCKED'),
+                    const SizedBox(width: 6),
+                    _filterChip('Allowed', 'ALLOWED'),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _history.isEmpty && _historyLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _history.isEmpty
+                    ? const Center(child: Text('No browsing history yet.\nHistory appears once the child uses the internet.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey)))
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (n) {
+                          if (n is ScrollEndNotification && n.metrics.extentAfter < 200) {
+                            _loadHistory();
+                          }
+                          return false;
+                        },
+                        child: ListView.separated(
+                          itemCount: _history.length + (_historyHasMore ? 1 : 0),
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (_, i) {
+                            if (i == _history.length) {
+                              return _historyLoading
+                                ? const Padding(padding: EdgeInsets.all(12), child: Center(child: CircularProgressIndicator()))
+                                : TextButton(onPressed: () => _loadHistory(), child: const Text('Load more'));
+                            }
+                            final entry = _history[i];
+                            final blocked = entry['action'] == 'BLOCKED';
+                            final domain = entry['domain']?.toString() ?? '';
+                            final time = entry['queriedAt']?.toString() ?? '';
+                            final category = entry['category']?.toString() ?? '';
+                            return ListTile(
+                              dense: true,
+                              leading: Icon(
+                                blocked ? Icons.block : Icons.language,
+                                color: blocked ? Colors.red : Colors.green,
+                                size: 20,
+                              ),
+                              title: Text(domain,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: blocked ? Colors.red.shade700 : null,
+                                )),
+                              subtitle: Text(
+                                '${category.isNotEmpty ? "$category · " : ""}${_fmtTime(time)}',
+                                style: const TextStyle(fontSize: 11)),
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: blocked ? Colors.red.shade50 : Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  blocked ? 'BLOCKED' : 'ALLOWED',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: blocked ? Colors.red.shade700 : Colors.green.shade700,
+                                  )),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _filterChip(String label, String? value) {
+    final selected = _historyActionFilter == value;
+    return FilterChip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      selected: selected,
+      selectedColor: value == 'BLOCKED' ? Colors.red.shade100 : value == 'ALLOWED' ? Colors.green.shade100 : Colors.blue.shade100,
+      onSelected: (_) {
+        setState(() => _historyActionFilter = value);
+        _loadHistory(reset: true);
+      },
+    );
+  }
+
+  String _fmtTime(String iso) {
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      return '${dt.day}/${dt.month} ${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
+    } catch (_) { return iso; }
   }
 
   String _fmtMin(int m) {

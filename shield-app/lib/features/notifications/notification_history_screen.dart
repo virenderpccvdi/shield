@@ -36,7 +36,7 @@ class NotificationItem {
 
 // ── Providers ──────────────────────────────────────────────────────────────
 
-final notificationHistoryProvider = FutureProvider<List<NotificationItem>>((ref) async {
+final notificationHistoryProvider = FutureProvider.autoDispose<List<NotificationItem>>((ref) async {
   try {
     final client = ref.read(dioProvider);
     // Try paginated endpoint first
@@ -67,7 +67,7 @@ final notificationHistoryProvider = FutureProvider<List<NotificationItem>>((ref)
   }
 });
 
-final unreadNotifCountProvider = FutureProvider<int>((ref) async {
+final unreadNotifCountProvider = FutureProvider.autoDispose<int>((ref) async {
   try {
     final client = ref.read(dioProvider);
     final res = await client.get('/notifications/my/unread-count');

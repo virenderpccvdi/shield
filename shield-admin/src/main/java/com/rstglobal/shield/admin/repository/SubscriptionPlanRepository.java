@@ -17,4 +17,7 @@ public interface SubscriptionPlanRepository extends JpaRepository<SubscriptionPl
     /** Customer plans created by a specific ISP tenant */
     List<SubscriptionPlan> findByTenantIdAndActiveTrueOrderBySortOrder(UUID tenantId);
     List<SubscriptionPlan> findByTenantIdOrderBySortOrder(UUID tenantId);
+
+    /** Look up a plan by its Stripe product ID without scanning the full table. */
+    Optional<SubscriptionPlan> findByStripeProductId(String stripeProductId);
 }

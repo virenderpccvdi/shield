@@ -4,6 +4,7 @@ import com.rstglobal.shield.notification.entity.NotificationChannel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,4 +17,10 @@ public interface NotificationChannelRepository extends JpaRepository<Notificatio
     Optional<NotificationChannel> findEffective(UUID tenantId, String channelType);
 
     Optional<NotificationChannel> findByTenantIdIsNullAndChannelType(String channelType);
+
+    /** Returns all channels for a specific tenant (ISP-level channels). */
+    List<NotificationChannel> findByTenantId(UUID tenantId);
+
+    /** Returns all platform-level channels (tenant_id IS NULL). */
+    List<NotificationChannel> findByTenantIdIsNull();
 }

@@ -21,7 +21,7 @@ class _ChatMessage {
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 final aiInsightsProvider =
-    FutureProvider.family<Map<String, dynamic>, String>((ref, profileId) async {
+    FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, profileId) async {
   final client = ref.read(dioProvider);
   final result = <String, dynamic>{};
 

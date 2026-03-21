@@ -28,25 +28,41 @@ class _TimeLimitsScreenState extends ConsumerState<TimeLimitsScreen> {
     try {
       final client = ref.read(dioProvider);
 
-      // Load budgets
+      // Load budgets and today's usage in parallel
+      final results = await Future.wait([
+        client.get('/dns/budgets/${widget.profileId}').catchError((_) => null),
+        client.get('/dns/budgets/${widget.profileId}/today').catchError((_) => null),
+      ], eagerError: false);
+
+      // Parse budgets
       try {
-        final budgetRes = await client.get('/dns/budgets/${widget.profileId}');
-        final data = budgetRes.data['data'] as Map<String, dynamic>? ?? {};
-        _totalBudget = data['totalMinutes'] as int? ?? 120;
-        final cats = data['categories'] as Map<String, dynamic>? ?? {};
-        _budgets = cats.map((k, v) => MapEntry(k, (v as num).toInt()));
+        final budgetRes = results[0];
+        if (budgetRes != null) {
+          final data = (budgetRes as dynamic).data['data'] as Map<String, dynamic>? ?? {};
+          _totalBudget = data['totalMinutes'] as int? ?? 120;
+          final cats = data['categories'] as Map<String, dynamic>? ?? {};
+          _budgets = cats.map((k, v) => MapEntry(k, (v as num).toInt()));
+        } else {
+          _budgets = {'SOCIAL_MEDIA': 30, 'GAMING': 60, 'STREAMING': 45, 'GENERAL': 120};
+          _totalBudget = 120;
+        }
       } catch (_) {
         _budgets = {'SOCIAL_MEDIA': 30, 'GAMING': 60, 'STREAMING': 45, 'GENERAL': 120};
         _totalBudget = 120;
       }
 
-      // Load today's usage
+      // Parse today's usage
       try {
-        final usageRes = await client.get('/dns/budgets/${widget.profileId}/today');
-        final usage = usageRes.data['data'] as Map<String, dynamic>? ?? {};
-        _totalUsed = usage['totalUsedMinutes'] as int? ?? 0;
-        final usedCats = usage['categories'] as Map<String, dynamic>? ?? {};
-        _used = usedCats.map((k, v) => MapEntry(k, (v as num).toInt()));
+        final usageRes = results[1];
+        if (usageRes != null) {
+          final usage = (usageRes as dynamic).data['data'] as Map<String, dynamic>? ?? {};
+          _totalUsed = usage['totalUsedMinutes'] as int? ?? 0;
+          final usedCats = usage['categories'] as Map<String, dynamic>? ?? {};
+          _used = usedCats.map((k, v) => MapEntry(k, (v as num).toInt()));
+        } else {
+          _totalUsed = 0;
+          _used = {};
+        }
       } catch (_) {
         _totalUsed = 0;
         _used = {};
