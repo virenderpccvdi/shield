@@ -29,6 +29,7 @@ import '../features/parent/ai_insights_screen.dart';
 import '../features/parent/devices_screen.dart';
 import '../features/parent/panic_alert_screen.dart';
 import '../features/child/child_tasks_screen.dart';
+import '../features/child/child_rewards_screen.dart';
 import '../features/child/child_sos_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/notifications/notification_history_screen.dart';
@@ -71,8 +72,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // or an authenticated parent navigating to it will be bounced back to /dashboard.
       final publicRoutes = ['/login', '/register', '/forgot-password'];
       final isPublicRoute = publicRoutes.contains(state.matchedLocation);
-      // Child mode: always redirect to /child (but NOT during setup)
-      if (isChildMode && isAuth && state.matchedLocation != '/child' && state.matchedLocation != '/child-setup') return '/child';
+      // Child mode: always redirect to /child (but NOT during setup or child sub-screens)
+      if (isChildMode && isAuth &&
+          !state.matchedLocation.startsWith('/child') &&
+          state.matchedLocation != '/child-setup') return '/child';
       if (!isAuth && !isPublicRoute && state.matchedLocation != '/onboarding' && state.matchedLocation != '/child-setup') return '/login';
       if (isAuth && !isChildMode && isPublicRoute) return '/dashboard';
       return null;
@@ -85,6 +88,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
       GoRoute(path: '/child', builder: (_, __) => const ChildAppScreen()),
       GoRoute(path: '/child/tasks', builder: (_, __) => const ChildTasksScreen()),
+      GoRoute(path: '/child/rewards', builder: (_, __) => const ChildRewardsScreen()),
       GoRoute(path: '/child/sos', builder: (_, __) => const ChildSosScreen()),
       ShellRoute(
         builder: (context, state, child) => BiometricGate(child: MainShell(child: child)),

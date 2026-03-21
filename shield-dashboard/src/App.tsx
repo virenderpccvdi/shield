@@ -36,6 +36,7 @@ import UsersPage from './pages/global-admin/UsersPage';
 import SystemHealthPage from './pages/global-admin/SystemHealthPage';
 import DnsRulesPage from './pages/global-admin/DnsRulesPage';
 import PlatformAnalyticsPage from './pages/global-admin/PlatformAnalyticsPage';
+import AdminAnalyticsPage from './pages/admin/AdminAnalyticsPage';
 import SubscriptionPlansPage from './pages/global-admin/SubscriptionPlansPage';
 import AuditLogPage from './pages/global-admin/AuditLogPage';
 import DevicesPage from './pages/global-admin/DevicesPage';
@@ -177,7 +178,8 @@ export default function App() {
               <Route path="/admin/tenants" element={<TenantsPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
               <Route path="/admin/dns-rules" element={<DnsRulesPage />} />
-              <Route path="/admin/analytics" element={<PlatformAnalyticsPage />} />
+              <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
+              <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
               <Route path="/admin/plans" element={<SubscriptionPlansPage />} />
               <Route path="/admin/audit-logs" element={<AuditLogPage />} />
               <Route path="/admin/devices" element={<DevicesPage />} />

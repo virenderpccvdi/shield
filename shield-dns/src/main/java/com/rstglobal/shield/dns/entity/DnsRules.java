@@ -67,6 +67,16 @@ public class DnsRules {
     @Column(name = "time_budgets", columnDefinition = "jsonb")
     private Map<String, Integer> timeBudgets;
 
+    /**
+     * Simple total daily internet budget in minutes.
+     * NULL means no limit. When set, BudgetTrackingService enforces a hard cutoff
+     * once the child has been online for this many minutes today.
+     * Tracked via Redis key: shield:budget:{profileId}:{date} (incremented every minute
+     * when the profile shows DNS activity in the last 2 minutes).
+     */
+    @Column(name = "daily_budget_minutes")
+    private Integer dailyBudgetMinutes;
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;

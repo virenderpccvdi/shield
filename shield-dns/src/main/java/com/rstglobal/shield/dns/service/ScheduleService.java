@@ -35,6 +35,7 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepo;
     private final DnsRulesRepository dnsRulesRepo;
     private final AdGuardClient adGuard;
+    private final BudgetTrackingService budgetTracking;
 
     @Transactional
     public Schedule initSchedule(UUID tenantId, UUID profileId) {
@@ -166,10 +167,25 @@ public class ScheduleService {
                 shouldBlock = hours != null && hours.size() > hour && hours.get(hour) == 1;
             }
 
+            // Also block if the daily budget (daily_budget_minutes) is exhausted
+            // regardless of the schedule grid — budget exhaustion takes precedence
+            final UUID profileId = s.getProfileId();
+            final boolean budgetExhausted = dnsRulesRepo.findByProfileId(profileId)
+                    .map(r -> {
+                        Integer limit = r.getDailyBudgetMinutes();
+                        if (limit == null || limit <= 0) return false;
+                        int used = budgetTracking.getUsedMinutesToday(profileId);
+                        return used >= limit;
+                    })
+                    .orElse(false);
+            if (budgetExhausted) {
+                shouldBlock = true;
+            }
+
             // Write __schedule_blocked__ flag into the corresponding DnsRules row
             // and trigger AdGuard sync only when the value changes
             final boolean finalShouldBlock = shouldBlock;
-            dnsRulesRepo.findByProfileId(s.getProfileId()).ifPresent(rules -> {
+            dnsRulesRepo.findByProfileId(profileId).ifPresent(rules -> {
                 Map<String, Boolean> cats = rules.getEnabledCategories();
                 if (cats == null) cats = new LinkedHashMap<>();
                 Boolean current = cats.get(SCHEDULE_BLOCKED_KEY);
@@ -177,8 +193,8 @@ public class ScheduleService {
                     cats.put(SCHEDULE_BLOCKED_KEY, finalShouldBlock);
                     rules.setEnabledCategories(new LinkedHashMap<>(cats));
                     dnsRulesRepo.save(rules);
-                    log.info("Schedule enforcement: profileId={} day={} hour={} blocked={}",
-                            s.getProfileId(), dayKey, hour, finalShouldBlock);
+                    log.info("Schedule enforcement: profileId={} day={} hour={} blocked={} (budgetExhausted={})",
+                            profileId, dayKey, hour, finalShouldBlock, budgetExhausted);
                     // Sync to AdGuard so the change takes effect immediately
                     syncScheduleToAdGuard(rules, finalShouldBlock);
                 }

@@ -35,6 +35,15 @@ final childTasksProvider = FutureProvider.family<List<Map<String, dynamic>>, Str
   } catch (_) { return []; }
 });
 
+final childBankProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, profileId) async {
+  final client = ref.read(dioProvider);
+  try {
+    final res = await client.get('/rewards/bank/$profileId');
+    final data = res.data['data'] as Map? ?? res.data as Map? ?? {};
+    return Map<String, dynamic>.from(data);
+  } catch (_) { return {}; }
+});
+
 /// Check-in status stored in SharedPreferences
 class CheckInState {
   final bool isCheckedIn;
@@ -338,6 +347,7 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
     final profileId = auth.childProfileId ?? '';
     final usageSummary = ref.watch(childUsageSummaryProvider(profileId));
     final tasks = ref.watch(childTasksProvider(profileId));
+    final bank = ref.watch(childBankProvider(profileId));
 
     return PopScope(
       canPop: false,
@@ -355,7 +365,7 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF0F4FF),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: _loading
             ? const Center(child: CircularProgressIndicator())
             : CustomScrollView(
@@ -366,7 +376,7 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                     floating: false,
                     pinned: true,
                     automaticallyImplyLeading: false,
-                    backgroundColor: const Color(0xFF0D47A1),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     actions: [
                       if (_batteryPct >= 0)
@@ -395,15 +405,18 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                       ),
                       background: Stack(
                         children: [
-                          Container(
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [Color(0xFF1565C0), Color(0xFF0D47A1), Color(0xFF1A237E)],
+                          Builder(builder: (ctx) {
+                            final cs = Theme.of(ctx).colorScheme;
+                            return Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [cs.primary, cs.primaryContainer.withOpacity(0.85), cs.primaryContainer],
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          }),
                           Positioned(
                             right: -20,
                             top: -20,
@@ -450,6 +463,10 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
 
                         // ── Tasks ────────────────────────────────────────────
                         _TasksCard(tasksAsync: tasks, profileId: profileId),
+                        const SizedBox(height: 16),
+
+                        // ── Rewards ──────────────────────────────────────────
+                        _RewardsCard(bankAsync: bank, profileId: profileId),
                         const SizedBox(height: 80),
                       ]),
                     ),
@@ -514,16 +531,17 @@ class _SosButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
         children: [
-          const Text('Emergency SOS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF1A1A2E))),
+          Text('Emergency SOS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: colorScheme.onSurface)),
           const SizedBox(height: 4),
           const Text('Press and hold in an emergency', style: TextStyle(fontSize: 12, color: Colors.grey)),
           const SizedBox(height: 20),
@@ -593,13 +611,14 @@ class _CheckInCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isCheckedIn
               ? [const Color(0xFF1B5E20), const Color(0xFF2E7D32)]
-              : [const Color(0xFF1565C0), const Color(0xFF0D47A1)],
+              : [colorScheme.primary, colorScheme.primaryContainer],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -649,7 +668,7 @@ class _CheckInCard extends StatelessWidget {
             onPressed: onTap,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: isCheckedIn ? Colors.green.shade700 : const Color(0xFF1565C0),
+              foregroundColor: isCheckedIn ? Colors.green.shade700 : colorScheme.primary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               elevation: 0,
@@ -686,25 +705,26 @@ class _StatsRow extends StatelessWidget {
     final blocked = data['blockedQueries'] as int? ?? 0;
     final screenMins = data['screenTimeMinutes'] as int? ?? 0;
     final blockPct = queries > 0 ? ((blocked / queries) * 100).round() : 0;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(children: [
-            Icon(Icons.bar_chart_rounded, color: Color(0xFF1565C0), size: 20),
-            SizedBox(width: 8),
-            Text("Today's Activity", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          Row(children: [
+            Icon(Icons.bar_chart_rounded, color: colorScheme.primary, size: 20),
+            const SizedBox(width: 8),
+            Text("Today's Activity", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: colorScheme.onSurface)),
           ]),
           const SizedBox(height: 14),
           Row(children: [
-            Expanded(child: _StatTile(icon: Icons.dns_rounded, label: 'Requests', value: '$queries', color: const Color(0xFF1565C0))),
+            Expanded(child: _StatTile(icon: Icons.dns_rounded, label: 'Requests', value: '$queries', color: colorScheme.primary)),
             const SizedBox(width: 10),
             Expanded(child: _StatTile(icon: Icons.block_rounded, label: 'Blocked', value: '$blockPct%', color: Colors.red.shade400)),
             const SizedBox(width: 10),
@@ -740,7 +760,7 @@ class _StatTile extends StatelessWidget {
         const SizedBox(height: 8),
         Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.55), fontWeight: FontWeight.w500)),
       ]),
     );
   }
@@ -813,7 +833,7 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
     final tasksAsync = widget.tasksAsync;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
@@ -830,7 +850,7 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
                   child: Icon(Icons.emoji_events_rounded, color: Colors.amber.shade700, size: 20),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(child: Text('My Tasks', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+                Expanded(child: Text('My Tasks', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Theme.of(context).colorScheme.onSurface))),
                 tasksAsync.maybeWhen(
                   data: (tasks) {
                     final done = tasks.where((t) => _isDone(t)).length;
@@ -910,7 +930,7 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
                           margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: done ? Colors.green.shade50 : const Color(0xFFF8FAFC),
+                            color: done ? Colors.green.shade50 : Theme.of(context).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                                 color: done ? Colors.green.shade200 : Colors.grey.shade200,
@@ -938,7 +958,7 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
                                 decoration: done ? TextDecoration.lineThrough : null,
-                                color: done ? Colors.grey.shade500 : const Color(0xFF1A1A2E),
+                                color: done ? Colors.grey.shade500 : Theme.of(context).colorScheme.onSurface,
                               ),
                             )),
                             if (!done && !isCompleting)
@@ -1003,5 +1023,100 @@ class _BatteryChip extends StatelessWidget {
         Text('$level%', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
       ]),
     );
+  }
+}
+
+// ── Rewards Card (home screen teaser) ────────────────────────────────────────
+
+class _RewardsCard extends ConsumerWidget {
+  final AsyncValue<Map<String, dynamic>> bankAsync;
+  final String profileId;
+  const _RewardsCard({required this.bankAsync, required this.profileId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: () => context.push('/child/rewards'),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [colorScheme.primary, colorScheme.primaryContainer],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 30),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('My Rewards',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                  const SizedBox(height: 3),
+                  bankAsync.when(
+                    data: (bank) {
+                      final pts = bank['pointsBalance'] as int? ?? 0;
+                      final mins = bank['minutesBalance'] as int? ?? 0;
+                      final streak = bank['streakDays'] as int? ?? 0;
+                      return Row(children: [
+                        _MiniStat(label: '$pts pts', icon: Icons.stars_rounded, color: Colors.amber.shade300),
+                        const SizedBox(width: 12),
+                        _MiniStat(label: '${mins}m time', icon: Icons.timer_rounded, color: Colors.lightBlue.shade200),
+                        if (streak > 0) ...[
+                          const SizedBox(width: 12),
+                          _MiniStat(label: '$streak day streak', icon: Icons.local_fire_department_rounded, color: Colors.orange.shade300),
+                        ],
+                      ]);
+                    },
+                    loading: () => Text('Loading...', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
+                    error: (_, __) => Text('Tap to view rewards', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 26),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  const _MiniStat({required this.label, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 13, color: color),
+      const SizedBox(width: 3),
+      Text(label,
+          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+    ]);
   }
 }
