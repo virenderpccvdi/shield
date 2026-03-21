@@ -9,6 +9,22 @@ import 'package:flutter/services.dart';
 class DnsVpnService {
   static const _channel = MethodChannel('com.rstglobal.shield/vpn');
 
+  /// Request the Android VPN permission dialog without starting the VPN service.
+  /// Call this during device setup so the consent dialog appears while the parent
+  /// is present. After this succeeds, [start] will launch the VPN silently.
+  /// Returns true if permission was granted (or already granted), false if denied.
+  static Future<bool> preparePermission() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final result = await _channel.invokeMethod<bool>('prepareVpnPermission');
+      return result ?? false;
+    } on PlatformException catch (e) {
+      // ignore: avoid_print
+      print('[DnsVpnService] preparePermission failed: ${e.message}');
+      return false;
+    }
+  }
+
   /// Start DNS VPN filtering with the given DoH URL.
   /// Returns true if VPN was started (or already running), false if user denied permission.
   static Future<bool> start(String dohUrl) async {

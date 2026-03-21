@@ -173,11 +173,14 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
       }
 
       // ── Request VPN permission DURING setup ─────────────────────────────────
-      // Android shows the system VPN consent dialog only once (on first use).
-      // We trigger it here, while the parent is still present at setup, so the
-      // child home screen never shows an unexpected permission popup.
-      // After this call succeeds, VpnService.prepare() returns null forever →
-      // the child screen starts DNS protection silently on every launch.
+      // Step 1: Request permission unconditionally. The system VPN consent dialog
+      // appears here while the parent is present — never on the child home screen.
+      // If permission was already granted (re-setup), this returns instantly.
+      await DnsVpnService.preparePermission();
+
+      // Step 2: Fetch the DoH URL and start the VPN service immediately.
+      // If this fails, the child screen will start the VPN on its next launch
+      // (permission is already cached so it will start silently).
       try {
         final rulesRes = await dio.get(
           '/dns/rules/$profileId',
@@ -186,12 +189,10 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
         final d = rulesRes.data['data'] as Map? ?? rulesRes.data as Map? ?? {};
         final dohUrl = d['dohUrl']?.toString();
         if (dohUrl != null && dohUrl.isNotEmpty) {
-          // This call shows the Android VPN permission dialog if not yet granted.
-          // On subsequent launches it returns true immediately (permission cached).
           await DnsVpnService.start(dohUrl);
         }
       } catch (_) {
-        // Best-effort — if DNS rules fetch fails, child screen will retry on load.
+        // Best-effort — permission is granted above, VPN starts on child screen load.
       }
       // ────────────────────────────────────────────────────────────────────────
 

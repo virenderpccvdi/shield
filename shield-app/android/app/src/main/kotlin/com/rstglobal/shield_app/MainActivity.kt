@@ -28,6 +28,19 @@ class MainActivity : FlutterFragmentActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, VPN_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
+                    "prepareVpnPermission" -> {
+                        // Only shows the system VPN consent dialog — does NOT start the VPN service.
+                        // Use this during setup to pre-grant permission so the child screen can
+                        // start the VPN silently on every subsequent launch.
+                        val intent = VpnService.prepare(this)
+                        if (intent != null) {
+                            pendingDohUrl = ""          // no service to start after dialog
+                            pendingResult = result
+                            startActivityForResult(intent, VPN_PERMISSION_REQUEST)
+                        } else {
+                            result.success(true)        // already granted
+                        }
+                    }
                     "startVpn" -> {
                         val dohUrl = call.argument<String>("dohUrl")
                         if (dohUrl.isNullOrBlank()) {
@@ -116,8 +129,12 @@ class MainActivity : FlutterFragmentActivity() {
             val result = pendingResult
             pendingDohUrl = null
             pendingResult = null
-            if (resultCode == RESULT_OK && dohUrl != null) {
-                launchVpnService(dohUrl)
+            if (resultCode == RESULT_OK) {
+                // Only launch the VPN service if we have a real dohUrl
+                // (prepareVpnPermission sets dohUrl to "" and skips service start)
+                if (!dohUrl.isNullOrBlank()) {
+                    launchVpnService(dohUrl)
+                }
                 result?.success(true)
             } else {
                 result?.success(false)

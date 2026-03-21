@@ -16,6 +16,7 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
   bool _loading = true;
   bool _isRefreshing = false;
   int _totalPoints = 0;
+  String? _errorMessage;
   Timer? _refreshTimer;
 
   @override
@@ -51,7 +52,7 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
       final auth = ref.read(authProvider);
       final profileId = auth.childProfileId;
       if (profileId == null || profileId.isEmpty) {
-        if (mounted) setState(() { _tasks = []; _loading = false; _isRefreshing = false; });
+        if (mounted) setState(() { _tasks = []; _loading = false; _isRefreshing = false; _errorMessage = null; });
         return;
       }
       final client = ref.read(dioProvider);
@@ -68,9 +69,14 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
         _totalPoints = newPoints;
         _loading = false;
         _isRefreshing = false;
+        _errorMessage = null;
       });
-    } catch (_) {
-      if (mounted) setState(() { _loading = false; _isRefreshing = false; });
+    } catch (e) {
+      if (mounted) setState(() {
+        _loading = false;
+        _isRefreshing = false;
+        _errorMessage = e.toString();
+      });
     }
   }
 
@@ -276,7 +282,22 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
                   }),
                 ],
 
-                if (_tasks.isEmpty)
+                if (_errorMessage != null)
+                  Center(child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 12),
+                      const Text('Could not load tasks',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Text(_errorMessage!, textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      const SizedBox(height: 16),
+                      FilledButton.tonal(onPressed: () => _load(), child: const Text('Retry')),
+                    ]),
+                  ))
+                else if (_tasks.isEmpty)
                   const Center(child: Padding(
                     padding: EdgeInsets.all(48),
                     child: Column(children: [
