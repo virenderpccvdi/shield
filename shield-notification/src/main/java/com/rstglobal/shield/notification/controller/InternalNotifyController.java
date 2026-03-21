@@ -62,7 +62,7 @@ public class InternalNotifyController {
 
         return ResponseEntity.ok(ApiResponse.ok(Map.of(
                 "devicesSent", sent,
-                "userId", req.getUserId().toString()
+                "target", req.getTopic() != null ? req.getTopic() : (req.getUserId() != null ? req.getUserId().toString() : "unknown")
         )));
     }
 

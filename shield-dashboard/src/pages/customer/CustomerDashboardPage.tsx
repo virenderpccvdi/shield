@@ -116,6 +116,27 @@ export default function CustomerDashboardPage() {
 
   // Analytics: fetch stats for all children combined
   const children = data || [];
+
+  // SOS polling: fetch active SOS events across all children every 30 seconds
+  interface SosEvent { id: string; profileId: string; status: string; triggeredAt?: string; }
+  const { data: activeSosEvents = [] } = useQuery<(SosEvent & { childName: string })[]>({
+    queryKey: ['dashboard-sos', children.map((c: ChildProfile) => c.id).join(',')],
+    queryFn: async () => {
+      const results: (SosEvent & { childName: string })[] = [];
+      await Promise.all(children.map(async (child: ChildProfile) => {
+        try {
+          const r = await api.get(`/location/sos/${child.id}/all?limit=5`);
+          const events: SosEvent[] = r.data?.data ?? r.data ?? [];
+          events.filter((e: SosEvent) => e.status === 'ACTIVE').forEach((ev: SosEvent) => {
+            results.push({ ...ev, childName: child.name });
+          });
+        } catch { /* ignore */ }
+      }));
+      return results;
+    },
+    enabled: children.length > 0,
+    refetchInterval: 30000,
+  });
   const firstProfileId = children[0]?.id;
 
   const { data: dailyStats } = useQuery<DailyPoint[]>({
@@ -195,6 +216,32 @@ export default function CustomerDashboardPage() {
     <AnimatedPage>
       {/* Welcome onboarding banner — shown when no children yet */}
       <WelcomeBanner hasChildren={children.length > 0} />
+
+      {/* SOS Emergency Banner — shown when any child has an active SOS */}
+      {activeSosEvents.length > 0 && (
+        <Alert
+          severity="error"
+          icon={false}
+          sx={{
+            mb: 2, borderRadius: 2, fontWeight: 700, fontSize: 15,
+            '@keyframes sosBannerPulse': {
+              '0%, 100%': { boxShadow: '0 0 0 0 rgba(229,57,53,0.45)' },
+              '50%': { boxShadow: '0 0 0 10px rgba(229,57,53,0)' },
+            },
+            animation: 'sosBannerPulse 2s ease-in-out infinite',
+          }}
+          action={
+            <Button color="error" variant="contained" size="small" sx={{ fontWeight: 700, borderRadius: 2 }}
+              onClick={() => navigate('/alerts')}>
+              View &amp; Respond
+            </Button>
+          }
+        >
+          {activeSosEvents.length === 1
+            ? `🚨 ${activeSosEvents[0].childName} has triggered a SOS emergency alert!`
+            : `🚨 ${activeSosEvents.length} children have triggered SOS emergency alerts!`}
+        </Alert>
+      )}
 
       {/* High block alert banner */}
       {highBlockChildren.length > 0 && (

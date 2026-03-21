@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth_state.dart';
 import '../../core/constants.dart';
 import '../../core/shield_logo.dart';
+import '../../core/fcm_service.dart';
 import 'package:dio/dio.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -26,11 +27,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final dio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl, connectTimeout: AppConstants.connectTimeout, receiveTimeout: AppConstants.receiveTimeout));
       final res = await dio.post('/auth/login', data: {'email': _email.text.trim(), 'password': _password.text});
       final d = res.data['data'];
+      final userId = d['userId'] as String? ?? '';
+      final accessToken = d['accessToken'] as String? ?? '';
+      final tenantId = d['tenantId'] as String? ?? '';
       await ref.read(authProvider.notifier).setAuth(
-        userId: d['userId'], accessToken: d['accessToken'],
+        userId: userId, accessToken: accessToken,
         name: d['name'] ?? '', email: d['email'] ?? '', role: d['role'] ?? 'CUSTOMER',
         refreshToken: d['refreshToken'] as String?,
       );
+      // Register FCM token with backend (fire-and-forget, don't block navigation)
+      if (userId.isNotEmpty && accessToken.isNotEmpty) {
+        FcmService().initialize(
+          userId: userId,
+          tenantId: tenantId,
+          accessToken: accessToken,
+        ).catchError((e) => debugPrint('FCM init error: $e'));
+      }
       if (mounted) context.go('/dashboard');
     } on DioException catch (e) {
       setState(() => _error = e.response?.data?['message'] ?? 'Login failed. Please try again.');

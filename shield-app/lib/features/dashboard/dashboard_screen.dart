@@ -8,6 +8,37 @@ import '../../core/shield_logo.dart';
 import '../../app/theme.dart';
 import '../notifications/notification_history_screen.dart';
 
+// ── Active SOS provider ─────────────────────────────────────────────────────
+
+/// Returns list of active SOS events across all child profiles.
+final activeSosProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  try {
+    final client = ref.read(dioProvider);
+    final profilesRes = await client.get('/profiles/children');
+    final profiles = profilesRes.data['data'] as List? ?? [];
+
+    final active = <Map<String, dynamic>>[];
+    for (final p in profiles) {
+      final profileId = p['id']?.toString() ?? '';
+      final childName = p['name']?.toString() ?? 'Child';
+      if (profileId.isEmpty) continue;
+      try {
+        // GET active only (all=false is default)
+        final res = await client.get('/location/$profileId/sos');
+        final items = res.data['data'] as List? ?? [];
+        for (final item in items) {
+          final m = Map<String, dynamic>.from(item as Map);
+          m['childName'] = childName;
+          active.add(m);
+        }
+      } catch (_) {}
+    }
+    return active;
+  } catch (_) {
+    return [];
+  }
+});
+
 // ── Data providers ─────────────────────────────────────────────────────────
 
 final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
@@ -91,26 +122,44 @@ class DashboardScreen extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final dashAsync = ref.watch(dashboardProvider);
 
+    final activeSosAsync = ref.watch(activeSosProvider);
+    final activeSosEvents = activeSosAsync.valueOrNull ?? [];
+
     return Scaffold(
       backgroundColor: ShieldTheme.surface,
-      body: dashAsync.when(
-        loading: () => const _LoadingBody(),
-        error:   (e, _) => _ErrorBody(error: e.toString(), onRetry: () => ref.invalidate(dashboardProvider)),
-        data:    (data) => RefreshIndicator(
-          onRefresh: () => ref.refresh(dashboardProvider.future),
-          displacement: 80,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              _HeroHeader(auth: auth, data: data),
-              _QuickStats(data: data),
-              _QuickActions(),
-              _ChildrenSection(profiles: (data['profiles'] as List?) ?? []),
-              _RecentActivitySection(),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            ],
+      body: Column(
+        children: [
+          // Active SOS banner — shown at top of screen when there are active SOS events
+          if (activeSosEvents.isNotEmpty)
+            _DashboardSosBanner(
+              events: activeSosEvents,
+              onTap: () => context.go('/alerts/sos'),
+            ),
+          Expanded(
+            child: dashAsync.when(
+              loading: () => const _LoadingBody(),
+              error:   (e, _) => _ErrorBody(error: e.toString(), onRetry: () => ref.invalidate(dashboardProvider)),
+              data:    (data) => RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(dashboardProvider);
+                  ref.invalidate(activeSosProvider);
+                },
+                displacement: 80,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    _HeroHeader(auth: auth, data: data),
+                    _QuickStats(data: data),
+                    _QuickActions(),
+                    _ChildrenSection(profiles: (data['profiles'] as List?) ?? []),
+                    _RecentActivitySection(),
+                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -853,6 +902,70 @@ class _MenuRow extends StatelessWidget {
                 Text(subtitle, style: const TextStyle(fontSize: 12, color: ShieldTheme.textSecondary)),
               ])),
               const Icon(Icons.chevron_right, color: ShieldTheme.textSecondary, size: 18),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Dashboard SOS Banner ───────────────────────────────────────────────────
+
+class _DashboardSosBanner extends StatefulWidget {
+  final List<Map<String, dynamic>> events;
+  final VoidCallback onTap;
+  const _DashboardSosBanner({required this.events, required this.onTap});
+
+  @override
+  State<_DashboardSosBanner> createState() => _DashboardSosBannerState();
+}
+
+class _DashboardSosBannerState extends State<_DashboardSosBanner> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.75, end: 1.0).animate(_ctrl);
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    final childName = widget.events.first['childName'] as String? ?? 'A child';
+    final count = widget.events.length;
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: FadeTransition(
+        opacity: _opacity,
+        child: Container(
+          width: double.infinity,
+          color: Colors.red.shade700,
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: SafeArea(
+            bottom: false,
+            child: Row(children: [
+              const Icon(Icons.sos, color: Colors.white, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  count == 1
+                      ? '$childName needs help! Tap to respond'
+                      : '$count active SOS alerts — children need help! Tap to respond',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 14),
             ]),
           ),
         ),

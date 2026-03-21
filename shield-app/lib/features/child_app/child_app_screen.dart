@@ -236,18 +236,18 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
       );
       if (confirm != true) { setState(() => _sosSending = false); return; }
 
-      final position = await _getCurrentPosition();
-      if (position == null) {
-        setState(() { _sosSending = false; _sosResult = 'Could not get location'; });
-        return;
-      }
+      // Don't abort — send SOS regardless of GPS availability
+      final position = await _getCurrentPosition().catchError((_) => null);
       final client = ref.read(dioProvider);
       final profileId = ref.read(authProvider).childProfileId;
       await client.post('/location/child/panic', data: {
         'profileId': profileId,
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-        'message': 'Child SOS alert',
+        'latitude': position?.latitude ?? 0.0,
+        'longitude': position?.longitude ?? 0.0,
+        'accuracy': position?.accuracy,
+        'message': position == null
+            ? 'Child SOS alert — location unavailable'
+            : 'Child SOS alert',
       });
       setState(() { _sosResult = '✓ SOS sent! Your family has been alerted.'; });
     } catch (e) {

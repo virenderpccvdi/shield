@@ -27,7 +27,6 @@ import '../features/parent/places_screen.dart';
 import '../features/parent/location_history_screen.dart';
 import '../features/parent/ai_insights_screen.dart';
 import '../features/parent/devices_screen.dart';
-import '../features/parent/panic_alert_screen.dart';
 import '../features/child/child_tasks_screen.dart';
 import '../features/child/child_rewards_screen.dart';
 import '../features/child/child_sos_screen.dart';
@@ -105,7 +104,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(path: '/alerts', builder: (_, __) => const AlertsScreen()),
-          GoRoute(path: '/alerts/sos', builder: (_, __) => const PanicAlertScreen()),
+          GoRoute(path: '/alerts/sos', builder: (_, __) => const AlertsScreen(initialTab: 2)),
           GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
           // Parent screens with profileId
           GoRoute(path: '/family/:profileId/dns-rules', builder: (_, state) => DnsRulesScreen(profileId: state.pathParameters['profileId']!)),
