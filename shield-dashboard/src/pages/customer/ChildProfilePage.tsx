@@ -47,6 +47,7 @@ interface ExtensionRequest {
 }
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 const filterColors: Record<string, { bg: string; text: string }> = {
@@ -64,6 +65,8 @@ function ScheduleTab({ profileId }: { profileId: string }) {
   const queryClient = useQueryClient();
   const [grid, setGrid] = useState<Record<string, number[]>>({});
   const [snack, setSnack] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState<'success' | 'error'>('success');
+  const [scheduleError, setScheduleError] = useState('');
   const [overrideDialog, setOverrideDialog] = useState(false);
   const [overrideType, setOverrideType] = useState('PAUSE');
   const [overrideMins, setOverrideMins] = useState(60);
@@ -72,29 +75,42 @@ function ScheduleTab({ profileId }: { profileId: string }) {
     queryKey: ['cust-schedule', profileId],
     queryFn: () => api.get(`/dns/schedules/${profileId}`).then(r => {
       const d = (r.data?.data || r.data) as ScheduleData;
-      if (d?.grid) setGrid(d.grid);
+      if (d?.grid) { setGrid(d.grid); setScheduleError(''); }
       return d;
-    }).catch(() => null),
+    }).catch((e: any) => {
+      const msg = e?.response?.data?.message || 'Failed to load schedule';
+      setScheduleError(msg);
+      return null;
+    }),
   });
+
+  const showSnack = (msg: string, severity: 'success' | 'error' = 'success') => {
+    setSnackSeverity(severity);
+    setSnack(msg);
+  };
 
   const saveMutation = useMutation({
     mutationFn: () => api.put(`/dns/schedules/${profileId}`, { grid }),
-    onSuccess: () => { setSnack('Schedule saved'); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onSuccess: () => { showSnack('Schedule saved'); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onError: (e: any) => showSnack(e?.response?.data?.message || 'Failed to save schedule', 'error'),
   });
 
   const presetMutation = useMutation({
     mutationFn: (preset: string) => api.post(`/dns/schedules/${profileId}/preset?preset=${preset}`),
-    onSuccess: () => { setSnack('Preset applied'); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onSuccess: () => { showSnack('Preset applied'); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onError: (e: any) => showSnack(e?.response?.data?.message || 'Failed to apply preset', 'error'),
   });
 
   const overrideMutation = useMutation({
     mutationFn: () => api.post(`/dns/schedules/${profileId}/override`, { overrideType, durationMinutes: overrideMins }),
-    onSuccess: () => { setSnack('Override applied'); setOverrideDialog(false); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onSuccess: () => { showSnack('Override applied'); setOverrideDialog(false); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onError: (e: any) => showSnack(e?.response?.data?.message || 'Failed to apply override', 'error'),
   });
 
   const cancelOverrideMutation = useMutation({
     mutationFn: () => api.delete(`/dns/schedules/${profileId}/override`),
-    onSuccess: () => { setSnack('Override cancelled'); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onSuccess: () => { showSnack('Override cancelled'); queryClient.invalidateQueries({ queryKey: ['cust-schedule', profileId] }); },
+    onError: (e: any) => showSnack(e?.response?.data?.message || 'Failed to cancel override', 'error'),
   });
 
   const toggle = (day: string, hour: number) => {
@@ -106,8 +122,14 @@ function ScheduleTab({ profileId }: { profileId: string }) {
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
 
+  if (scheduleError && !schedule) {
+    return (
+      <Alert severity="error" sx={{ mb: 2 }}>{scheduleError} — try refreshing the page.</Alert>
+    );
+  }
+
   const presets = [
-    { label: 'School Hours', icon: <SchoolIcon sx={{ fontSize: 16 }} />, color: '#1565C0', key: 'SCHOOL_HOURS' },
+    { label: 'School Hours', icon: <SchoolIcon sx={{ fontSize: 16 }} />, color: '#1565C0', key: 'SCHOOL' },
     { label: 'Bedtime', icon: <BedtimeIcon sx={{ fontSize: 16 }} />, color: '#7B1FA2', key: 'BEDTIME' },
     { label: 'Weekend', icon: <WeekendIcon sx={{ fontSize: 16 }} />, color: '#FB8C00', key: 'WEEKEND' },
   ];
@@ -165,14 +187,16 @@ function ScheduleTab({ profileId }: { profileId: string }) {
                   <Box key={h} sx={{ width: 28, textAlign: 'center', fontSize: 10, fontWeight: 600, color: (h >= 22 || h < 6) ? '#9E9E9E' : '#546E7A' }}>{h}</Box>
                 ))}
               </Box>
-              {DAYS.map((day, d) => (
+              {DAYS.map((day, d) => {
+                const dayKey = DAY_KEYS[d];
+                return (
                 <Box key={day} sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                   <Typography sx={{ width: 48, fontSize: 12, fontWeight: 700, color: d >= 5 ? '#FB8C00' : '#546E7A', pr: 1 }}>{day}</Typography>
                   {HOURS.map(h => {
-                    const val = grid[day]?.[h] ?? 1;
+                    const val = grid[dayKey]?.[h] ?? 1;
                     return (
                       <Tooltip key={h} title={`${day} ${h}:00 - ${val === 1 ? 'Allowed' : 'Blocked'}`} arrow>
-                        <Box onClick={() => toggle(day, h)} sx={{
+                        <Box onClick={() => toggle(dayKey, h)} sx={{
                           width: 26, height: 28, borderRadius: '6px', mr: 0.25, cursor: 'pointer',
                           bgcolor: val === 0 ? '#FFCDD2' : '#C8E6C9',
                           border: '1.5px solid', borderColor: val === 0 ? '#EF9A9A' : '#A5D6A7',
@@ -183,7 +207,8 @@ function ScheduleTab({ profileId }: { profileId: string }) {
                     );
                   })}
                 </Box>
-              ))}
+                );
+              })}
             </Box>
           </Box>
           <Box sx={{ mt: 3 }}>
@@ -215,8 +240,8 @@ function ScheduleTab({ profileId }: { profileId: string }) {
           </Button>
         </DialogActions>
       </Dialog>
-      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}>
-        <Alert severity="success" onClose={() => setSnack('')}>{snack}</Alert>
+      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack('')}>
+        <Alert severity={snackSeverity} onClose={() => setSnack('')}>{snack}</Alert>
       </Snackbar>
     </Box>
   );
@@ -226,6 +251,7 @@ function BudgetsTab({ profileId }: { profileId: string }) {
   const queryClient = useQueryClient();
   const [budgets, setBudgets] = useState<Record<string, number>>({});
   const [snack, setSnack] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState<'success' | 'error'>('success');
 
   const { isLoading } = useQuery({
     queryKey: ['cust-budgets', profileId],
@@ -243,7 +269,8 @@ function BudgetsTab({ profileId }: { profileId: string }) {
 
   const saveMutation = useMutation({
     mutationFn: () => api.put(`/dns/budgets/${profileId}`, { budgets }),
-    onSuccess: () => { setSnack('Budgets saved'); queryClient.invalidateQueries({ queryKey: ['cust-budgets', profileId] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Budgets saved'); queryClient.invalidateQueries({ queryKey: ['cust-budgets', profileId] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save budgets'); },
   });
 
   const defaultApps = ['youtube', 'tiktok', 'gaming', 'social', 'streaming', 'education'];
@@ -293,8 +320,8 @@ function BudgetsTab({ profileId }: { profileId: string }) {
           </Box>
         </CardContent>
       </Card>
-      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}>
-        <Alert severity="success" onClose={() => setSnack('')}>{snack}</Alert>
+      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack('')}>
+        <Alert severity={snackSeverity} onClose={() => setSnack('')}>{snack}</Alert>
       </Snackbar>
     </Box>
   );
@@ -307,6 +334,8 @@ function RulesTab({ profileId }: { profileId: string }) {
   const [allowlist, setAllowlist] = useState<string[]>([]);
   const [newDomain, setNewDomain] = useState('');
   const [snack, setSnack] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState<'success' | 'error'>('success');
+  const showSnack = (msg: string, severity: 'success' | 'error' = 'success') => { setSnackSeverity(severity); setSnack(msg); };
 
   const { isLoading } = useQuery({
     queryKey: ['cust-rules', profileId],
@@ -326,15 +355,18 @@ function RulesTab({ profileId }: { profileId: string }) {
 
   const saveCatMutation = useMutation({
     mutationFn: () => api.put(`/dns/rules/${profileId}/categories`, { enabledCategories: categories }),
-    onSuccess: () => { setSnack('Categories saved'); queryClient.invalidateQueries({ queryKey: ['cust-rules', profileId] }); },
+    onSuccess: () => { showSnack('Categories saved'); queryClient.invalidateQueries({ queryKey: ['cust-rules', profileId] }); },
+    onError: (e: any) => showSnack(e?.response?.data?.message || 'Failed to save categories', 'error'),
   });
   const saveBlockMutation = useMutation({
     mutationFn: () => api.put(`/dns/rules/${profileId}/blocklist`, { domains: blocklist }),
-    onSuccess: () => { setSnack('Blocklist saved'); queryClient.invalidateQueries({ queryKey: ['cust-rules', profileId] }); },
+    onSuccess: () => { showSnack('Blocklist saved'); queryClient.invalidateQueries({ queryKey: ['cust-rules', profileId] }); },
+    onError: (e: any) => showSnack(e?.response?.data?.message || 'Failed to save blocklist', 'error'),
   });
   const saveAllowMutation = useMutation({
     mutationFn: () => api.put(`/dns/rules/${profileId}/allowlist`, { domains: allowlist }),
-    onSuccess: () => { setSnack('Allowlist saved'); queryClient.invalidateQueries({ queryKey: ['cust-rules', profileId] }); },
+    onSuccess: () => { showSnack('Allowlist saved'); queryClient.invalidateQueries({ queryKey: ['cust-rules', profileId] }); },
+    onError: (e: any) => showSnack(e?.response?.data?.message || 'Failed to save allowlist', 'error'),
   });
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
@@ -406,8 +438,8 @@ function RulesTab({ profileId }: { profileId: string }) {
           </Button>
         </CardContent>
       </Card>
-      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}>
-        <Alert severity="success" onClose={() => setSnack('')}>{snack}</Alert>
+      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack('')}>
+        <Alert severity={snackSeverity} onClose={() => setSnack('')}>{snack}</Alert>
       </Snackbar>
     </Box>
   );

@@ -24,19 +24,19 @@ interface ChildProfile { id: string; name: string; }
 interface Geofence {
   id: string;
   name: string;
-  latitude: number;
-  longitude: number;
+  centerLat: number;
+  centerLng: number;
   radiusMeters: number;
   type?: string;
-  active?: boolean;
-  schedule?: string;
-  createdAt?: string;
+  isActive?: boolean;
+  alertOnEnter?: boolean;
+  alertOnExit?: boolean;
 }
 
 interface GeofenceForm {
   name: string;
-  latitude: number;
-  longitude: number;
+  centerLat: number;
+  centerLng: number;
   radiusMeters: number;
   type: string;
 }
@@ -58,7 +58,7 @@ export default function GeofencesPage() {
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<GeofenceForm>({ name: '', latitude: DEFAULT_CENTER.lat, longitude: DEFAULT_CENTER.lng, radiusMeters: 200, type: 'OTHER' });
+  const [form, setForm] = useState<GeofenceForm>({ name: '', centerLat: DEFAULT_CENTER.lat, centerLng: DEFAULT_CENTER.lng, radiusMeters: 200, type: 'OTHER' });
 
   const { data: children } = useQuery({
     queryKey: ['children'],
@@ -95,12 +95,12 @@ export default function GeofencesPage() {
   const closeDialog = () => {
     setDialogOpen(false);
     setEditingId(null);
-    setForm({ name: '', latitude: DEFAULT_CENTER.lat, longitude: DEFAULT_CENTER.lng, radiusMeters: 200, type: 'OTHER' });
+    setForm({ name: '', centerLat: DEFAULT_CENTER.lat, centerLng: DEFAULT_CENTER.lng, radiusMeters: 200, type: 'OTHER' });
   };
 
   const openEdit = (g: Geofence) => {
     setEditingId(g.id);
-    setForm({ name: g.name, latitude: g.latitude, longitude: g.longitude, radiusMeters: g.radiusMeters, type: g.type || 'OTHER' });
+    setForm({ name: g.name, centerLat: g.centerLat, centerLng: g.centerLng, radiusMeters: g.radiusMeters, type: g.type || 'OTHER' });
     setDialogOpen(true);
   };
 
@@ -143,7 +143,7 @@ export default function GeofencesPage() {
     // Click to set geofence center in dialog
     map.on('click', (e: any) => {
       if (dialogOpen) {
-        setForm(prev => ({ ...prev, latitude: e.latlng.lat, longitude: e.latlng.lng }));
+        setForm(prev => ({ ...prev, centerLat: e.latlng.lat, centerLng: e.latlng.lng }));
       }
     });
   }
@@ -160,7 +160,7 @@ export default function GeofencesPage() {
     if (geofences && geofences.length > 0) {
       geofences.forEach(g => {
         const typeConf = GEOFENCE_TYPES[g.type || 'OTHER'] || GEOFENCE_TYPES.OTHER;
-        const circle = L.circle([g.latitude, g.longitude], {
+        const circle = L.circle([g.centerLat, g.centerLng], {
           radius: g.radiusMeters,
           color: typeConf.color,
           fillColor: typeConf.color,
@@ -172,7 +172,7 @@ export default function GeofencesPage() {
       });
 
       // Fit bounds
-      const bounds = geofences.map(g => [g.latitude, g.longitude] as [number, number]);
+      const bounds = geofences.map(g => [g.centerLat, g.centerLng] as [number, number]);
       if (bounds.length > 0) {
         mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
       }
@@ -327,8 +327,8 @@ export default function GeofencesPage() {
                 <TextField
                   label="Latitude"
                   type="number"
-                  value={form.latitude}
-                  onChange={e => setForm({ ...form, latitude: parseFloat(e.target.value) || 0 })}
+                  value={form.centerLat}
+                  onChange={e => setForm({ ...form, centerLat: parseFloat(e.target.value) || 0 })}
                   fullWidth size="small"
                   slotProps={{ htmlInput: { step: 0.0001 } }}
                 />
@@ -337,8 +337,8 @@ export default function GeofencesPage() {
                 <TextField
                   label="Longitude"
                   type="number"
-                  value={form.longitude}
-                  onChange={e => setForm({ ...form, longitude: parseFloat(e.target.value) || 0 })}
+                  value={form.centerLng}
+                  onChange={e => setForm({ ...form, centerLng: parseFloat(e.target.value) || 0 })}
                   fullWidth size="small"
                   slotProps={{ htmlInput: { step: 0.0001 } }}
                 />

@@ -4,6 +4,7 @@ import com.rstglobal.shield.common.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -34,4 +35,13 @@ public class Device extends BaseEntity {
     @Column(name = "dns_method", length = 20)
     @Builder.Default
     private String dnsMethod = "DOH";
+
+    @Column(name = "battery_pct")
+    private Integer batteryPct;
+
+    @Column(name = "speed_kmh", precision = 6, scale = 1)
+    private BigDecimal speedKmh;
+
+    @Column(name = "app_version", length = 20)
+    private String appVersion;
 }

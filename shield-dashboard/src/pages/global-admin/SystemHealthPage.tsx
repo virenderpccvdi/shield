@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Card, CardContent, Chip, IconButton, Tooltip, Grid,
   LinearProgress, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  Stack, Collapse, CircularProgress, Snackbar,
+  Stack, Collapse, CircularProgress, Snackbar, TextField, Alert,
 } from '@mui/material';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -14,6 +14,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TerminalIcon from '@mui/icons-material/Terminal';
+import SystemUpdateIcon from '@mui/icons-material/SystemUpdate';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -41,6 +42,9 @@ export default function SystemHealthPage() {
   const [confirmAction, setConfirmAction] = useState<{ name: string; action: string } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [snack, setSnack] = useState('');
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [updateVersion, setUpdateVersion] = useState('1.0.1');
+  const [updatePushing, setUpdatePushing] = useState(false);
 
   function refresh() {
     setLoading(true);
@@ -92,6 +96,27 @@ export default function SystemHealthPage() {
     setActionLoading(null);
   }
 
+  async function pushAppUpdate() {
+    setUpdatePushing(true);
+    try {
+      await api.post('/notifications/push', {
+        topic: 'shield-child-devices',
+        title: '🔄 Shield App Update Available',
+        body: `Shield v${updateVersion} is ready. Tap to download the latest version.`,
+        data: {
+          type: 'APP_UPDATE',
+          version: updateVersion,
+          downloadUrl: 'https://shield.rstglobal.in/shield-app.apk',
+        },
+      });
+      setUpdateDialogOpen(false);
+      setSnack(`App update v${updateVersion} pushed to all child devices`);
+    } catch {
+      setSnack('Failed to push app update notification');
+    }
+    setUpdatePushing(false);
+  }
+
   const upCount = services.filter(s => s.status === 'active').length;
   const downCount = services.filter(s => s.status !== 'active' && s.status !== 'unknown').length;
   const uptimePercent = services.length > 0 ? Math.round((upCount / services.length) * 100) : 0;
@@ -105,6 +130,11 @@ export default function SystemHealthPage() {
         iconColor="#7B1FA2"
         action={
           <Stack direction="row" spacing={1}>
+            <Button size="small" variant="contained" startIcon={<SystemUpdateIcon />}
+              onClick={() => setUpdateDialogOpen(true)}
+              sx={{ bgcolor: '#7B1FA2', '&:hover': { bgcolor: '#6A1B9A' } }}>
+              Push App Update
+            </Button>
             <Button size="small" variant="outlined" startIcon={<RestartAltIcon />}
               onClick={() => setConfirmAction({ name: 'ALL', action: 'restart' })}>
               Restart All
@@ -272,6 +302,33 @@ export default function SystemHealthPage() {
               }
             }}>
             {confirmAction?.action === 'stop' ? 'Stop' : confirmAction?.action === 'restart' ? 'Restart' : 'Start'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* App Update Push Dialog */}
+      <Dialog open={updateDialogOpen} onClose={() => setUpdateDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <SystemUpdateIcon sx={{ color: '#7B1FA2' }} />
+          Push App Update to All Users
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2, mt: 1 }}>
+            This will send an FCM push notification to all child app users prompting them to download the latest APK.
+          </Alert>
+          <TextField
+            label="Version Number"
+            value={updateVersion}
+            onChange={e => setUpdateVersion(e.target.value)}
+            fullWidth size="small"
+            placeholder="e.g. 1.0.1"
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setUpdateDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={pushAppUpdate} disabled={updatePushing || !updateVersion}
+            sx={{ bgcolor: '#7B1FA2', '&:hover': { bgcolor: '#6A1B9A' } }}>
+            {updatePushing ? 'Sending...' : 'Push Notification'}
           </Button>
         </DialogActions>
       </Dialog>

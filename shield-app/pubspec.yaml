@@ -44,6 +44,9 @@ dependencies:
   # QR Code Scanner
   mobile_scanner: ^5.2.3
 
+  # Battery
+  battery_plus: ^6.0.3
+
   # Installed apps
   installed_apps: ^1.4.0
 

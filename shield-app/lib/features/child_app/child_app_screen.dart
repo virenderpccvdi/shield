@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
@@ -60,8 +61,9 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
     // Start heartbeat immediately, then every 30 seconds
     _sendHeartbeat();
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) => _sendHeartbeat());
-    // Background location update every 2 minutes
-    _locationTimer = Timer.periodic(const Duration(minutes: 2), (_) => _sendBackgroundLocation());
+    // Background location update every 30 seconds for near real-time tracking
+    _sendBackgroundLocation();
+    _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) => _sendBackgroundLocation());
     // Sync installed apps on startup, then every 30 minutes
     _syncInstalledApps();
     _appsTimer = Timer.periodic(const Duration(minutes: 30), (_) => _syncInstalledApps());
@@ -80,7 +82,13 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
       final client = ref.read(dioProvider);
       final profileId = ref.read(authProvider).childProfileId;
       if (profileId == null) return;
-      await client.post('/profiles/devices/heartbeat', data: {'profileId': profileId});
+      final data = <String, String>{'profileId': profileId, 'appVersion': '1.0.0'};
+      try {
+        final battery = Battery();
+        final level = await battery.batteryLevel;
+        data['batteryPct'] = level.toString();
+      } catch (_) {}
+      await client.post('/profiles/devices/heartbeat', data: data);
     } catch (e) {
       debugPrint('[Shield] Heartbeat failed: $e');
     }
@@ -93,11 +101,26 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
       final client = ref.read(dioProvider);
       final profileId = ref.read(authProvider).childProfileId;
       if (profileId == null) return;
+      final speedKmh = position.speed >= 0 ? position.speed * 3.6 : 0.0;
       await client.post('/location/child/checkin', data: {
         'profileId': profileId,
         'latitude': position.latitude,
         'longitude': position.longitude,
+        'accuracy': position.accuracy,
+        'altitude': position.altitude,
+        'speed': speedKmh,
+        'heading': position.heading >= 0 ? position.heading : null,
+        'isMoving': position.speed > 0.5,
       });
+      // Update device telemetry with current speed
+      if (speedKmh > 0) {
+        try {
+          await client.post('/profiles/devices/heartbeat', data: {
+            'profileId': profileId,
+            'speedKmh': speedKmh.toStringAsFixed(1),
+          });
+        } catch (_) {}
+      }
     } catch (e) {
       debugPrint('[Shield] Background location failed: $e');
     }
@@ -165,11 +188,13 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> {
 
     return await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        timeLimit: Duration(seconds: 10),
+        accuracy: LocationAccuracy.bestForNavigation,
+        timeLimit: Duration(seconds: 15),
       ),
-    ).timeout(const Duration(seconds: 12), onTimeout: () {
-      throw Exception('Location timeout');
+    ).timeout(const Duration(seconds: 18), onTimeout: () async {
+      // Fall back to last known position if current position times out
+      return await Geolocator.getLastKnownPosition() ??
+          (throw Exception('Location timeout'));
     });
   }
 

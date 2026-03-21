@@ -18,5 +18,10 @@ public class CheckinRequest {
     @NotNull
     private BigDecimal longitude;
 
+    private BigDecimal accuracy;
+    private BigDecimal altitude;
+    private BigDecimal speed;
+    private BigDecimal heading;
+    private Boolean isMoving;
     private String message;
 }

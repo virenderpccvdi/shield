@@ -30,6 +30,7 @@ public class LocationService {
     private final GeofenceService geofenceService;
     private final GeofenceBreachDetector geofenceBreachDetector;
     private final SpoofingDetectionService spoofingDetectionService;
+    private final LocationBroadcaster locationBroadcaster;
 
     @Transactional
     public LocationResponse uploadLocation(LocationUploadRequest req, UUID userId, String role) {
@@ -58,6 +59,7 @@ public class LocationService {
 
         checkGeofences(point);
         spoofingDetectionService.analyze(point, previousPoint);
+        locationBroadcaster.broadcast(point); // Real-time WebSocket push to dashboard
 
         return toResponse(point);
     }
@@ -96,14 +98,18 @@ public class LocationService {
                 .profileId(req.getProfileId())
                 .latitude(req.getLatitude())
                 .longitude(req.getLongitude())
-                .speed(BigDecimal.ZERO)
-                .isMoving(false)
+                .accuracy(req.getAccuracy())
+                .altitude(req.getAltitude())
+                .speed(req.getSpeed() != null ? req.getSpeed() : BigDecimal.ZERO)
+                .heading(req.getHeading())
+                .isMoving(req.getIsMoving() != null ? req.getIsMoving() : false)
                 .recordedAt(OffsetDateTime.now())
                 .build();
         point = locationPointRepository.save(point);
         log.info("Child check-in recorded for profile {} at {},{} message='{}'",
                 req.getProfileId(), req.getLatitude(), req.getLongitude(), req.getMessage());
         checkGeofences(point);
+        locationBroadcaster.broadcast(point);
         return toResponse(point);
     }
 

@@ -3,6 +3,7 @@ package com.rstglobal.shield.profile.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -18,4 +19,7 @@ public class DeviceResponse {
     private Instant lastSeenAt;
     private String dnsMethod;
     private Instant createdAt;
+    private Integer batteryPct;
+    private BigDecimal speedKmh;
+    private String appVersion;
 }

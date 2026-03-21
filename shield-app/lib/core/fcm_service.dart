@@ -3,8 +3,10 @@ import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'auth_state.dart';
 import 'constants.dart';
 
@@ -162,8 +164,17 @@ class FcmService {
     }
   }
 
+  // Navigator key for showing dialogs from FCM handler
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   void _handleForegroundMessage(RemoteMessage message) {
     debugPrint('FCM foreground: ${message.notification?.title}');
+
+    // App update notification — show dialog instead of a local notification
+    if (message.data['type'] == 'APP_UPDATE') {
+      _showAppUpdateDialog(message.data);
+      return;
+    }
 
     final notification = message.notification;
     if (notification == null) return;
@@ -191,8 +202,40 @@ class FcmService {
 
   void _handleMessageOpenedApp(RemoteMessage message) {
     debugPrint('FCM message opened app: ${message.data}');
-    // Navigation can be handled here based on message.data['actionUrl']
-    // or message.data['type']
+    if (message.data['type'] == 'APP_UPDATE') {
+      _showAppUpdateDialog(message.data);
+    }
+  }
+
+  void _showAppUpdateDialog(Map<String, dynamic> data) {
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null) return;
+    final downloadUrl = data['downloadUrl'] as String? ?? 'https://shield.rstglobal.in/shield-app.apk';
+    final version = data['version'] as String? ?? '';
+    showDialog(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text('App Update Available', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: Text(version.isNotEmpty
+            ? 'Shield v$version is available with new features and improvements.'
+            : 'A new version of Shield is available with improvements.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Later'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final uri = Uri.parse(downloadUrl);
+              if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+            },
+            child: const Text('Download'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _registerTokenWithBackend({

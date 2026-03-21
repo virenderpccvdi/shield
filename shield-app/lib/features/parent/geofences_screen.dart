@@ -43,12 +43,16 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
     return null;
   }
 
+  // API returns centerLat / centerLng
+  double? _gfLat(Map<String, dynamic> f) => _d(f['centerLat'] ?? f['latitude']);
+  double? _gfLng(Map<String, dynamic> f) => _d(f['centerLng'] ?? f['longitude']);
+
   Set<Circle> _buildCircles() {
     final circles = <Circle>{};
     for (int i = 0; i < _geofences.length; i++) {
       final f = _geofences[i];
-      final lat = _d(f['latitude']);
-      final lng = _d(f['longitude']);
+      final lat = _gfLat(f);
+      final lng = _gfLng(f);
       final radius = _d(f['radiusMeters'] ?? f['radius']) ?? 200;
       if (lat == null || lng == null) continue;
       circles.add(Circle(
@@ -67,8 +71,8 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
     final markers = <Marker>{};
     for (int i = 0; i < _geofences.length; i++) {
       final f = _geofences[i];
-      final lat = _d(f['latitude']);
-      final lng = _d(f['longitude']);
+      final lat = _gfLat(f);
+      final lng = _gfLng(f);
       if (lat == null || lng == null) continue;
       markers.add(Marker(
         markerId: MarkerId('gf_marker_$i'),
@@ -82,8 +86,8 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
   Future<void> _addOrEditGeofence({Map<String, dynamic>? existing}) async {
     final nameCtrl = TextEditingController(text: existing?['name'] as String? ?? '');
     double radius = _d(existing?['radiusMeters'] ?? existing?['radius']) ?? 200;
-    double? lat = _d(existing?['latitude']);
-    double? lng = _d(existing?['longitude']);
+    double? lat = existing != null ? _gfLat(existing) : null;
+    double? lng = existing != null ? _gfLng(existing) : null;
     final latCtrl = TextEditingController(text: lat?.toString() ?? '');
     final lngCtrl = TextEditingController(text: lng?.toString() ?? '');
 
@@ -159,10 +163,9 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
         final client = ref.read(dioProvider);
         final body = {
           'name': nameCtrl.text,
-          'latitude': parsedLat,
-          'longitude': parsedLng,
+          'centerLat': parsedLat,
+          'centerLng': parsedLng,
           'radiusMeters': radius.round(),
-          'profileId': widget.profileId,
         };
         if (existing != null) {
           await client.put('/location/${widget.profileId}/geofences/${existing['id']}', data: body);
@@ -222,8 +225,8 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
                     // Zoom to first geofence
                     if (_geofences.isNotEmpty) {
                       final f = _geofences.first;
-                      final lat = _d(f['latitude']);
-                      final lng = _d(f['longitude']);
+                      final lat = _gfLat(f);
+                      final lng = _gfLng(f);
                       if (lat != null && lng != null) {
                         c.animateCamera(CameraUpdate.newLatLngZoom(LatLng(lat, lng), 14));
                       }
@@ -257,7 +260,7 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
                             child: Icon(Icons.location_on, color: Colors.white),
                           ),
                           title: Text(f['name'] as String? ?? 'Geofence ${i + 1}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text('Radius: ${_d(f['radiusMeters'] ?? f['radius'])?.round() ?? 200}m'),
+                          subtitle: Text('${_gfLat(f)?.toStringAsFixed(4) ?? '?'}, ${_gfLng(f)?.toStringAsFixed(4) ?? '?'} · ${_d(f['radiusMeters'])?.round() ?? 200}m radius'),
                           trailing: const Icon(Icons.edit),
                           onTap: () => _addOrEditGeofence(existing: f),
                         );

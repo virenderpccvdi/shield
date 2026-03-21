@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress,
   Chip, Stack, List, ListItem, ListItemIcon, ListItemText
@@ -7,15 +7,17 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import HistoryIcon from '@mui/icons-material/History';
 import PlaceIcon from '@mui/icons-material/Place';
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 interface ChildProfile { id: string; name: string; }
 
@@ -36,6 +38,7 @@ export default function LocationHistoryPage() {
   const mapInstance = useRef<any>(null);
   const polylineRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const qc = useQueryClient();
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [fromDate, setFromDate] = useState<Dayjs>(dayjs().startOf('day'));
   const [toDate, setToDate] = useState<Dayjs>(dayjs().endOf('day'));
@@ -50,8 +53,11 @@ export default function LocationHistoryPage() {
 
   const profileId = selectedChild || (children && children.length > 0 ? children[0].id : null);
 
+  const isToday = fromDate.isSame(dayjs(), 'day') && toDate.isSame(dayjs(), 'day');
+  const historyQueryKey = ['location-history', profileId, fromDate.toISOString(), toDate.toISOString()];
+
   const { data: locationData, isLoading } = useQuery({
-    queryKey: ['location-history', profileId, fromDate.toISOString(), toDate.toISOString()],
+    queryKey: historyQueryKey,
     queryFn: () => api.get(`/location/${profileId}/history`, {
       params: {
         from: fromDate.toISOString(),
@@ -63,7 +69,22 @@ export default function LocationHistoryPage() {
       return (d?.content ?? d ?? []) as LocationPoint[];
     }),
     enabled: !!profileId,
+    refetchInterval: isToday ? 30000 : false,
   });
+
+  // Real-time location updates via WebSocket when viewing today
+  const handleLiveLocation = useCallback((data: unknown) => {
+    const pt = data as LocationPoint;
+    if (!pt?.latitude || !pt?.longitude) return;
+    qc.setQueryData<LocationPoint[]>(historyQueryKey, (prev) => {
+      if (!prev) return [pt];
+      // Avoid duplicates
+      if (prev.some(p => p.id === pt.id)) return prev;
+      return [...prev, pt];
+    });
+  }, [profileId, fromDate.toISOString(), toDate.toISOString()]);
+
+  useWebSocket(`/topic/location/${profileId}`, handleLiveLocation, !!profileId && isToday);
 
   // Initialize map
   useEffect(() => {
@@ -209,6 +230,15 @@ export default function LocationHistoryPage() {
                   label={`${points.length} points`}
                   sx={{ fontWeight: 600, bgcolor: '#E3F2FD', color: '#1565C0' }}
                 />
+                {isToday && (
+                  <Chip
+                    icon={<FiberManualRecordIcon sx={{ fontSize: '10px !important', color: '#43A047 !important', animation: 'pulse 1.5s infinite' }} />}
+                    label="Live"
+                    size="small"
+                    sx={{ fontWeight: 600, bgcolor: '#E8F5E9', color: '#2E7D32',
+                      '& @keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } } }}
+                  />
+                )}
               </Stack>
             </LocalizationProvider>
           </CardContent>

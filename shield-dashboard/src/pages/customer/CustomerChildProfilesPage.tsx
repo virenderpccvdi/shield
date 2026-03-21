@@ -47,6 +47,7 @@ export default function CustomerChildProfilesPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [snack, setSnack] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState<'success' | 'error'>('success');
   const [editOpen, setEditOpen] = useState(false);
   const [editProfile, setEditProfile] = useState<ChildProfile | null>(null);
   const [editName, setEditName] = useState('');
@@ -64,12 +65,14 @@ export default function CustomerChildProfilesPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, body }: { id: string; body: any }) => api.put(`/profiles/children/${id}`, body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['customer-child-profiles'] }); setSnack('Profile updated'); setEditOpen(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['customer-child-profiles'] }); setSnackSeverity('success'); setSnack('Profile updated'); setEditOpen(false); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to update profile'); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/profiles/children/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['customer-child-profiles'] }); setSnack('Profile deleted'); setDeleteOpen(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['customer-child-profiles'] }); setSnackSeverity('success'); setSnack('Profile deleted'); setDeleteOpen(false); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to delete profile'); },
   });
 
   const profiles = (data || []).filter(p =>
@@ -226,8 +229,8 @@ export default function CustomerChildProfilesPage() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}>
-        <Alert severity="success" onClose={() => setSnack('')}>{snack}</Alert>
+      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack('')}>
+        <Alert severity={snackSeverity} onClose={() => setSnack('')}>{snack}</Alert>
       </Snackbar>
     </AnimatedPage>
   );

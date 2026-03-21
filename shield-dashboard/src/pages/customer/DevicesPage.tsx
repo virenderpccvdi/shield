@@ -16,6 +16,8 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WifiIcon from '@mui/icons-material/Wifi';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
+import BatteryFullIcon from '@mui/icons-material/BatteryFull';
+import SpeedIcon from '@mui/icons-material/Speed';
 import QrCodeIcon from '@mui/icons-material/QrCode';
 import DownloadIcon from '@mui/icons-material/Download';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -44,6 +46,9 @@ interface Device {
   lastSeenAt?: string;
   dnsMethod?: string;
   createdAt?: string;
+  batteryPct?: number;
+  speedKmh?: number;
+  appVersion?: string;
 }
 
 const DEVICE_ICONS: Record<string, React.ReactNode> = {
@@ -387,6 +392,26 @@ export default function DevicesPage() {
                           <Typography variant="caption" fontWeight={500}>{formatDate(device.lastSeenAt)}</Typography>
                         </Box>
 
+                        {device.batteryPct != null && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" color="text.secondary">Battery</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <BatteryFullIcon sx={{ fontSize: 14, color: device.batteryPct < 20 ? '#E53935' : device.batteryPct < 50 ? '#FB8C00' : '#43A047' }} />
+                              <Typography variant="caption" fontWeight={500}>{device.batteryPct}%</Typography>
+                            </Box>
+                          </Box>
+                        )}
+
+                        {device.speedKmh != null && device.speedKmh > 0 && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" color="text.secondary">Speed</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <SpeedIcon sx={{ fontSize: 14, color: '#546E7A' }} />
+                              <Typography variant="caption" fontWeight={500}>{Number(device.speedKmh).toFixed(1)} km/h</Typography>
+                            </Box>
+                          </Box>
+                        )}
+
                         {device.dnsMethod && (
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Typography variant="caption" color="text.secondary">DNS Method</Typography>
@@ -395,6 +420,13 @@ export default function DevicesPage() {
                               label={device.dnsMethod}
                               sx={{ height: 20, fontSize: 10, fontWeight: 600, bgcolor: '#E3F2FD', color: '#1565C0' }}
                             />
+                          </Box>
+                        )}
+
+                        {device.appVersion && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" color="text.secondary">App Version</Typography>
+                            <Typography variant="caption" fontWeight={500}>v{device.appVersion}</Typography>
                           </Box>
                         )}
 

@@ -51,6 +51,7 @@ interface ExtensionRequest {
 }
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 const filterColors: Record<string, { bg: string; text: string }> = {
@@ -112,7 +113,7 @@ function ScheduleTab({ profileId }: { profileId: string }) {
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
 
   const presets = [
-    { label: 'School Hours', icon: <SchoolIcon sx={{ fontSize: 16 }} />, color: '#1565C0', key: 'SCHOOL_HOURS' },
+    { label: 'School Hours', icon: <SchoolIcon sx={{ fontSize: 16 }} />, color: '#1565C0', key: 'SCHOOL' },
     { label: 'Bedtime', icon: <BedtimeIcon sx={{ fontSize: 16 }} />, color: '#7B1FA2', key: 'BEDTIME' },
     { label: 'Weekend', icon: <WeekendIcon sx={{ fontSize: 16 }} />, color: '#FB8C00', key: 'WEEKEND' },
   ];
@@ -178,14 +179,16 @@ function ScheduleTab({ profileId }: { profileId: string }) {
                     color: (h >= 22 || h < 6) ? '#9E9E9E' : '#546E7A' }}>{h}</Box>
                 ))}
               </Box>
-              {DAYS.map((day, d) => (
+              {DAYS.map((day, d) => {
+                const dayKey = DAY_KEYS[d];
+                return (
                 <Box key={day} sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                   <Typography sx={{ width: 48, fontSize: 12, fontWeight: 700, color: d >= 5 ? '#FB8C00' : '#546E7A', pr: 1 }}>{day}</Typography>
                   {HOURS.map(h => {
-                    const val = grid[day]?.[h] ?? 1;
+                    const val = grid[dayKey]?.[h] ?? 1;
                     return (
                       <Tooltip key={h} title={`${day} ${h}:00 - ${val === 1 ? 'Allowed' : 'Blocked'}`} arrow>
-                        <Box onClick={() => toggle(day, h)} sx={{
+                        <Box onClick={() => toggle(dayKey, h)} sx={{
                           width: 26, height: 28, borderRadius: '6px', mr: 0.25, cursor: 'pointer',
                           bgcolor: val === 0 ? '#FFCDD2' : '#C8E6C9',
                           border: '1.5px solid', borderColor: val === 0 ? '#EF9A9A' : '#A5D6A7',
@@ -196,7 +199,8 @@ function ScheduleTab({ profileId }: { profileId: string }) {
                     );
                   })}
                 </Box>
-              ))}
+                );
+              })}
             </Box>
           </Box>
 

@@ -41,14 +41,23 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen> {
 
     final from = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
     final to = from.add(const Duration(days: 1));
-    final fmt = DateFormat('yyyy-MM-dd\'T\'HH:mm:ss');
+    final fmt = DateFormat("yyyy-MM-dd'T'HH:mm:ssxxx");
 
     try {
       final client = ref.read(dioProvider);
       final res = await client.get('/location/${widget.profileId}/history',
-        queryParameters: {'from': fmt.format(from), 'to': fmt.format(to)});
-      _points = ((res.data['data'] as List?) ?? [])
-          .map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        queryParameters: {'from': fmt.format(from), 'to': fmt.format(to), 'size': 500});
+      // API returns paginated: { data: { content: [...], totalElements, ... } }
+      final rawData = res.data['data'];
+      final List<dynamic> rawList;
+      if (rawData is Map && rawData.containsKey('content')) {
+        rawList = rawData['content'] as List? ?? [];
+      } else if (rawData is List) {
+        rawList = rawData;
+      } else {
+        rawList = [];
+      }
+      _points = rawList.map((e) => Map<String, dynamic>.from(e as Map)).toList();
 
       // Move camera to first point
       if (_points.isNotEmpty) {
@@ -243,8 +252,8 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen> {
                         ),
                       if (_playing) ...[
                         const SizedBox(width: 16),
-                        Text(_points[_playbackIndex]['timestamp'] != null
-                          ? _formatTime(_points[_playbackIndex]['timestamp'])
+                        Text((_points[_playbackIndex]['recordedAt'] ?? _points[_playbackIndex]['timestamp']) != null
+                          ? _formatTime(_points[_playbackIndex]['recordedAt'] ?? _points[_playbackIndex]['timestamp'])
                           : '', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                       ],
                     ],

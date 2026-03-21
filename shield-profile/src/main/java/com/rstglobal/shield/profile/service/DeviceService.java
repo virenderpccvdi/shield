@@ -94,15 +94,18 @@ public class DeviceService {
         deviceRepository.delete(device);
     }
 
-    /** Mark all devices for a profile as online, updating lastSeenAt. */
+    /** Mark all devices for a profile as online, updating lastSeenAt + optional telemetry. */
     @Transactional
-    public void heartbeatByProfile(UUID profileId) {
+    public void heartbeatByProfile(UUID profileId, Integer batteryPct, java.math.BigDecimal speedKmh, String appVersion) {
         List<Device> devices = deviceRepository.findByProfileId(profileId);
         if (devices.isEmpty()) return;
         Instant now = Instant.now();
         devices.forEach(d -> {
             d.setOnline(true);
             d.setLastSeenAt(now);
+            if (batteryPct != null) d.setBatteryPct(batteryPct);
+            if (speedKmh != null) d.setSpeedKmh(speedKmh);
+            if (appVersion != null && !appVersion.isBlank()) d.setAppVersion(appVersion);
         });
         deviceRepository.saveAll(devices);
     }
@@ -135,6 +138,9 @@ public class DeviceService {
                 .lastSeenAt(d.getLastSeenAt())
                 .dnsMethod(d.getDnsMethod())
                 .createdAt(d.getCreatedAt())
+                .batteryPct(d.getBatteryPct())
+                .speedKmh(d.getSpeedKmh())
+                .appVersion(d.getAppVersion())
                 .build();
     }
 }

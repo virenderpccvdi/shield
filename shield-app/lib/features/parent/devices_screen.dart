@@ -199,12 +199,33 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                                     const SizedBox(width: 4),
                                     Text(online ? 'Online' : 'Offline',
                                       style: TextStyle(fontSize: 12, color: online ? Colors.green : Colors.grey)),
-                                    if (d['lastSeen'] != null) ...[
+                                    if (d['lastSeenAt'] != null) ...[
                                       const SizedBox(width: 8),
-                                      Text('Last seen: ${_formatTime(d['lastSeen'])}',
+                                      Text('Last seen: ${_formatTime(d['lastSeenAt'])}',
                                         style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                                     ],
                                   ]),
+                                  if (d['batteryPct'] != null || d['speedKmh'] != null) ...[
+                                    const SizedBox(height: 4),
+                                    Row(children: [
+                                      if (d['batteryPct'] != null) ...[
+                                        Icon(Icons.battery_full, size: 14,
+                                          color: (d['batteryPct'] as int) < 20 ? Colors.red
+                                              : (d['batteryPct'] as int) < 50 ? Colors.orange
+                                              : Colors.green),
+                                        const SizedBox(width: 2),
+                                        Text('${d['batteryPct']}%',
+                                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      if (d['speedKmh'] != null && (d['speedKmh'] as num) > 0) ...[
+                                        Icon(Icons.speed, size: 14, color: Colors.grey.shade500),
+                                        const SizedBox(width: 2),
+                                        Text('${(d['speedKmh'] as num).toStringAsFixed(1)} km/h',
+                                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                      ],
+                                    ]),
+                                  ],
                                 ],
                               ),
                             ),

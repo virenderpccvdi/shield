@@ -147,6 +147,15 @@ public class ScheduleService {
                 }
                 yield grid;
             }
+            case "WEEKEND" -> {
+                // Weekdays fully blocked, weekends fully open
+                List<String> weekdays = List.of("monday","tuesday","wednesday","thursday","friday");
+                for (String day : grid.keySet()) {
+                    List<Integer> hours = new ArrayList<>(Collections.nCopies(24, weekdays.contains(day) ? 1 : 0));
+                    grid.put(day, hours);
+                }
+                yield grid;
+            }
             default -> grid;
         };
     }

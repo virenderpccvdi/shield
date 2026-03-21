@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -25,6 +26,7 @@ public class InternalNotifyController {
 
     private final NotificationService notifService;
     private final FcmService fcmService;
+    private final SimpMessagingTemplate ws;
 
     /**
      * Send a full notification (persisted to DB + dispatched via all channels including FCM).
@@ -62,5 +64,18 @@ public class InternalNotifyController {
                 "devicesSent", sent,
                 "userId", req.getUserId().toString()
         )));
+    }
+
+    /**
+     * Broadcast a real-time location update to WebSocket clients listening on
+     * /topic/location/{profileId}. Called by shield-location after every location save.
+     */
+    @PostMapping("/location-update")
+    public ResponseEntity<Void> broadcastLocation(@RequestBody Map<String, Object> payload) {
+        String profileId = (String) payload.get("profileId");
+        if (profileId != null && !profileId.isBlank()) {
+            ws.convertAndSend("/topic/location/" + profileId, (Object) payload);
+        }
+        return ResponseEntity.ok().build();
     }
 }

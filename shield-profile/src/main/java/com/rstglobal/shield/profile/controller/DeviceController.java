@@ -78,7 +78,10 @@ public class DeviceController {
             return ResponseEntity.badRequest().build();
         }
         try {
-            deviceService.heartbeatByProfile(UUID.fromString(profileIdStr));
+            Integer batteryPct = body.get("batteryPct") != null ? Integer.parseInt(body.get("batteryPct")) : null;
+            java.math.BigDecimal speedKmh = body.get("speedKmh") != null ? new java.math.BigDecimal(body.get("speedKmh")) : null;
+            String appVersion = body.get("appVersion");
+            deviceService.heartbeatByProfile(UUID.fromString(profileIdStr), batteryPct, speedKmh, appVersion);
         } catch (Exception ignored) {}
         return ResponseEntity.ok().build();
     }
