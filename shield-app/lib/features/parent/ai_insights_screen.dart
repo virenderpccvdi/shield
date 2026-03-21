@@ -1206,7 +1206,7 @@ class _BlockedCategoriesCard extends StatelessWidget {
     Color(0xFFF57C00),
     Color(0xFFC62828),
     Color(0xFF00838F),
-    Color(0xFF6A1B9A),
+    Color(0xFF1565C0),
   ];
 
   @override

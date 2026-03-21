@@ -303,7 +303,7 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
       case 'PARK':
         return const Color(0xFF558B2F);
       default:
-        return const Color(0xFF6A1B9A);
+        return const Color(0xFF1565C0);
     }
   }
 

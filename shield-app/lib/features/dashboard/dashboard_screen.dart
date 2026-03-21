@@ -754,7 +754,7 @@ class _ChildCard extends StatelessWidget {
 
     // Avatar color from name hash
     final colors = [
-      const Color(0xFF1565C0), const Color(0xFF6A1B9A), const Color(0xFF00695C),
+      const Color(0xFF1565C0), const Color(0xFF1565C0), const Color(0xFF00695C),
       const Color(0xFFBF360C), const Color(0xFF1B5E20), const Color(0xFF0D47A1),
     ];
     final avatarColor = colors[name.codeUnitAt(0) % colors.length];

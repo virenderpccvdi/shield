@@ -361,7 +361,7 @@ class _MemberCard extends StatelessWidget {
 
   static const _roleColors = {
     'GUARDIAN':  Color(0xFF1565C0),
-    'CO_PARENT': Color(0xFF6A1B9A),
+    'CO_PARENT': Color(0xFF1565C0),
     'OBSERVER':  Color(0xFF00695C),
   };
 
@@ -478,7 +478,7 @@ class _InviteCard extends StatelessWidget {
               ],
             ]),
           ])),
-          _RoleBadge(role: role, color: const Color(0xFF6A1B9A)),
+          _RoleBadge(role: role, color: const Color(0xFF1565C0)),
           const SizedBox(width: 6),
           TextButton.icon(
             icon: const Icon(Icons.cancel_outlined, size: 14),

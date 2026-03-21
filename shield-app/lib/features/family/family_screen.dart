@@ -132,9 +132,9 @@ class _ChildCard extends StatelessWidget {
   const _ChildCard({required this.profile, required this.index});
 
   static const _avatarColors = [
-    Color(0xFF1565C0), Color(0xFF6A1B9A), Color(0xFF00695C),
+    Color(0xFF1565C0), Color(0xFF1565C0), Color(0xFF00695C),
     Color(0xFFBF360C), Color(0xFF1B5E20), Color(0xFF0D47A1),
-    Color(0xFF4A148C), Color(0xFF01579B),
+    Color(0xFF0D47A1), Color(0xFF01579B),
   ];
 
   @override
