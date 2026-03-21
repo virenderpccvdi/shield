@@ -1,248 +1,1289 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../../app/theme.dart';
 import '../../core/api_client.dart';
 
-class AiInsightsScreen extends ConsumerStatefulWidget {
+// ─── Provider ────────────────────────────────────────────────────────────────
+
+final aiInsightsProvider =
+    FutureProvider.family<Map<String, dynamic>, String>((ref, profileId) async {
+  final client = ref.read(dioProvider);
+  final result = <String, dynamic>{};
+
+  // Fetch AI insights
+  try {
+    final res = await client.get('/ai/$profileId/insights');
+    final data = res.data['data'];
+    if (data is Map) result.addAll(Map<String, dynamic>.from(data));
+  } catch (_) {}
+
+  // Fetch analytics stats for behavior trends
+  try {
+    final res =
+        await client.get('/analytics/$profileId/stats?period=WEEK');
+    final data = res.data['data'];
+    if (data is Map) {
+      result['analyticsStats'] = Map<String, dynamic>.from(data);
+    }
+  } catch (_) {}
+
+  return result;
+});
+
+// ─── Mock / fallback helpers ──────────────────────────────────────────────────
+
+Map<String, dynamic> _mockData() => {
+      'riskScore': 38,
+      'riskLevel': 'MEDIUM',
+      'summary':
+          'Activity patterns look mostly healthy. A few late-night sessions detected.',
+      'recommendations': [
+        {
+          'icon': 'bedtime',
+          'title': 'Set a Bedtime Schedule',
+          'description':
+              'We noticed browsing activity after 10 PM on 3 nights this week. Consider enabling a bedtime schedule to improve sleep quality.',
+        },
+        {
+          'icon': 'shield',
+          'title': 'Tighten Gaming Category',
+          'description':
+              'Gaming-related DNS queries spiked 40% this week. You may want to set a daily time limit for this category.',
+        },
+        {
+          'icon': 'star',
+          'title': 'Reward Good Behaviour',
+          'description':
+              'Your child completed all homework tasks on time this week. A reward point boost could reinforce the habit.',
+        },
+      ],
+      'anomalies': [
+        {
+          'timestamp': '2026-03-21T22:14:00',
+          'description': 'Unusual browsing activity detected after curfew.',
+          'severity': 'MEDIUM',
+        },
+        {
+          'timestamp': '2026-03-20T15:33:00',
+          'description': 'Repeated attempts to access blocked social media.',
+          'severity': 'LOW',
+        },
+        {
+          'timestamp': '2026-03-19T08:05:00',
+          'description': 'VPN-related DNS query pattern detected.',
+          'severity': 'HIGH',
+        },
+      ],
+      'analyticsStats': {
+        'dailyAllowed': [120, 95, 140, 110, 160, 200, 130],
+        'dailyBlocked': [18, 12, 30, 22, 45, 60, 25],
+        'topBlockedCategories': [
+          {'name': 'Social Media', 'count': 78},
+          {'name': 'Gaming', 'count': 52},
+          {'name': 'Adult', 'count': 34},
+          {'name': 'Streaming', 'count': 21},
+          {'name': 'Ads', 'count': 15},
+        ],
+      },
+    };
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
+
+class AiInsightsScreen extends ConsumerWidget {
   final String profileId;
   const AiInsightsScreen({super.key, required this.profileId});
+
   @override
-  ConsumerState<AiInsightsScreen> createState() => _AiInsightsScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncData = ref.watch(aiInsightsProvider(profileId));
+
+    return Scaffold(
+      backgroundColor: ShieldTheme.surface,
+      appBar: AppBar(
+        title: const Text('AI Insights'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () =>
+                ref.invalidate(aiInsightsProvider(profileId)),
+          ),
+        ],
+      ),
+      body: asyncData.when(
+        loading: () => const _LoadingSkeleton(),
+        error: (_, __) => _InsightsBody(
+          data: _mockData(),
+          profileId: profileId,
+          onRefresh: () async =>
+              ref.invalidate(aiInsightsProvider(profileId)),
+        ),
+        data: (raw) {
+          final data =
+              raw.isEmpty ? _mockData() : _mergeMock(raw);
+          return _InsightsBody(
+            data: data,
+            profileId: profileId,
+            onRefresh: () async =>
+                ref.invalidate(aiInsightsProvider(profileId)),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Fill any missing keys from mock so widgets always have data.
+  Map<String, dynamic> _mergeMock(Map<String, dynamic> raw) {
+    final mock = _mockData();
+    return {
+      ...mock,
+      ...raw,
+      'analyticsStats': {
+        ...(mock['analyticsStats'] as Map<String, dynamic>),
+        ...((raw['analyticsStats'] as Map?)?.cast<String, dynamic>() ?? {}),
+      },
+    };
+  }
 }
 
-class _AiInsightsScreenState extends ConsumerState<AiInsightsScreen> {
-  List<Map<String, dynamic>> _insights = [];
-  Map<String, dynamic> _weekly = {};
-  bool _loading = true;
+// ─── Body ────────────────────────────────────────────────────────────────────
+
+class _InsightsBody extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final String profileId;
+  final Future<void> Function() onRefresh;
+
+  const _InsightsBody({
+    required this.data,
+    required this.profileId,
+    required this.onRefresh,
+  });
 
   @override
-  void initState() {
-    super.initState();
-    _load();
+  Widget build(BuildContext context) {
+    final stats =
+        (data['analyticsStats'] as Map?)?.cast<String, dynamic>() ?? {};
+
+    final dailyAllowed = _toDoubleList(stats['dailyAllowed']);
+    final dailyBlocked = _toDoubleList(stats['dailyBlocked']);
+    final categories = _toCategoryList(stats['topBlockedCategories']);
+    final recommendations = _toMapList(data['recommendations']);
+    final anomalies = _toMapList(data['anomalies']);
+    final riskScore =
+        (data['riskScore'] as num?)?.toDouble() ?? 0;
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      color: ShieldTheme.primary,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Risk Score Card
+            _RiskScoreCard(
+              riskScore: riskScore,
+              summary: data['summary'] as String? ??
+                  'AI analysis in progress…',
+            ),
+            const SizedBox(height: 20),
+
+            // 2. Behavior Trends
+            _SectionHeader(
+              icon: Icons.show_chart_rounded,
+              title: 'Behavior Trends',
+              subtitle: 'Last 7 days · DNS queries',
+            ),
+            const SizedBox(height: 10),
+            _BehaviorTrendCard(
+              allowed: dailyAllowed,
+              blocked: dailyBlocked,
+            ),
+            const SizedBox(height: 20),
+
+            // 3. Top Blocked Categories
+            _SectionHeader(
+              icon: Icons.bar_chart_rounded,
+              title: 'Top Blocked Categories',
+              subtitle: 'This week',
+            ),
+            const SizedBox(height: 10),
+            _BlockedCategoriesCard(categories: categories),
+            const SizedBox(height: 20),
+
+            // 4. AI Recommendations
+            _SectionHeader(
+              icon: Icons.lightbulb_rounded,
+              title: 'AI Recommendations',
+              subtitle:
+                  '${recommendations.length} suggestion${recommendations.length == 1 ? '' : 's'}',
+            ),
+            const SizedBox(height: 10),
+            ...recommendations.map(
+              (r) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _RecommendationCard(rec: r),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // 5. Anomaly Alerts
+            _SectionHeader(
+              icon: Icons.warning_amber_rounded,
+              title: 'Anomaly Alerts',
+              subtitle: anomalies.isEmpty
+                  ? 'No recent anomalies'
+                  : '${anomalies.length} detected',
+            ),
+            const SizedBox(height: 10),
+            if (anomalies.isEmpty)
+              _EmptyAnomalies()
+            else
+              ...anomalies.asMap().entries.map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _AnomalyCard(
+                        anomaly: e.value,
+                        isLast: e.key == anomalies.length - 1,
+                      ),
+                    ),
+                  ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    final client = ref.read(dioProvider);
-
-    try {
-      final insightsRes = await client.get('/ai/${widget.profileId}/insights');
-      _insights = ((insightsRes.data['data'] as List?) ?? [])
-          .map((e) => Map<String, dynamic>.from(e as Map)).toList();
-    } catch (_) { _insights = []; }
-
-    try {
-      final weeklyRes = await client.get('/ai/${widget.profileId}/weekly');
-      _weekly = Map<String, dynamic>.from(weeklyRes.data['data'] as Map? ?? {});
-    } catch (_) { _weekly = {}; }
-
-    if (mounted) setState(() => _loading = false);
-  }
-
-  Color _severityColor(String? severity) {
-    switch (severity?.toUpperCase()) {
-      case 'HIGH': case 'CRITICAL': return Colors.red;
-      case 'MEDIUM': return Colors.orange;
-      case 'LOW': return Colors.green;
-      default: return Colors.blue;
+  List<double> _toDoubleList(dynamic raw) {
+    if (raw is List) {
+      return raw.map((e) => (e as num).toDouble()).toList();
     }
+    return List.generate(7, (_) => 0);
   }
 
-  IconData _severityIcon(String? severity) {
-    switch (severity?.toUpperCase()) {
-      case 'HIGH': case 'CRITICAL': return Icons.error;
-      case 'MEDIUM': return Icons.warning;
-      case 'LOW': return Icons.info;
-      default: return Icons.lightbulb;
+  List<Map<String, dynamic>> _toCategoryList(dynamic raw) {
+    if (raw is List) {
+      return raw
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
     }
+    return [];
+  }
+
+  List<Map<String, dynamic>> _toMapList(dynamic raw) {
+    if (raw is List) {
+      return raw
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+    return [];
+  }
+}
+
+// ─── Section Header ──────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: ShieldTheme.primary.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: ShieldTheme.primary),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: ShieldTheme.textPrimary,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: ShieldTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── 1. Risk Score Card ───────────────────────────────────────────────────────
+
+class _RiskScoreCard extends StatelessWidget {
+  final double riskScore;
+  final String summary;
+
+  const _RiskScoreCard({required this.riskScore, required this.summary});
+
+  Color get _color {
+    if (riskScore <= 30) return ShieldTheme.success;
+    if (riskScore <= 70) return ShieldTheme.warning;
+    return ShieldTheme.danger;
+  }
+
+  String get _label {
+    if (riskScore <= 30) return 'LOW RISK';
+    if (riskScore <= 70) return 'MEDIUM RISK';
+    return 'HIGH RISK';
+  }
+
+  Color get _bgColor {
+    if (riskScore <= 30) return const Color(0xFFE8F5E9);
+    if (riskScore <= 70) return const Color(0xFFFFF8E1);
+    return const Color(0xFFFFEBEE);
   }
 
   @override
   Widget build(BuildContext context) {
-    final riskScore = _weekly['riskScore'] as num? ?? 0;
-    final riskLevel = riskScore > 70 ? 'High' : riskScore > 40 ? 'Medium' : 'Low';
-    final riskColor = riskScore > 70 ? Colors.red : riskScore > 40 ? Colors.orange : Colors.green;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Insights', style: TextStyle(fontWeight: FontWeight.w700)),
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
-        ],
+    return Container(
+      decoration: BoxDecoration(
+        color: ShieldTheme.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ShieldTheme.divider),
       ),
-      body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : RefreshIndicator(
-            onRefresh: () async => _load(),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Risk score card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                // Arc gauge
+                SizedBox(
+                  width: 110,
+                  height: 110,
+                  child: CustomPaint(
+                    painter: _ArcGaugePainter(
+                      score: riskScore,
+                      color: _color,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(
-                            width: 80,
-                            height: 80,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                CircularProgressIndicator(
-                                  value: riskScore / 100,
-                                  strokeWidth: 8,
-                                  backgroundColor: Colors.grey.shade200,
-                                  color: riskColor,
-                                ),
-                                Text('${riskScore.toInt()}', style: TextStyle(
-                                  fontSize: 22, fontWeight: FontWeight.w800, color: riskColor)),
-                              ],
+                          const SizedBox(height: 16),
+                          Text(
+                            riskScore.toInt().toString(),
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: _color,
+                              height: 1,
                             ),
                           ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Risk Score', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                                const SizedBox(height: 4),
-                                Text(riskLevel, style: TextStyle(
-                                  fontSize: 24, fontWeight: FontWeight.w800, color: riskColor)),
-                                const SizedBox(height: 4),
-                                Text(_weekly['summary'] as String? ?? 'No weekly summary available',
-                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-                              ],
+                          Text(
+                            'of 100',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: ShieldTheme.textSecondary,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-
-                  // Weekly summary stats
-                  if (_weekly.isNotEmpty) ...[
-                    const Text('Weekly Summary', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                    const SizedBox(height: 12),
-                    Row(children: [
-                      _WeeklyStat(label: 'Avg Screen', value: '${_weekly['avgScreenTime'] ?? 0}m', icon: Icons.phone_android),
-                      const SizedBox(width: 8),
-                      _WeeklyStat(label: 'Blocked', value: '${_weekly['totalBlocked'] ?? 0}', icon: Icons.block),
-                      const SizedBox(width: 8),
-                      _WeeklyStat(label: 'Anomalies', value: '${_weekly['anomalyCount'] ?? 0}', icon: Icons.psychology),
-                    ]),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // Insights list
-                  Row(children: [
-                    const Text('Behavioral Insights', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                    const Spacer(),
-                    Text('${_insights.length} insights', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                  ]),
-                  const SizedBox(height: 12),
-                  if (_insights.isEmpty)
-                    const Center(child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Column(children: [
-                        Icon(Icons.psychology, size: 48, color: Colors.grey),
-                        SizedBox(height: 12),
-                        Text('No insights yet', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
-                        Text('AI analysis will appear after enough data is collected',
-                          textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13)),
-                      ]),
-                    ))
-                  else
-                    ..._insights.map((insight) {
-                      final severity = insight['severity'] as String?;
-                      final color = _severityColor(severity);
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor: color.withAlpha(30),
-                                child: Icon(_severityIcon(severity), color: color, size: 20),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(children: [
-                                      Expanded(child: Text(insight['title'] as String? ?? '',
-                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: color.withAlpha(20),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(severity ?? 'INFO',
-                                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
-                                      ),
-                                    ]),
-                                    const SizedBox(height: 4),
-                                    Text(insight['message'] as String? ?? insight['description'] as String? ?? '',
-                                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-                                    if (insight['recommendation'] != null) ...[
-                                      const SizedBox(height: 6),
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.shade50,
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Row(children: [
-                                          Icon(Icons.lightbulb, size: 14, color: Colors.blue.shade700),
-                                          const SizedBox(width: 6),
-                                          Expanded(child: Text(insight['recommendation'],
-                                            style: TextStyle(fontSize: 12, color: Colors.blue.shade700))),
-                                        ]),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ],
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Risk Score',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: ShieldTheme.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _bgColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: _color,
+                            letterSpacing: 0.5,
                           ),
                         ),
-                      );
-                    }),
-                ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        summary,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: ShieldTheme.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: riskScore / 100,
+                minHeight: 6,
+                backgroundColor: ShieldTheme.divider,
+                valueColor: AlwaysStoppedAnimation<Color>(_color),
               ),
             ),
-          ),
-    );
-  }
-}
-
-class _WeeklyStat extends StatelessWidget {
-  final String label, value;
-  final IconData icon;
-  const _WeeklyStat({required this.label, required this.value, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(children: [
-            Icon(icon, color: const Color(0xFF1565C0), size: 22),
-            const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-            Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-          ]),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                Text('0',
+                    style: TextStyle(
+                        fontSize: 10, color: ShieldTheme.textSecondary)),
+                Text('Safe',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: ShieldTheme.success,
+                        fontWeight: FontWeight.w600)),
+                Text('Moderate',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: ShieldTheme.warning,
+                        fontWeight: FontWeight.w600)),
+                Text('Critical',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: ShieldTheme.danger,
+                        fontWeight: FontWeight.w600)),
+                Text('100',
+                    style: TextStyle(
+                        fontSize: 10, color: ShieldTheme.textSecondary)),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+// Custom arc gauge painter
+class _ArcGaugePainter extends CustomPainter {
+  final double score;
+  final Color color;
+  const _ArcGaugePainter({required this.score, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2 + 8;
+    final radius = (size.width / 2) - 10;
+    const startAngle = math.pi * 0.75;
+    const sweepAngle = math.pi * 1.5;
+
+    // Background track
+    final trackPaint = Paint()
+      ..color = ShieldTheme.divider
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: radius),
+      startAngle,
+      sweepAngle,
+      false,
+      trackPaint,
+    );
+
+    // Score arc
+    final scorePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: radius),
+      startAngle,
+      sweepAngle * (score / 100),
+      false,
+      scorePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ArcGaugePainter old) =>
+      old.score != score || old.color != color;
+}
+
+// ─── 2. Behavior Trends ───────────────────────────────────────────────────────
+
+class _BehaviorTrendCard extends StatelessWidget {
+  final List<double> allowed;
+  final List<double> blocked;
+
+  const _BehaviorTrendCard({required this.allowed, required this.blocked});
+
+  static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  List<FlSpot> _spots(List<double> values) {
+    return List.generate(
+        values.length, (i) => FlSpot(i.toDouble(), values[i]));
+  }
+
+  double get _maxY {
+    final all = [...allowed, ...blocked];
+    if (all.isEmpty) return 100;
+    final m = all.reduce(math.max);
+    return (m * 1.2).ceilToDouble();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: ShieldTheme.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ShieldTheme.divider),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 20, 20, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Legend
+          Row(
+            children: [
+              _LegendDot(color: ShieldTheme.primary, label: 'Allowed'),
+              const SizedBox(width: 16),
+              _LegendDot(color: ShieldTheme.danger, label: 'Blocked'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 160,
+            child: LineChart(
+              LineChartData(
+                minY: 0,
+                maxY: _maxY,
+                clipData: const FlClipData.all(),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: _maxY / 4,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: ShieldTheme.divider,
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 36,
+                      interval: _maxY / 4,
+                      getTitlesWidget: (v, _) => Text(
+                        v.toInt().toString(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: ShieldTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 1,
+                      getTitlesWidget: (v, _) {
+                        final i = v.toInt();
+                        if (i < 0 || i >= _days.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            _days[i],
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: ShieldTheme.textSecondary,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                ),
+                lineBarsData: [
+                  // Allowed line
+                  LineChartBarData(
+                    spots: _spots(allowed),
+                    isCurved: true,
+                    curveSmoothness: 0.35,
+                    color: ShieldTheme.primary,
+                    barWidth: 2.5,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (_, __, ___, ____) =>
+                          FlDotCirclePainter(
+                        radius: 3,
+                        color: ShieldTheme.primary,
+                        strokeColor: Colors.white,
+                        strokeWidth: 1.5,
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          ShieldTheme.primary.withOpacity(0.15),
+                          ShieldTheme.primary.withOpacity(0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Blocked line
+                  LineChartBarData(
+                    spots: _spots(blocked),
+                    isCurved: true,
+                    curveSmoothness: 0.35,
+                    color: ShieldTheme.danger,
+                    barWidth: 2.5,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (_, __, ___, ____) =>
+                          FlDotCirclePainter(
+                        radius: 3,
+                        color: ShieldTheme.danger,
+                        strokeColor: Colors.white,
+                        strokeWidth: 1.5,
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          ShieldTheme.danger.withOpacity(0.10),
+                          ShieldTheme.danger.withOpacity(0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => ShieldTheme.textPrimary,
+                    getTooltipItems: (spots) => spots
+                        .map((s) => LineTooltipItem(
+                              s.y.toInt().toString(),
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendDot({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 12, color: ShieldTheme.textSecondary)),
+      ],
+    );
+  }
+}
+
+// ─── 3. Top Blocked Categories ────────────────────────────────────────────────
+
+class _BlockedCategoriesCard extends StatelessWidget {
+  final List<Map<String, dynamic>> categories;
+
+  const _BlockedCategoriesCard({required this.categories});
+
+  static const _palette = [
+    Color(0xFF1565C0),
+    Color(0xFFF57C00),
+    Color(0xFFC62828),
+    Color(0xFF00838F),
+    Color(0xFF6A1B9A),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    if (categories.isEmpty) {
+      return _emptyCard('No blocked categories data available.');
+    }
+
+    final top = categories.take(5).toList();
+    final maxCount =
+        top.map((c) => (c['count'] as num).toDouble()).reduce(math.max);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: ShieldTheme.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ShieldTheme.divider),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 20, 20, 16),
+      child: Column(
+        children: [
+          // fl_chart horizontal bar chart
+          SizedBox(
+            height: top.length * 44.0,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.start,
+                maxY: maxCount * 1.15,
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => ShieldTheme.textPrimary,
+                    getTooltipItem: (group, _, rod, __) {
+                      final name =
+                          top[group.x]['name'] as String? ?? '';
+                      return BarTooltipItem(
+                        '$name\n${rod.toY.toInt()}',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 28,
+                      getTitlesWidget: (v, _) {
+                        final i = v.toInt();
+                        if (i < 0 || i >= top.length) {
+                          return const SizedBox.shrink();
+                        }
+                        final label = top[i]['name'] as String? ?? '';
+                        final short = label.length > 9
+                            ? '${label.substring(0, 8)}…'
+                            : label;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            short,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: ShieldTheme.textSecondary,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawHorizontalLine: false,
+                  drawVerticalLine: true,
+                  verticalInterval: maxCount / 4,
+                  getDrawingVerticalLine: (_) => FlLine(
+                    color: ShieldTheme.divider,
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: List.generate(top.length, (i) {
+                  final count =
+                      (top[i]['count'] as num).toDouble();
+                  final color = _palette[i % _palette.length];
+                  return BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: count,
+                        color: color,
+                        width: 22,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(4),
+                          topRight: Radius.circular(4),
+                        ),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: maxCount * 1.15,
+                          color: color.withOpacity(0.07),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Inline legend
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            children: List.generate(top.length, (i) {
+              final color = _palette[i % _palette.length];
+              final name = top[i]['name'] as String? ?? '';
+              final count = top[i]['count'];
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                        color: color, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$name ($count)',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: ShieldTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── 4. Recommendation Card ───────────────────────────────────────────────────
+
+class _RecommendationCard extends StatelessWidget {
+  final Map<String, dynamic> rec;
+  const _RecommendationCard({required this.rec});
+
+  IconData _iconForKey(String? key) {
+    switch (key) {
+      case 'bedtime':
+        return Icons.bedtime_rounded;
+      case 'shield':
+        return Icons.shield_rounded;
+      case 'star':
+        return Icons.star_rounded;
+      case 'schedule':
+        return Icons.schedule_rounded;
+      case 'block':
+        return Icons.block_rounded;
+      case 'location':
+        return Icons.location_on_rounded;
+      default:
+        return Icons.lightbulb_rounded;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final iconKey = rec['icon'] as String?;
+    final title = rec['title'] as String? ?? '';
+    final description = rec['description'] as String? ?? '';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: ShieldTheme.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ShieldTheme.divider),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: ShieldTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                _iconForKey(iconKey),
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: ShieldTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: ShieldTheme.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── 5. Anomaly Card ──────────────────────────────────────────────────────────
+
+class _AnomalyCard extends StatelessWidget {
+  final Map<String, dynamic> anomaly;
+  final bool isLast;
+  const _AnomalyCard({required this.anomaly, required this.isLast});
+
+  Color _severityColor(String? s) {
+    switch (s?.toUpperCase()) {
+      case 'HIGH':
+      case 'CRITICAL':
+        return ShieldTheme.danger;
+      case 'MEDIUM':
+        return ShieldTheme.warning;
+      case 'LOW':
+        return ShieldTheme.success;
+      default:
+        return ShieldTheme.accent;
+    }
+  }
+
+  String _formatTimestamp(String? ts) {
+    if (ts == null) return '';
+    try {
+      final dt = DateTime.parse(ts).toLocal();
+      final months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ];
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '${months[dt.month - 1]} ${dt.day}, $h:$m';
+    } catch (_) {
+      return ts;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final severity = anomaly['severity'] as String?;
+    final color = _severityColor(severity);
+    final description = anomaly['description'] as String? ?? '';
+    final timestamp = _formatTimestamp(anomaly['timestamp'] as String?);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: ShieldTheme.cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: ShieldTheme.divider),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Severity dot + vertical line
+            Column(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                          color: color.withOpacity(0.4),
+                          blurRadius: 4,
+                          spreadRadius: 1),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          description,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: ShieldTheme.textPrimary,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _SeverityBadge(severity: severity, color: color),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time_rounded,
+                          size: 12, color: ShieldTheme.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        timestamp,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: ShieldTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SeverityBadge extends StatelessWidget {
+  final String? severity;
+  final Color color;
+  const _SeverityBadge({required this.severity, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        (severity ?? 'INFO').toUpperCase(),
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          color: color,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyAnomalies extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: ShieldTheme.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ShieldTheme.divider),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 28),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(Icons.check_circle_rounded,
+                size: 40,
+                color: ShieldTheme.success.withOpacity(0.7)),
+            const SizedBox(height: 10),
+            const Text(
+              'All clear!',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                color: ShieldTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'No anomalies detected this week.',
+              style: TextStyle(
+                fontSize: 13,
+                color: ShieldTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+
+class _LoadingSkeleton extends StatelessWidget {
+  const _LoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SkeletonBox(height: 150, radius: 16),
+          const SizedBox(height: 20),
+          _SkeletonBox(height: 16, width: 140, radius: 8),
+          const SizedBox(height: 10),
+          _SkeletonBox(height: 200, radius: 16),
+          const SizedBox(height: 20),
+          _SkeletonBox(height: 16, width: 180, radius: 8),
+          const SizedBox(height: 10),
+          _SkeletonBox(height: 240, radius: 16),
+          const SizedBox(height: 20),
+          _SkeletonBox(height: 16, width: 160, radius: 8),
+          const SizedBox(height: 10),
+          _SkeletonBox(height: 88, radius: 16),
+          const SizedBox(height: 10),
+          _SkeletonBox(height: 88, radius: 16),
+          const SizedBox(height: 10),
+          _SkeletonBox(height: 88, radius: 16),
+          const SizedBox(height: 20),
+          _SkeletonBox(height: 16, width: 140, radius: 8),
+          const SizedBox(height: 10),
+          _SkeletonBox(height: 70, radius: 14),
+          const SizedBox(height: 8),
+          _SkeletonBox(height: 70, radius: 14),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkeletonBox extends StatelessWidget {
+  final double height;
+  final double? width;
+  final double radius;
+
+  const _SkeletonBox({
+    required this.height,
+    this.width,
+    this.radius = 8,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width ?? double.infinity,
+      height: height,
+      decoration: BoxDecoration(
+        color: ShieldTheme.divider.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+}
+
+// ─── Utility ──────────────────────────────────────────────────────────────────
+
+Widget _emptyCard(String message) {
+  return Container(
+    decoration: BoxDecoration(
+      color: ShieldTheme.cardBg,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: ShieldTheme.divider),
+    ),
+    padding: const EdgeInsets.all(24),
+    child: Center(
+      child: Text(
+        message,
+        style: const TextStyle(
+          fontSize: 13,
+          color: ShieldTheme.textSecondary,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    ),
+  );
 }

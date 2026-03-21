@@ -53,6 +53,10 @@ class FcmService {
 
     debugPrint('FCM: Permission status: ${settings.authorizationStatus}');
 
+    // Subscribe child devices to the APK-update broadcast topic
+    await _messaging.subscribeToTopic('shield-child-devices');
+    debugPrint('FCM: Subscribed to topic shield-child-devices');
+
     // Set up local notifications for showing foreground messages
     await _setupLocalNotifications();
 
@@ -118,6 +122,14 @@ class FcmService {
       debugPrint('FCM: Token unregistered');
     } catch (e) {
       debugPrint('FCM: Unregister failed: $e');
+    }
+
+    // Unsubscribe from the child-devices broadcast topic
+    try {
+      await _messaging.unsubscribeFromTopic('shield-child-devices');
+      debugPrint('FCM: Unsubscribed from topic shield-child-devices');
+    } catch (e) {
+      debugPrint('FCM: Topic unsubscribe failed: $e');
     }
 
     _initialized = false;

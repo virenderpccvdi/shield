@@ -1,22 +1,19 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Box, Card, CardContent, CircularProgress, Chip, Typography, Stack } from '@mui/material';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import {
+  APIProvider, Map, AdvancedMarker, InfoWindow, useMap, useMapsLibrary,
+} from '@vis.gl/react-google-maps';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import MapIcon from '@mui/icons-material/Map';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import L from 'leaflet';
 import { useParams } from 'react-router-dom';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { useState } from 'react';
 
-delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+const GOOGLE_MAPS_API_KEY = 'AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M';
 
 interface ChildProfile { id: string; name: string; }
 interface LiveLocation {
@@ -30,19 +27,93 @@ interface Geofence {
   radiusMeters: number; isActive?: boolean;
 }
 
-// Moves the map when center changes
-function MapRecenter({ center }: { center: [number, number] }) {
+// Component to render geofence circles using Maps JavaScript API
+function GeofenceCircles({ geofences }: { geofences: Geofence[] }) {
   const map = useMap();
-  const prevCenter = useRef<[number, number] | null>(null);
+  const mapsLib = useMapsLibrary('maps');
+  const circlesRef = useRef<google.maps.Circle[]>([]);
+
   useEffect(() => {
-    if (!prevCenter.current ||
-        Math.abs(prevCenter.current[0] - center[0]) > 0.001 ||
-        Math.abs(prevCenter.current[1] - center[1]) > 0.001) {
-      map.setView(center, map.getZoom());
-      prevCenter.current = center;
-    }
-  }, [center, map]);
+    if (!map || !mapsLib) return;
+    // Clear old circles
+    circlesRef.current.forEach(c => c.setMap(null));
+    circlesRef.current = [];
+
+    geofences.filter(gf => gf.isActive !== false).forEach(gf => {
+      const circle = new mapsLib.Circle({
+        map,
+        center: { lat: gf.centerLat, lng: gf.centerLng },
+        radius: gf.radiusMeters,
+        strokeColor: '#1565C0',
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: '#1565C0',
+        fillOpacity: 0.12,
+      });
+      circlesRef.current.push(circle);
+    });
+
+    return () => {
+      circlesRef.current.forEach(c => c.setMap(null));
+      circlesRef.current = [];
+    };
+  }, [map, mapsLib, geofences]);
+
   return null;
+}
+
+function LocationMarkers({
+  locations,
+  geofences,
+}: {
+  locations: LiveLocation[];
+  geofences: Geofence[];
+}) {
+  const [openInfoId, setOpenInfoId] = useState<string | null>(null);
+
+  return (
+    <>
+      {locations.map((loc) => (
+        <AdvancedMarker
+          key={loc.profileId}
+          position={{ lat: loc.latitude, lng: loc.longitude }}
+          onClick={() => setOpenInfoId(openInfoId === loc.profileId ? null : loc.profileId)}
+        />
+      ))}
+      {locations.map((loc) =>
+        openInfoId === loc.profileId ? (
+          <InfoWindow
+            key={`info-${loc.profileId}`}
+            position={{ lat: loc.latitude, lng: loc.longitude }}
+            onCloseClick={() => setOpenInfoId(null)}
+          >
+            <Box>
+              <Typography variant="subtitle2" fontWeight={700}>{loc.profileName}</Typography>
+              <Typography variant="caption" display="block">
+                Last seen: {new Date(loc.recordedAt).toLocaleTimeString()}
+              </Typography>
+              {loc.batteryPct !== undefined && (
+                <Typography variant="caption" display="block">
+                  Battery: {loc.batteryPct}%
+                </Typography>
+              )}
+              {loc.speed !== undefined && (
+                <Typography variant="caption" display="block">
+                  Speed: {typeof loc.speed === 'number' ? loc.speed.toFixed(1) : loc.speed} km/h
+                </Typography>
+              )}
+              {loc.isMoving !== undefined && (
+                <Typography variant="caption" display="block">
+                  {loc.isMoving ? 'Moving' : 'Stationary'}
+                </Typography>
+              )}
+            </Box>
+          </InfoWindow>
+        ) : null
+      )}
+      <GeofenceCircles geofences={geofences} />
+    </>
+  );
 }
 
 export default function LocationMapPage() {
@@ -82,7 +153,7 @@ export default function LocationMapPage() {
       return results.filter(Boolean) as LiveLocation[];
     },
     enabled: profileIds.length > 0,
-    refetchInterval: 30000, // fallback polling
+    refetchInterval: 30000,
   });
 
   const { data: geofences } = useQuery({
@@ -100,7 +171,6 @@ export default function LocationMapPage() {
     enabled: profileIds.length > 0,
   });
 
-  // Real-time WebSocket update per profile
   const handleLocationUpdate = useCallback((data: unknown) => {
     const update = data as LiveLocation & { profileId: string };
     if (!update?.profileId || !update?.latitude) return;
@@ -114,7 +184,6 @@ export default function LocationMapPage() {
     });
   }, [liveQueryKey.join(',')]);
 
-  // Subscribe to each profile's location topic
   const firstProfileId = profileIds[0] || '';
   const secondProfileId = profileIds[1] || '';
   const thirdProfileId = profileIds[2] || '';
@@ -122,9 +191,9 @@ export default function LocationMapPage() {
   useWebSocket(`/topic/location/${secondProfileId}`, handleLocationUpdate, !!secondProfileId);
   useWebSocket(`/topic/location/${thirdProfileId}`, handleLocationUpdate, !!thirdProfileId);
 
-  const center: [number, number] = locations?.[0]
-    ? [locations[0].latitude, locations[0].longitude]
-    : [28.6139, 77.209];
+  const center = locations?.[0]
+    ? { lat: locations[0].latitude, lng: locations[0].longitude }
+    : { lat: 28.6139, lng: 77.209 };
   const locationCount = locations?.length || 0;
   const fenceCount = geofences?.filter(g => g.isActive !== false).length || 0;
 
@@ -159,46 +228,19 @@ export default function LocationMapPage() {
                 <CircularProgress />
               </Box>
             ) : (
-              <MapContainer center={center} zoom={13} style={{ height: '70vh', width: '100%', borderRadius: 12 }}>
-                <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <MapRecenter center={center} />
-                {(locations || []).map((loc) => (
-                  <Marker key={loc.profileId} position={[loc.latitude, loc.longitude]}>
-                    <Popup>
-                      <Typography variant="subtitle2" fontWeight={700}>{loc.profileName}</Typography>
-                      <Typography variant="caption" display="block">
-                        Last seen: {new Date(loc.recordedAt).toLocaleTimeString()}
-                      </Typography>
-                      {loc.batteryPct !== undefined && (
-                        <Typography variant="caption" display="block">
-                          Battery: {loc.batteryPct}%
-                        </Typography>
-                      )}
-                      {loc.speed !== undefined && (
-                        <Typography variant="caption" display="block">
-                          Speed: {typeof loc.speed === 'number' ? loc.speed.toFixed(1) : loc.speed} km/h
-                        </Typography>
-                      )}
-                      {loc.isMoving !== undefined && (
-                        <Typography variant="caption" display="block">
-                          {loc.isMoving ? '🚶 Moving' : '📍 Stationary'}
-                        </Typography>
-                      )}
-                    </Popup>
-                  </Marker>
-                ))}
-                {(geofences || []).filter(gf => gf.isActive !== false).map((gf) => (
-                  <Circle
-                    key={gf.id}
-                    center={[gf.centerLat, gf.centerLng]}
-                    radius={gf.radiusMeters}
-                    color="#1565C0"
-                    fillOpacity={0.12}
-                  >
-                    <Popup>{gf.name}</Popup>
-                  </Circle>
-                ))}
-              </MapContainer>
+              <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+                <Map
+                  defaultCenter={center}
+                  defaultZoom={13}
+                  mapId="shield-family-map"
+                  style={{ height: '70vh', width: '100%', borderRadius: 12 }}
+                >
+                  <LocationMarkers
+                    locations={locations || []}
+                    geofences={geofences || []}
+                  />
+                </Map>
+              </APIProvider>
             )}
           </CardContent>
         </Card>

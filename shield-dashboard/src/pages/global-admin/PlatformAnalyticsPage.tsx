@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress, Tabs, Tab,
-  Chip, Stack, Button,
+  Chip, Stack, Button, LinearProgress, ToggleButtonGroup, ToggleButton,
 } from '@mui/material';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -9,6 +9,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import BlockIcon from '@mui/icons-material/Block';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import FolderIcon from '@mui/icons-material/Folder';
+import DnsIcon from '@mui/icons-material/Dns';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell, Legend,
@@ -54,8 +55,11 @@ function fmt(v: number) {
   return String(v);
 }
 
+type Period = 'today' | 'week' | 'month';
+
 export default function PlatformAnalyticsPage() {
   const [tab, setTab] = useState(0);
+  const [period, setPeriod] = useState<Period>('week');
   const [overview, setOverview] = useState({ totalTenants: 0, totalCustomers: 0, dnsQueriesToday: 0, blockRate: 0, activeProfiles: 0 });
   const [daily, setDaily] = useState<{ day: string; queries: number; blocks: number }[]>([]);
   const [categories, setCategories] = useState<{ name: string; queries: number; percent: number }[]>([]);
@@ -63,10 +67,12 @@ export default function PlatformAnalyticsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
+    const days = period === 'today' ? 1 : period === 'week' ? 7 : 30;
     Promise.all([
       Promise.all([
         api.get('/admin/platform/stats').then(r => r.data.data || r.data).catch(() => ({})),
-        api.get('/analytics/platform/overview?period=today').then(r => r.data).catch(() => ({})),
+        api.get(`/analytics/platform/overview?period=${period}`).then(r => r.data).catch(() => ({})),
         api.get('/tenants?size=1').then(r => {
           const d = r.data?.data;
           return d?.totalElements ?? d?.content?.length ?? 0;
@@ -80,33 +86,40 @@ export default function PlatformAnalyticsPage() {
           blockRate: analytics?.blockRate || 0,
         });
       }),
-      api.get('/analytics/platform/daily?days=7').then(r => {
+      api.get(`/analytics/platform/daily?days=${days}`).then(r => {
         const d = r.data;
         if (Array.isArray(d) && d.length) {
           setDaily(d.map((p: any) => ({
-            day: new Date(p.date).toLocaleDateString('en', { weekday: 'short' }),
+            day: period === 'month'
+              ? new Date(p.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+              : new Date(p.date).toLocaleDateString('en', { weekday: 'short' }),
             queries: p.totalQueries,
             blocks: p.blockedQueries || 0,
           })));
+        } else {
+          setDaily([]);
         }
-      }).catch(() => {}),
-      api.get('/analytics/platform/categories?period=week').then(r => {
+      }).catch(() => { setDaily([]); }),
+      api.get(`/analytics/platform/categories?period=${period}`).then(r => {
         const d = r.data;
         if (Array.isArray(d) && d.length) {
           const total = d.reduce((s: number, c: any) => s + c.count, 0);
-          setCategories(d.map((c: any) => ({
+          const sorted = [...d].sort((a, b) => b.count - a.count).slice(0, 10);
+          setCategories(sorted.map((c: any) => ({
             name: c.category || 'Unknown',
             queries: c.count,
             percent: total > 0 ? Math.round(c.count / total * 100) : 0,
           })));
-          setBlocked(d.filter((c: any) => c.count > 0).map((c: any) => ({
+          setBlocked(sorted.filter((c: any) => c.count > 0).map((c: any) => ({
             name: c.category || 'Unknown',
             blocks: c.count,
           })));
+        } else {
+          setCategories([]); setBlocked([]);
         }
-      }).catch(() => {}),
+      }).catch(() => { setCategories([]); setBlocked([]); }),
     ]).finally(() => setLoading(false));
-  }, []);
+  }, [period]);
 
   return (
     <AnimatedPage>
@@ -124,6 +137,22 @@ export default function PlatformAnalyticsPage() {
         }
       />
 
+      {/* Period Selector */}
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <Typography variant="body2" color="text.secondary" fontWeight={600}>Period:</Typography>
+        <ToggleButtonGroup
+          value={period}
+          exclusive
+          onChange={(_, v) => v && setPeriod(v as Period)}
+          size="small"
+          sx={{ '& .MuiToggleButton-root': { textTransform: 'none', fontWeight: 600, px: 2 } }}
+        >
+          <ToggleButton value="today">Today</ToggleButton>
+          <ToggleButton value="week">This Week</ToggleButton>
+          <ToggleButton value="month">This Month</ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
           <StatCard title="Tenants" value={overview.totalTenants} icon={<PeopleIcon />} gradient={gradients.blue} delay={0} />
@@ -135,14 +164,24 @@ export default function PlatformAnalyticsPage() {
           <StatCard title="Profiles" value={overview.activeProfiles} icon={<FolderIcon />} gradient={gradients.orange} delay={0.16} />
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
-          <StatCard title="Queries Today" value={overview.dnsQueriesToday} icon={<TrendingUpIcon />} gradient={gradients.purple} delay={0.24} />
+          <StatCard
+            title={period === 'today' ? 'Queries Today' : period === 'week' ? 'Queries This Week' : 'Queries This Month'}
+            value={fmt(overview.dnsQueriesToday)}
+            icon={<DnsIcon />}
+            gradient={gradients.purple}
+            delay={0.24}
+          />
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
           <StatCard title="Block Rate" value={overview.blockRate} unit="%" icon={<BlockIcon />} gradient={gradients.red} delay={0.32} />
         </Grid>
       </Grid>
 
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: '1px solid #E8EDF2' }}>
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        sx={{ mb: 3, borderBottom: '1px solid #E8EDF2', '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}
+      >
         <Tab label="DNS Traffic" />
         <Tab label="Category Breakdown" />
         <Tab label="Blocked Content" />
@@ -229,12 +268,24 @@ export default function PlatformAnalyticsPage() {
                           <Tooltip formatter={(v: number) => [fmt(v), 'Queries']} />
                         </PieChart>
                       </ResponsiveContainer>
-                      <Stack spacing={1} sx={{ mt: 1 }}>
+                      <Stack spacing={1.5} sx={{ mt: 1.5 }}>
                         {categories.map((c, i) => (
-                          <Box key={c.name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: COLORS[i % COLORS.length], flexShrink: 0 }} />
-                            <Typography variant="caption" sx={{ flex: 1 }}>{c.name}</Typography>
-                            <Typography variant="caption" fontWeight={600}>{fmt(c.queries)}</Typography>
+                          <Box key={c.name}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.4 }}>
+                              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: COLORS[i % COLORS.length], flexShrink: 0 }} />
+                              <Typography variant="caption" sx={{ flex: 1 }}>{c.name}</Typography>
+                              <Typography variant="caption" fontWeight={700}>{fmt(c.queries)}</Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ minWidth: 28, textAlign: 'right' }}>{c.percent}%</Typography>
+                            </Box>
+                            <LinearProgress
+                              variant="determinate"
+                              value={c.percent}
+                              sx={{
+                                height: 4, borderRadius: 2, ml: 2.5,
+                                bgcolor: '#F0F0F0',
+                                '& .MuiLinearProgress-bar': { bgcolor: COLORS[i % COLORS.length], borderRadius: 2 },
+                              }}
+                            />
                           </Box>
                         ))}
                       </Stack>
@@ -251,7 +302,7 @@ export default function PlatformAnalyticsPage() {
             <Grid size={12}>
               <Card>
                 <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Top Blocked Categories This Week</Typography>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Top Blocked Categories — {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : 'This Month'}</Typography>
                   {blocked.length === 0 ? (
                     <Typography color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>No blocked content data available yet.</Typography>
                   ) : (

@@ -1,125 +1,571 @@
-import { Box, Grid, Card, CardContent, Typography, CircularProgress, Alert } from '@mui/material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useState } from 'react';
+import {
+  Box, Grid, Card, CardContent, Typography, CircularProgress, Alert,
+  Tabs, Tab, Chip, Table, TableHead, TableRow, TableCell, TableBody,
+  Stack, Divider, LinearProgress,
+} from '@mui/material';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, AreaChart, Area,
+} from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import DnsIcon from '@mui/icons-material/Dns';
 import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import LanguageIcon from '@mui/icons-material/Language';
+import CategoryIcon from '@mui/icons-material/Category';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
+import EmptyState from '../../components/EmptyState';
 import { gradients } from '../../theme/theme';
 
-const COLORS = ['#1565C0', '#43A047', '#FB8C00', '#E53935', '#9C27B0', '#00ACC1'];
+type Period = 'TODAY' | 'WEEK' | 'MONTH';
+
+const PIE_COLORS = [
+  '#1565C0', '#E53935', '#43A047', '#FB8C00', '#9C27B0',
+  '#00ACC1', '#F57F17', '#00897B', '#AD1457', '#546E7A',
+];
+
+const PERIOD_LABELS: Record<Period, string> = {
+  TODAY: 'Today',
+  WEEK: 'This Week',
+  MONTH: 'This Month',
+};
+
+function fmt(v: number) {
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
+  return String(v);
+}
+
+function relativeTime(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+interface DnsEvent { id: string; domain: string; action: 'ALLOWED' | 'BLOCKED'; category: string; timestamp: string; }
+interface TopDomain { domain: string; count: number; action?: string; }
+interface CategoryStat { name: string; value: number; percent: number; }
+interface DailyPoint { day: string; queries: number; blocks: number; allowed: number; }
 
 export default function ReportsPage() {
-  const { profileId } = useParams();
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['report', profileId],
+  const { profileId } = useParams<{ profileId: string }>();
+  const [period, setPeriod] = useState<Period>('WEEK');
+  const [chartTab, setChartTab] = useState(0);
+
+  // Stats query — period-aware
+  const statsQuery = useQuery({
+    queryKey: ['report-stats', profileId, period],
     queryFn: async () => {
-      const [dailyRes, catRes] = await Promise.all([
-        api.get(`/analytics/${profileId}/daily`, { params: { days: 7 } }),
-        api.get(`/analytics/${profileId}/categories`, { params: { period: 'week' } }),
-      ]);
-      const dailyRaw = (dailyRes.data?.data ?? dailyRes.data) as { date: string; totalQueries: number; blockedQueries: number }[];
-      const catRaw = (catRes.data?.data ?? catRes.data) as { category: string; count: number }[];
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const dailyStats = (dailyRaw || []).map(d => ({
-        day: dayNames[new Date(d.date).getDay()] || d.date,
-        queries: d.totalQueries,
-        blocks: d.blockedQueries,
-      }));
-      const categoryBreakdown = (catRaw || []).map(c => ({ name: c.category, value: c.count }));
-      return { dailyStats, categoryBreakdown };
+      const r = await api.get(`/analytics/${profileId}/stats`, { params: { period } });
+      return (r.data?.data ?? r.data) as {
+        totalQueries: number;
+        totalBlocked: number;
+        totalAllowed: number;
+        blockRate: number;
+        uniqueDomains?: number;
+      };
     },
+    enabled: !!profileId,
     retry: 1,
   });
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  // Daily chart data
+  const dailyQuery = useQuery({
+    queryKey: ['report-daily', profileId, period],
+    queryFn: async () => {
+      const days = period === 'TODAY' ? 1 : period === 'WEEK' ? 7 : 30;
+      const r = await api.get(`/analytics/${profileId}/daily`, { params: { days } });
+      const raw = (r.data?.data ?? r.data) as { date: string; totalQueries: number; blockedQueries: number }[];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      return (raw || []).map(d => {
+        const q = d.totalQueries || 0;
+        const b = d.blockedQueries || 0;
+        return {
+          day: period === 'MONTH'
+            ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+            : dayNames[new Date(d.date).getDay()] || d.date,
+          queries: q,
+          blocks: b,
+          allowed: q - b,
+        } as DailyPoint;
+      });
+    },
+    enabled: !!profileId,
+    retry: 1,
+  });
 
-  const totalQueries = data?.dailyStats?.reduce((s, d) => s + d.queries, 0) || 0;
-  const totalBlocks = data?.dailyStats?.reduce((s, d) => s + d.blocks, 0) || 0;
-  const blockRate = totalQueries > 0 ? ((totalBlocks / totalQueries) * 100).toFixed(1) : '0';
+  // Category breakdown
+  const catQuery = useQuery({
+    queryKey: ['report-categories', profileId, period],
+    queryFn: async () => {
+      const p = period === 'TODAY' ? 'today' : period === 'WEEK' ? 'week' : 'month';
+      const r = await api.get(`/analytics/${profileId}/categories`, { params: { period: p } });
+      const raw = (r.data?.data ?? r.data) as { category: string; count: number }[];
+      if (!raw || !raw.length) return [] as CategoryStat[];
+      const total = raw.reduce((s, c) => s + c.count, 0);
+      return raw
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+        .map(c => ({
+          name: c.category || 'Unknown',
+          value: c.count,
+          percent: total > 0 ? Math.round(c.count / total * 100) : 0,
+        }));
+    },
+    enabled: !!profileId,
+    retry: 1,
+  });
+
+  // Top blocked domains
+  const topBlockedQuery = useQuery({
+    queryKey: ['report-top-blocked', profileId],
+    queryFn: async () => {
+      const r = await api.get(`/analytics/${profileId}/top-blocked`, { params: { limit: 10 } });
+      return (r.data?.data ?? r.data) as TopDomain[];
+    },
+    enabled: !!profileId,
+    retry: 1,
+  });
+
+  // Recent activity
+  const historyQuery = useQuery({
+    queryKey: ['report-history', profileId],
+    queryFn: async () => {
+      const r = await api.get(`/analytics/${profileId}/history`, { params: { page: 0, size: 20 } });
+      return (r.data?.data ?? r.data?.content ?? r.data) as DnsEvent[];
+    },
+    enabled: !!profileId,
+    retry: 1,
+  });
+
+  const stats = statsQuery.data;
+  const daily = dailyQuery.data ?? [];
+  const categories = catQuery.data ?? [];
+  const topBlocked = (topBlockedQuery.data ?? []) as TopDomain[];
+  const history = (historyQuery.data ?? []) as DnsEvent[];
+  const loading = statsQuery.isLoading;
+
+  const totalQ = stats?.totalQueries ?? daily.reduce((s, d) => s + d.queries, 0);
+  const totalB = stats?.totalBlocked ?? daily.reduce((s, d) => s + d.blocks, 0);
+  const totalA = stats?.totalAllowed ?? (totalQ - totalB);
+  const blockRate = stats?.blockRate != null
+    ? stats.blockRate.toFixed(1)
+    : totalQ > 0 ? ((totalB / totalQ) * 100).toFixed(1) : '0';
+  const maxBlocked = topBlocked.length > 0 ? topBlocked[0].count : 1;
 
   return (
     <AnimatedPage>
-      <PageHeader icon={<AssessmentIcon />} title="Weekly Report" subtitle="Activity summary for the past 7 days" iconColor="#1565C0" />
+      <PageHeader
+        icon={<AssessmentIcon />}
+        title="Reports & Analytics"
+        subtitle={`DNS activity report — ${PERIOD_LABELS[period]}`}
+        iconColor="#1565C0"
+      />
 
-      {isError && (
-        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-          No report data available yet. Data will appear after the child starts using their device.
-        </Alert>
-      )}
+      {/* Period Selector */}
+      <AnimatedPage delay={0.05}>
+        <Box sx={{ mb: 3 }}>
+          <Tabs
+            value={period}
+            onChange={(_, v) => setPeriod(v as Period)}
+            sx={{
+              minHeight: 40,
+              '& .MuiTabs-indicator': { height: 3, borderRadius: 2 },
+              '& .MuiTab-root': { minHeight: 40, textTransform: 'none', fontWeight: 600, fontSize: 14 },
+            }}
+          >
+            <Tab label="Today" value="TODAY" />
+            <Tab label="This Week" value="WEEK" />
+            <Tab label="This Month" value="MONTH" />
+          </Tabs>
+        </Box>
+      </AnimatedPage>
 
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <StatCard title="Total Queries" value={totalQueries.toLocaleString()} icon={<DnsIcon />} gradient={gradients.blue} trend={0} delay={0.1} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <StatCard title="Total Blocked" value={totalBlocks} icon={<BlockIcon />} gradient={gradients.red} trend={0} delay={0.2} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <StatCard title="Block Rate" value={`${blockRate}%`} icon={<TrendingUpIcon />} gradient={gradients.purple} delay={0.3} />
-        </Grid>
-      </Grid>
-
-      {!isError && data && (
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 7 }}>
-            <AnimatedPage delay={0.3}>
-              <Card>
-                <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>Daily DNS Activity</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Queries and blocked requests per day</Typography>
-                  {data.dailyStats.length === 0 ? (
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <Typography color="text.secondary">No activity data for this period</Typography>
-                    </Box>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={data.dailyStats}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
-                        <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="queries" name="Queries" fill="#1565C0" radius={[6, 6, 0, 0]} />
-                        <Bar dataKey="blocks" name="Blocked" fill="#E53935" radius={[6, 6, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
-            </AnimatedPage>
+      {/* Summary Stats Row */}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+      ) : (
+        <>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <StatCard
+                title="Total Queries"
+                value={fmt(totalQ)}
+                icon={<DnsIcon />}
+                gradient={gradients.blue}
+                delay={0.1}
+              />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <StatCard
+                title="Blocked"
+                value={fmt(totalB)}
+                icon={<BlockIcon />}
+                gradient={gradients.red}
+                delay={0.15}
+              />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <StatCard
+                title="Allowed"
+                value={fmt(totalA)}
+                icon={<CheckCircleIcon />}
+                gradient={gradients.green}
+                delay={0.2}
+              />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <StatCard
+                title="Block Rate"
+                value={`${blockRate}%`}
+                icon={<TrendingUpIcon />}
+                gradient={gradients.purple}
+                delay={0.25}
+              />
+            </Grid>
           </Grid>
-          <Grid size={{ xs: 12, md: 5 }}>
-            <AnimatedPage delay={0.4}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>Category Breakdown</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Top content categories accessed</Typography>
-                  {data.categoryBreakdown.length === 0 ? (
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <Typography color="text.secondary">No category data available</Typography>
+
+          {/* Chart Tabs */}
+          <AnimatedPage delay={0.3}>
+            <Box sx={{ mb: 2 }}>
+              <Tabs
+                value={chartTab}
+                onChange={(_, v) => setChartTab(v)}
+                sx={{
+                  mb: 3,
+                  borderBottom: '1px solid #E8EDF2',
+                  '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 },
+                }}
+              >
+                <Tab label="Daily Activity" />
+                <Tab label="Category Breakdown" />
+                <Tab label="Top Blocked Domains" />
+                <Tab label="Recent Activity" />
+              </Tabs>
+
+              {/* Tab 0: Daily Activity BarChart */}
+              {chartTab === 0 && (
+                <Card>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
+                      DNS Queries vs Blocked
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      {period === 'TODAY' ? 'Hourly breakdown' : period === 'WEEK' ? 'Daily breakdown — last 7 days' : 'Daily breakdown — last 30 days'}
+                    </Typography>
+                    {dailyQuery.isLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+                    ) : daily.length === 0 ? (
+                      <EmptyState
+                        icon={<DnsIcon sx={{ fontSize: 36, color: '#1565C0' }} />}
+                        title="No activity data yet"
+                        description="DNS activity will appear here after the child starts browsing"
+                      />
+                    ) : (
+                      <ResponsiveContainer width="100%" height={320}>
+                        {period === 'MONTH' ? (
+                          <AreaChart data={daily} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                            <defs>
+                              <linearGradient id="reportGradQ" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#1565C0" stopOpacity={0.25} />
+                                <stop offset="95%" stopColor="#1565C0" stopOpacity={0.02} />
+                              </linearGradient>
+                              <linearGradient id="reportGradB" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#E53935" stopOpacity={0.25} />
+                                <stop offset="95%" stopColor="#E53935" stopOpacity={0.02} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                            <XAxis dataKey="day" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                            <YAxis tickFormatter={fmt} tick={{ fontSize: 11 }} />
+                            <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E8EDF2' }} />
+                            <Legend />
+                            <Area type="monotone" dataKey="queries" name="Total Queries" stroke="#1565C0" strokeWidth={2} fill="url(#reportGradQ)" dot={false} />
+                            <Area type="monotone" dataKey="blocks" name="Blocked" stroke="#E53935" strokeWidth={2} fill="url(#reportGradB)" dot={false} />
+                          </AreaChart>
+                        ) : (
+                          <BarChart data={daily} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
+                            <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                            <YAxis tickFormatter={fmt} tick={{ fontSize: 12 }} />
+                            <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E8EDF2' }} />
+                            <Legend />
+                            <Bar dataKey="allowed" name="Allowed" fill="#43A047" radius={[4, 4, 0, 0]} stackId="a" />
+                            <Bar dataKey="blocks" name="Blocked" fill="#E53935" radius={[4, 4, 0, 0]} stackId="a" />
+                          </BarChart>
+                        )}
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Tab 1: Category Breakdown */}
+              {chartTab === 1 && (
+                <Grid container spacing={3}>
+                  <Grid size={{ xs: 12, md: 5 }}>
+                    <Card sx={{ height: '100%' }}>
+                      <CardContent>
+                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
+                          Blocked Categories
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          Content types that were blocked
+                        </Typography>
+                        {catQuery.isLoading ? (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+                        ) : categories.length === 0 ? (
+                          <Box sx={{ textAlign: 'center', py: 4 }}>
+                            <CategoryIcon sx={{ fontSize: 40, color: '#ccc', mb: 1 }} />
+                            <Typography color="text.secondary">No category data available</Typography>
+                          </Box>
+                        ) : (
+                          <ResponsiveContainer width="100%" height={280}>
+                            <PieChart>
+                              <Pie
+                                data={categories}
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={105}
+                                innerRadius={55}
+                                dataKey="value"
+                                paddingAngle={2}
+                                label={({ name, percent }: any) =>
+                                  percent > 8 ? `${name} ${(percent * 100).toFixed(0)}%` : ''
+                                }
+                                labelLine={false}
+                              >
+                                {categories.map((_, i) => (
+                                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(v: number) => [fmt(v), 'Queries']} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, md: 7 }}>
+                    <Card sx={{ height: '100%' }}>
+                      <CardContent>
+                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+                          Category Details
+                        </Typography>
+                        {catQuery.isLoading ? (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+                        ) : categories.length === 0 ? (
+                          <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                            No data for this period
+                          </Typography>
+                        ) : (
+                          <Stack spacing={1.5}>
+                            {categories.map((cat, i) => (
+                              <Box key={cat.name}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                  <Box sx={{
+                                    width: 10, height: 10, borderRadius: '50%',
+                                    bgcolor: PIE_COLORS[i % PIE_COLORS.length],
+                                    flexShrink: 0,
+                                  }} />
+                                  <Typography variant="body2" fontWeight={500} sx={{ flex: 1 }}>
+                                    {cat.name}
+                                  </Typography>
+                                  <Typography variant="body2" fontWeight={700}>
+                                    {fmt(cat.value)}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" sx={{ minWidth: 36, textAlign: 'right' }}>
+                                    {cat.percent}%
+                                  </Typography>
+                                </Box>
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={cat.percent}
+                                  sx={{
+                                    height: 4,
+                                    borderRadius: 2,
+                                    bgcolor: '#F0F0F0',
+                                    ml: 2.5,
+                                    '& .MuiLinearProgress-bar': {
+                                      bgcolor: PIE_COLORS[i % PIE_COLORS.length],
+                                      borderRadius: 2,
+                                    },
+                                  }}
+                                />
+                              </Box>
+                            ))}
+                          </Stack>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              )}
+
+              {/* Tab 2: Top Blocked Domains */}
+              {chartTab === 2 && (
+                <Card>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
+                      Top Blocked Domains
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      Most frequently blocked sites
+                    </Typography>
+                    {topBlockedQuery.isLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+                    ) : topBlocked.length === 0 ? (
+                      <EmptyState
+                        icon={<BlockIcon sx={{ fontSize: 36, color: '#E53935' }} />}
+                        title="No blocked domains"
+                        description="No domains have been blocked yet during this period"
+                      />
+                    ) : (
+                      <Stack spacing={0}>
+                        {topBlocked.map((d, i) => (
+                          <Box key={d.domain}>
+                            <Box sx={{
+                              display: 'flex', alignItems: 'center', gap: 2,
+                              py: 1.5, px: 1,
+                              borderRadius: 1.5,
+                              '&:hover': { bgcolor: '#F8FAFC' },
+                              transition: 'background 0.15s',
+                            }}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  minWidth: 24, fontWeight: 700, color: '#9E9E9E',
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                }}
+                              >
+                                #{i + 1}
+                              </Typography>
+                              <LanguageIcon sx={{ fontSize: 18, color: '#E53935', flexShrink: 0 }} />
+                              <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }} noWrap>
+                                {d.domain}
+                              </Typography>
+                              <Box sx={{ flex: 2, mx: 2 }}>
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={Math.round((d.count / maxBlocked) * 100)}
+                                  sx={{
+                                    height: 6, borderRadius: 3,
+                                    bgcolor: '#FFE5E5',
+                                    '& .MuiLinearProgress-bar': { bgcolor: '#E53935', borderRadius: 3 },
+                                  }}
+                                />
+                              </Box>
+                              <Chip
+                                label={fmt(d.count)}
+                                size="small"
+                                sx={{
+                                  bgcolor: '#FFE5E5', color: '#C62828',
+                                  fontWeight: 700, height: 22, fontSize: 11,
+                                }}
+                              />
+                            </Box>
+                            {i < topBlocked.length - 1 && <Divider sx={{ opacity: 0.5 }} />}
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Tab 3: Recent Activity */}
+              {chartTab === 3 && (
+                <Card>
+                  <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+                    <Box sx={{ px: 2.5, pt: 2.5, pb: 1.5 }}>
+                      <Typography variant="subtitle1" fontWeight={600}>Recent Activity</Typography>
+                      <Typography variant="body2" color="text.secondary">Latest DNS queries from this profile</Typography>
                     </Box>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={280}>
-                      <PieChart>
-                        <Pie data={data.categoryBreakdown} cx="50%" cy="50%" outerRadius={100} innerRadius={50} dataKey="value" paddingAngle={3}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                          {data.categoryBreakdown.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
-            </AnimatedPage>
-          </Grid>
-        </Grid>
+                    {historyQuery.isLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+                    ) : history.length === 0 ? (
+                      <EmptyState
+                        icon={<DnsIcon sx={{ fontSize: 36, color: '#1565C0' }} />}
+                        title="No recent activity"
+                        description="DNS queries will appear here once the child starts browsing"
+                      />
+                    ) : (
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow sx={{ '& th': { fontWeight: 700, color: '#546E7A', fontSize: 12, bgcolor: '#F8FAFC' } }}>
+                            <TableCell>Domain</TableCell>
+                            <TableCell>Category</TableCell>
+                            <TableCell align="center">Action</TableCell>
+                            <TableCell align="right">Time</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {history.map((ev, i) => (
+                            <TableRow
+                              key={ev.id || i}
+                              sx={{
+                                borderLeft: `3px solid ${ev.action === 'BLOCKED' ? '#E53935' : '#43A047'}`,
+                                '&:hover': { bgcolor: '#FAFBFC' },
+                                '& td': { py: 1 },
+                              }}
+                            >
+                              <TableCell>
+                                <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 240 }}>
+                                  {ev.domain}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={ev.category || 'Unknown'}
+                                  size="small"
+                                  sx={{
+                                    height: 20, fontSize: 11,
+                                    bgcolor: '#F1F5F9', color: '#546E7A',
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip
+                                  size="small"
+                                  label={ev.action}
+                                  color={ev.action === 'BLOCKED' ? 'error' : 'success'}
+                                  sx={{ height: 22, fontSize: 11, fontWeight: 700 }}
+                                />
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 11 }}>
+                                  {relativeTime(ev.timestamp)}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </Box>
+          </AnimatedPage>
+
+          {statsQuery.isError && dailyQuery.isError && catQuery.isError && (
+            <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
+              No report data is available yet. Data will appear after the child starts using their device.
+            </Alert>
+          )}
+        </>
       )}
     </AnimatedPage>
   );

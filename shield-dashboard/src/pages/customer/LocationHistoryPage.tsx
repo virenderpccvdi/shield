@@ -8,6 +8,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  APIProvider, Map, AdvancedMarker, InfoWindow, useMap, useMapsLibrary,
+} from '@vis.gl/react-google-maps';
 import HistoryIcon from '@mui/icons-material/History';
 import PlaceIcon from '@mui/icons-material/Place';
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
@@ -18,6 +21,8 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useWebSocket } from '../../hooks/useWebSocket';
+
+const GOOGLE_MAPS_API_KEY = 'AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M';
 
 interface ChildProfile { id: string; name: string; }
 
@@ -33,11 +38,126 @@ interface LocationPoint {
 
 const DEFAULT_CENTER = { lat: 28.6139, lng: 77.209 };
 
+// Renders the route polyline + start/end markers inside a Map component
+function RouteOverlay({ points }: { points: LocationPoint[] }) {
+  const map = useMap();
+  const mapsLib = useMapsLibrary('maps');
+  const polylineRef = useRef<google.maps.Polyline | null>(null);
+  const [openMarker, setOpenMarker] = useState<'start' | 'end' | null>(null);
+
+  useEffect(() => {
+    if (!map || !mapsLib || points.length === 0) {
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
+      return;
+    }
+
+    // Remove old polyline
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+      polylineRef.current = null;
+    }
+
+    const path = points.map(p => ({ lat: p.latitude, lng: p.longitude }));
+
+    polylineRef.current = new mapsLib.Polyline({
+      path,
+      geodesic: true,
+      strokeColor: '#1565C0',
+      strokeOpacity: 0.8,
+      strokeWeight: 3,
+      icons: [{
+        icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 4 },
+        offset: '0',
+        repeat: '20px',
+      }],
+      map,
+    });
+
+    // Fit bounds
+    if (window.google?.maps) {
+      const bounds = new window.google.maps.LatLngBounds();
+      path.forEach(p => bounds.extend(p));
+      map.fitBounds(bounds, 60);
+    }
+
+    return () => {
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
+    };
+  }, [map, mapsLib, points]);
+
+  if (points.length === 0) return null;
+
+  const startPt = points[0];
+  const endPt = points[points.length - 1];
+
+  return (
+    <>
+      {/* Start marker */}
+      <AdvancedMarker
+        position={{ lat: startPt.latitude, lng: startPt.longitude }}
+        onClick={() => setOpenMarker(openMarker === 'start' ? null : 'start')}
+      >
+        <div style={{
+          background: '#43A047', color: 'white', borderRadius: '50%',
+          width: 28, height: 28, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontSize: 12, fontWeight: 700,
+          border: '3px solid white', boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+        }}>S</div>
+      </AdvancedMarker>
+      {openMarker === 'start' && (
+        <InfoWindow
+          position={{ lat: startPt.latitude, lng: startPt.longitude }}
+          onCloseClick={() => setOpenMarker(null)}
+        >
+          <Box>
+            <Typography variant="subtitle2" fontWeight={700}>Start</Typography>
+            <Typography variant="caption">{formatTime(startPt.recordedAt)}</Typography>
+          </Box>
+        </InfoWindow>
+      )}
+
+      {/* End marker (only if more than 1 point) */}
+      {points.length > 1 && (
+        <>
+          <AdvancedMarker
+            position={{ lat: endPt.latitude, lng: endPt.longitude }}
+            onClick={() => setOpenMarker(openMarker === 'end' ? null : 'end')}
+          >
+            <div style={{
+              background: '#E53935', color: 'white', borderRadius: '50%',
+              width: 28, height: 28, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 12, fontWeight: 700,
+              border: '3px solid white', boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+            }}>E</div>
+          </AdvancedMarker>
+          {openMarker === 'end' && (
+            <InfoWindow
+              position={{ lat: endPt.latitude, lng: endPt.longitude }}
+              onCloseClick={() => setOpenMarker(null)}
+            >
+              <Box>
+                <Typography variant="subtitle2" fontWeight={700}>End</Typography>
+                <Typography variant="caption">{formatTime(endPt.recordedAt)}</Typography>
+              </Box>
+            </InfoWindow>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+function formatTime(iso: string) {
+  return dayjs(iso).format('h:mm A');
+}
+
 export default function LocationHistoryPage() {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<any>(null);
-  const polylineRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
   const qc = useQueryClient();
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [fromDate, setFromDate] = useState<Dayjs>(dayjs().startOf('day'));
@@ -72,104 +192,17 @@ export default function LocationHistoryPage() {
     refetchInterval: isToday ? 30000 : false,
   });
 
-  // Real-time location updates via WebSocket when viewing today
   const handleLiveLocation = useCallback((data: unknown) => {
     const pt = data as LocationPoint;
     if (!pt?.latitude || !pt?.longitude) return;
     qc.setQueryData<LocationPoint[]>(historyQueryKey, (prev) => {
       if (!prev) return [pt];
-      // Avoid duplicates
       if (prev.some(p => p.id === pt.id)) return prev;
       return [...prev, pt];
     });
   }, [profileId, fromDate.toISOString(), toDate.toISOString()]);
 
   useWebSocket(`/topic/location/${profileId}`, handleLiveLocation, !!profileId && isToday);
-
-  // Initialize map
-  useEffect(() => {
-    if (!mapRef.current || mapInstance.current) return;
-    const L = (window as any).L;
-    if (!L) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = () => initMap();
-      document.head.appendChild(script);
-    } else {
-      initMap();
-    }
-  }, []);
-
-  function initMap() {
-    const L = (window as any).L;
-    if (!L || !mapRef.current || mapInstance.current) return;
-    const map = L.map(mapRef.current).setView([DEFAULT_CENTER.lat, DEFAULT_CENTER.lng], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
-    mapInstance.current = map;
-  }
-
-  // Draw route on map
-  useEffect(() => {
-    const L = (window as any).L;
-    if (!L || !mapInstance.current) return;
-
-    // Clear
-    if (polylineRef.current) { polylineRef.current.remove(); polylineRef.current = null; }
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
-
-    if (!locationData || locationData.length === 0) return;
-
-    const points: [number, number][] = locationData.map(p => [p.latitude, p.longitude]);
-
-    // Polyline route
-    polylineRef.current = L.polyline(points, {
-      color: '#1565C0',
-      weight: 3,
-      opacity: 0.8,
-      dashArray: '10, 6',
-    }).addTo(mapInstance.current);
-
-    // Start marker
-    const startIcon = L.divIcon({
-      html: '<div style="background:#43A047;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">S</div>',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
-    });
-    const endIcon = L.divIcon({
-      html: '<div style="background:#E53935;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">E</div>',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
-    });
-
-    if (points.length > 0) {
-      markersRef.current.push(
-        L.marker(points[0], { icon: startIcon })
-          .addTo(mapInstance.current)
-          .bindPopup(`<b>Start</b><br/>${formatTime(locationData[0].recordedAt)}`)
-      );
-    }
-    if (points.length > 1) {
-      markersRef.current.push(
-        L.marker(points[points.length - 1], { icon: endIcon })
-          .addTo(mapInstance.current)
-          .bindPopup(`<b>End</b><br/>${formatTime(locationData[locationData.length - 1].recordedAt)}`)
-      );
-    }
-
-    // Fit bounds
-    mapInstance.current.fitBounds(points, { padding: [40, 40] });
-  }, [locationData]);
-
-  function formatTime(iso: string) {
-    return dayjs(iso).format('h:mm A');
-  }
 
   if (!children || children.length === 0) {
     return (
@@ -181,6 +214,11 @@ export default function LocationHistoryPage() {
   }
 
   const points = locationData || [];
+
+  // Compute map center: first point or default
+  const mapCenter = points.length > 0
+    ? { lat: points[0].latitude, lng: points[0].longitude }
+    : DEFAULT_CENTER;
 
   return (
     <AnimatedPage>
@@ -255,7 +293,16 @@ export default function LocationHistoryPage() {
                   <CircularProgress />
                 </Box>
               ) : (
-                <Box ref={mapRef} sx={{ height: 500, width: '100%' }} />
+                <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+                  <Map
+                    defaultCenter={mapCenter}
+                    defaultZoom={13}
+                    mapId="shield-history-map"
+                    style={{ height: 500, width: '100%' }}
+                  >
+                    <RouteOverlay points={points} />
+                  </Map>
+                </APIProvider>
               )}
             </Card>
           </AnimatedPage>

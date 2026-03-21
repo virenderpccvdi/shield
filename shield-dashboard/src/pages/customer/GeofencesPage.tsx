@@ -6,6 +6,9 @@ import {
   ListItemSecondaryAction
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  APIProvider, Map, AdvancedMarker, InfoWindow, useMap, useMapsLibrary,
+} from '@vis.gl/react-google-maps';
 import FenceIcon from '@mui/icons-material/Fence';
 import AddLocationIcon from '@mui/icons-material/AddLocation';
 import EditIcon from '@mui/icons-material/Edit';
@@ -18,6 +21,8 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+
+const GOOGLE_MAPS_API_KEY = 'AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M';
 
 interface ChildProfile { id: string; name: string; }
 
@@ -50,15 +55,101 @@ const GEOFENCE_TYPES: Record<string, { icon: React.ReactNode; color: string; bg:
 
 const DEFAULT_CENTER = { lat: 28.6139, lng: 77.209 }; // Delhi
 
+// Renders geofence circles on the map
+function GeofenceOverlay({
+  geofences,
+  onMapClick,
+  dialogOpen,
+}: {
+  geofences: Geofence[];
+  onMapClick: (lat: number, lng: number) => void;
+  dialogOpen: boolean;
+}) {
+  const map = useMap();
+  const mapsLib = useMapsLibrary('maps');
+  const circlesRef = useRef<google.maps.Circle[]>([]);
+  const [openInfoId, setOpenInfoId] = useState<string | null>(null);
+
+  // Handle map click to set geofence center when dialog is open
+  useEffect(() => {
+    if (!map || !dialogOpen) return;
+    const listener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
+      if (e.latLng) {
+        onMapClick(e.latLng.lat(), e.latLng.lng());
+      }
+    });
+    return () => google.maps.event.removeListener(listener);
+  }, [map, dialogOpen, onMapClick]);
+
+  useEffect(() => {
+    if (!map || !mapsLib) return;
+
+    circlesRef.current.forEach(c => c.setMap(null));
+    circlesRef.current = [];
+
+    geofences.forEach(g => {
+      const typeConf = GEOFENCE_TYPES[g.type || 'OTHER'] || GEOFENCE_TYPES.OTHER;
+      const circle = new mapsLib.Circle({
+        map,
+        center: { lat: g.centerLat, lng: g.centerLng },
+        radius: g.radiusMeters,
+        strokeColor: typeConf.color,
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: typeConf.color,
+        fillOpacity: 0.15,
+      });
+      circlesRef.current.push(circle);
+    });
+
+    // Fit bounds
+    if (geofences.length > 0 && window.google?.maps) {
+      const bounds = new window.google.maps.LatLngBounds();
+      geofences.forEach(g => bounds.extend({ lat: g.centerLat, lng: g.centerLng }));
+      map.fitBounds(bounds, 80);
+    }
+
+    return () => {
+      circlesRef.current.forEach(c => c.setMap(null));
+      circlesRef.current = [];
+    };
+  }, [map, mapsLib, geofences]);
+
+  return (
+    <>
+      {geofences.map((g) => (
+        <AdvancedMarker
+          key={g.id}
+          position={{ lat: g.centerLat, lng: g.centerLng }}
+          onClick={() => setOpenInfoId(openInfoId === g.id ? null : g.id)}
+        />
+      ))}
+      {geofences.map((g) =>
+        openInfoId === g.id ? (
+          <InfoWindow
+            key={`info-${g.id}`}
+            position={{ lat: g.centerLat, lng: g.centerLng }}
+            onCloseClick={() => setOpenInfoId(null)}
+          >
+            <Box>
+              <Typography variant="subtitle2" fontWeight={700}>{g.name}</Typography>
+              <Typography variant="caption">Radius: {g.radiusMeters}m</Typography>
+            </Box>
+          </InfoWindow>
+        ) : null
+      )}
+    </>
+  );
+}
+
 export default function GeofencesPage() {
   const qc = useQueryClient();
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<any>(null);
-  const circlesRef = useRef<any[]>([]);
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<GeofenceForm>({ name: '', centerLat: DEFAULT_CENTER.lat, centerLng: DEFAULT_CENTER.lng, radiusMeters: 200, type: 'OTHER' });
+  const [form, setForm] = useState<GeofenceForm>({
+    name: '', centerLat: DEFAULT_CENTER.lat, centerLng: DEFAULT_CENTER.lng, radiusMeters: 200, type: 'OTHER',
+  });
 
   const { data: children } = useQuery({
     queryKey: ['children'],
@@ -112,72 +203,9 @@ export default function GeofencesPage() {
     }
   };
 
-  // Initialize Leaflet map
-  useEffect(() => {
-    if (!mapRef.current || mapInstance.current) return;
-    const L = (window as any).L;
-    if (!L) {
-      // Load Leaflet dynamically
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = () => initMap();
-      document.head.appendChild(script);
-    } else {
-      initMap();
-    }
-  }, []);
-
-  function initMap() {
-    const L = (window as any).L;
-    if (!L || !mapRef.current || mapInstance.current) return;
-    const map = L.map(mapRef.current).setView([DEFAULT_CENTER.lat, DEFAULT_CENTER.lng], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
-    mapInstance.current = map;
-
-    // Click to set geofence center in dialog
-    map.on('click', (e: any) => {
-      if (dialogOpen) {
-        setForm(prev => ({ ...prev, centerLat: e.latlng.lat, centerLng: e.latlng.lng }));
-      }
-    });
-  }
-
-  // Update map circles when geofences change
-  useEffect(() => {
-    const L = (window as any).L;
-    if (!L || !mapInstance.current) return;
-
-    // Clear old circles
-    circlesRef.current.forEach(c => c.remove());
-    circlesRef.current = [];
-
-    if (geofences && geofences.length > 0) {
-      geofences.forEach(g => {
-        const typeConf = GEOFENCE_TYPES[g.type || 'OTHER'] || GEOFENCE_TYPES.OTHER;
-        const circle = L.circle([g.centerLat, g.centerLng], {
-          radius: g.radiusMeters,
-          color: typeConf.color,
-          fillColor: typeConf.color,
-          fillOpacity: 0.15,
-          weight: 2,
-        }).addTo(mapInstance.current);
-        circle.bindPopup(`<b>${g.name}</b><br/>Radius: ${g.radiusMeters}m`);
-        circlesRef.current.push(circle);
-      });
-
-      // Fit bounds
-      const bounds = geofences.map(g => [g.centerLat, g.centerLng] as [number, number]);
-      if (bounds.length > 0) {
-        mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
-      }
-    }
-  }, [geofences]);
+  const handleMapClick = (lat: number, lng: number) => {
+    setForm(prev => ({ ...prev, centerLat: lat, centerLng: lng }));
+  };
 
   if (!children || children.length === 0) {
     return (
@@ -227,7 +255,20 @@ export default function GeofencesPage() {
         <Grid size={{ xs: 12, md: 8 }}>
           <AnimatedPage delay={0.1}>
             <Card sx={{ overflow: 'hidden' }}>
-              <Box ref={mapRef} sx={{ height: 500, width: '100%' }} />
+              <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+                <Map
+                  defaultCenter={DEFAULT_CENTER}
+                  defaultZoom={13}
+                  mapId="shield-geofences-map"
+                  style={{ height: 500, width: '100%' }}
+                >
+                  <GeofenceOverlay
+                    geofences={geofences || []}
+                    onMapClick={handleMapClick}
+                    dialogOpen={dialogOpen}
+                  />
+                </Map>
+              </APIProvider>
             </Card>
           </AnimatedPage>
         </Grid>

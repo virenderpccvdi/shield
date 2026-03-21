@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:battery_plus/battery_plus.dart';
@@ -482,6 +483,13 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
           ),
         );
         if (choice == 'exit' && context.mounted) {
+          // Unsubscribe from APK-update topic before logging out of child mode
+          try {
+            await FirebaseMessaging.instance.unsubscribeFromTopic('shield-child-devices');
+            debugPrint('[Shield] Unsubscribed from topic shield-child-devices');
+          } catch (e) {
+            debugPrint('[Shield] Topic unsubscribe failed: $e');
+          }
           await ref.read(authProvider.notifier).logout();
           if (context.mounted) context.go('/login');
         }
