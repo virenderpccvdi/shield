@@ -165,6 +165,7 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
         'speed': speedKmh,
         'heading': position.heading >= 0 ? position.heading : null,
         'isMoving': position.speed > 0.5,
+        if (_batteryPct >= 0) 'batteryPct': _batteryPct,
       });
       if (speedKmh > 0) {
         try {

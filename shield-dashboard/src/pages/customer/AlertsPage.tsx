@@ -61,6 +61,7 @@ function timeAgo(iso?: string) {
 
 function SosPanelSection() {
   const qc = useQueryClient();
+  const [sosTab, setSosTab] = useState<'active' | 'history'>('active');
 
   const { data: children = [], isLoading: childrenLoading } = useQuery<ChildProfile[]>({
     queryKey: ['sos-children'],
@@ -84,13 +85,16 @@ function SosPanelSection() {
           // ignore per-child errors
         }
       }));
+      // Newest first
+      results.sort((a, b) => new Date(b.triggeredAt ?? 0).getTime() - new Date(a.triggeredAt ?? 0).getTime());
       return results;
     },
     enabled: children.length > 0,
     refetchInterval: 30000,
   });
 
-  const activeSos = allSosEvents.filter(e => e.status === 'ACTIVE');
+  const activeSos  = allSosEvents.filter(e => e.status === 'ACTIVE');
+  const historySos = allSosEvents.filter(e => e.status !== 'ACTIVE');
 
   const acknowledgeMutation = useMutation({
     mutationFn: (id: string) => api.post(`/location/sos/${id}/acknowledge`),
@@ -106,25 +110,32 @@ function SosPanelSection() {
 
   return (
     <Box sx={{ mb: 3 }}>
-      {/* Section header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+      {/* Section header with Active / History tabs */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h6" fontWeight={700} sx={{ color: '#C62828' }}>
           SOS Emergency Alerts
         </Typography>
         {isLoading && <CircularProgress size={16} sx={{ color: '#E53935' }} />}
         {activeSos.length > 0 && (
-          <Chip
-            label={`${activeSos.length} ACTIVE`}
-            color="error"
-            size="small"
-            sx={{
-              fontWeight: 700,
-              fontSize: 11,
+          <Chip label={`${activeSos.length} ACTIVE`} color="error" size="small"
+            sx={{ fontWeight: 700, fontSize: 11,
               '@keyframes chipPulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.65 } },
-              animation: 'chipPulse 1.5s ease-in-out infinite',
-            }}
-          />
+              animation: 'chipPulse 1.5s ease-in-out infinite' }} />
         )}
+        <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
+          {(['active', 'history'] as const).map(t => (
+            <Button key={t} size="small" variant={sosTab === t ? 'contained' : 'outlined'}
+              onClick={() => setSosTab(t)}
+              sx={{ borderRadius: 2, fontWeight: 600, fontSize: 12, minWidth: 80, textTransform: 'none',
+                ...(t === 'active'
+                  ? { bgcolor: sosTab === 'active' ? '#C62828' : 'transparent', borderColor: '#C62828', color: sosTab === 'active' ? '#fff' : '#C62828', '&:hover': { bgcolor: '#B71C1C', color: '#fff' } }
+                  : { bgcolor: sosTab === 'history' ? '#1565C0' : 'transparent', borderColor: '#1565C0', color: sosTab === 'history' ? '#fff' : '#1565C0', '&:hover': { bgcolor: '#0D47A1', color: '#fff' } }
+                )
+              }}>
+              {t === 'active' ? `Active${activeSos.length > 0 ? ` (${activeSos.length})` : ''}` : `History${historySos.length > 0 ? ` (${historySos.length})` : ''}`}
+            </Button>
+          ))}
+        </Box>
       </Box>
 
       {/* Active SOS alert banner */}
@@ -148,19 +159,59 @@ function SosPanelSection() {
         </Alert>
       )}
 
-      {/* No active SOS */}
-      {!isLoading && activeSos.length === 0 && (
-        <Chip
-          icon={<CheckCircleIcon />}
-          label="All clear — No active SOS alerts"
-          color="success"
-          variant="outlined"
-          sx={{ fontWeight: 600, fontSize: 13, px: 1, py: 0.5, height: 36 }}
-        />
+      {/* Active tab — no alerts state */}
+      {sosTab === 'active' && !isLoading && activeSos.length === 0 && (
+        <Chip icon={<CheckCircleIcon />} label="All clear — No active SOS alerts"
+          color="success" variant="outlined"
+          sx={{ fontWeight: 600, fontSize: 13, px: 1, py: 0.5, height: 36 }} />
+      )}
+
+      {/* History tab */}
+      {sosTab === 'history' && (
+        historySos.length === 0
+          ? <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>No resolved SOS history yet.</Typography>
+          : historySos.map(sos => (
+            <Box key={sos.id} sx={{
+              display: 'flex', alignItems: 'flex-start', gap: 2,
+              p: 2, mb: 1.5, borderRadius: 2,
+              border: '1px solid #E8EDF2', bgcolor: sos.status === 'RESOLVED' ? '#F1F8F1' : '#FFF8F0',
+            }}>
+              <Box sx={{ fontSize: 22 }}>{sos.status === 'RESOLVED' ? '✅' : '👁️'}</Box>
+              <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
+                  <Typography fontWeight={700}>{sos.childName}</Typography>
+                  <Chip size="small" label={sos.status}
+                    color={sos.status === 'RESOLVED' ? 'success' : 'warning'}
+                    sx={{ fontSize: 10, fontWeight: 700 }} />
+                </Box>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Triggered: {sos.triggeredAt ? new Date(sos.triggeredAt).toLocaleString() : '—'}
+                </Typography>
+                {sos.acknowledgedAt && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Acknowledged: {new Date(sos.acknowledgedAt).toLocaleString()}
+                  </Typography>
+                )}
+                {sos.resolvedAt && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Resolved: {new Date(sos.resolvedAt).toLocaleString()}
+                  </Typography>
+                )}
+                {sos.latitude && sos.longitude && (
+                  <Typography variant="caption" component="a"
+                    href={`https://maps.google.com/?q=${sos.latitude},${sos.longitude}`}
+                    target="_blank" rel="noopener noreferrer"
+                    sx={{ color: '#1565C0', textDecoration: 'underline', display: 'block', mt: 0.5 }}>
+                    📍 {sos.latitude.toFixed(5)}, {sos.longitude.toFixed(5)} — View on Map
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          ))
       )}
 
       {/* Active SOS Cards */}
-      {activeSos.map((sos) => (
+      {sosTab === 'active' && activeSos.map((sos) => (
         <Card
           key={sos.id}
           sx={{
@@ -245,6 +296,7 @@ function SosPanelSection() {
     </Box>
   );
 }
+
 
 export default function AlertsPage() {
   const [tab, setTab] = useState(0);
