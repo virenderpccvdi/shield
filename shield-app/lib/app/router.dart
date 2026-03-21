@@ -12,6 +12,7 @@ import '../features/dashboard/dashboard_screen.dart';
 import '../features/family/family_screen.dart';
 import '../features/family/child_detail_screen.dart';
 import '../features/family/new_child_profile_screen.dart';
+import '../features/family/co_parent_screen.dart';
 import '../features/location/map_screen.dart';
 import '../features/alerts/alerts_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -29,6 +30,7 @@ import '../features/parent/devices_screen.dart';
 import '../features/parent/panic_alert_screen.dart';
 import '../features/child/child_tasks_screen.dart';
 import '../features/child/child_sos_screen.dart';
+import '../features/onboarding/onboarding_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
@@ -42,7 +44,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isPublicRoute = publicRoutes.contains(state.matchedLocation);
       // Child mode: always redirect to /child
       if (isChildMode && isAuth && state.matchedLocation != '/child') return '/child';
-      if (!isAuth && !isPublicRoute) return '/login';
+      if (!isAuth && !isPublicRoute && state.matchedLocation != '/onboarding') return '/login';
       if (isAuth && !isChildMode && isPublicRoute) return '/dashboard';
       return null;
     },
@@ -51,6 +53,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(path: '/child-setup', builder: (_, __) => const ChildDeviceSetupScreen()),
+      GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
       GoRoute(path: '/child', builder: (_, __) => const ChildAppScreen()),
       GoRoute(path: '/child/tasks', builder: (_, __) => const ChildTasksScreen()),
       GoRoute(path: '/child/sos', builder: (_, __) => const ChildSosScreen()),
@@ -60,6 +63,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
           GoRoute(path: '/family', builder: (_, __) => const FamilyScreen()),
           GoRoute(path: '/family/new', builder: (_, __) => const NewChildProfileScreen()),
+          GoRoute(path: '/family/members', builder: (_, __) => const CoParentScreen()),
           GoRoute(path: '/family/:profileId', builder: (_, state) => ChildDetailScreen(profileId: state.pathParameters['profileId']!)),
           GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
           GoRoute(path: '/alerts', builder: (_, __) => const AlertsScreen()),

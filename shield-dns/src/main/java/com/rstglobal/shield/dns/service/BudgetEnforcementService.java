@@ -1,5 +1,6 @@
 package com.rstglobal.shield.dns.service;
 
+import com.rstglobal.shield.dns.client.AdGuardClient;
 import com.rstglobal.shield.dns.entity.BudgetUsage;
 import com.rstglobal.shield.dns.entity.DnsRules;
 import com.rstglobal.shield.dns.repository.BudgetUsageRepository;
@@ -24,11 +25,26 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * Every minute it increments Redis usage counters for profiles that have active budgets.
  * When usage hits 80% or 100% of a budget limit, a notification is sent to the parent.
+ * When the "total" daily budget key is exhausted, all internet is cut off by setting
+ * the {@code __budget_exhausted__} flag in dns_rules.enabled_categories and syncing to AdGuard.
  * At midnight, all daily counters are reset and persisted to the database.
  */
 @Slf4j
 @Service
 public class BudgetEnforcementService {
+
+    /**
+     * Special key stored in dns_rules.enabled_categories to signal that the child's total
+     * daily screen-time budget is exhausted.  Checked by DnsRulesService.syncToAdGuard()
+     * alongside {@code __schedule_blocked__} to disable all DNS filtering.
+     */
+    public static final String BUDGET_EXHAUSTED_KEY = "__budget_exhausted__";
+
+    /**
+     * Key used inside the timeBudgets map to represent the TOTAL daily internet budget
+     * (as opposed to per-category limits).  Value is in minutes; 0 = no total limit.
+     */
+    public static final String TOTAL_BUDGET_KEY = "total";
 
     private static final String NOTIFICATION_SERVICE = "SHIELD-NOTIFICATION";
     private static final String REDIS_PREFIX = "shield:budget:";
@@ -41,16 +57,19 @@ public class BudgetEnforcementService {
     private final BudgetUsageRepository usageRepo;
     private final StringRedisTemplate redis;
     private final DiscoveryClient discoveryClient;
+    private final AdGuardClient adGuard;
     private final RestClient restClient;
 
     public BudgetEnforcementService(DnsRulesRepository rulesRepo,
                                     BudgetUsageRepository usageRepo,
                                     StringRedisTemplate redis,
-                                    DiscoveryClient discoveryClient) {
+                                    DiscoveryClient discoveryClient,
+                                    AdGuardClient adGuard) {
         this.rulesRepo = rulesRepo;
         this.usageRepo = usageRepo;
         this.redis = redis;
         this.discoveryClient = discoveryClient;
+        this.adGuard = adGuard;
         this.restClient = RestClient.builder().build();
     }
 
@@ -77,6 +96,10 @@ public class BudgetEnforcementService {
                 int limitMinutes = entry.getValue();
                 if (limitMinutes <= 0) {
                     continue; // 0 means unlimited
+                }
+                // The "total" key is handled separately below — skip it here
+                if (TOTAL_BUDGET_KEY.equals(category)) {
+                    continue;
                 }
 
                 // Increment by 1 minute (assumes the child is actively using the category)
@@ -113,6 +136,64 @@ public class BudgetEnforcementService {
                     }
                 }
             }
+
+            // ── Total daily budget enforcement ────────────────────────────────────
+            // If timeBudgets contains a "total" key, treat it as the overall daily
+            // internet allowance.  Every minute a profile has ANY budget, we increment
+            // its total counter.  When it hits the limit, we set __budget_exhausted__
+            // in enabled_categories and push the change to AdGuard so ALL DNS is cut off.
+            Integer totalLimitMinutes = budgets.get(TOTAL_BUDGET_KEY);
+            if (totalLimitMinutes != null && totalLimitMinutes > 0) {
+                String totalKey = totalUsageKey(profileId);
+                Long totalUsed = redis.opsForValue().increment(totalKey);
+                if (totalUsed == null) totalUsed = 0L;
+
+                if (totalUsed == 1) {
+                    redis.expire(totalKey, Duration.ofHours(25));
+                }
+
+                Map<String, Boolean> cats = rules.getEnabledCategories();
+                if (cats == null) cats = new LinkedHashMap<>();
+                boolean wasExhausted = Boolean.TRUE.equals(cats.get(BUDGET_EXHAUSTED_KEY));
+                boolean nowExhausted = totalUsed >= totalLimitMinutes;
+
+                // 80% warning for total budget
+                if (totalUsed >= (long) (totalLimitMinutes * 0.8) && totalUsed < totalLimitMinutes) {
+                    String warned80Key = totalKey + WARNED_80_SUFFIX;
+                    if (!Boolean.TRUE.equals(redis.hasKey(warned80Key))) {
+                        redis.opsForValue().set(warned80Key, "1", Duration.ofHours(25));
+                        sendBudgetNotification(profileId, rules.getTenantId(), "total",
+                                totalUsed.intValue(), totalLimitMinutes, false);
+                    }
+                }
+
+                if (nowExhausted != wasExhausted) {
+                    // State changed — update DnsRules flag and sync to AdGuard
+                    cats = new LinkedHashMap<>(cats);
+                    cats.put(BUDGET_EXHAUSTED_KEY, nowExhausted);
+                    rules.setEnabledCategories(cats);
+                    rulesRepo.save(rules);
+
+                    if (nowExhausted) {
+                        // First time exhausted — send notification
+                        String warned100Key = totalKey + WARNED_100_SUFFIX;
+                        if (!Boolean.TRUE.equals(redis.hasKey(warned100Key))) {
+                            redis.opsForValue().set(warned100Key, "1", Duration.ofHours(25));
+                            sendBudgetNotification(profileId, rules.getTenantId(), "total",
+                                    totalUsed.intValue(), totalLimitMinutes, true);
+                        }
+                        // Cut off internet via AdGuard
+                        syncBudgetExhaustedToAdGuard(rules, true);
+                        log.info("Budget EXHAUSTED: profileId={} usedMin={} totalLimit={}",
+                                profileId, totalUsed, totalLimitMinutes);
+                    } else {
+                        // Budget was restored (parent extended the limit mid-day)
+                        syncBudgetExhaustedToAdGuard(rules, false);
+                        log.info("Budget RESTORED: profileId={} usedMin={} totalLimit={}",
+                                profileId, totalUsed, totalLimitMinutes);
+                    }
+                }
+            }
         }
 
         if (checked > 0) {
@@ -140,6 +221,7 @@ public class BudgetEnforcementService {
             Map<String, Integer> appUsage = new LinkedHashMap<>();
 
             for (String category : budgets.keySet()) {
+                if (TOTAL_BUDGET_KEY.equals(category)) continue; // handled separately below
                 String usageKey = usageKey(profileId, category);
                 String val = redis.opsForValue().get(usageKey);
                 int used = (val != null) ? Integer.parseInt(val) : 0;
@@ -153,6 +235,17 @@ public class BudgetEnforcementService {
                 redis.delete(usageKey + WARNED_100_SUFFIX);
             }
 
+            // Persist total usage to DB and clear total Redis keys
+            String totalKey = totalUsageKey(profileId);
+            String totalVal = redis.opsForValue().get(totalKey);
+            int totalUsed = (totalVal != null) ? Integer.parseInt(totalVal) : 0;
+            if (totalUsed > 0) {
+                appUsage.put(TOTAL_BUDGET_KEY, totalUsed);
+            }
+            redis.delete(totalKey);
+            redis.delete(totalKey + WARNED_80_SUFFIX);
+            redis.delete(totalKey + WARNED_100_SUFFIX);
+
             if (!appUsage.isEmpty()) {
                 // Persist yesterday's usage to DB
                 BudgetUsage usage = usageRepo.findByProfileIdAndDate(profileId, yesterday)
@@ -165,7 +258,8 @@ public class BudgetEnforcementService {
                 persisted++;
             }
 
-            // Re-enable any categories that were blocked due to budget exceeded
+            // Re-enable any categories that were blocked due to budget exceeded.
+            // Also clear the __budget_exhausted__ flag so the new day starts with internet access.
             unblockBudgetCategories(rules);
         }
 
@@ -194,8 +288,12 @@ public class BudgetEnforcementService {
     }
 
     /**
-     * Re-enable categories that were blocked due to budget limits (on daily reset).
-     * Only re-enables categories that have a corresponding time budget configured.
+     * Re-enable categories and clear budget flags at daily midnight reset.
+     * <ul>
+     *   <li>Re-enables per-category blocks that were set by budget enforcement.</li>
+     *   <li>Clears {@code __budget_exhausted__} so the new day starts with internet access.</li>
+     *   <li>Syncs to AdGuard when the exhausted flag was previously set.</li>
+     * </ul>
      */
     @Transactional
     public void unblockBudgetCategories(DnsRules rules) {
@@ -205,6 +303,8 @@ public class BudgetEnforcementService {
 
         boolean changed = false;
         Map<String, Boolean> updated = new LinkedHashMap<>(categories);
+
+        // Re-enable per-category blocks
         for (String category : budgets.keySet()) {
             if (Boolean.FALSE.equals(updated.get(category))) {
                 updated.put(category, true);
@@ -212,10 +312,55 @@ public class BudgetEnforcementService {
             }
         }
 
+        // Clear __budget_exhausted__ flag so a new day starts fresh
+        boolean wasExhausted = Boolean.TRUE.equals(updated.get(BUDGET_EXHAUSTED_KEY));
+        if (wasExhausted) {
+            updated.put(BUDGET_EXHAUSTED_KEY, false);
+            changed = true;
+        }
+
         if (changed) {
             rules.setEnabledCategories(updated);
             rulesRepo.save(rules);
-            log.info("Re-enabled budget-blocked categories for profile {}", rules.getProfileId());
+            log.info("Daily reset: re-enabled budget-blocked categories for profile {} (wasExhausted={})",
+                    rules.getProfileId(), wasExhausted);
+            if (wasExhausted) {
+                // Restore internet access via AdGuard
+                syncBudgetExhaustedToAdGuard(rules, false);
+            }
+        }
+    }
+
+    /**
+     * Notify AdGuard of budget-exhausted state change (best-effort).
+     * When {@code exhausted} is true, all DNS filtering is disabled (= internet blocked).
+     * When false, normal filtering is restored.
+     */
+    private void syncBudgetExhaustedToAdGuard(DnsRules rules, boolean exhausted) {
+        String clientId = rules.getDnsClientId();
+        if (clientId == null || clientId.isBlank()) return;
+        try {
+            if (exhausted) {
+                adGuard.updateClient(clientId, clientId, new AdGuardClient.AdGuardClientData(
+                        false, false, false,
+                        Map.of("enabled", false, "google", false, "bing", false,
+                                "duckduckgo", false, "youtube", false),
+                        List.of()
+                ));
+            } else {
+                // Restore normal filtering with safe defaults
+                adGuard.updateClient(clientId, clientId, new AdGuardClient.AdGuardClientData(
+                        true, true, true,
+                        Map.of("enabled", true, "google", true, "bing", true,
+                                "duckduckgo", true, "youtube",
+                                Boolean.TRUE.equals(rules.getYoutubeRestricted())),
+                        List.of()
+                ));
+            }
+            log.info("Budget AdGuard sync: profileId={} clientId={} exhausted={}",
+                    rules.getProfileId(), clientId, exhausted);
+        } catch (Exception e) {
+            log.warn("Budget AdGuard sync failed for profileId={}: {}", rules.getProfileId(), e.getMessage());
         }
     }
 
@@ -269,5 +414,10 @@ public class BudgetEnforcementService {
 
     private String usageKey(UUID profileId, String category) {
         return REDIS_PREFIX + profileId + ":" + category + ":used";
+    }
+
+    /** Redis key for the per-profile total daily internet usage counter. */
+    private String totalUsageKey(UUID profileId) {
+        return REDIS_PREFIX + profileId + ":total:used";
     }
 }

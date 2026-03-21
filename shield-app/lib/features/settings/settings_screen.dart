@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/auth_state.dart';
 import '../../core/api_client.dart';
 import '../../core/biometric_service.dart';
+import '../../core/theme_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -89,8 +90,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () => _showChangePassword(context)),
           _SettingsTile(icon: Icons.security_outlined, title: 'Two-Factor Authentication', subtitle: 'Enable TOTP for extra security',
             onTap: () => _launchWeb(context, 'settings')),
-          _SettingsTile(icon: Icons.family_restroom, title: 'Family Members', subtitle: 'Invite co-parents and manage family',
-            onTap: () => _launchWeb(context, 'settings')),
+          _SettingsTile(icon: Icons.group_add_rounded, title: 'Family Members', subtitle: 'Invite co-parents and manage family access',
+            onTap: () => context.go('/family/members')),
           if (_biometricAvailable)
             SwitchListTile(
               secondary: const Icon(Icons.fingerprint, color: Color(0xFF1565C0)),
@@ -150,6 +151,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const Divider(height: 1),
           _SectionHeader('App'),
+          _DarkModeTile(),
           _SettingsTile(icon: Icons.router_outlined, title: 'Router Setup', subtitle: 'Configure your home router DNS',
             onTap: () => _showRouterSetup(context)),
           _SettingsTile(icon: Icons.help_outline, title: 'Help & Support', subtitle: 'FAQ and contact',
@@ -354,6 +356,30 @@ class _SettingsTile extends StatelessWidget {
     trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
     onTap: onTap,
   );
+}
+
+class _DarkModeTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+    final isDark = mode == ThemeMode.dark ||
+        (mode == ThemeMode.system &&
+            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+    return SwitchListTile(
+      secondary: Icon(
+        isDark ? Icons.dark_mode : Icons.light_mode,
+        color: const Color(0xFF1565C0),
+      ),
+      title: const Text('Dark Mode',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+      subtitle: Text(
+        mode == ThemeMode.system ? 'Using system setting' : (isDark ? 'On' : 'Off'),
+        style: const TextStyle(fontSize: 12),
+      ),
+      value: isDark,
+      onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
+    );
+  }
 }
 
 class _PrefTile extends StatefulWidget {

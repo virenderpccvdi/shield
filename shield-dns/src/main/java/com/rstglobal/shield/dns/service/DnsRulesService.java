@@ -215,19 +215,20 @@ public class DnsRulesService {
 
         Map<String, Boolean> cats = Optional.ofNullable(rules.getEnabledCategories()).orElse(Map.of());
 
-        // If schedule enforcement OR pause flag is active, disable filtering entirely
-        // (filteringEnabled=false in AdGuard blocks ALL DNS for the client)
+        // If schedule enforcement, budget exhaustion, OR pause flag is active, disable
+        // filtering entirely (filteringEnabled=false in AdGuard blocks ALL DNS for the client)
         boolean scheduleBlocked = Boolean.TRUE.equals(cats.get(ScheduleService.SCHEDULE_BLOCKED_KEY));
+        boolean budgetExhausted = Boolean.TRUE.equals(cats.get(BudgetEnforcementService.BUDGET_EXHAUSTED_KEY));
         boolean paused = Boolean.TRUE.equals(cats.get("__paused__"));
-        if (scheduleBlocked || paused) {
+        if (scheduleBlocked || budgetExhausted || paused) {
             AdGuardClient.AdGuardClientData data = new AdGuardClient.AdGuardClientData(
                     false, false, false,
                     Map.of("enabled", false, "google", false, "bing", false,
                             "duckduckgo", false, "youtube", false),
                     List.of()
             );
-            log.info("AdGuard sync: profileId={} clientId={} — BLOCKED (scheduleBlocked={} paused={})",
-                    rules.getProfileId(), clientId, scheduleBlocked, paused);
+            log.info("AdGuard sync: profileId={} clientId={} — BLOCKED (scheduleBlocked={} budgetExhausted={} paused={})",
+                    rules.getProfileId(), clientId, scheduleBlocked, budgetExhausted, paused);
             adGuard.updateClient(clientId, clientId, data);
             return;
         }

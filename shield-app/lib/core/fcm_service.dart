@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -191,9 +192,15 @@ class FcmService {
     final notification = message.notification;
     if (notification == null) return;
 
-    final isHighPriority = message.data['priority'] == 'HIGH';
-    final channelId =
-        isHighPriority ? 'shield_urgent' : 'shield_default';
+    final type = message.data['type'] as String? ?? '';
+
+    // Geofence breach and SOS alerts always use the urgent channel
+    final isUrgent = type == 'GEOFENCE_BREACH' ||
+        type == 'SOS_ALERT' ||
+        type == 'GEOFENCE_BREACH_HIGH' ||
+        type == 'LOCATION_SPOOFING' ||
+        message.data['priority'] == 'HIGH';
+    final channelId = isUrgent ? 'shield_urgent' : 'shield_default';
 
     _localNotifications.show(
       message.hashCode,
@@ -202,10 +209,14 @@ class FcmService {
       NotificationDetails(
         android: AndroidNotificationDetails(
           channelId,
-          isHighPriority ? 'Shield Urgent Alerts' : 'Shield Notifications',
-          importance: isHighPriority ? Importance.max : Importance.high,
-          priority: isHighPriority ? Priority.max : Priority.high,
+          isUrgent ? 'Shield Urgent Alerts' : 'Shield Notifications',
+          importance: isUrgent ? Importance.max : Importance.high,
+          priority: isUrgent ? Priority.max : Priority.high,
           icon: '@mipmap/ic_launcher',
+          // Geofence breach gets a distinct vibration pattern
+          vibrationPattern: type == 'GEOFENCE_BREACH'
+              ? Int64List.fromList([0, 500, 200, 500])
+              : null,
         ),
       ),
       payload: jsonEncode(message.data),

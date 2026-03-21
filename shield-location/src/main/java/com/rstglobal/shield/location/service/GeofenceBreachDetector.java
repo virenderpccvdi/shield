@@ -9,6 +9,7 @@ import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,16 +37,19 @@ public class GeofenceBreachDetector {
     private final GeofenceEventRepository geofenceEventRepository;
     private final StringRedisTemplate redisTemplate;
     private final DiscoveryClient discoveryClient;
+    private final JdbcTemplate jdbcTemplate;
     private final RestClient restClient;
 
     public GeofenceBreachDetector(GeofenceService geofenceService,
                                   GeofenceEventRepository geofenceEventRepository,
                                   StringRedisTemplate redisTemplate,
-                                  DiscoveryClient discoveryClient) {
+                                  DiscoveryClient discoveryClient,
+                                  JdbcTemplate jdbcTemplate) {
         this.geofenceService = geofenceService;
         this.geofenceEventRepository = geofenceEventRepository;
         this.redisTemplate = redisTemplate;
         this.discoveryClient = discoveryClient;
+        this.jdbcTemplate = jdbcTemplate;
         this.restClient = RestClient.builder().build();
     }
 
@@ -120,8 +124,29 @@ public class GeofenceBreachDetector {
     }
 
     /**
+     * Resolve the parent (customer) userId from a child profileId.
+     * Cross-schema query: profile.child_profiles → profile.customers → user_id.
+     * Returns null if the child profile or parent account is not found.
+     */
+    private UUID resolveParentUserId(UUID profileId) {
+        try {
+            String sql = """
+                    SELECT c.user_id
+                    FROM profile.child_profiles cp
+                    JOIN profile.customers c ON c.id = cp.customer_id
+                    WHERE cp.id = ?
+                    """;
+            return jdbcTemplate.queryForObject(sql, UUID.class, profileId);
+        } catch (Exception e) {
+            log.warn("Could not resolve parent userId for profileId={}: {}", profileId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Fire-and-forget notification to shield-notification via internal endpoint.
      * Runs async so it never blocks the location upload response.
+     * Marks the breach event as notified after a successful send.
      */
     @Async
     public void sendBreachNotification(LocationPoint point, Geofence geofence,
@@ -130,24 +155,33 @@ public class GeofenceBreachDetector {
             String baseUrl = resolveNotificationUrl();
             if (baseUrl == null) return;
 
+            // Resolve the parent's auth userId — FCM tokens are keyed by userId
+            UUID parentUserId = resolveParentUserId(point.getProfileId());
+            if (parentUserId == null) {
+                log.warn("Skipping breach notification — could not resolve parent userId for profileId={}",
+                        point.getProfileId());
+                return;
+            }
+
             String direction = "ENTER".equals(eventType) ? "entered" : "left";
             String title = "Geofence Alert: " + geofence.getName();
             String body = "Your child has " + direction + " the zone \"" + geofence.getName() + "\".";
+
+            UUID tenantId = point.getTenantId() != null
+                    ? point.getTenantId()
+                    : geofence.getTenantId();
+            if (tenantId == null) {
+                tenantId = UUID.fromString("00000000-0000-0000-0000-000000000000");
+            }
 
             Map<String, Object> payload = new java.util.HashMap<>();
             payload.put("type", "GEOFENCE_BREACH");
             payload.put("title", title);
             payload.put("body", body);
             payload.put("profileId", point.getProfileId().toString());
+            payload.put("userId", parentUserId.toString());
+            payload.put("tenantId", tenantId.toString());
             payload.put("actionUrl", "https://shield.rstglobal.in/app/location");
-            // userId is the parent — we don't have it here, so profileId doubles as target
-            payload.put("userId", point.getProfileId().toString());
-            if (point.getTenantId() != null) {
-                payload.put("tenantId", point.getTenantId().toString());
-            } else {
-                // Use a zero UUID as fallback for platform-level notification
-                payload.put("tenantId", "00000000-0000-0000-0000-000000000000");
-            }
 
             restClient.post()
                     .uri(baseUrl + "/internal/notifications/send")
@@ -156,7 +190,14 @@ public class GeofenceBreachDetector {
                     .retrieve()
                     .toBodilessEntity();
 
-            log.info("Breach notification sent for event={} geofence='{}'", eventId, geofence.getName());
+            // Mark the geofence event as notified
+            geofenceEventRepository.findById(eventId).ifPresent(ev -> {
+                ev.setNotified(true);
+                geofenceEventRepository.save(ev);
+            });
+
+            log.info("Breach notification sent: event={} geofence='{}' parentUserId={}",
+                    eventId, geofence.getName(), parentUserId);
         } catch (Exception e) {
             log.warn("Failed to send breach notification for geofence '{}': {}",
                     geofence.getName(), e.getMessage());

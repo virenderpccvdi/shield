@@ -78,6 +78,7 @@ import CheckoutSuccessPage from './pages/customer/CheckoutSuccessPage';
 import CheckoutCancelPage from './pages/customer/CheckoutCancelPage';
 import NewChildProfilePage from './pages/customer/NewChildProfilePage';
 import CustomerChildProfilesPage from './pages/customer/CustomerChildProfilesPage';
+import FamilyMembersPage from './pages/customer/FamilyMembersPage';
 import IspPlansPage from './pages/isp-admin/IspPlansPage';
 import IspAiInsightsPage from './pages/isp-admin/IspAiInsightsPage';
 import AdminAiInsightsPage from './pages/global-admin/AdminAiInsightsPage';
@@ -167,6 +168,7 @@ export default function App() {
               <Route path="/profiles/new" element={<NewChildProfilePage />} />
               <Route path="/billing/success" element={<CheckoutSuccessPage />} />
               <Route path="/billing/cancel" element={<CheckoutCancelPage />} />
+              <Route path="/family-members" element={<FamilyMembersPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
 

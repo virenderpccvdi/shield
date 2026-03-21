@@ -51,7 +51,7 @@ public class LocationBroadcaster {
             if (point.getRecordedAt() != null) payload.put("recordedAt", point.getRecordedAt().toString());
 
             restClient.post()
-                    .uri(baseUrl + "/internal/location-update")
+                    .uri(baseUrl + "/internal/notifications/location-update")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()

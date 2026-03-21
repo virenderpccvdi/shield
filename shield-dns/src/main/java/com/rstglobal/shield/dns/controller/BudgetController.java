@@ -3,6 +3,7 @@ package com.rstglobal.shield.dns.controller;
 import com.rstglobal.shield.common.dto.ApiResponse;
 import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.dns.dto.request.UpdateBudgetsRequest;
+import com.rstglobal.shield.dns.dto.response.BudgetStatusResponse;
 import com.rstglobal.shield.dns.dto.response.BudgetTodayResponse;
 import com.rstglobal.shield.dns.service.BudgetService;
 import jakarta.validation.Valid;
@@ -43,6 +44,19 @@ public class BudgetController {
             @RequestHeader("X-User-Role") String role) {
         requireCustomer(role);
         return ResponseEntity.ok(ApiResponse.ok(budgetService.getTodayUsage(profileId)));
+    }
+
+    /**
+     * Real-time budget status: exhausted flag, used minutes, total minutes, remaining minutes.
+     * Used by the Flutter parent app to display accurate screen time remaining.
+     * The "total" budget key in timeBudgets controls when all internet is cut off.
+     */
+    @GetMapping("/{profileId}/status")
+    public ResponseEntity<ApiResponse<BudgetStatusResponse>> getBudgetStatus(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role) {
+        requireCustomer(role);
+        return ResponseEntity.ok(ApiResponse.ok(budgetService.getStatus(profileId)));
     }
 
     @PostMapping("/{profileId}/extend")

@@ -17,6 +17,7 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import DevicesIcon from '@mui/icons-material/Devices';
 import PhonelinkSetupIcon from '@mui/icons-material/PhonelinkSetup';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import MenuIcon from '@mui/icons-material/Menu';
 import ShieldIcon from '@mui/icons-material/Shield';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -67,6 +68,7 @@ const sections = [
   {
     title: 'Account',
     items: [
+      { label: 'Family Members', icon: <GroupAddIcon />, path: '/family-members' },
       { label: 'Subscription', icon: <CardMembershipIcon />, path: '/subscription' },
       { label: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     ],

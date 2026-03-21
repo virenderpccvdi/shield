@@ -26,6 +26,7 @@ import { useAuthStore } from '../../store/auth.store';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import WelcomeBanner from '../../components/WelcomeBanner';
 
 interface ChildProfile {
   id: string; name: string; online: boolean; lastSeen?: string;
@@ -192,6 +193,9 @@ export default function CustomerDashboardPage() {
 
   return (
     <AnimatedPage>
+      {/* Welcome onboarding banner — shown when no children yet */}
+      <WelcomeBanner hasChildren={children.length > 0} />
+
       {/* High block alert banner */}
       {highBlockChildren.length > 0 && (
         <Alert severity="warning" icon={<WarningAmberIcon />} sx={{ mb: 2, borderRadius: 2 }}

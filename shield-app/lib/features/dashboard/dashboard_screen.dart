@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/auth_state.dart';
 import '../../core/api_client.dart';
 import '../../core/shield_logo.dart';
@@ -471,45 +472,130 @@ class _ChildrenSection extends StatelessWidget {
   }
 }
 
-class _EmptyChildren extends StatelessWidget {
+class _EmptyChildren extends StatefulWidget {
+  @override
+  State<_EmptyChildren> createState() => _EmptyChildrenState();
+}
+
+class _EmptyChildrenState extends State<_EmptyChildren> {
+  bool _onboardingDone = true; // default: assume done to avoid flash
+  bool _checked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboarding();
+  }
+
+  Future<void> _checkOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final done = prefs.getBool('onboarding_done') ?? false;
+    if (mounted) setState(() { _onboardingDone = done; _checked = true; });
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!_checked) return const SizedBox.shrink();
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: _onboardingDone
+            ? null
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1565C0), Color(0xFF0A2463)],
+              ),
+        color: _onboardingDone ? Colors.white : null,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: ShieldTheme.divider),
+        border: _onboardingDone
+            ? Border.all(color: ShieldTheme.divider)
+            : null,
+        boxShadow: _onboardingDone
+            ? null
+            : [BoxShadow(color: const Color(0xFF1565C0).withOpacity(0.25), blurRadius: 20, offset: const Offset(0, 6))],
       ),
-      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
-      child: Column(
-        children: [
-          Container(
-            width: 72, height: 72,
-            decoration: BoxDecoration(
-              color: ShieldTheme.primary.withOpacity(0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.child_care_rounded, size: 36, color: ShieldTheme.primary),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      child: _onboardingDone
+          ? _buildSimpleEmpty(context)
+          : _buildOnboardingCta(context),
+    );
+  }
+
+  Widget _buildSimpleEmpty(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 72, height: 72,
+          decoration: BoxDecoration(
+            color: ShieldTheme.primary.withOpacity(0.08),
+            shape: BoxShape.circle,
           ),
-          const SizedBox(height: 16),
-          const Text('No children added yet',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ShieldTheme.textPrimary)),
-          const SizedBox(height: 6),
-          const Text('Add your first child profile to start protecting them.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: ShieldTheme.textSecondary)),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: 180,
-            child: FilledButton.icon(
-              onPressed: () => context.go('/family/new'),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add Child'),
-              style: FilledButton.styleFrom(minimumSize: const Size(180, 44)),
+          child: const Icon(Icons.child_care_rounded, size: 36, color: ShieldTheme.primary),
+        ),
+        const SizedBox(height: 16),
+        const Text('No children added yet',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ShieldTheme.textPrimary)),
+        const SizedBox(height: 6),
+        const Text('Add your first child profile to start protecting them.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: ShieldTheme.textSecondary)),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: 180,
+          child: FilledButton.icon(
+            onPressed: () => context.go('/family/new'),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Add Child'),
+            style: FilledButton.styleFrom(minimumSize: const Size(180, 44)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOnboardingCta(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 72, height: 72,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+          ),
+          child: const Icon(Icons.family_restroom_rounded, size: 36, color: Colors.white),
+        ),
+        const SizedBox(height: 16),
+        const Text('Set up family protection',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+        const SizedBox(height: 8),
+        const Text(
+          'Follow the guided setup to add your first child and start keeping them safe online.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: Colors.white70, height: 1.5),
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: () => context.go('/onboarding'),
+            icon: const Icon(Icons.play_arrow_rounded, size: 20),
+            label: const Text('Start Setup'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: ShieldTheme.primary,
+              minimumSize: const Size(double.infinity, 48),
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+        TextButton(
+          onPressed: () => context.go('/family/new'),
+          child: const Text('Skip — Add child directly',
+            style: TextStyle(color: Colors.white60, fontSize: 13)),
+        ),
+      ],
     );
   }
 }
