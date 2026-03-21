@@ -405,18 +405,16 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                       ),
                       background: Stack(
                         children: [
-                          Builder(builder: (ctx) {
-                            final cs = Theme.of(ctx).colorScheme;
-                            return Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [cs.primary, cs.primaryContainer.withOpacity(0.85), cs.primaryContainer],
-                                ),
+                          Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                // Deep blue always — white text is always readable on this header
+                                colors: [Color(0xFF1565C0), Color(0xFF0D47A1), Color(0xFF1A237E)],
                               ),
-                            );
-                          }),
+                            ),
+                          ),
                           Positioned(
                             right: -20,
                             top: -20,
@@ -611,14 +609,14 @@ class _CheckInCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isCheckedIn
-              ? [const Color(0xFF1B5E20), const Color(0xFF2E7D32)]
-              : [colorScheme.primary, colorScheme.primaryContainer],
+              ? [const Color(0xFF1B5E20), const Color(0xFF2E7D32)]   // green — checked in
+              : [const Color(0xFF1565C0), const Color(0xFF0D47A1)],  // blue  — not checked in
+          // Always use deep saturated colours — white text must be readable on this card
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -668,7 +666,7 @@ class _CheckInCard extends StatelessWidget {
             onPressed: onTap,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: isCheckedIn ? Colors.green.shade700 : colorScheme.primary,
+              foregroundColor: isCheckedIn ? Colors.green.shade700 : const Color(0xFF1565C0),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               elevation: 0,
