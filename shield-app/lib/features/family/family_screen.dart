@@ -32,16 +32,33 @@ class FamilyScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await context.push('/family/new');
-          ref.invalidate(profilesProvider);
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Add Child'),
-        backgroundColor: ShieldTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 2,
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'fab_link_device',
+            onPressed: () => context.push('/child-setup'),
+            icon: const Icon(Icons.phonelink_setup_rounded),
+            label: const Text('Link Child Device'),
+            backgroundColor: const Color(0xFF1565C0),
+            foregroundColor: Colors.white,
+            elevation: 2,
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton.extended(
+            heroTag: 'fab_add_child',
+            onPressed: () async {
+              await context.push('/family/new');
+              ref.invalidate(profilesProvider);
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add Child'),
+            backgroundColor: ShieldTheme.primary,
+            foregroundColor: Colors.white,
+            elevation: 2,
+          ),
+        ],
       ),
       body: profilesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

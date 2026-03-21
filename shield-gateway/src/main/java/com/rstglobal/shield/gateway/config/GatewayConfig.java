@@ -54,4 +54,16 @@ public class GatewayConfig {
             return Mono.just("ip:" + ip);
         };
     }
+
+    /**
+     * IP-based key resolver used for strict rate limiting on public auth endpoints
+     * (login, register) to prevent brute-force and abuse.
+     */
+    @Bean
+    public KeyResolver ipKeyResolver() {
+        return exchange -> Mono.just(
+            Objects.requireNonNull(
+                exchange.getRequest().getRemoteAddress()).getAddress().getHostAddress()
+        );
+    }
 }

@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:dio/dio.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -16,11 +19,48 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   List<Map<String, dynamic>> _topDomains = [];
   List<Map<String, dynamic>> _categories = [];
   bool _loading = true;
+  bool _pdfLoading = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  Future<void> _downloadPdf() async {
+    setState(() => _pdfLoading = true);
+    final client = ref.read(dioProvider);
+    try {
+      final response = await client.get(
+        '/analytics/${widget.profileId}/report/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = response.data as List<int>;
+      final tmpDir = Directory.systemTemp;
+      final file = File('${tmpDir.path}/shield-report-${widget.profileId}.pdf');
+      await file.writeAsBytes(bytes, flush: true);
+      final uri = Uri.file(file.path);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF saved but could not open viewer. Check Downloads.')),
+        );
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF downloaded successfully'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to download PDF: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _pdfLoading = false);
+    }
   }
 
   Future<void> _load() async {
@@ -59,6 +99,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       appBar: AppBar(
         title: const Text('Reports & Analytics', style: TextStyle(fontWeight: FontWeight.w700)),
         actions: [
+          if (_pdfLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf),
+              tooltip: 'Download PDF Report',
+              onPressed: _downloadPdf,
+            ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
         ],
       ),

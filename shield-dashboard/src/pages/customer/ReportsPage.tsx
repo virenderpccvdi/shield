@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Box, Grid, Card, CardContent, Typography, CircularProgress, Alert,
   Tabs, Tab, Chip, Table, TableHead, TableRow, TableCell, TableBody,
-  Stack, Divider, LinearProgress,
+  Stack, Divider, LinearProgress, Button, Snackbar,
 } from '@mui/material';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -17,6 +17,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import LanguageIcon from '@mui/icons-material/Language';
 import CategoryIcon from '@mui/icons-material/Category';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -62,6 +63,31 @@ export default function ReportsPage() {
   const { profileId } = useParams<{ profileId: string }>();
   const [period, setPeriod] = useState<Period>('WEEK');
   const [chartTab, setChartTab] = useState(0);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+
+  const handleDownloadPdf = async () => {
+    if (!profileId) return;
+    setPdfLoading(true);
+    try {
+      const response = await api.get(`/analytics/${profileId}/report/pdf`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `shield-report-${profileId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setSnackbar({ open: true, message: 'PDF downloaded successfully', severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to download PDF report', severity: 'error' });
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   // Stats query — period-aware
   const statsQuery = useQuery({
@@ -166,12 +192,46 @@ export default function ReportsPage() {
 
   return (
     <AnimatedPage>
-      <PageHeader
-        icon={<AssessmentIcon />}
-        title="Reports & Analytics"
-        subtitle={`DNS activity report — ${PERIOD_LABELS[period]}`}
-        iconColor="#1565C0"
-      />
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+        <PageHeader
+          icon={<AssessmentIcon />}
+          title="Reports & Analytics"
+          subtitle={`DNS activity report — ${PERIOD_LABELS[period]}`}
+          iconColor="#1565C0"
+        />
+        <Button
+          variant="contained"
+          startIcon={pdfLoading ? <CircularProgress size={16} color="inherit" /> : <PictureAsPdfIcon />}
+          onClick={handleDownloadPdf}
+          disabled={pdfLoading || !profileId}
+          sx={{
+            mt: 1,
+            bgcolor: '#C62828',
+            '&:hover': { bgcolor: '#B71C1C' },
+            '&:disabled': { bgcolor: '#E0E0E0' },
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+          }}
+        >
+          {pdfLoading ? 'Downloading…' : 'Download PDF'}
+        </Button>
+      </Box>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: '100%', borderRadius: 2 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
 
       {/* Period Selector */}
       <AnimatedPage delay={0.05}>

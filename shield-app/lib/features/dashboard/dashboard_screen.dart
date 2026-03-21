@@ -386,8 +386,50 @@ class _QuickActions extends StatelessWidget {
                 _ActionChip(icon: Icons.settings_rounded,     label: 'Settings',    color: ShieldTheme.textSecondary, onTap: () => context.go('/settings')),
               ],
             ),
+            const SizedBox(height: 10),
+            _SetupChildDeviceTile(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SetupChildDeviceTile extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/child-setup'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.phonelink_setup_rounded, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Set Up Child Device',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+              Text('Link a phone or tablet to this profile',
+                style: TextStyle(color: Colors.white70, fontSize: 11)),
+            ]),
+          ),
+          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+        ]),
       ),
     );
   }

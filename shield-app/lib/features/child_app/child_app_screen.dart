@@ -746,13 +746,71 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-class _TasksCard extends StatelessWidget {
+class _TasksCard extends ConsumerStatefulWidget {
   final AsyncValue<List<Map<String, dynamic>>> tasksAsync;
   final String profileId;
   const _TasksCard({required this.tasksAsync, required this.profileId});
 
   @override
+  ConsumerState<_TasksCard> createState() => _TasksCardState();
+}
+
+class _TasksCardState extends ConsumerState<_TasksCard> {
+  // Optimistic overrides: taskId -> true (completed)
+  final Map<String, bool> _optimistic = {};
+  final Set<String> _completing = {};
+
+  Future<void> _completeTask(Map<String, dynamic> task) async {
+    final id = task['id']?.toString();
+    if (id == null) return;
+    if (_completing.contains(id)) return;
+    if (_optimistic[id] == true || task['completed'] == true) return;
+
+    setState(() {
+      _optimistic[id] = true;
+      _completing.add(id);
+    });
+
+    try {
+      final client = ref.read(dioProvider);
+      await client.patch('/rewards/tasks/$id/complete');
+      final pts = task['points'] as int? ?? 0;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Task completed! +$pts points 🎉'),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        ref.invalidate(childTasksProvider(widget.profileId));
+      }
+    } catch (e) {
+      // Revert optimistic update on failure
+      if (mounted) {
+        setState(() => _optimistic.remove(id));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Could not complete task. Please try again.'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _completing.remove(id));
+    }
+  }
+
+  bool _isDone(Map<String, dynamic> task) {
+    final id = task['id']?.toString() ?? '';
+    return _optimistic[id] == true || task['completed'] == true;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final tasksAsync = widget.tasksAsync;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -775,7 +833,7 @@ class _TasksCard extends StatelessWidget {
                 const Expanded(child: Text('My Tasks', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
                 tasksAsync.maybeWhen(
                   data: (tasks) {
-                    final done = tasks.where((t) => t['completed'] == true).length;
+                    final done = tasks.where((t) => _isDone(t)).length;
                     final total = tasks.length;
                     if (total == 0) return const SizedBox.shrink();
                     return Container(
@@ -815,7 +873,7 @@ class _TasksCard extends StatelessWidget {
                 );
               }
               final totalPts = tasks.fold<int>(0, (s, t) => s + ((t['points'] as int?) ?? 0));
-              final earnedPts = tasks.where((t) => t['completed'] == true)
+              final earnedPts = tasks.where((t) => _isDone(t))
                   .fold<int>(0, (s, t) => s + ((t['points'] as int?) ?? 0));
               return Column(
                 children: [
@@ -839,54 +897,74 @@ class _TasksCard extends StatelessWidget {
                       ),
                     ),
                   ...tasks.map((task) {
-                    final done = task['completed'] == true;
+                    final done = _isDone(task);
                     final pts = task['points'] as int? ?? 0;
-                    return Container(
-                      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: done ? Colors.green.shade50 : const Color(0xFFF8FAFC),
+                    final taskId = task['id']?.toString() ?? '';
+                    final isCompleting = _completing.contains(taskId);
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: done ? Colors.green.shade200 : Colors.grey.shade200,
-                            width: done ? 1.5 : 1),
-                      ),
-                      child: Row(children: [
-                        Container(
-                          width: 28, height: 28,
+                        onTap: (!done && !isCompleting) ? () => _completeTask(task) : null,
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: done ? Colors.green.shade100 : Colors.grey.shade100,
-                            shape: BoxShape.circle,
+                            color: done ? Colors.green.shade50 : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                                color: done ? Colors.green.shade200 : Colors.grey.shade200,
+                                width: done ? 1.5 : 1),
                           ),
-                          child: Icon(done ? Icons.check_rounded : Icons.circle_outlined,
-                              color: done ? Colors.green.shade700 : Colors.grey.shade400, size: 18),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(
-                          task['title'] as String? ?? 'Task',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            decoration: done ? TextDecoration.lineThrough : null,
-                            color: done ? Colors.grey.shade500 : const Color(0xFF1A1A2E),
-                          ),
-                        )),
-                        if (pts > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: done ? Colors.green.shade100 : Colors.amber.shade100,
-                              borderRadius: BorderRadius.circular(20),
+                          child: Row(children: [
+                            Container(
+                              width: 28, height: 28,
+                              decoration: BoxDecoration(
+                                color: done ? Colors.green.shade100 : Colors.grey.shade100,
+                                shape: BoxShape.circle,
+                              ),
+                              child: isCompleting
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(5),
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.green.shade600),
+                                    )
+                                  : Icon(done ? Icons.check_rounded : Icons.circle_outlined,
+                                        color: done ? Colors.green.shade700 : Colors.grey.shade400, size: 18),
                             ),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(Icons.star_rounded, size: 12,
-                                  color: done ? Colors.green.shade600 : Colors.amber.shade700),
-                              const SizedBox(width: 3),
-                              Text('$pts', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800,
-                                  color: done ? Colors.green.shade700 : Colors.amber.shade800)),
-                            ]),
-                          ),
-                      ]),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(
+                              task['title'] as String? ?? 'Task',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                decoration: done ? TextDecoration.lineThrough : null,
+                                color: done ? Colors.grey.shade500 : const Color(0xFF1A1A2E),
+                              ),
+                            )),
+                            if (!done && !isCompleting)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Text('Tap to complete',
+                                  style: TextStyle(fontSize: 10, color: Colors.blue.shade400, fontWeight: FontWeight.w500)),
+                              ),
+                            if (pts > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: done ? Colors.green.shade100 : Colors.amber.shade100,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(Icons.star_rounded, size: 12,
+                                      color: done ? Colors.green.shade600 : Colors.amber.shade700),
+                                  const SizedBox(width: 3),
+                                  Text('$pts', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800,
+                                      color: done ? Colors.green.shade700 : Colors.amber.shade800)),
+                                ]),
+                              ),
+                          ]),
+                        ),
+                      ),
                     );
                   }),
                   const SizedBox(height: 8),

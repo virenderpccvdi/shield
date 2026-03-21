@@ -33,10 +33,35 @@ import '../features/child/child_sos_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/notifications/notification_history_screen.dart';
 
+// ── Auth change notifier — drives GoRouter refresh without recreating it ────
+
+class _AuthChangeNotifier extends ChangeNotifier {
+  ProviderSubscription<AuthState>? _sub;
+
+  _AuthChangeNotifier(Ref ref) {
+    _sub = ref.listen(authProvider, (_, __) => notifyListeners());
+  }
+
+  @override
+  void dispose() {
+    _sub?.close();
+    super.dispose();
+  }
+}
+
+// ── Router provider — created ONCE, refreshed via notifier ─────────────────
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authProvider);
+  final notifier = _AuthChangeNotifier(ref);
+  ref.onDispose(notifier.dispose);
+
+  final initial = ref.read(authProvider);
+
   return GoRouter(
-    initialLocation: auth.isChildMode ? '/child' : (auth.isAuthenticated ? '/dashboard' : '/login'),
+    initialLocation: initial.isChildMode
+        ? '/child'
+        : (initial.isAuthenticated ? '/dashboard' : '/login'),
+    refreshListenable: notifier,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
       final isAuth = authState.isAuthenticated;
