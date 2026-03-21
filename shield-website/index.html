@@ -172,6 +172,7 @@
       <li><a href="#how-it-works">How It Works</a></li>
       <li><a href="#download">Download</a></li>
       <li><a href="#faq">FAQ</a></li>
+      <li><a href="#contact">Contact</a></li>
     </ul>
 
     <div class="nav-cta">
@@ -766,6 +767,79 @@
   </div>
 </section>
 
+<!-- Contact Section -->
+<section class="contact-section" id="contact">
+  <div class="container">
+    <div class="section-header">
+      <h2>Get in Touch</h2>
+      <p>Interested in Shield for your family, school, or ISP? We'd love to hear from you.</p>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-info">
+        <div class="cinfo-item">
+          <div class="cinfo-icon">📧</div>
+          <div>
+            <strong>Email</strong>
+            <p>support@shield.rstglobal.in</p>
+          </div>
+        </div>
+        <div class="cinfo-item">
+          <div class="cinfo-icon">🌐</div>
+          <div>
+            <strong>ISP Partnerships</strong>
+            <p>Deploy Shield on your network and offer family-safe internet to your subscribers.</p>
+          </div>
+        </div>
+        <div class="cinfo-item">
+          <div class="cinfo-icon">🏫</div>
+          <div>
+            <strong>Schools &amp; Organizations</strong>
+            <p>Bulk licensing available for educational institutions and community organizations.</p>
+          </div>
+        </div>
+      </div>
+      <div class="contact-form-wrap">
+        <form class="contact-form" id="contactForm" novalidate>
+          <div id="contactSuccess" class="contact-success" style="display:none">
+            <span>✅</span> Thank you! We'll be in touch shortly.
+          </div>
+          <div id="contactError" class="contact-error" style="display:none">
+            <span>❌</span> <span id="contactErrorMsg">Something went wrong. Please try again.</span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cfName">Full Name *</label>
+              <input type="text" id="cfName" name="name" placeholder="John Smith" required>
+            </div>
+            <div class="form-group">
+              <label for="cfEmail">Email Address *</label>
+              <input type="email" id="cfEmail" name="email" placeholder="john@example.com" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cfPhone">Phone Number</label>
+              <input type="tel" id="cfPhone" name="phone" placeholder="+91 99999 99999">
+            </div>
+            <div class="form-group">
+              <label for="cfCompany">Company / Organization</label>
+              <input type="text" id="cfCompany" name="company" placeholder="Acme ISP Ltd.">
+            </div>
+          </div>
+          <div class="form-group full">
+            <label for="cfMessage">Message *</label>
+            <textarea id="cfMessage" name="message" rows="4" placeholder="Tell us about your use case or ask a question..." required></textarea>
+          </div>
+          <button type="submit" class="btn-submit" id="cfSubmit">
+            <span id="cfBtnText">Send Message</span>
+            <span id="cfBtnSpinner" style="display:none">Sending...</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
 <footer class="footer">
   <div class="container">
@@ -893,6 +967,79 @@ function goToSlide(n) {
 }
 
 carouselTimer = setInterval(() => goToSlide((currentSlide + 1) % 5), 3500);
+</script>
+
+<script>
+// ── Visitor Tracker ────────────────────────────────────────────────
+(function() {
+  try {
+    var sid = localStorage.getItem('_shield_sid');
+    if (!sid) {
+      sid = 'vs_' + Math.random().toString(36).substr(2, 12) + '_' + Date.now();
+      localStorage.setItem('_shield_sid', sid);
+    }
+    fetch('https://shield.rstglobal.in/api/v1/admin/visitors/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: sid,
+        pagePath: window.location.pathname + window.location.search,
+        referrer: document.referrer || null
+      }),
+      keepalive: true
+    }).catch(function() {});
+  } catch(e) {}
+})();
+
+// ── Contact Form ───────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  var form = document.getElementById('contactForm');
+  if (!form) return;
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var name    = document.getElementById('cfName').value.trim();
+    var email   = document.getElementById('cfEmail').value.trim();
+    var phone   = document.getElementById('cfPhone').value.trim();
+    var company = document.getElementById('cfCompany').value.trim();
+    var message = document.getElementById('cfMessage').value.trim();
+
+    if (!name || !email || !message) {
+      document.getElementById('contactError').style.display = 'block';
+      document.getElementById('contactErrorMsg').textContent = 'Please fill in Name, Email and Message.';
+      return;
+    }
+
+    document.getElementById('contactSuccess').style.display = 'none';
+    document.getElementById('contactError').style.display = 'none';
+    document.getElementById('cfSubmit').disabled = true;
+    document.getElementById('cfBtnText').style.display = 'none';
+    document.getElementById('cfBtnSpinner').style.display = 'inline';
+
+    try {
+      var res = await fetch('https://shield.rstglobal.in/api/v1/admin/contact/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, company, message, source: 'website' })
+      });
+      var data = await res.json();
+      if (res.ok && data.success) {
+        document.getElementById('contactSuccess').style.display = 'block';
+        form.reset();
+      } else {
+        throw new Error(data.message || 'Submission failed');
+      }
+    } catch(err) {
+      document.getElementById('contactError').style.display = 'block';
+      document.getElementById('contactErrorMsg').textContent = err.message || 'Something went wrong. Please try again.';
+    } finally {
+      document.getElementById('cfSubmit').disabled = false;
+      document.getElementById('cfBtnText').style.display = 'inline';
+      document.getElementById('cfBtnSpinner').style.display = 'none';
+    }
+  });
+});
 </script>
 </body>
 </html>

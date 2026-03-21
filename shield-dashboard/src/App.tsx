@@ -66,6 +66,8 @@ import IspDevicesPage from './pages/isp-admin/IspDevicesPage';
 import AdminUrlActivityPage from './pages/global-admin/AdminUrlActivityPage';
 import RolePermissionsPage from './pages/global-admin/RolePermissionsPage';
 import AdminAppControlPage from './pages/global-admin/AdminAppControlPage';
+import LeadsPage from './pages/global-admin/LeadsPage';
+import VisitorsPage from './pages/global-admin/VisitorsPage';
 import AppControlPage from './pages/customer/AppControlPage';
 import ChildAppsPage from './pages/customer/ChildAppsPage';
 import SubscriptionPage from './pages/customer/SubscriptionPage';
@@ -168,6 +170,8 @@ export default function App() {
               <Route path="/admin/roles" element={<RolePermissionsPage />} />
               <Route path="/admin/url-activity" element={<AdminUrlActivityPage />} />
               <Route path="/admin/app-control" element={<AdminAppControlPage />} />
+              <Route path="/admin/leads" element={<LeadsPage />} />
+              <Route path="/admin/visitors" element={<VisitorsPage />} />
               <Route path="/admin/settings" element={<SettingsPage />} />
             </Route>
 

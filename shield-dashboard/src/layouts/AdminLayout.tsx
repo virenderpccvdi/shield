@@ -25,6 +25,8 @@ import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import SecurityIcon from '@mui/icons-material/Security';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import PhonelinkSetupIcon from '@mui/icons-material/PhonelinkSetup';
+import ContactMailIcon from '@mui/icons-material/ContactMail';
+import PublicIcon from '@mui/icons-material/Public';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -76,6 +78,8 @@ const sections = [
       { label: 'Notifications', icon: <NotificationsIcon />, path: '/admin/notifications' },
       { label: 'Invoices', icon: <ReceiptLongIcon />, path: '/admin/invoices' },
       { label: 'Audit Log', icon: <HistoryIcon />, path: '/admin/audit-logs' },
+      { label: 'CRM Leads', icon: <ContactMailIcon />, path: '/admin/leads' },
+      { label: 'Visitors', icon: <PublicIcon />, path: '/admin/visitors' },
       { label: 'Settings', icon: <SettingsIcon />, path: '/admin/settings' },
     ],
   },
