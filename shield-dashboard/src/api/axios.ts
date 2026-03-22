@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/auth.store';
 
+const correlationId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+
 const api = axios.create({
   baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
@@ -8,8 +10,12 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const state = useAuthStore.getState();
+  if (state.accessToken) config.headers.Authorization = `Bearer ${state.accessToken}`;
+  if ((state.user?.role === 'ISP_ADMIN' || state.user?.role === 'CUSTOMER') && state.user?.tenantId) {
+    config.headers['X-Tenant-Id'] = state.user.tenantId;
+  }
+  config.headers['X-Correlation-ID'] = correlationId;
   return config;
 });
 

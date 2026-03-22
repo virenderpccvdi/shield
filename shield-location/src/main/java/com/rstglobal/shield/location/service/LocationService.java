@@ -114,7 +114,7 @@ public class LocationService {
         log.info("Child check-in recorded for profile {} at {},{} message='{}'",
                 req.getProfileId(), req.getLatitude(), req.getLongitude(), req.getMessage());
         checkGeofences(point);
-        locationBroadcaster.broadcast(point);
+        locationBroadcaster.broadcast(point, req.getMessage());
         return toResponse(point);
     }
 

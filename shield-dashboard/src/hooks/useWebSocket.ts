@@ -19,7 +19,7 @@ export function useWebSocket(
   useEffect(() => {
     if (!enabled || !token) return;
     const client = new Client({
-      brokerURL: `wss://${window.location.host}/ws/shield-ws`,
+      brokerURL: `wss://${window.location.host}/ws/websocket`,
       connectHeaders: { Authorization: `Bearer ${token}` },
       onConnect: () => {
         client.subscribe(topic, (msg) => {

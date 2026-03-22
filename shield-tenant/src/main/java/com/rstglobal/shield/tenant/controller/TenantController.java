@@ -64,8 +64,9 @@ public class TenantController {
     @Operation(summary = "Get tenant by ID")
     public ApiResponse<TenantResponse> getById(
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID callerTenantId,
             @PathVariable UUID id) {
-        requireGlobalAdmin(role);
+        requireGlobalAdminOrSelf(role, callerTenantId, id);
         return ApiResponse.ok(tenantService.getById(id));
     }
 
@@ -82,9 +83,10 @@ public class TenantController {
     @Operation(summary = "Update tenant details")
     public ApiResponse<TenantResponse> update(
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID callerTenantId,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateTenantRequest req) {
-        requireGlobalAdmin(role);
+        requireGlobalAdminOrSelf(role, callerTenantId, id);
         return ApiResponse.ok(tenantService.update(id, req));
     }
 
@@ -138,13 +140,13 @@ public class TenantController {
                 .orElseThrow(() -> ShieldException.notFound("Tenant", id));
 
         long customerCount = safeCount(
-                "SELECT count(*) FROM profile.customers WHERE tenant_id = '" + id + "'");
+                "SELECT count(*) FROM profile.customers WHERE tenant_id = ?", id);
         long profileCount = safeCount(
                 "SELECT count(*) FROM profile.child_profiles cp " +
                 "JOIN profile.customers c ON c.id = cp.customer_id " +
-                "WHERE c.tenant_id = '" + id + "'");
+                "WHERE c.tenant_id = ?", id);
         long deviceCount = safeCount(
-                "SELECT count(*) FROM profile.devices WHERE tenant_id = '" + id + "'");
+                "SELECT count(*) FROM profile.devices WHERE tenant_id = ?", id);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("tenantId", id);
@@ -199,9 +201,13 @@ public class TenantController {
         return ApiResponse.ok(result);
     }
 
-    private long safeCount(String sql) {
+    private long safeCount(String sql, Object... params) {
         try {
-            Object result = entityManager.createNativeQuery(sql).getSingleResult();
+            var query = entityManager.createNativeQuery(sql);
+            for (int i = 0; i < params.length; i++) {
+                query.setParameter(i + 1, params[i]);
+            }
+            Object result = query.getSingleResult();
             return ((Number) result).longValue();
         } catch (Exception e) {
             log.warn("Quota count query failed: {}", e.getMessage());

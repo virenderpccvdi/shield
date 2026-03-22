@@ -1,5 +1,6 @@
 package com.rstglobal.shield.admin.controller;
 
+import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.admin.repository.BulkImportJobRepository;
 import com.rstglobal.shield.admin.repository.ComplianceReportRepository;
 import com.rstglobal.shield.admin.repository.IspBrandingRepository;
@@ -38,7 +39,8 @@ public class PlatformController {
     );
 
     @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> platformStats() {
+    public ResponseEntity<Map<String, Object>> platformStats(@RequestHeader("X-User-Role") String role) {
+        requireGlobalAdmin(role);
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("timestamp", OffsetDateTime.now().toString());
         stats.put("totalIspTenants", queryCount("SELECT count(*) FROM tenant.tenants WHERE is_active = true AND deleted_at IS NULL"));
@@ -54,7 +56,8 @@ public class PlatformController {
     }
 
     @GetMapping("/revenue")
-    public ResponseEntity<Map<String, Object>> revenueStats() {
+    public ResponseEntity<Map<String, Object>> revenueStats(@RequestHeader("X-User-Role") String role) {
+        requireGlobalAdmin(role);
         Map<String, Object> revenue = new LinkedHashMap<>();
         // Calculate MRR: join customers with subscription plans
         try {
@@ -120,7 +123,10 @@ public class PlatformController {
 
     /** POST /api/v1/admin/platform/services/{name}/restart */
     @PostMapping("/services/{name}/restart")
-    public ResponseEntity<Map<String, Object>> restartService(@PathVariable String name, HttpServletRequest req) {
+    public ResponseEntity<Map<String, Object>> restartService(@PathVariable String name,
+                                                                @RequestHeader("X-User-Role") String role,
+                                                                HttpServletRequest req) {
+        requireGlobalAdmin(role);
         validateServiceName(name);
         String unit = "shield-" + name;
         String output = execCommand("systemctl", "restart", unit);
@@ -131,7 +137,10 @@ public class PlatformController {
 
     /** POST /api/v1/admin/platform/services/{name}/stop */
     @PostMapping("/services/{name}/stop")
-    public ResponseEntity<Map<String, Object>> stopService(@PathVariable String name, HttpServletRequest req) {
+    public ResponseEntity<Map<String, Object>> stopService(@PathVariable String name,
+                                                            @RequestHeader("X-User-Role") String role,
+                                                            HttpServletRequest req) {
+        requireGlobalAdmin(role);
         validateServiceName(name);
         String unit = "shield-" + name;
         String output = execCommand("systemctl", "stop", unit);
@@ -142,7 +151,10 @@ public class PlatformController {
 
     /** POST /api/v1/admin/platform/services/{name}/start */
     @PostMapping("/services/{name}/start")
-    public ResponseEntity<Map<String, Object>> startService(@PathVariable String name, HttpServletRequest req) {
+    public ResponseEntity<Map<String, Object>> startService(@PathVariable String name,
+                                                            @RequestHeader("X-User-Role") String role,
+                                                            HttpServletRequest req) {
+        requireGlobalAdmin(role);
         validateServiceName(name);
         String unit = "shield-" + name;
         String output = execCommand("systemctl", "start", unit);
@@ -154,7 +166,9 @@ public class PlatformController {
     /** GET /api/v1/admin/platform/services/{name}/logs — last 50 lines */
     @GetMapping("/services/{name}/logs")
     public ResponseEntity<Map<String, Object>> serviceLogs(@PathVariable String name,
+                                                            @RequestHeader("X-User-Role") String role,
                                                             @RequestParam(defaultValue = "50") int lines) {
+        requireGlobalAdmin(role);
         validateServiceName(name);
         int safelines = Math.min(Math.max(lines, 10), 200);
         String output = execCommand("journalctl", "-u", "shield-" + name, "-n", String.valueOf(safelines), "--no-pager");
@@ -213,5 +227,11 @@ public class PlatformController {
 
     private String getUserName(HttpServletRequest req) {
         return req.getHeader("X-User-Name");
+    }
+
+    private void requireGlobalAdmin(String role) {
+        if (!"GLOBAL_ADMIN".equals(role)) {
+            throw ShieldException.forbidden("GLOBAL_ADMIN role required");
+        }
     }
 }

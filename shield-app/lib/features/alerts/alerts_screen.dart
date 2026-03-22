@@ -10,7 +10,8 @@ final alertsProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
   try {
     final res = await ref.read(dioProvider).get('/notifications/my/unread');
     return res.data['data'] as List? ?? [];
-  } catch (_) {
+  } catch (e) {
+    debugPrint('Alerts provider error: $e');
     return [];
   }
 });
@@ -19,7 +20,8 @@ final spoofingAlertsProvider = FutureProvider.autoDispose.family<List<dynamic>, 
   try {
     final res = await ref.read(dioProvider).get('/location/$profileId/spoofing-alerts');
     return res.data['data'] as List? ?? [];
-  } catch (_) {
+  } catch (e) {
+    debugPrint('Spoofing alerts provider error for $profileId: $e');
     return [];
   }
 });
@@ -67,7 +69,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> with SingleTickerPr
 
       final perProfileResults = await Future.wait(
         validProfiles.map((p) async {
-          final profileId = p['id']!.toString();
+          final profileId = p['id']?.toString() ?? '';
           final childName = p['name']?.toString() ?? 'Child';
           try {
             // GET /{profileId}/sos?all=true returns all events
@@ -86,8 +88,8 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> with SingleTickerPr
                 timestamp: m['timestamp']?.toString() ?? m['createdAt']?.toString() ?? '',
               );
             }).toList();
-          } catch (_) {
-            // Skip failed profile — continue with others
+          } catch (e) {
+            debugPrint('SOS fetch for profile $profileId: $e');
             return <_SosEvent>[];
           }
         }),
@@ -104,8 +106,12 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> with SingleTickerPr
       });
 
       if (mounted) setState(() { _sosEvents = allEvents; _sosLoading = false; });
-    } catch (_) {
-      if (mounted) setState(() => _sosLoading = false);
+    } catch (e) {
+      debugPrint('SOS events load error: $e');
+      if (mounted) {
+        setState(() => _sosLoading = false);
+        showShieldError(context, e, fallback: 'Failed to load SOS events');
+      }
     }
   }
 
@@ -478,7 +484,7 @@ class _SosEventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasLocation = event.latitude != null && event.longitude != null
-        && (event.latitude! != 0.0 || event.longitude! != 0.0);
+        && ((event.latitude ?? 0.0) != 0.0 || (event.longitude ?? 0.0) != 0.0);
 
     return Card(
       color: event.isActive ? ShieldTheme.danger.withOpacity(0.04) : ShieldTheme.cardBg,
@@ -526,13 +532,13 @@ class _SosEventCard extends StatelessWidget {
               height: 180,
               child: GoogleMap(
                 initialCameraPosition: CameraPosition(
-                  target: LatLng(event.latitude!, event.longitude!),
+                  target: LatLng(event.latitude ?? 0.0, event.longitude ?? 0.0),
                   zoom: 15,
                 ),
                 markers: {
                   Marker(
                     markerId: MarkerId('sos_${event.id}'),
-                    position: LatLng(event.latitude!, event.longitude!),
+                    position: LatLng(event.latitude ?? 0.0, event.longitude ?? 0.0),
                     icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
                     infoWindow: InfoWindow(title: '${event.childName} SOS'),
                   ),
@@ -676,15 +682,19 @@ class _SpoofingAlertsViewState extends ConsumerState<_SpoofingAlertsView> {
               accuracy: m['accuracy'] as double?,
             ));
           }
-        } catch (_) {
-          // Skip failed child — continue with others
+        } catch (e) {
+          debugPrint('Spoofing alerts fetch for $profileId: $e');
         }
       }
 
       allAlerts.sort((a, b) => b.detectedAt.compareTo(a.detectedAt));
       if (mounted) setState(() { _alerts = allAlerts; _loading = false; });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      debugPrint('Spoofing alerts load error: $e');
+      if (mounted) {
+        setState(() => _loading = false);
+        showShieldError(context, e, fallback: 'Failed to load location alerts');
+      }
     }
   }
 
@@ -750,7 +760,7 @@ class _SpoofingAlertCard extends StatelessWidget {
   String get _typeDescription {
     switch (alert.type) {
       case 'IMPOSSIBLE_SPEED':
-        return 'Location changed faster than humanly possible.${alert.speed != null ? ' Speed: ${alert.speed!.toStringAsFixed(1)} km/h.' : ''}';
+        return 'Location changed faster than humanly possible.${alert.speed != null ? ' Speed: ${(alert.speed ?? 0.0).toStringAsFixed(1)} km/h.' : ''}';
       case 'PERFECT_ACCURACY':
         return 'GPS accuracy was suspiciously perfect (0m), which is a known spoofing indicator.';
       case 'MOCK_LOCATION':

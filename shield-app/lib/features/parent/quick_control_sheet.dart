@@ -81,7 +81,7 @@ class QuickControlSheet extends ConsumerWidget {
       final client = ref.read(dioProvider);
       switch (action) {
         case 'pause':
-          await client.post('/dns/schedules/$profileId/override', data: {'mode': 'BLOCK_ALL'});
+          await client.post('/dns/schedules/$profileId/override', data: {'overrideType': 'BLOCK_ALL', 'durationMinutes': 60});
           messenger.showSnackBar(SnackBar(
             content: const Text('Internet paused'),
             backgroundColor: ShieldTheme.warning,
@@ -90,7 +90,7 @@ class QuickControlSheet extends ConsumerWidget {
           ));
           break;
         case 'homework':
-          await client.post('/dns/schedules/$profileId/override', data: {'mode': 'HOMEWORK'});
+          await client.post('/dns/schedules/$profileId/override', data: {'overrideType': 'HOMEWORK', 'durationMinutes': 60});
           messenger.showSnackBar(SnackBar(
             content: const Text('Homework mode activated'),
             backgroundColor: ShieldTheme.primary,
@@ -99,7 +99,7 @@ class QuickControlSheet extends ConsumerWidget {
           ));
           break;
         case 'bedtime':
-          await client.post('/dns/schedules/$profileId/override', data: {'mode': 'BEDTIME'});
+          await client.post('/dns/schedules/$profileId/override', data: {'overrideType': 'BEDTIME', 'durationMinutes': 480});
           messenger.showSnackBar(SnackBar(
             content: const Text('Bedtime mode activated'),
             backgroundColor: ShieldTheme.primaryDark,

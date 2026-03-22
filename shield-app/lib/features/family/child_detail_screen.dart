@@ -22,7 +22,8 @@ final spoofingBannerProvider = FutureProvider.autoDispose.family<bool, String>((
     final ts = DateTime.tryParse(tsStr);
     if (ts == null) return true;
     return DateTime.now().difference(ts).inHours < 24;
-  } catch (_) {
+  } catch (e) {
+    debugPrint('Spoofing banner check error: $e');
     return false;
   }
 });
@@ -38,6 +39,7 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
   late TabController _tabs;
   Map<String, dynamic>? _profile;
   bool _loading = true;
+  String? _error;
   bool _showSpoofingDetails = false;
 
   // 5 tabs: Overview | Controls | Location | Safety | Rewards
@@ -54,8 +56,14 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
     try {
       final client = ref.read(dioProvider);
       final res = await client.get('/profiles/children/${widget.profileId}');
-      setState(() { _profile = res.data['data']; _loading = false; });
-    } catch (_) { setState(() => _loading = false); }
+      setState(() { _profile = res.data['data']; _loading = false; _error = null; });
+    } catch (e) {
+      debugPrint('Child profile load error: $e');
+      if (mounted) {
+        setState(() { _loading = false; _error = e.toString(); });
+        showShieldError(context, e, fallback: 'Failed to load profile');
+      }
+    }
   }
 
   @override
@@ -75,6 +83,31 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
           SizedBox(height: 12),
           ShieldCardSkeleton(lines: 4),
         ]),
+      ),
+    ); }
+    if (_error != null && _profile == null) { return Scaffold(
+      appBar: AppBar(
+        title: const Text('Error'),
+        backgroundColor: ShieldTheme.primary,
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.error_outline, size: 64, color: ShieldTheme.danger),
+            const SizedBox(height: 16),
+            const Text('Failed to load profile', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+            const SizedBox(height: 8),
+            Text(_error!, style: const TextStyle(color: ShieldTheme.textSecondary, fontSize: 13), textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () { setState(() { _loading = true; _error = null; }); _loadProfile(); },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ]),
+        ),
       ),
     ); }
     final name = _profile?['name'] ?? 'Child';
@@ -226,49 +259,55 @@ class _OverviewTab extends ConsumerWidget {
                 Text(name, style: const TextStyle(
                     color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Container(
-                        width: 6, height: 6,
-                        margin: const EdgeInsets.only(right: 5),
-                        decoration: BoxDecoration(
-                          color: online ? ShieldTheme.successLight : Colors.grey.shade400,
-                          shape: BoxShape.circle,
-                        ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      Text(
-                        online ? 'Online' : 'Offline',
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Container(
+                          width: 6, height: 6,
+                          margin: const EdgeInsets.only(right: 5),
+                          decoration: BoxDecoration(
+                            color: online ? ShieldTheme.successLight : Colors.grey.shade400,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Text(
+                          online ? 'Online' : 'Offline',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ]),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        filterLevel,
                         style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
-                    ]),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      filterLevel,
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ]),
+                  ],
+                ),
                 if (lastSeen != null) ...[
                   const SizedBox(height: 6),
                   Row(children: [
                     const Icon(Icons.access_time_rounded, size: 13, color: Colors.white60),
                     const SizedBox(width: 4),
-                    Text(
-                      'Last seen ${_fmtRelative(lastSeen)}',
-                      style: const TextStyle(fontSize: 12, color: Colors.white70),
+                    Flexible(
+                      child: Text(
+                        'Last seen ${_fmtRelative(lastSeen)}',
+                        style: const TextStyle(fontSize: 12, color: Colors.white70),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ]),
                 ],
@@ -351,8 +390,11 @@ class _OverviewQuickBtn extends StatelessWidget {
             children: [
               Icon(icon, color: color, size: 22),
               const SizedBox(height: 5),
-              Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
-                  textAlign: TextAlign.center),
+              Text(label,
+                  style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1),
             ],
           ),
         ),
@@ -567,7 +609,7 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
   }
 
   Future<Response?> _safeFetch(Future<Response> Function() fn) async {
-    try { return await fn(); } catch (_) { return null; }
+    try { return await fn(); } catch (e) { debugPrint('ChildDetail safeFetch: $e'); return null; }
   }
 
   Future<void> _toggleInternet(bool turnOn) async {

@@ -102,24 +102,50 @@ async def chat_with_ai(request: ChatRequest, db: AsyncSession = Depends(get_db))
         "Is my child's screen time within a healthy range?",
     ]
 
+    # Try DeepSeek first (working), fall back to Claude
     try:
-        client = _get_anthropic_client()
-        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
-        message = client.messages.create(
-            model=model,
-            max_tokens=300,
-            system=system_prompt,
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"{context}\n\nParent's question: {request.question}",
-                }
-            ],
-        )
-        answer = message.content[0].text.strip()
-        logger.info("Chat response generated for profile %s (%d chars)", request.profileId, len(answer))
-    except Exception as exc:
-        logger.warning("Claude chat failed for profile %s: %s", request.profileId, exc)
+        import httpx
+        deepseek_key = os.getenv("DEEPSEEK_API_KEY")
+        deepseek_model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+        if deepseek_key:
+            resp = httpx.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {deepseek_key}", "Content-Type": "application/json"},
+                json={
+                    "model": deepseek_model,
+                    "max_tokens": 300,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"{context}\n\nParent's question: {request.question}"},
+                    ],
+                },
+                timeout=30.0,
+            )
+            resp.raise_for_status()
+            answer = resp.json()["choices"][0]["message"]["content"].strip()
+            logger.info("DeepSeek chat response for profile %s (%d chars)", request.profileId, len(answer))
+        else:
+            raise RuntimeError("DEEPSEEK_API_KEY not set")
+    except Exception as ds_exc:
+        logger.warning("DeepSeek chat failed for profile %s: %s — trying Claude", request.profileId, ds_exc)
+        try:
+            client = _get_anthropic_client()
+            model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
+            message = client.messages.create(
+                model=model,
+                max_tokens=300,
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"{context}\n\nParent's question: {request.question}",
+                    }
+                ],
+            )
+            answer = message.content[0].text.strip()
+            logger.info("Claude chat response for profile %s (%d chars)", request.profileId, len(answer))
+        except Exception as exc:
+            logger.warning("Claude chat also failed for profile %s: %s", request.profileId, exc)
 
     # 4. Generate context-aware follow-up suggestions
     suggestions = _build_suggestions(request.question, week_stats)

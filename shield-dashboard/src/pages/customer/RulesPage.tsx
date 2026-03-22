@@ -35,51 +35,150 @@ interface DnsRulesResponse {
   customBlocklist: string[];
 }
 
-const CATEGORY_META: Record<string, { name: string; alwaysOn?: boolean }> = {
-  adult: { name: 'Adult Content' },
-  gambling: { name: 'Gambling' },
-  gaming: { name: 'Gaming' },
-  social: { name: 'Social Media' },
-  streaming: { name: 'Streaming' },
-  drugs: { name: 'Drugs' },
-  violence: { name: 'Violence / Weapons' },
-  malware: { name: 'Malware', alwaysOn: true },
-  phishing: { name: 'Phishing', alwaysOn: true },
-  vpn: { name: 'VPN / Proxy' },
+const CATEGORY_META: Record<string, { name: string; alwaysOn?: boolean; group: string }> = {
+  // Safety (always recommended on)
+  malware:        { name: 'Malware & Viruses',    alwaysOn: true, group: 'Safety' },
+  phishing:       { name: 'Phishing & Scams',     alwaysOn: true, group: 'Safety' },
+  csam:           { name: 'Child Abuse Material',  alwaysOn: true, group: 'Safety' },
+  ransomware:     { name: 'Ransomware',            alwaysOn: true, group: 'Safety' },
+  // Adult
+  adult:          { name: 'Adult Content',         group: 'Adult' },
+  pornography:    { name: 'Pornography',           group: 'Adult' },
+  dating:         { name: 'Dating Sites',          group: 'Adult' },
+  nudity:         { name: 'Nudity',                group: 'Adult' },
+  // Social & Communication
+  social_media:   { name: 'Social Media',          group: 'Social' },
+  messaging:      { name: 'Messaging Apps',        group: 'Social' },
+  forums:         { name: 'Forums & Boards',       group: 'Social' },
+  chat:           { name: 'Chat Platforms',         group: 'Social' },
+  // Entertainment
+  streaming:      { name: 'Video Streaming',       group: 'Entertainment' },
+  music:          { name: 'Music Streaming',       group: 'Entertainment' },
+  podcasts:       { name: 'Podcasts',              group: 'Entertainment' },
+  live_streaming: { name: 'Live Streaming',        group: 'Entertainment' },
+  // Gaming
+  gaming:         { name: 'Gaming',                group: 'Gaming' },
+  online_gaming:  { name: 'Online Multiplayer',    group: 'Gaming' },
+  esports:        { name: 'eSports',               group: 'Gaming' },
+  game_stores:    { name: 'Game Stores',           group: 'Gaming' },
+  // Restricted
+  gambling:       { name: 'Gambling',              group: 'Restricted' },
+  alcohol:        { name: 'Alcohol',               group: 'Restricted' },
+  tobacco:        { name: 'Tobacco & Vaping',      group: 'Restricted' },
+  drugs:          { name: 'Drugs',                 group: 'Restricted' },
+  weapons:        { name: 'Weapons',               group: 'Restricted' },
+  violence:       { name: 'Violence & Gore',       group: 'Restricted' },
+  hate_speech:    { name: 'Hate Speech',           group: 'Restricted' },
+  // Privacy & Security
+  vpn_proxy:      { name: 'VPN & Proxies',        group: 'Privacy' },
+  anonymizers:    { name: 'Anonymizers',           group: 'Privacy' },
+  tor:            { name: 'Tor Networks',          group: 'Privacy' },
+  // Productivity
+  ads:            { name: 'Ads & Tracking',        group: 'Productivity' },
+  shopping:       { name: 'Online Shopping',       group: 'Productivity' },
+  news:           { name: 'News & Media',          group: 'Productivity' },
+  sports:         { name: 'Sports',                group: 'Productivity' },
+  entertainment:  { name: 'General Entertainment', group: 'Productivity' },
+  humor:          { name: 'Humor & Memes',         group: 'Productivity' },
+  // Education
+  education:      { name: 'Educational Content',   group: 'Education' },
+  search_engines: { name: 'Search Engines',        group: 'Education' },
+  reference:      { name: 'Reference & Research',  group: 'Education' },
+  // Tech
+  downloads:      { name: 'File Downloads',        group: 'Tech' },
+  software:       { name: 'Software Sites',        group: 'Tech' },
+  hacking:        { name: 'Hacking Tools',         group: 'Tech' },
+  crypto:         { name: 'Cryptocurrency',        group: 'Tech' },
 };
 
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: '1', name: 'Adult Content', key: 'adult', blocked: true, alwaysOn: false, emoji: '18+' },
-  { id: '2', name: 'Gambling', key: 'gambling', blocked: true, alwaysOn: false, emoji: '[G]' },
-  { id: '3', name: 'Gaming', key: 'gaming', blocked: false, alwaysOn: false, emoji: '[V]' },
-  { id: '4', name: 'Social Media', key: 'social', blocked: false, alwaysOn: false, emoji: '[S]' },
-  { id: '5', name: 'Streaming', key: 'streaming', blocked: false, alwaysOn: false, emoji: '[TV]' },
-  { id: '6', name: 'Drugs', key: 'drugs', blocked: true, alwaysOn: false, emoji: '[D]' },
-  { id: '7', name: 'Violence / Weapons', key: 'violence', blocked: true, alwaysOn: false, emoji: '[!]' },
-  { id: '8', name: 'Malware', key: 'malware', blocked: true, alwaysOn: true, emoji: '[M]' },
-  { id: '9', name: 'Phishing', key: 'phishing', blocked: true, alwaysOn: true, emoji: '[P]' },
-  { id: '10', name: 'VPN / Proxy', key: 'vpn', blocked: true, alwaysOn: false, emoji: '[L]' },
-];
+// No hardcoded defaults — we merge backend categories with CATEGORY_META at runtime
 
-function rulesToCategories(rules: DnsRulesResponse): Category[] {
-  // enabledCategories: true = allowed, false = blocked (UI "blocked" is the opposite)
-  return Object.entries(rules.enabledCategories).map(([key, enabled], i) => {
-    const meta = CATEGORY_META[key] || { name: key };
-    return { id: String(i + 1), name: meta.name, key, blocked: !enabled, alwaysOn: meta.alwaysOn || false, emoji: '' };
-  });
+/** Build UI category list by merging ALL known categories with the profile's enabled states.
+ *  Categories present in the profile use their stored state; missing ones default to "allowed" (not blocked).
+ *  Internal keys like __paused__, __schedule_blocked__, __budget_exhausted__ are hidden. */
+function rulesToCategories(
+  rules: DnsRulesResponse | null,
+  allCategories: Record<string, string> | null,
+): Category[] {
+  const profileCats = rules?.enabledCategories ?? {};
+  // Build full key set: prefer backend /dns/categories, fall back to CATEGORY_META keys
+  const allKeys: string[] = allCategories
+    ? Object.keys(allCategories)
+    : Object.keys(CATEGORY_META);
+  // Also include any profile keys not in allKeys (edge case: old data)
+  for (const k of Object.keys(profileCats)) {
+    if (!allKeys.includes(k)) allKeys.push(k);
+  }
+  return allKeys
+    .filter(k => !k.startsWith('__')) // hide internal flags
+    .map((key, i) => {
+      const meta = CATEGORY_META[key] || { name: allCategories?.[key] || key.replace(/_/g, ' ') };
+      const enabled = profileCats[key] ?? true; // default: allowed (not blocked)
+      return {
+        id: String(i + 1),
+        name: meta.name,
+        key,
+        blocked: !enabled,
+        alwaysOn: meta.alwaysOn || false,
+        emoji: '',
+      };
+    });
 }
 
 const categoryIcons: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
-  adult: { icon: <BlockIcon />, color: 'error.main', bg: 'rgba(229,57,53,0.08)' },
-  gambling: { icon: <CasinoIcon />, color: 'warning.main', bg: 'rgba(251,140,0,0.08)' },
-  gaming: { icon: <SportsEsportsIcon />, color: '#7B1FA2', bg: '#F3E5F5' },
-  social: { icon: <PeopleIcon />, color: 'primary.main', bg: 'rgba(21,101,192,0.08)' },
-  streaming: { icon: <LiveTvIcon />, color: '#00897B', bg: '#E0F2F1' },
-  drugs: { icon: <LocalPharmacyIcon />, color: 'error.main', bg: 'rgba(229,57,53,0.08)' },
-  violence: { icon: <ReportProblemIcon />, color: '#D84315', bg: '#FBE9E7' },
-  malware: { icon: <BugReportIcon />, color: 'error.dark', bg: 'rgba(229,57,53,0.12)' },
-  phishing: { icon: <PhishingIcon />, color: '#880E4F', bg: 'rgba(229,57,53,0.08)' },
-  vpn: { icon: <VpnKeyIcon />, color: '#4527A0', bg: '#EDE7F6' },
+  // Safety
+  malware:    { icon: <BugReportIcon />,       color: '#B71C1C', bg: 'rgba(183,28,28,0.10)' },
+  phishing:   { icon: <PhishingIcon />,        color: '#880E4F', bg: 'rgba(136,14,79,0.08)' },
+  csam:       { icon: <SecurityIcon />,        color: '#B71C1C', bg: 'rgba(183,28,28,0.10)' },
+  ransomware: { icon: <BugReportIcon />,       color: '#C62828', bg: 'rgba(198,40,40,0.08)' },
+  // Adult
+  adult:      { icon: <BlockIcon />,           color: '#C62828', bg: 'rgba(229,57,53,0.08)' },
+  pornography:{ icon: <BlockIcon />,           color: '#C62828', bg: 'rgba(229,57,53,0.08)' },
+  dating:     { icon: <PeopleIcon />,          color: '#C62828', bg: 'rgba(229,57,53,0.08)' },
+  nudity:     { icon: <BlockIcon />,           color: '#C62828', bg: 'rgba(229,57,53,0.08)' },
+  // Social
+  social_media:{ icon: <PeopleIcon />,         color: '#1565C0', bg: 'rgba(21,101,192,0.08)' },
+  messaging:  { icon: <PeopleIcon />,          color: '#1565C0', bg: 'rgba(21,101,192,0.08)' },
+  forums:     { icon: <PeopleIcon />,          color: '#1565C0', bg: 'rgba(21,101,192,0.08)' },
+  chat:       { icon: <PeopleIcon />,          color: '#1565C0', bg: 'rgba(21,101,192,0.08)' },
+  // Entertainment
+  streaming:      { icon: <LiveTvIcon />,      color: '#00897B', bg: '#E0F2F1' },
+  music:          { icon: <LiveTvIcon />,      color: '#00897B', bg: '#E0F2F1' },
+  podcasts:       { icon: <LiveTvIcon />,      color: '#00897B', bg: '#E0F2F1' },
+  live_streaming: { icon: <LiveTvIcon />,      color: '#00897B', bg: '#E0F2F1' },
+  // Gaming
+  gaming:        { icon: <SportsEsportsIcon />,color: '#7B1FA2', bg: '#F3E5F5' },
+  online_gaming: { icon: <SportsEsportsIcon />,color: '#7B1FA2', bg: '#F3E5F5' },
+  esports:       { icon: <SportsEsportsIcon />,color: '#7B1FA2', bg: '#F3E5F5' },
+  game_stores:   { icon: <SportsEsportsIcon />,color: '#7B1FA2', bg: '#F3E5F5' },
+  // Restricted
+  gambling:   { icon: <CasinoIcon />,          color: '#FB8C00', bg: 'rgba(251,140,0,0.08)' },
+  alcohol:    { icon: <LocalPharmacyIcon />,   color: '#D84315', bg: '#FBE9E7' },
+  tobacco:    { icon: <LocalPharmacyIcon />,   color: '#D84315', bg: '#FBE9E7' },
+  drugs:      { icon: <LocalPharmacyIcon />,   color: '#D84315', bg: '#FBE9E7' },
+  weapons:    { icon: <ReportProblemIcon />,    color: '#D84315', bg: '#FBE9E7' },
+  violence:   { icon: <ReportProblemIcon />,    color: '#D84315', bg: '#FBE9E7' },
+  hate_speech:{ icon: <ReportProblemIcon />,    color: '#D84315', bg: '#FBE9E7' },
+  // Privacy
+  vpn_proxy:  { icon: <VpnKeyIcon />,          color: '#4527A0', bg: '#EDE7F6' },
+  anonymizers:{ icon: <VpnKeyIcon />,          color: '#4527A0', bg: '#EDE7F6' },
+  tor:        { icon: <VpnKeyIcon />,          color: '#4527A0', bg: '#EDE7F6' },
+  // Productivity
+  ads:        { icon: <BlockIcon />,           color: '#FB8C00', bg: 'rgba(251,140,0,0.08)' },
+  shopping:   { icon: <BlockIcon />,           color: '#FB8C00', bg: 'rgba(251,140,0,0.08)' },
+  news:       { icon: <BlockIcon />,           color: '#FB8C00', bg: 'rgba(251,140,0,0.08)' },
+  sports:     { icon: <BlockIcon />,           color: '#FB8C00', bg: 'rgba(251,140,0,0.08)' },
+  entertainment:{ icon: <LiveTvIcon />,        color: '#FB8C00', bg: 'rgba(251,140,0,0.08)' },
+  humor:      { icon: <BlockIcon />,           color: '#FB8C00', bg: 'rgba(251,140,0,0.08)' },
+  // Education
+  education:     { icon: <SecurityIcon />,     color: '#2E7D32', bg: '#E8F5E9' },
+  search_engines:{ icon: <SecurityIcon />,     color: '#2E7D32', bg: '#E8F5E9' },
+  reference:     { icon: <SecurityIcon />,     color: '#2E7D32', bg: '#E8F5E9' },
+  // Tech
+  downloads:  { icon: <BugReportIcon />,       color: '#37474F', bg: '#ECEFF1' },
+  software:   { icon: <BugReportIcon />,       color: '#37474F', bg: '#ECEFF1' },
+  hacking:    { icon: <BugReportIcon />,       color: '#B71C1C', bg: 'rgba(183,28,28,0.08)' },
+  crypto:     { icon: <BugReportIcon />,       color: '#37474F', bg: '#ECEFF1' },
 };
 
 const parseDomainsCsv = (text: string): string[] => {
@@ -268,24 +367,32 @@ export default function RulesPage() {
     queryFn: () => api.get(`/dns/rules/${profileId}`).then(r => r.data.data as DnsRulesResponse).catch(() => null),
   });
 
-  const categories = rulesData ? rulesToCategories(rulesData) : DEFAULT_CATEGORIES;
+  // Fetch all possible categories from backend so unconfigured ones also appear
+  const { data: allCategories } = useQuery({
+    queryKey: ['dns-categories'],
+    queryFn: () => api.get('/dns/categories').then(r => (r.data.data ?? r.data) as Record<string, string>).catch(() => null),
+    staleTime: 5 * 60 * 1000, // cache 5 min
+  });
+
+  const categories = rulesToCategories(rulesData ?? null, allCategories ?? null);
   const customAllowlist: string[] = rulesData?.customAllowlist ?? [];
   const customBlocklist: string[] = rulesData?.customBlocklist ?? [];
 
   const toggleMutation = useMutation({
-    mutationFn: ({ key, blocked }: { key: string; blocked: boolean }) => {
-      // Backend stores enabledCategories: true = allowed, false = blocked
-      // UI "blocked" flag is the inverse of backend "enabled"
+    mutationFn: async ({ key, blocked }: { key: string; blocked: boolean }) => {
+      // Fetch current FULL categories from API to avoid overwriting with defaults
+      const fresh = await api.get(`/dns/rules/${profileId}`).then(r => r.data.data as DnsRulesResponse);
+      const currentCategories: Record<string, boolean> = { ...(fresh.enabledCategories || {}) };
       // Block action (blocked=true)  → send enabled=false
       // Allow action (blocked=false) → send enabled=true
-      const currentCategories: Record<string, boolean> = {};
-      categories.forEach(c => {
-        const isBlocked = c.key === key ? blocked : c.blocked;
-        currentCategories[c.key] = !isBlocked; // convert UI-blocked → backend-enabled
-      });
+      currentCategories[key] = !blocked;
       return api.put(`/dns/rules/${profileId}/categories`, { categories: currentCategories });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rules', profileId] }),
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to update category';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    },
   });
 
   const addToListMutation = useMutation({

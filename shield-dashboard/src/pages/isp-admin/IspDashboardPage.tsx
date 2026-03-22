@@ -16,6 +16,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell,
 } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -26,6 +27,7 @@ import { useAuthStore } from '../../store/auth.store';
 const PIE_COLORS = ['#E53935', '#7B1FA2', '#FB8C00', '#1565C0', '#78909C', '#00897B'];
 
 function PlatformSosBanner() {
+  const navigate = useNavigate();
   const { data: sosList = [] } = useQuery<unknown[]>({
     queryKey: ['isp-sos-platform'],
     queryFn: () =>
@@ -56,8 +58,8 @@ function PlatformSosBanner() {
       }}
       action={
         <Typography
-          component="a"
-          href="/app/alerts"
+          component="span"
+          onClick={() => navigate('/isp/alerts')}
           variant="body2"
           sx={{ fontWeight: 700, color: 'error.dark', textDecoration: 'underline', cursor: 'pointer', alignSelf: 'center' }}
         >

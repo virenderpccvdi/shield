@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
+import '../../core/cache_service.dart';
 import '../../app/theme.dart';
 import '../../core/shield_widgets.dart';
 
@@ -54,15 +55,25 @@ final notificationHistoryProvider = FutureProvider.autoDispose<List<Notification
     } else {
       raw = [];
     }
-    return raw.map((e) => NotificationItem.fromJson(e as Map<String, dynamic>)).toList();
+    final items = raw.map((e) => NotificationItem.fromJson(e as Map<String, dynamic>)).toList();
+    // Cache fresh notifications (2 min TTL — notifications change often)
+    CacheService.put('notifications', raw, ttlSeconds: 120);
+    return items;
   } catch (_) {
     // Fallback: unread only
     try {
       final client = ref.read(dioProvider);
       final res = await client.get('/notifications/my/unread');
       final raw = res.data['data'] as List? ?? [];
-      return raw.map((e) => NotificationItem.fromJson(e as Map<String, dynamic>)).toList();
+      final items = raw.map((e) => NotificationItem.fromJson(e as Map<String, dynamic>)).toList();
+      CacheService.put('notifications', raw, ttlSeconds: 120);
+      return items;
     } catch (_) {
+      // Last resort: serve stale cache when fully offline
+      final stale = CacheService.getStale('notifications');
+      if (stale is List) {
+        return stale.map((e) => NotificationItem.fromJson(e as Map<String, dynamic>)).toList();
+      }
       return [];
     }
   }
@@ -182,10 +193,27 @@ class _NotificationHistoryScreenState extends ConsumerState<NotificationHistoryS
         ),
         error: (e, _) => _ErrorState(onRetry: () => ref.invalidate(notificationHistoryProvider)),
         data: (items) {
-          if (items.isEmpty) return const ShieldEmptyState(
-            icon: Icons.notifications_none,
-            title: 'No notifications',
-            subtitle: 'You\'re all caught up!',
+          if (items.isEmpty) return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.notifications_none_rounded,
+                  size: 60,
+                  color: ShieldTheme.textSecondary.withOpacity(0.4),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'No notifications yet',
+                  style: TextStyle(fontWeight: FontWeight.w600, color: ShieldTheme.textSecondary),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Alerts and updates will appear here.',
+                  style: TextStyle(fontSize: 13, color: ShieldTheme.textSecondary),
+                ),
+              ],
+            ),
           );
           final grouped = _groupByDate(items);
           return RefreshIndicator(

@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Grid, Typography, Box, Card, CardContent, Button, Chip, CircularProgress,
   Alert, Tooltip, Stack, Divider, List, ListItem, ListItemText, ListItemIcon,
-  LinearProgress, useTheme,
+  LinearProgress, useTheme, Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
+import LockIcon from '@mui/icons-material/Lock';
 import PauseIcon from '@mui/icons-material/Pause';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BlockIcon from '@mui/icons-material/Block';
@@ -66,6 +67,42 @@ function timeAgo(iso?: string) {
 function shortDate(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+}
+
+function FeatureLockDialog({ open, featureName, requiredPlan, onClose, onUpgrade }: {
+  open: boolean; featureName: string; requiredPlan: string;
+  onClose: () => void; onUpgrade: () => void;
+}) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+      <DialogTitle sx={{ pb: 1 }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: '#F3E5F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <LockIcon sx={{ color: '#6A1B9A', fontSize: 20 }} />
+          </Box>
+          <Box>
+            <Typography fontWeight={700} fontSize={15}>Premium Feature</Typography>
+            <Typography fontSize={12} color="text.secondary">{featureName}</Typography>
+          </Box>
+        </Stack>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 1 }}>
+        <Typography fontSize={14} color="text.secondary">
+          This feature requires the <strong>{requiredPlan}</strong> plan or higher. Upgrade your
+          subscription to unlock {featureName} and more advanced parental controls.
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+        <Button onClick={onClose} variant="outlined" size="small" sx={{ borderRadius: 2, textTransform: 'none' }}>
+          Maybe Later
+        </Button>
+        <Button onClick={onUpgrade} variant="contained" size="small"
+          sx={{ borderRadius: 2, textTransform: 'none', bgcolor: '#6A1B9A', '&:hover': { bgcolor: '#4A148C' } }}>
+          Upgrade Plan
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 }
 
 function StatCard({ label, value, color, bg, icon, subtitle }: {
@@ -140,7 +177,8 @@ export default function CustomerDashboardPage() {
       return results;
     },
     enabled: children.length > 0,
-    refetchInterval: 30000,
+    refetchInterval: 60000,
+    staleTime: 50000,
   });
   const firstProfileId = children[0]?.id;
 
@@ -191,6 +229,22 @@ export default function CustomerDashboardPage() {
       refetchInterval: 60000,
     }
   );
+
+  // Subscription / plan query for feature gating
+  interface SubscriptionInfo { planName?: string; planDisplayName?: string; features?: Record<string, boolean>; }
+  const { data: subscription } = useQuery<SubscriptionInfo>({
+    queryKey: ['my-subscription'],
+    queryFn: () => api.get('/admin/billing/subscription').then(r => (r.data?.data ?? r.data) as SubscriptionInfo).catch(() => ({})),
+    staleTime: 300000, // 5 min — plan rarely changes mid-session
+  });
+
+  // Feature gate helper: returns true if the feature flag is enabled (or plan is GROWTH/ENTERPRISE)
+  const isFeatureEnabled = (featureKey: string): boolean => {
+    if (!subscription?.features) return false;
+    return subscription.features[featureKey] === true;
+  };
+
+  const [lockedFeature, setLockedFeature] = useState<{ name: string; requiredPlan: string } | null>(null);
 
   const pauseMutation = useMutation({
     mutationFn: ({ id, paused }: { id: string; paused: boolean }) =>
@@ -698,22 +752,35 @@ export default function CustomerDashboardPage() {
                   <Typography fontWeight={700} fontSize={13} sx={{ mb: 1.5 }}>Quick Actions</Typography>
                   <Grid container spacing={1}>
                     {[
-                      { label: 'Time Limits', icon: <AccessTimeIcon sx={{ fontSize: 16 }} />, path: '/time-limits', color: '#E65100', bg: 'rgba(251,140,0,0.08)' },
-                      { label: 'AI Insights', icon: <PsychologyIcon sx={{ fontSize: 16 }} />, path: '/ai-insights', color: '#6A1B9A', bg: '#F3E5F5' },
-                      { label: 'Alerts', icon: <WarningAmberIcon sx={{ fontSize: 16 }} />, path: '/alerts', color: '#C62828', bg: 'rgba(229,57,53,0.08)' },
-                      { label: 'Location', icon: <LocationOnIcon sx={{ fontSize: 16 }} />, path: '/map', color: '#00695C', bg: '#E0F2F1' },
-                    ].map(action => (
-                      <Grid key={action.label} size={6}>
-                        <Box onClick={() => navigate(action.path)} sx={{
-                          p: 1.25, borderRadius: 2, cursor: 'pointer', textAlign: 'center',
-                          bgcolor: action.bg, transition: 'all 0.15s ease',
-                          '&:hover': { transform: 'scale(1.04)', boxShadow: `0 4px 12px ${action.color}20` },
-                        }}>
-                          <Box sx={{ color: action.color, mb: 0.3 }}>{action.icon}</Box>
-                          <Typography fontSize={11} fontWeight={600} color={action.color}>{action.label}</Typography>
-                        </Box>
-                      </Grid>
-                    ))}
+                      { label: 'Time Limits', icon: <AccessTimeIcon sx={{ fontSize: 16 }} />, path: '/time-limits', color: '#E65100', bg: 'rgba(251,140,0,0.08)', featureKey: null },
+                      { label: 'AI Insights', icon: <PsychologyIcon sx={{ fontSize: 16 }} />, path: '/ai-insights', color: '#6A1B9A', bg: '#F3E5F5', featureKey: 'ai_insights', requiredPlan: 'Growth' },
+                      { label: 'Alerts', icon: <WarningAmberIcon sx={{ fontSize: 16 }} />, path: '/alerts', color: '#C62828', bg: 'rgba(229,57,53,0.08)', featureKey: null },
+                      { label: 'Location', icon: <LocationOnIcon sx={{ fontSize: 16 }} />, path: '/map', color: '#00695C', bg: '#E0F2F1', featureKey: null },
+                      { label: 'Reports', icon: <TrendingUpIcon sx={{ fontSize: 16 }} />, path: '/reports', color: '#1565C0', bg: 'rgba(21,101,192,0.08)', featureKey: 'advanced_reports', requiredPlan: 'Growth' },
+                    ].map(action => {
+                      const locked = !!action.featureKey && !isFeatureEnabled(action.featureKey);
+                      return (
+                        <Grid key={action.label} size={6}>
+                          <Box onClick={() => {
+                            if (locked) {
+                              setLockedFeature({ name: action.label, requiredPlan: action.requiredPlan ?? 'Growth' });
+                            } else {
+                              navigate(action.path);
+                            }
+                          }} sx={{
+                            p: 1.25, borderRadius: 2, cursor: 'pointer', textAlign: 'center',
+                            bgcolor: action.bg, transition: 'all 0.15s ease', position: 'relative',
+                            '&:hover': { transform: 'scale(1.04)', boxShadow: `0 4px 12px ${action.color}20` },
+                          }}>
+                            {locked && (
+                              <LockIcon sx={{ position: 'absolute', top: 4, right: 4, fontSize: 10, color: action.color, opacity: 0.6 }} />
+                            )}
+                            <Box sx={{ color: action.color, mb: 0.3, opacity: locked ? 0.6 : 1 }}>{action.icon}</Box>
+                            <Typography fontSize={11} fontWeight={600} color={action.color} sx={{ opacity: locked ? 0.6 : 1 }}>{action.label}</Typography>
+                          </Box>
+                        </Grid>
+                      );
+                    })}
                   </Grid>
                 </CardContent>
               </Card>
@@ -761,7 +828,9 @@ export default function CustomerDashboardPage() {
                   <Stack direction="row" alignItems="center" justifyContent="space-between">
                     <Box>
                       <Typography fontSize={12} sx={{ color: 'rgba(255,255,255,0.7)' }}>Your Plan</Typography>
-                      <Typography fontWeight={700} fontSize={15} color="white">Family Protection</Typography>
+                      <Typography fontWeight={700} fontSize={15} color="white">
+                        {subscription?.planDisplayName ?? subscription?.planName ?? 'Family Protection'}
+                      </Typography>
                     </Box>
                     <Button size="small" variant="outlined"
                       onClick={() => navigate('/subscription')}
@@ -775,6 +844,15 @@ export default function CustomerDashboardPage() {
           </Stack>
         </Grid>
       </Grid>
+
+      {/* Feature lock dialog */}
+      <FeatureLockDialog
+        open={!!lockedFeature}
+        featureName={lockedFeature?.name ?? ''}
+        requiredPlan={lockedFeature?.requiredPlan ?? 'Growth'}
+        onClose={() => setLockedFeature(null)}
+        onUpgrade={() => { setLockedFeature(null); navigate('/subscription'); }}
+      />
     </AnimatedPage>
   );
 }

@@ -233,7 +233,7 @@ class _ChildRewardsScreenState extends ConsumerState<ChildRewardsScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            _RedeemTab(bank: _bank, onRedeem: _requestRedeem),
+            _RedeemTab(bank: _bank, onRedeem: _requestRedeem, onRefresh: _loadAll),
             _HistoryTab(transactions: _transactions, loading: _loadingTx),
           ],
         ),
@@ -367,8 +367,9 @@ class _VertDivider extends StatelessWidget {
 class _RedeemTab extends StatelessWidget {
   final Map<String, dynamic>? bank;
   final Future<void> Function(int minutes) onRedeem;
+  final Future<void> Function() onRefresh;
 
-  const _RedeemTab({this.bank, required this.onRedeem});
+  const _RedeemTab({this.bank, required this.onRedeem, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -419,7 +420,7 @@ class _RedeemTab extends StatelessWidget {
     ];
 
     return RefreshIndicator(
-      onRefresh: () async {},
+      onRefresh: onRefresh,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [

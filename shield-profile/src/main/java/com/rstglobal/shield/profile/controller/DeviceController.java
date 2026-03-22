@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/profiles/devices")
 @RequiredArgsConstructor
@@ -82,8 +84,14 @@ public class DeviceController {
             java.math.BigDecimal speedKmh = body.get("speedKmh") != null ? new java.math.BigDecimal(body.get("speedKmh")) : null;
             String appVersion = body.get("appVersion");
             deviceService.heartbeatByProfile(UUID.fromString(profileIdStr), batteryPct, speedKmh, appVersion);
-        } catch (Exception ignored) {}
-        return ResponseEntity.ok().build();
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            log.warn("Heartbeat parse error for userId={}: {}", userId, e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("Heartbeat error for userId={}: {}", userId, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/profile/{profileId}")
@@ -239,7 +247,7 @@ public class DeviceController {
             throw ShieldException.forbidden("Admin role required");
         }
         long total = (tenantId != null && "ISP_ADMIN".equals(role))
-                ? deviceRepository.findByTenantId(tenantId).size()
+                ? deviceRepository.countByTenantId(tenantId)
                 : deviceRepository.count();
         long online = (tenantId != null && "ISP_ADMIN".equals(role))
                 ? deviceRepository.countByTenantIdAndOnlineTrue(tenantId)

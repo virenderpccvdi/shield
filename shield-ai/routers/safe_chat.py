@@ -121,24 +121,35 @@ async def safe_chat(req: SafeChatRequest):
     age_note = "aged 6-12" if req.ageGroup == "child" else "aged 13-17"
     system = SAFE_CHAT_SYSTEM_PROMPT + f"\n\nThe child is {age_note}. Adjust your language accordingly."
 
-    # ── Call Claude ───────────────────────────────────────────────────────────
+    # ── Call AI (DeepSeek primary, Claude fallback) ───────────────────────────
+    reply = ""
     try:
-        client = _get_client()
-        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
-        response = client.messages.create(
-            model=model,
-            max_tokens=512,
-            system=system,
-            messages=history,
-        )
-        reply: str = response.content[0].text.strip()
-        logger.info(
-            "safe-chat reply generated for profile=%s ageGroup=%s len=%d",
-            req.profileId, req.ageGroup, len(reply),
-        )
-    except Exception as exc:
-        logger.error("safe-chat Claude call failed for profile=%s: %s", req.profileId, exc)
-        raise HTTPException(status_code=500, detail=f"AI service error: {str(exc)}")
+        import httpx
+        deepseek_key = os.getenv("DEEPSEEK_API_KEY")
+        if deepseek_key:
+            ds_messages = [{"role": "system", "content": system}] + history
+            resp = httpx.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {deepseek_key}", "Content-Type": "application/json"},
+                json={"model": os.getenv("DEEPSEEK_MODEL", "deepseek-chat"), "max_tokens": 512, "messages": ds_messages},
+                timeout=30.0,
+            )
+            resp.raise_for_status()
+            reply = resp.json()["choices"][0]["message"]["content"].strip()
+            logger.info("safe-chat DeepSeek reply for profile=%s ageGroup=%s len=%d", req.profileId, req.ageGroup, len(reply))
+        else:
+            raise RuntimeError("DEEPSEEK_API_KEY not set")
+    except Exception as ds_exc:
+        logger.warning("safe-chat DeepSeek failed for profile=%s: %s — trying Claude", req.profileId, ds_exc)
+        try:
+            client = _get_client()
+            model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
+            response = client.messages.create(model=model, max_tokens=512, system=system, messages=history)
+            reply = response.content[0].text.strip()
+            logger.info("safe-chat Claude reply for profile=%s ageGroup=%s len=%d", req.profileId, req.ageGroup, len(reply))
+        except Exception as exc:
+            logger.error("safe-chat all AI providers failed for profile=%s: %s", req.profileId, exc)
+            raise HTTPException(status_code=500, detail="AI service temporarily unavailable. Please try again.")
 
     # ── Post-filter: scan Claude's own reply for blocked content ──────────────
     reply_lower = reply.lower()

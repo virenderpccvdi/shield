@@ -34,6 +34,16 @@ public class LocationBroadcaster {
 
     @Async
     public void broadcast(LocationPoint point) {
+        broadcast(point, null);
+    }
+
+    /**
+     * Broadcasts a location update via WebSocket. When {@code message} is non-null
+     * (i.e. a child check-in), also broadcasts an alert so the parent dashboard
+     * receives a real-time check-in notification.
+     */
+    @Async
+    public void broadcast(LocationPoint point, String message) {
         try {
             String baseUrl = resolveNotificationUrl();
             if (baseUrl == null) return;
@@ -58,6 +68,27 @@ public class LocationBroadcaster {
                     .toBodilessEntity();
 
             log.debug("Location broadcast sent for profile={}", point.getProfileId());
+
+            // For check-ins, also broadcast an alert so the parent dashboard shows a notification
+            if (message != null && !message.isBlank()) {
+                Map<String, Object> alertPayload = new HashMap<>();
+                alertPayload.put("type", "CHECKIN");
+                alertPayload.put("profileId", point.getProfileId().toString());
+                alertPayload.put("message", message);
+                alertPayload.put("latitude", point.getLatitude());
+                alertPayload.put("longitude", point.getLongitude());
+                if (point.getRecordedAt() != null) alertPayload.put("timestamp", point.getRecordedAt().toString());
+
+                String tenantId = point.getTenantId() != null ? point.getTenantId().toString() : "";
+                restClient.post()
+                        .uri(baseUrl + "/internal/notifications/broadcast?tenantId=" + tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(alertPayload)
+                        .retrieve()
+                        .toBodilessEntity();
+
+                log.info("Check-in alert broadcast sent for profile={}", point.getProfileId());
+            }
         } catch (Exception e) {
             log.debug("Location broadcast failed (notification service may be offline): {}", e.getMessage());
         }

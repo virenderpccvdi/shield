@@ -8,7 +8,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSubscription, getActivePlans, createCheckout, cancelSubscription, getMyInvoices } from '../../api/billing';
+import { getSubscription, getIspPlans, createCheckout, cancelSubscription, getMyInvoices } from '../../api/billing';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import LoadingPage from '../../components/LoadingPage';
@@ -19,7 +19,7 @@ export default function IspBillingPage() {
   const [snack, setSnack] = useState('');
 
   const { data: sub, isLoading } = useQuery({ queryKey: ['my-subscription'], queryFn: getSubscription });
-  const { data: plans } = useQuery({ queryKey: ['active-plans'], queryFn: getActivePlans });
+  const { data: plans } = useQuery({ queryKey: ['isp-plans'], queryFn: getIspPlans });
   const { data: invoices } = useQuery({ queryKey: ['my-invoices'], queryFn: () => getMyInvoices(0, 10) });
 
   const checkoutMutation = useMutation({

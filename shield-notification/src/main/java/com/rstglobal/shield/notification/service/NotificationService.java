@@ -66,8 +66,7 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public long getUnreadCount(UUID userId) {
-        return notifRepo.countByUserIdAndStatus(userId, "PENDING")
-                + notifRepo.countByUserIdAndStatus(userId, "DELIVERED");
+        return notifRepo.countUnreadByUserId(userId);
     }
 
     @Transactional

@@ -36,14 +36,33 @@ interface Plan {
 }
 
 const FEATURE_LABELS: Record<string, string> = {
+  // Core
   dns_filtering: 'DNS Filtering',
-  ai_monitoring: 'AI Monitoring',
-  gps_tracking: 'GPS Tracking',
   screen_time: 'Screen Time',
-  rewards: 'Rewards System',
   instant_pause: 'Instant Pause',
+  // Safety
+  gps_tracking: 'GPS Tracking',
+  geofences: 'Geofences',
+  sos: 'SOS Panic Button',
+  battery_alerts: 'Battery Alerts',
+  // Intelligence
+  ai_monitoring: 'AI Monitoring',
+  browsing_history: 'Browsing History',
   content_reporting: 'Content Reports',
+  ai_chat: 'AI Learning Buddy',
+  // Family
+  rewards: 'Rewards & Badges',
+  co_parent: 'Co-Parent Access',
+  weekly_digest: 'Weekly Digest',
+  report_cards: 'Monthly Report Cards',
+  location_sharing: 'Location Sharing',
+  // Advanced
+  video_checkin: 'Video Check-in',
+  advanced_schedules: 'Access Schedules',
   multi_admin: 'Multi-Admin',
+  // ISP
+  ai_insights: 'AI Insights',
+  white_label: 'White Label',
 };
 
 const PLAN_GRADIENTS: Record<string, string> = {
@@ -57,7 +76,14 @@ const DEFAULT_GRADIENT = 'linear-gradient(135deg, #455A64 0%, #78909C 100%)';
 const EMPTY_FORM: Omit<Plan, 'id'> = {
   name: '', displayName: '', price: 0, billingCycle: 'MONTHLY',
   maxCustomers: 100, maxProfilesPerCustomer: 5,
-  features: { dns_filtering: true, ai_monitoring: false, gps_tracking: false, screen_time: true, rewards: false, instant_pause: true, content_reporting: false, multi_admin: false },
+  features: {
+    dns_filtering: true, screen_time: true, instant_pause: true,
+    gps_tracking: false, geofences: false, sos: false, battery_alerts: false,
+    ai_monitoring: false, browsing_history: false, content_reporting: false, ai_chat: false,
+    rewards: false, co_parent: false, weekly_digest: false, report_cards: false, location_sharing: false,
+    video_checkin: false, advanced_schedules: false, multi_admin: false,
+    ai_insights: false, white_label: false,
+  },
   description: '', isDefault: false, active: true, sortOrder: 0,
 };
 

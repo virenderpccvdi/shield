@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:shimmer/shimmer.dart';
 import '../app/theme.dart';
 
@@ -379,5 +380,32 @@ class ShieldQuickAction extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ── Error helper ──────────────────────────────────────────────────────────
+
+/// Shows a user-friendly error SnackBar. Extracts message from DioException if available.
+void showShieldError(BuildContext context, dynamic error, {String fallback = 'Something went wrong'}) {
+  String message = fallback;
+  if (error is DioException) {
+    final data = error.response?.data;
+    if (data is Map) {
+      message = data['message']?.toString() ?? data['error']?.toString() ?? fallback;
+    } else if (error.type == DioExceptionType.connectionTimeout ||
+               error.type == DioExceptionType.receiveTimeout) {
+      message = 'Connection timed out. Check your internet.';
+    } else if (error.type == DioExceptionType.connectionError) {
+      message = 'No internet connection.';
+    }
+  }
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: const Color(0xFFE53935),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      duration: const Duration(seconds: 3),
+    ));
   }
 }

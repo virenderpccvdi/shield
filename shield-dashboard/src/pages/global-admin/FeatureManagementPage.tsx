@@ -133,6 +133,7 @@ export default function FeatureManagementPage() {
 
   const bulkToggleMut = useMutation({
     mutationFn: async ({ feature, enabled }: { feature: string; enabled: boolean }) => {
+      if (!window.confirm(`Apply "${feature}" toggle to ALL ${tenants.length} tenants?`)) return;
       await Promise.all(tenants.map(t => api.patch(`/tenants/${t.id}/features/${feature}`, { enabled })));
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tenants-features'] }); setSnack('Bulk update complete'); },

@@ -10,11 +10,15 @@ import com.rstglobal.shield.profile.repository.ChildProfileRepository;
 import com.rstglobal.shield.profile.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -53,11 +57,13 @@ public class CustomerService {
     }
 
     public PagedResponse<CustomerResponse> listByTenant(UUID tenantId, Pageable pageable) {
-        if (tenantId == null) {
-            return PagedResponse.of(customerRepository.findAll(pageable).map(this::toResponse));
-        }
-        return PagedResponse.of(customerRepository.findByTenantId(tenantId, pageable)
-                .map(this::toResponse));
+        Page<Customer> page = (tenantId == null)
+                ? customerRepository.findAll(pageable)
+                : customerRepository.findByTenantId(tenantId, pageable);
+        // Bulk-fetch profile counts in one query to avoid N+1
+        List<UUID> customerIds = page.map(Customer::getId).toList();
+        Map<UUID, Integer> countsByCustomer = childProfileRepository.countActiveByCustomerIds(customerIds);
+        return PagedResponse.of(page.map(c -> toResponse(c, countsByCustomer.getOrDefault(c.getId(), 0))));
     }
 
     @Transactional
@@ -93,7 +99,10 @@ public class CustomerService {
     }
 
     private CustomerResponse toResponse(Customer c) {
-        int profileCount = childProfileRepository.countByCustomerIdAndActiveTrue(c.getId());
+        return toResponse(c, childProfileRepository.countByCustomerIdAndActiveTrue(c.getId()));
+    }
+
+    private CustomerResponse toResponse(Customer c, int profileCount) {
         return CustomerResponse.builder()
                 .id(c.getId())
                 .tenantId(c.getTenantId())

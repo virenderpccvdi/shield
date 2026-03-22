@@ -24,7 +24,7 @@ import '../features/parent/dns_rules_screen.dart';
 import '../features/parent/schedule_screen.dart';
 import '../features/parent/time_limits_screen.dart';
 import '../features/parent/rewards_screen.dart';
-import '../features/parent/reports_screen.dart';
+import '../features/parent/reports_screen.dart' show ReportsScreen, ReportsHubScreen;
 import '../features/parent/geofences_screen.dart';
 import '../features/parent/places_screen.dart';
 import '../features/parent/location_history_screen.dart';
@@ -42,6 +42,11 @@ import '../features/child_app/ai_chat_screen.dart';
 import '../features/child_app/achievements_screen.dart';
 import '../features/parent/schedule_viewer_screen.dart';
 import '../features/parent/panic_alert_screen.dart';
+import '../features/parent/browsing_history_screen.dart';
+import '../features/parent/approval_requests_screen.dart';
+import '../features/parent/bedtime_lock_screen.dart';
+import '../features/parent/emergency_contacts_screen.dart';
+import '../features/parent/battery_alerts_screen.dart';
 
 // ── Auth change notifier — drives GoRouter refresh without recreating it ────
 
@@ -142,6 +147,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               childName: state.uri.queryParameters['name'] ?? 'Child',
             ),
           ),
+          GoRoute(path: '/reports', builder: (_, __) => const ReportsHubScreen()),
           GoRoute(path: '/notifications', builder: (_, __) => const NotificationHistoryScreen()),
           GoRoute(
             path: '/family/:profileId/location-share',
@@ -154,6 +160,26 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/family/:profileId/schedule-viewer',
             builder: (_, state) => ScheduleViewerScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/:profileId/browsing-history',
+            builder: (_, state) => BrowsingHistoryScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/:profileId/approvals',
+            builder: (_, state) => ApprovalRequestsScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/:profileId/bedtime',
+            builder: (_, state) => BedtimeLockScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/:profileId/emergency-contacts',
+            builder: (_, state) => EmergencyContactsScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/:profileId/battery-alerts',
+            builder: (_, state) => BatteryAlertsScreen(profileId: state.pathParameters['profileId']!),
           ),
         ],
       ),

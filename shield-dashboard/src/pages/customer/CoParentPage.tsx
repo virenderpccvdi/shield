@@ -81,7 +81,7 @@ export default function CoParentPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get('/api/v1/profiles/family');
+      const res = await api.get('/profiles/family');
       setItems(res.data?.data ?? res.data ?? []);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -109,7 +109,7 @@ export default function CoParentPage() {
     setInviting(true);
     setInviteError(null);
     try {
-      await api.post('/api/v1/profiles/family/invite', {
+      await api.post('/profiles/family/invite', {
         email: inviteEmail.trim().toLowerCase(),
         role: 'CO_PARENT',
       });
@@ -127,7 +127,7 @@ export default function CoParentPage() {
 
   const handleRevoke = async (memberId: string) => {
     try {
-      await api.delete(`/api/v1/profiles/family/${memberId}`);
+      await api.delete(`/profiles/family/${memberId}`);
       setSnack('Co-parent access revoked');
       fetchFamily();
     } catch {
@@ -137,7 +137,7 @@ export default function CoParentPage() {
 
   const handleCancelInvite = async (inviteId: string) => {
     try {
-      await api.delete(`/api/v1/profiles/family/invites/${inviteId}`);
+      await api.delete(`/profiles/family/invites/${inviteId}`);
       setSnack('Invite cancelled');
       fetchFamily();
     } catch {

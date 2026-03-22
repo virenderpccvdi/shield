@@ -5,6 +5,7 @@ import com.rstglobal.shield.notification.repository.NotificationChannelRepositor
 import com.rstglobal.shield.notification.service.WeeklyDigestService.WeeklyDigestData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,12 @@ public class EmailService {
     private final NotificationChannelRepository channelRepo;
     private final TemplateEngine templateEngine;
 
+    @Value("${SMTP_HOST:smtp.zoho.com}")       private String envSmtpHost;
+    @Value("${SMTP_PORT:465}")                 private int    envSmtpPort;
+    @Value("${SMTP_USER:}")                    private String envSmtpUser;
+    @Value("${SMTP_PASS:}")                    private String envSmtpPass;
+    @Value("${SMTP_FROM:Shield <noreply@shield.local>}") private String envSmtpFrom;
+
     /**
      * Send an HTML email using the tenant's SMTP config (or platform default).
      * Silently logs and returns false if SMTP is not configured or fails.
@@ -31,15 +38,27 @@ public class EmailService {
     public boolean sendEmail(UUID tenantId, String toEmail, String subject,
                               String templateName, Map<String, Object> variables) {
         NotificationChannel channel = channelRepo.findEffective(tenantId, "SMTP").orElse(null);
-        if (channel == null || !Boolean.TRUE.equals(channel.getEnabled())) {
-            log.debug("SMTP not configured for tenantId={} — skipping email to {}", tenantId, toEmail);
-            return false;
+        JavaMailSenderImpl sender;
+        String fromEmail;
+        String fromName;
+        if (channel != null && Boolean.TRUE.equals(channel.getEnabled())) {
+            sender    = buildSender(channel);
+            fromEmail = channel.getSmtpFromEmail();
+            fromName  = channel.getSmtpFromName();
+        } else {
+            if (envSmtpUser == null || envSmtpUser.isBlank()) {
+                log.debug("SMTP not configured for tenantId={} — skipping email to {}", tenantId, toEmail);
+                return false;
+            }
+            sender    = buildEnvSender();
+            String[] parsed = parseFromAddress(envSmtpFrom);
+            fromName  = parsed[0];
+            fromEmail = parsed[1];
         }
         try {
-            JavaMailSenderImpl sender = buildSender(channel);
             var message = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(channel.getSmtpFromEmail(), channel.getSmtpFromName());
+            helper.setFrom(fromEmail, fromName);
             helper.setTo(toEmail);
             helper.setSubject(subject);
 
@@ -60,15 +79,27 @@ public class EmailService {
     /** Send plain-text email (no template). */
     public boolean sendPlainEmail(UUID tenantId, String toEmail, String subject, String body) {
         NotificationChannel channel = channelRepo.findEffective(tenantId, "SMTP").orElse(null);
-        if (channel == null || !Boolean.TRUE.equals(channel.getEnabled())) {
-            log.debug("SMTP not configured for tenantId={} — skipping email", tenantId);
-            return false;
+        JavaMailSenderImpl sender;
+        String fromEmail;
+        String fromName;
+        if (channel != null && Boolean.TRUE.equals(channel.getEnabled())) {
+            sender    = buildSender(channel);
+            fromEmail = channel.getSmtpFromEmail();
+            fromName  = channel.getSmtpFromName();
+        } else {
+            if (envSmtpUser == null || envSmtpUser.isBlank()) {
+                log.debug("SMTP not configured for tenantId={} — skipping email", tenantId);
+                return false;
+            }
+            sender    = buildEnvSender();
+            String[] parsed = parseFromAddress(envSmtpFrom);
+            fromName  = parsed[0];
+            fromEmail = parsed[1];
         }
         try {
-            JavaMailSenderImpl sender = buildSender(channel);
             var message = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
-            helper.setFrom(channel.getSmtpFromEmail(), channel.getSmtpFromName());
+            helper.setFrom(fromEmail, fromName);
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(body, false);
@@ -87,15 +118,27 @@ public class EmailService {
      */
     public boolean sendEmergencyAlert(String toEmail, String recipientName, String subject, String body) {
         NotificationChannel channel = channelRepo.findEffective(null, "SMTP").orElse(null);
-        if (channel == null || !Boolean.TRUE.equals(channel.getEnabled())) {
-            log.debug("SMTP not configured for platform — skipping emergency alert to {}", toEmail);
-            return false;
+        JavaMailSenderImpl sender;
+        String fromEmail;
+        String fromName;
+        if (channel != null && Boolean.TRUE.equals(channel.getEnabled())) {
+            sender    = buildSender(channel);
+            fromEmail = channel.getSmtpFromEmail();
+            fromName  = channel.getSmtpFromName();
+        } else {
+            if (envSmtpUser == null || envSmtpUser.isBlank()) {
+                log.debug("SMTP not configured for platform — skipping emergency alert to {}", toEmail);
+                return false;
+            }
+            sender    = buildEnvSender();
+            String[] parsed = parseFromAddress(envSmtpFrom);
+            fromName  = parsed[0];
+            fromEmail = parsed[1];
         }
         try {
-            JavaMailSenderImpl sender = buildSender(channel);
             var message = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
-            helper.setFrom(channel.getSmtpFromEmail(), channel.getSmtpFromName());
+            helper.setFrom(fromEmail, fromName);
             helper.setTo(toEmail);
             helper.setSubject(subject);
             String greeting = recipientName != null && !recipientName.isBlank()
@@ -123,17 +166,29 @@ public class EmailService {
     public boolean sendWeeklyDigest(String toEmail, String parentName, WeeklyDigestData data) {
         // Try tenant channel first; fall back to platform default (null tenantId)
         NotificationChannel channel = channelRepo.findEffective(null, "SMTP").orElse(null);
-        if (channel == null || !Boolean.TRUE.equals(channel.getEnabled())) {
-            log.debug("SMTP not configured (platform) — skipping weekly digest to {}", toEmail);
-            return false;
+        JavaMailSenderImpl sender;
+        String fromEmail;
+        String fromName;
+        if (channel != null && Boolean.TRUE.equals(channel.getEnabled())) {
+            sender    = buildSender(channel);
+            fromEmail = channel.getSmtpFromEmail();
+            fromName  = channel.getSmtpFromName();
+        } else {
+            if (envSmtpUser == null || envSmtpUser.isBlank()) {
+                log.debug("SMTP not configured (platform) — skipping weekly digest to {}", toEmail);
+                return false;
+            }
+            sender    = buildEnvSender();
+            String[] parsed = parseFromAddress(envSmtpFrom);
+            fromName  = parsed[0];
+            fromEmail = parsed[1];
         }
         try {
             String html = buildDigestHtml(parentName, data);
 
-            JavaMailSenderImpl sender = buildSender(channel);
             var message = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(channel.getSmtpFromEmail(), channel.getSmtpFromName());
+            helper.setFrom(fromEmail, fromName);
             helper.setTo(toEmail);
             helper.setSubject("Shield Weekly Report — " + data.weekStart() + " – " + data.weekEnd());
             helper.setText(html, true);
@@ -159,15 +214,27 @@ public class EmailService {
      */
     public boolean sendReportCard(String toEmail, String parentName, String subject, String html) {
         NotificationChannel channel = channelRepo.findEffective(null, "SMTP").orElse(null);
-        if (channel == null || !Boolean.TRUE.equals(channel.getEnabled())) {
-            log.debug("SMTP not configured (platform) — skipping report card to {}", toEmail);
-            return false;
+        JavaMailSenderImpl sender;
+        String fromEmail;
+        String fromName;
+        if (channel != null && Boolean.TRUE.equals(channel.getEnabled())) {
+            sender    = buildSender(channel);
+            fromEmail = channel.getSmtpFromEmail();
+            fromName  = channel.getSmtpFromName();
+        } else {
+            if (envSmtpUser == null || envSmtpUser.isBlank()) {
+                log.debug("SMTP not configured (platform) — skipping report card to {}", toEmail);
+                return false;
+            }
+            sender    = buildEnvSender();
+            String[] parsed = parseFromAddress(envSmtpFrom);
+            fromName  = parsed[0];
+            fromEmail = parsed[1];
         }
         try {
-            JavaMailSenderImpl sender = buildSender(channel);
             var message = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(channel.getSmtpFromEmail(), channel.getSmtpFromName());
+            helper.setFrom(fromEmail, fromName);
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(html, true);
@@ -233,6 +300,46 @@ public class EmailService {
                 "</div>" +
                 "</div>" +
                 "</body></html>";
+    }
+
+    /** Build a JavaMailSenderImpl from environment-variable SMTP config. */
+    private JavaMailSenderImpl buildEnvSender() {
+        JavaMailSenderImpl s = new JavaMailSenderImpl();
+        s.setHost(envSmtpHost);
+        s.setPort(envSmtpPort);
+        s.setUsername(envSmtpUser);
+        s.setPassword(envSmtpPass);
+        Properties p = s.getJavaMailProperties();
+        p.put("mail.transport.protocol", "smtp");
+        p.put("mail.smtp.auth", "true");
+        if (envSmtpPort == 465) {
+            p.put("mail.smtp.ssl.enable", "true");
+            p.put("mail.smtp.ssl.trust", envSmtpHost);
+            p.put("mail.smtp.starttls.enable", "false");
+        } else {
+            p.put("mail.smtp.starttls.enable", "true");
+            p.put("mail.smtp.starttls.required", "true");
+        }
+        p.put("mail.smtp.timeout", "15000");
+        p.put("mail.smtp.connectiontimeout", "15000");
+        p.put("mail.smtp.writetimeout", "15000");
+        return s;
+    }
+
+    /**
+     * Parse "Display Name <email@domain>" or bare "email@domain".
+     * Returns [name, email].
+     */
+    private static String[] parseFromAddress(String from) {
+        if (from != null && from.contains("<") && from.contains(">")) {
+            int lt = from.indexOf('<');
+            int gt = from.indexOf('>');
+            String name  = from.substring(0, lt).trim();
+            String email = from.substring(lt + 1, gt).trim();
+            return new String[]{ name.isBlank() ? email : name, email };
+        }
+        String addr = from != null ? from.trim() : "noreply@shield.local";
+        return new String[]{ addr, addr };
     }
 
     private JavaMailSenderImpl buildSender(NotificationChannel ch) {

@@ -32,39 +32,39 @@ public class SubscriptionPlanController {
      * - anyone: active ISP plans (for billing/subscription pages)
      */
     @GetMapping
-    public ResponseEntity<List<SubscriptionPlan>> list(
+    public ResponseEntity<ApiResponse<List<SubscriptionPlan>>> list(
             @RequestHeader(value = "X-User-Role", required = false) String role,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @RequestParam(defaultValue = "false") boolean all) {
         if ("GLOBAL_ADMIN".equals(role)) {
-            return ResponseEntity.ok(all ? planService.listAll() : planService.listActive());
+            return ResponseEntity.ok(ApiResponse.ok(all ? planService.listAll() : planService.listActive()));
         }
         if ("ISP_ADMIN".equals(role) && tenantIdStr != null && !tenantIdStr.isBlank()) {
             UUID tenantId = UUID.fromString(tenantIdStr);
-            return ResponseEntity.ok(all ? planService.listAllByTenant(tenantId) : planService.listByTenant(tenantId));
+            return ResponseEntity.ok(ApiResponse.ok(all ? planService.listAllByTenant(tenantId) : planService.listByTenant(tenantId)));
         }
         // CUSTOMER role: return only their ISP's tenant-scoped customer plans
         if ("CUSTOMER".equals(role) && tenantIdStr != null && !tenantIdStr.isBlank()) {
             UUID tenantId = UUID.fromString(tenantIdStr);
-            return ResponseEntity.ok(planService.listByTenant(tenantId));
+            return ResponseEntity.ok(ApiResponse.ok(planService.listByTenant(tenantId)));
         }
         // Default fallback: ISP-level plans only
-        return ResponseEntity.ok(planService.listIspPlans());
+        return ResponseEntity.ok(ApiResponse.ok(planService.listIspPlans()));
     }
 
     /** ISP-level plans only (for ISP subscription pages) */
     @GetMapping("/isp")
-    public ResponseEntity<List<SubscriptionPlan>> listIspPlans() {
-        return ResponseEntity.ok(planService.listIspPlans());
+    public ResponseEntity<ApiResponse<List<SubscriptionPlan>>> listIspPlans() {
+        return ResponseEntity.ok(ApiResponse.ok(planService.listIspPlans()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SubscriptionPlan> get(@PathVariable UUID id) {
-        return ResponseEntity.ok(planService.getById(id));
+    public ResponseEntity<ApiResponse<SubscriptionPlan>> get(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(planService.getById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<SubscriptionPlan> create(
+    public ResponseEntity<ApiResponse<SubscriptionPlan>> create(
             @RequestHeader(value = "X-User-Role", required = false) String role,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @RequestBody SubscriptionPlan plan,
@@ -80,11 +80,11 @@ public class SubscriptionPlanController {
         auditLogService.log("PLAN_CREATED", "SubscriptionPlan", created.getId().toString(),
                 getUserId(req), getUserName(req), req.getRemoteAddr(),
                 Map.of("planName", created.getName()));
-        return ResponseEntity.ok(created);
+        return ResponseEntity.ok(ApiResponse.ok(created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SubscriptionPlan> update(
+    public ResponseEntity<ApiResponse<SubscriptionPlan>> update(
             @RequestHeader(value = "X-User-Role", required = false) String role,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @PathVariable UUID id,
@@ -100,7 +100,7 @@ public class SubscriptionPlanController {
         auditLogService.log("PLAN_UPDATED", "SubscriptionPlan", id.toString(),
                 getUserId(req), getUserName(req), req.getRemoteAddr(),
                 Map.of("planName", updated.getName()));
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(ApiResponse.ok(updated));
     }
 
     @DeleteMapping("/{id}")

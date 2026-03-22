@@ -30,6 +30,7 @@ public class DnsRulesService {
     private final PlatformDefaultsRepository platformRepo;
     private final AdGuardClient adGuard;
     private final FeatureGateService featureGate;
+    private final DnsBroadcastService dnsBroadcast;
 
     @Value("${shield.app.domain:shield.rstglobal.in}")
     private String appDomain;
@@ -69,6 +70,7 @@ public class DnsRulesService {
         rules.setEnabledCategories(cats);
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
+        dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         return toResponse(saved);
     }
 
@@ -79,6 +81,7 @@ public class DnsRulesService {
         rules.setCustomAllowlist(req.getDomains());
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
+        dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         return toResponse(saved);
     }
 
@@ -89,6 +92,7 @@ public class DnsRulesService {
         rules.setCustomBlocklist(req.getDomains());
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
+        dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         return toResponse(saved);
     }
 
@@ -100,6 +104,7 @@ public class DnsRulesService {
         if (allowlist != null) rules.setCustomAllowlist(allowlist);
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
+        dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         return toResponse(saved);
     }
 
@@ -126,6 +131,7 @@ public class DnsRulesService {
         rules.setEnabledCategories(cats);
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
+        dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         return toResponse(saved);
     }
 
@@ -152,6 +158,7 @@ public class DnsRulesService {
         }
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
+        dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         return toResponse(saved);
     }
 
@@ -348,12 +355,19 @@ public class DnsRulesService {
                 });
     }
 
+    /** Fire-and-forget AdGuard sync — runs in background so API returns immediately. */
     private void syncToAdGuard(DnsRules rules) {
+        java.util.concurrent.CompletableFuture.runAsync(() -> syncToAdGuardInternal(rules));
+    }
+
+    private void syncToAdGuardInternal(DnsRules rules) {
         String clientId = rules.getDnsClientId();
         if (clientId == null || clientId.isBlank()) {
             log.warn("syncToAdGuard: no dnsClientId on rules for profileId={} — skipping AdGuard sync", rules.getProfileId());
             return;
         }
+
+        try {
 
         Map<String, Boolean> cats = Optional.ofNullable(rules.getEnabledCategories()).orElse(Map.of());
 
@@ -450,6 +464,10 @@ public class DnsRulesService {
         applyYoutubeRewrites(rules.isYoutubeSafeMode());
         // PC-06: Safe Search — DNS CNAME rewrites
         applySafeSearchRewrites(rules.isSafeSearch());
+
+        } catch (Exception e) {
+            log.warn("AdGuard sync failed for profile={} clientId={} — DB saved, sync skipped: {}", rules.getProfileId(), clientId, e.getMessage());
+        }
     }
 
     private DnsRulesResponse toResponse(DnsRules r) {

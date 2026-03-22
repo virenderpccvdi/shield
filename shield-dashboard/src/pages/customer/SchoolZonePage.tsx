@@ -61,7 +61,7 @@ export default function SchoolZonePage() {
 
   const { data: geofences, isLoading: loadingGeofences } = useQuery({
     queryKey: ['geofences-profile', profileId],
-    queryFn: () => api.get(`/profiles/${profileId}/geofences`).then(r => {
+    queryFn: () => api.get(`/location/${profileId}/geofences`).then(r => {
       const d = r.data?.data;
       return (d?.content ?? d ?? r.data ?? []) as Geofence[];
     }).catch(() => [] as Geofence[]),
@@ -71,7 +71,7 @@ export default function SchoolZonePage() {
   const saveMutation = useMutation({
     mutationFn: async (patches: GeofencePatch) => {
       const requests = Object.entries(patches).map(([geofenceId, settings]) =>
-        api.patch(`/profiles/geofences/${geofenceId}`, {
+        api.put(`/location/${profileId}/geofences/${geofenceId}`, {
           isSchool: settings.isSchool,
           schoolStart: settings.schoolStart,
           schoolEnd: settings.schoolEnd,

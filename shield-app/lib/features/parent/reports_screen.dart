@@ -4,10 +4,216 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 import '../../core/api_client.dart';
 import '../../core/shield_widgets.dart';
 import '../../app/theme.dart';
+
+// ── Reports Hub — child profile selector shown when no profileId provided ──
+
+class ReportsHubScreen extends ConsumerStatefulWidget {
+  const ReportsHubScreen({super.key});
+
+  @override
+  ConsumerState<ReportsHubScreen> createState() => _ReportsHubScreenState();
+}
+
+class _ReportsHubScreenState extends ConsumerState<ReportsHubScreen> {
+  List<Map<String, dynamic>> _profiles = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfiles();
+  }
+
+  Future<void> _loadProfiles() async {
+    setState(() => _loading = true);
+    try {
+      final client = ref.read(dioProvider);
+      final res = await client.get('/profiles/children');
+      final raw = res.data;
+      final d = raw is Map ? (raw['data'] ?? raw) : raw;
+      final list = d is List
+          ? d
+          : (d is Map ? (d['content'] ?? d['items'] ?? []) : []) as List;
+      setState(() {
+        _profiles = list
+            .where((e) => (e['id']?.toString() ?? '').isNotEmpty)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Reports', style: TextStyle(fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadProfiles),
+        ],
+      ),
+      body: _loading
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(children: [
+                ShieldCardSkeleton(lines: 3),
+                SizedBox(height: 12),
+                ShieldCardSkeleton(lines: 3),
+              ]))
+          : _profiles.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.bar_chart, size: 56, color: ShieldTheme.textSecondary),
+                        const SizedBox(height: 16),
+                        const Text('No child profiles found',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 8),
+                        const Text('Add a child profile first to see their reports.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: ShieldTheme.textSecondary)),
+                        const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed: () => context.go('/family/new'),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Child'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadProfiles,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      const Text('Select a child to view their reports',
+                          style: TextStyle(
+                              fontSize: 13, color: ShieldTheme.textSecondary)),
+                      const SizedBox(height: 12),
+                      ..._profiles.map((p) {
+                        final name = p['name'] as String? ?? 'Child';
+                        final initial = name.isNotEmpty ? name[0].toUpperCase() : 'C';
+                        final filterLevel = p['filterLevel'] as String? ?? '';
+                        final online = p['online'] == true;
+                        final colors = [
+                          ShieldTheme.primary, ShieldTheme.primaryLight,
+                          ShieldTheme.success, ShieldTheme.danger,
+                        ];
+                        final avatarColor =
+                            colors[name.codeUnitAt(0) % colors.length];
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: ShieldTheme.divider),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () => context.go(
+                                  '/family/${p['id']}/reports'),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 24,
+                                      backgroundColor: avatarColor,
+                                      child: Text(initial,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700)),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(name,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 15)),
+                                          const SizedBox(height: 2),
+                                          Row(children: [
+                                            Icon(
+                                              online
+                                                  ? Icons.wifi
+                                                  : Icons.wifi_off,
+                                              size: 12,
+                                              color: online
+                                                  ? ShieldTheme.successLight
+                                                  : ShieldTheme.textSecondary,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                online ? 'Online' : 'Offline',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: online
+                                                      ? ShieldTheme.successLight
+                                                      : ShieldTheme
+                                                          .textSecondary,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (filterLevel.isNotEmpty) ...[
+                                              const SizedBox(width: 8),
+                                              Flexible(
+                                                child: Text(
+                                                  filterLevel,
+                                                  style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: ShieldTheme
+                                                          .textSecondary),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ]),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(Icons.bar_chart_rounded,
+                                        color: ShieldTheme.primary, size: 20),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.chevron_right,
+                                        color: ShieldTheme.textSecondary,
+                                        size: 20),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                ),
+    );
+  }
+}
 
 // Top-level function required by compute() — must not be a closure or method
 Future<void> _writeFileIsolate(Map<String, dynamic> args) async {
@@ -32,6 +238,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
   List<Map<String, dynamic>> _appUsage = [];
   bool _loading = true;
   bool _pdfLoading = false;
+
+  DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
+  DateTime _endDate   = DateTime.now();
 
   // Browsing history tab
   late TabController _tabs;
@@ -64,14 +273,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     setState(() => _historyLoading = true);
     try {
       final client = ref.read(dioProvider);
-      final params = <String, dynamic>{'page': _historyPage, 'size': 50};
-      if (_historyActionFilter != null) params['action'] = _historyActionFilter;
-      final res = await client.get('/analytics/${widget.profileId}/history', queryParameters: params);
+      final params = <String, dynamic>{'page': _historyPage, 'size': 50, 'period': 'TODAY'};
+      if (_historyActionFilter == 'BLOCKED') {
+        params['blockedOnly'] = 'true';
+      } else if (_historyActionFilter == 'ALLOWED') {
+        params['blockedOnly'] = 'false';
+      }
+      final res = await client.get('/dns/history/${widget.profileId}', queryParameters: params);
       final raw = res.data;
-      final content = (raw is Map)
-          ? (raw['content'] as List? ?? raw['data']?['content'] as List? ?? [])
-          : (raw is List ? raw : []);
-      final items = content.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      final data = raw is Map ? (raw['data'] ?? raw) : raw;
+      final content = (data is Map)
+          ? (data['content'] as List? ?? [])
+          : (data is List ? data : []);
+      final items = content.map((e) {
+        final m = Map<String, dynamic>.from(e as Map);
+        // Map wasBlocked boolean to action string
+        final wasBlocked = m['wasBlocked'] == true;
+        m['action'] = wasBlocked ? 'BLOCKED' : 'ALLOWED';
+        return m;
+      }).toList();
       setState(() {
         if (reset) _history = items; else _history.addAll(items);
         _historyPage++;
@@ -98,14 +318,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       final uri = Uri.file(file.path);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('PDF downloaded successfully'), backgroundColor: ShieldTheme.success, behavior: SnackBarBehavior.floating),
+          );
+        }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF saved but could not open viewer. Check Downloads.')),
-        );
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF downloaded successfully'), backgroundColor: ShieldTheme.success, behavior: SnackBarBehavior.floating),
+          const SnackBar(content: Text('PDF saved to Downloads folder'), backgroundColor: ShieldTheme.success, behavior: SnackBarBehavior.floating),
         );
       }
     } catch (e) {
@@ -123,12 +343,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     setState(() => _loading = true);
     final client = ref.read(dioProvider);
 
+    final from = _startDate.toIso8601String().split('T')[0];
+    final to   = _endDate.toIso8601String().split('T')[0];
+    final dateParams = <String, dynamic>{'from': from, 'to': to};
+
     // Fetch all five analytics endpoints in parallel
     final results = await Future.wait([
-      client.get('/analytics/${widget.profileId}/stats').catchError((_) => null),
-      client.get('/analytics/${widget.profileId}/daily').catchError((_) => null),
-      client.get('/analytics/${widget.profileId}/top-domains').catchError((_) => null),
-      client.get('/analytics/${widget.profileId}/categories').catchError((_) => null),
+      client.get('/analytics/${widget.profileId}/stats', queryParameters: dateParams).catchError((_) => null),
+      client.get('/analytics/${widget.profileId}/daily', queryParameters: dateParams).catchError((_) => null),
+      client.get('/analytics/${widget.profileId}/top-domains', queryParameters: dateParams).catchError((_) => null),
+      client.get('/analytics/${widget.profileId}/categories', queryParameters: dateParams).catchError((_) => null),
       client.get('/analytics/${widget.profileId}/top-apps').catchError((_) => null),
     ], eagerError: false);
 
@@ -143,7 +367,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       final r = results[1];
       _daily = r != null
           ? (((r as dynamic).data['data'] as List?) ?? [])
-              .map((e) => Map<String, dynamic>.from(e as Map)).toList()
+              .map((e) => Map<String, dynamic>.from((e is Map ? e : <String, dynamic>{}))).toList()
           : [];
     } catch (_) { _daily = []; }
 
@@ -151,7 +375,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       final r = results[2];
       _topDomains = r != null
           ? (((r as dynamic).data['data'] as List?) ?? [])
-              .map((e) => Map<String, dynamic>.from(e as Map)).toList()
+              .map((e) => Map<String, dynamic>.from((e is Map ? e : <String, dynamic>{}))).toList()
           : [];
     } catch (_) { _topDomains = []; }
 
@@ -159,7 +383,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       final r = results[3];
       _categories = r != null
           ? (((r as dynamic).data['data'] as List?) ?? [])
-              .map((e) => Map<String, dynamic>.from(e as Map)).toList()
+              .map((e) => Map<String, dynamic>.from((e is Map ? e : <String, dynamic>{}))).toList()
           : [];
     } catch (_) { _categories = []; }
 
@@ -202,8 +426,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
           controller: _tabs,
           tabs: const [
             Tab(icon: Icon(Icons.bar_chart), text: 'Overview'),
-            Tab(icon: Icon(Icons.history), text: 'Browsing History'),
             Tab(icon: Icon(Icons.phone_android), text: 'App Usage'),
+            Tab(icon: Icon(Icons.history), text: 'History'),
           ],
         ),
       ),
@@ -227,6 +451,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                  // Quick links
+                  _buildQuickLinks(context),
+                  const SizedBox(height: 12),
+
+                  // Date range selector
+                  _buildDateRangeRow(context),
+
                   // Stats cards
                   Row(children: [
                     _StatCard(label: 'Queries', value: '${_stats['totalQueries'] ?? 0}', icon: Icons.dns, color: ShieldTheme.primary),
@@ -244,7 +475,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                     height: 200,
                     child: _daily.isEmpty
                       ? const Center(child: Text('No daily data', style: const TextStyle(color: ShieldTheme.textSecondary)))
-                      : LineChart(
+                      : SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width > 360
+                                ? MediaQuery.of(context).size.width - 32
+                                : 340,
+                            child: LineChart(
                           LineChartData(
                             gridData: const FlGridData(show: true, drawVerticalLine: false),
                             titlesData: FlTitlesData(
@@ -269,6 +506,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                                 belowBarData: BarAreaData(show: true, color: ShieldTheme.primary.withOpacity(0.10)),
                               ),
                             ],
+                          ),
+                        ),
                           ),
                         ),
                   ),
@@ -396,15 +635,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                                 children: [
                                   Row(
                                     children: [
-                                      SizedBox(
-                                        width: 130,
+                                      Flexible(
+                                        flex: 3,
                                         child: Text(
                                           app['appName'] as String? ?? '',
                                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                                           overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
                                       Expanded(
+                                        flex: 4,
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(3),
                                           child: LinearProgressIndicator(
@@ -416,23 +658,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      SizedBox(
-                                        width: 48,
-                                        child: Text(
-                                          _fmtMin(mins.toInt()),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: ShieldTheme.textSecondary,
-                                          ),
-                                          textAlign: TextAlign.right,
+                                      Text(
+                                        _fmtMin(mins.toInt()),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: ShieldTheme.textSecondary,
                                         ),
+                                        textAlign: TextAlign.right,
                                       ),
                                     ],
                                   ),
                                   if (blocked > 0)
                                     Padding(
-                                      padding: const EdgeInsets.only(left: 130, top: 2),
+                                      padding: const EdgeInsets.only(top: 2),
                                       child: Text(
                                         '$blocked blocked attempts',
                                         style: const TextStyle(fontSize: 10, color: ShieldTheme.dangerLight),
@@ -454,16 +693,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
               // Filter chips
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  children: [
-                    const Text('Filter: ', style: TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 8),
-                    _filterChip('All', null),
-                    const SizedBox(width: 6),
-                    _filterChip('Blocked', 'BLOCKED'),
-                    const SizedBox(width: 6),
-                    _filterChip('Allowed', 'ALLOWED'),
-                  ],
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      const Text('Filter: ', style: TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      _filterChip('All', null),
+                      const SizedBox(width: 6),
+                      _filterChip('Blocked', 'BLOCKED'),
+                      const SizedBox(width: 6),
+                      _filterChip('Allowed', 'ALLOWED'),
+                    ],
+                  ),
                 ),
               ),
               Expanded(
@@ -512,7 +754,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: blocked ? ShieldTheme.danger : null,
-                                )),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1),
                               subtitle: Text(
                                 '${category.isNotEmpty ? "$category · " : ""}${_fmtTime(time)}',
                                 style: const TextStyle(fontSize: 11)),
@@ -539,6 +783,90 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildQuickLinks(BuildContext context) {
+    final links = [
+      {'icon': Icons.history, 'label': 'Browsing History', 'route': '/family/${widget.profileId}/browsing-history'},
+      {'icon': Icons.block, 'label': 'Top Blocked', 'tab': 2}, // switch to history tab with blocked filter
+      {'icon': Icons.phone_android, 'label': 'Screen Time', 'tab': 1}, // switch to app usage tab
+      {'icon': Icons.auto_awesome, 'label': 'AI Insights', 'route': '/family/${widget.profileId}/ai-insights'},
+    ];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: links.map((l) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ActionChip(
+              avatar: Icon(l['icon'] as IconData, size: 16, color: ShieldTheme.primary),
+              label: Text(l['label'] as String, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              backgroundColor: ShieldTheme.primary.withOpacity(0.06),
+              side: BorderSide(color: ShieldTheme.primary.withOpacity(0.15)),
+              onPressed: () {
+                if (l.containsKey('route')) {
+                  context.push(l['route'] as String);
+                } else if (l.containsKey('tab')) {
+                  _tabs.animateTo(l['tab'] as int);
+                  if (l['tab'] == 2 && l['label'] == 'Top Blocked') {
+                    setState(() => _historyActionFilter = 'BLOCKED');
+                    _loadHistory(reset: true);
+                  }
+                }
+              },
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildDateRangeRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
+      child: Row(children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.calendar_today, size: 14),
+            label: Text(
+              '${DateFormat('MMM d').format(_startDate)} – ${DateFormat('MMM d').format(_endDate)}',
+              style: const TextStyle(fontSize: 12),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              side: BorderSide(color: ShieldTheme.divider),
+            ),
+            onPressed: () async {
+              final picked = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                lastDate: DateTime.now(),
+                initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+                builder: (ctx, child) => Theme(
+                  data: Theme.of(ctx).copyWith(
+                    colorScheme: ColorScheme.light(primary: ShieldTheme.primary),
+                  ),
+                  child: child!,
+                ),
+              );
+              if (picked != null) {
+                setState(() { _startDate = picked.start; _endDate = picked.end; });
+                _load();
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.refresh, size: 18),
+          onPressed: _load,
+          style: IconButton.styleFrom(
+            side: BorderSide(color: ShieldTheme.divider),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+      ]),
     );
   }
 

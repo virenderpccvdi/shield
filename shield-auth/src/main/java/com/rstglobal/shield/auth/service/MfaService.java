@@ -3,6 +3,7 @@ package com.rstglobal.shield.auth.service;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
+import com.rstglobal.shield.auth.client.NotificationClient;
 import com.rstglobal.shield.auth.dto.response.MfaSetupResponse;
 import com.rstglobal.shield.auth.entity.User;
 import com.rstglobal.shield.auth.repository.UserRepository;
@@ -25,13 +26,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MfaService {
 
-    private static final String MFA_TOKEN_PREFIX = "shield:auth:mfa:";
+    private static final String MFA_TOKEN_PREFIX   = "shield:auth:mfa:";
+    private static final String EMAIL_OTP_PREFIX   = "shield:auth:email_otp:";
     private static final int    MFA_TOKEN_TTL_MINUTES = 5;
-    private static final int    BACKUP_CODE_COUNT = 8;
+    private static final int    BACKUP_CODE_COUNT  = 8;
     private static final String ISSUER = "Shield";
 
     private final UserRepository      userRepository;
     private final StringRedisTemplate redis;
+    private final NotificationClient  notificationClient;
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
 
     /**
@@ -145,7 +148,7 @@ public class MfaService {
     }
 
     /**
-     * Validate a TOTP code against the MFA token from login.
+     * Validate a TOTP code (or email OTP) against the MFA token from login.
      * Returns the userId if valid.
      */
     public UUID validateMfaLogin(String mfaToken, String code) {
@@ -159,13 +162,50 @@ public class MfaService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ShieldException.notFound("User", userId));
 
-        if (!validateCode(user, code)) {
-            throw ShieldException.badRequest("Invalid TOTP code");
+        // First try TOTP / backup code
+        if (validateCode(user, code)) {
+            redis.delete(key);
+            return userId;
         }
 
-        // Consume the MFA token
-        redis.delete(key);
-        return userId;
+        // Then try email OTP as alternative
+        if (validateEmailOtp(mfaToken, code)) {
+            redis.delete(key);
+            return userId;
+        }
+
+        throw ShieldException.badRequest("Invalid MFA code");
+    }
+
+    /**
+     * Send a 6-digit OTP to the user's email.
+     * Called after login when mfaRequired=true.
+     */
+    public void sendEmailOtp(String mfaToken) {
+        String key = MFA_TOKEN_PREFIX + "login:" + mfaToken;
+        String userIdStr = redis.opsForValue().get(key);
+        if (userIdStr == null) throw ShieldException.badRequest("MFA token expired or invalid. Please login again.");
+        UUID userId = UUID.fromString(userIdStr);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> ShieldException.notFound("User", userId));
+
+        String otp = String.format("%06d", new SecureRandom().nextInt(1000000));
+        redis.opsForValue().set(EMAIL_OTP_PREFIX + mfaToken, otp, MFA_TOKEN_TTL_MINUTES, TimeUnit.MINUTES);
+
+        notificationClient.sendEmailOtp(user.getEmail(), user.getName(), otp);
+        log.info("Email OTP sent for mfaToken={} userId={}", mfaToken, userId);
+    }
+
+    /**
+     * Validate email OTP (used in validateMfaLogin as alternative to TOTP).
+     */
+    public boolean validateEmailOtp(String mfaToken, String code) {
+        String stored = redis.opsForValue().get(EMAIL_OTP_PREFIX + mfaToken);
+        if (stored != null && stored.equals(code)) {
+            redis.delete(EMAIL_OTP_PREFIX + mfaToken);
+            return true;
+        }
+        return false;
     }
 
     /**

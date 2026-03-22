@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
+import '../../core/cache_service.dart';
 import '../../app/theme.dart';
 import '../../core/shield_widgets.dart';
 
@@ -53,20 +54,62 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
 
   /// Loads categories, custom lists, filter level, and DNS pause status in parallel.
   Future<void> _loadAll() async {
+    // Pre-populate from stale cache so data shows immediately
+    final cached = CacheService.getStale('dns_rules_${widget.profileId}');
+    if (cached != null && cached is Map) {
+      setState(() {
+        _categories = Map<String, bool>.from(cached['categories'] as Map? ?? {});
+        _blocklist = List<String>.from(cached['blocklist'] as List? ?? []);
+        _allowlist = List<String>.from(cached['allowlist'] as List? ?? []);
+        _filterLevel = cached['filterLevel'] as String? ?? 'MODERATE';
+        // Keep _catsLoading and _listsLoading true so the loading indicator
+        // stays until fresh data arrives (avoids flicker from stale→fresh transition).
+      });
+    }
+
     setState(() { _catsLoading = true; _listsLoading = true; _catsError = null; });
     try {
       final client = ref.read(dioProvider);
-      // Fetch rules and DNS status in parallel
+      // Fetch rules, DNS status, and all categories in parallel
       final results = await Future.wait([
         client.get('/dns/rules/${widget.profileId}'),
         client.get('/dns/${widget.profileId}/status').catchError((_) => null),
+        client.get('/dns/categories').catchError((_) => null),
       ], eagerError: false);
 
       final res = results[0] as dynamic;
       final data = res.data['data'] as Map<String, dynamic>? ?? {};
 
-      // Categories
-      final cats = data['enabledCategories'] as Map<String, dynamic>? ?? {};
+      // Categories from rules response
+      var cats = data['enabledCategories'] as Map<String, dynamic>? ?? {};
+
+      // If profile has no rules yet, try to populate keys from /dns/categories
+      if (cats.isEmpty) {
+        try {
+          final catRes = results[2];
+          if (catRes != null) {
+            final catData = (catRes as dynamic).data;
+            Map<String, dynamic>? catMap;
+            if (catData is Map) {
+              final inner = catData['data'];
+              if (inner is Map && inner.containsKey('categories')) {
+                catMap = inner['categories'] as Map<String, dynamic>?;
+              } else if (inner is Map) {
+                catMap = inner as Map<String, dynamic>?;
+              } else if (inner is List) {
+                // API may return a list of category keys
+                catMap = {for (final k in inner) k.toString(): false};
+              } else {
+                // Top-level map of KEY -> bool
+                catMap = catData as Map<String, dynamic>?;
+              }
+            }
+            if (catMap != null && catMap.isNotEmpty) {
+              cats = catMap;
+            }
+          }
+        } catch (_) {}
+      }
 
       // Filter level
       final level = data['filterLevel'] as String? ?? 'MODERATE';
@@ -83,15 +126,25 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
       } catch (_) {}
 
       if (mounted) {
+        final resolvedCategories = cats.map((k, v) => MapEntry(k, v == true));
+        final resolvedBlocklist = List<String>.from(data['customBlocklist'] ?? []);
+        final resolvedAllowlist = List<String>.from(data['customAllowlist'] ?? []);
         setState(() {
-          _categories = cats.map((k, v) => MapEntry(k, v == true));
+          _categories = resolvedCategories;
           _catsLoading = false;
-          _blocklist = List<String>.from(data['customBlocklist'] ?? []);
-          _allowlist = List<String>.from(data['customAllowlist'] ?? []);
+          _blocklist = resolvedBlocklist;
+          _allowlist = resolvedAllowlist;
           _listsLoading = false;
           _filterLevel = level;
           _paused = paused;
         });
+        // Cache fresh data for offline/stale-while-revalidate use
+        CacheService.put('dns_rules_${widget.profileId}', {
+          'categories': resolvedCategories,
+          'blocklist': resolvedBlocklist,
+          'allowlist': resolvedAllowlist,
+          'filterLevel': level,
+        }, ttlSeconds: 60);
       }
     } catch (_) {
       if (mounted) {
@@ -103,6 +156,9 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
             'DATING': true, 'DRUGS': true, 'WEAPONS': true, 'VIOLENCE': true,
             'CRYPTO': false, 'VPN_PROXY': true, 'ADVERTISING': false,
             'PIRACY': true, 'HATE_SPEECH': true, 'SELF_HARM': true,
+            'EDUCATION': false, 'NEWS': false, 'SHOPPING': false, 'SPORTS': false,
+            'FOOD': false, 'HEALTH': false, 'TRAVEL': false, 'FINANCE': false,
+            'GOVERNMENT': false, 'RELIGION': false,
           };
           _catsLoading = false;
           _listsLoading = false;
@@ -116,13 +172,13 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
     try {
       final client = ref.read(dioProvider);
       if (_paused) {
-        await client.post('/dns/${widget.profileId}/resume');
+        await client.post('/dns/rules/${widget.profileId}/resume');
         if (mounted) {
           setState(() => _paused = false);
           _showSnack('DNS protection resumed', success: true);
         }
       } else {
-        await client.post('/dns/${widget.profileId}/pause');
+        await client.post('/dns/rules/${widget.profileId}/pause');
         if (mounted) {
           setState(() => _paused = true);
           _showSnack('DNS protection paused', success: false);
@@ -558,7 +614,8 @@ class _CategoriesTab extends StatelessWidget {
                     size: 18),
                 ),
                 title: Text(fmt(entry.key),
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  overflow: TextOverflow.ellipsis, maxLines: 1),
                 subtitle: Text(
                   blocked ? 'Blocked' : 'Allowed',
                   style: TextStyle(

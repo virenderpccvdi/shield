@@ -12,6 +12,7 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import SpeedIcon from '@mui/icons-material/Speed';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import StatCard from '../../components/StatCard';
@@ -42,6 +43,7 @@ function timeAgo(dateStr: string): string {
 }
 
 function PlatformSosBanner() {
+  const navigate = useNavigate();
   const { data: sosCount = 0 } = useQuery({
     queryKey: ['platform-sos-active'],
     queryFn: async () => {
@@ -69,8 +71,8 @@ function PlatformSosBanner() {
       }}
       action={
         <Typography
-          component="a"
-          href="/app/alerts"
+          component="span"
+          onClick={() => navigate('/admin/alerts')}
           variant="body2"
           sx={{ fontWeight: 700, color: 'error.dark', textDecoration: 'underline', cursor: 'pointer', alignSelf: 'center' }}
         >

@@ -21,6 +21,13 @@ export const getActivePlans = () =>
     return (Array.isArray(d) ? d : d?.content || []).filter((p: any) => p.active);
   });
 
+/** ISP-level plans only — for ISP admins to subscribe to platform plans */
+export const getIspPlans = () =>
+  api.get('/admin/plans/isp').then(r => {
+    const d = r.data?.data || r.data;
+    return (Array.isArray(d) ? d : d?.content || []).filter((p: any) => p.active);
+  });
+
 export const syncPlanToStripe = (planId: string) =>
   api.post(`/admin/plans/${planId}/sync-stripe`).then(r => r.data);
 

@@ -4,9 +4,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'app/app.dart';
 import 'core/fcm_service.dart';
+import 'core/cache_service.dart';
+import 'core/websocket_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await CacheService.init();
+  await initLocalNotifications();
 
   // Initialize Firebase (requires google-services.json in android/app/)
   try {

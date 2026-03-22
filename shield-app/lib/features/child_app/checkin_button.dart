@@ -75,6 +75,9 @@ class _CheckInButtonState extends ConsumerState<CheckInButton>
         'longitude': position.longitude,
         'accuracy': position.accuracy,
         'altitude': position.altitude,
+        'speed': position.speed,
+        'heading': position.heading,
+        'isMoving': position.speed > 0.5,
         'message': 'I am here',
       });
 

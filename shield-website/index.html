@@ -101,8 +101,8 @@
           "priceCurrency": "USD"
         },
         "downloadUrl": "https://shield.rstglobal.in/static/shield-app.apk",
-        "version": "1.0.45",
-        "softwareVersion": "1.0.45",
+        "version": "1.1.0",
+        "softwareVersion": "1.1.0",
         "description": "Complete parental control app with DNS filtering, screen time limits, GPS tracking, and real-time alerts.",
         "screenshot": "https://shield.rstglobal.in/og-image.svg",
         "featureList": "DNS Content Filtering, Screen Time Schedules, Time Budgets, Real-Time Alerts, Multiple Child Profiles, WhatsApp Alerts, Telegram Alerts",
@@ -908,7 +908,7 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.523 15.341a.66.66 0 01-.66-.66V9.318a.66.66 0 011.32 0v5.363a.66.66 0 01-.66.66zM6.477 15.341a.66.66 0 01-.66-.66V9.318a.66.66 0 011.32 0v5.363a.66.66 0 01-.66.66zm5.046 3.978a.66.66 0 01-.66-.66V12.9a.66.66 0 111.32 0v5.759a.66.66 0 01-.66.66zm5.516-12.15l1.116-2.18a.231.231 0 00-.1-.309.232.232 0 00-.31.1L16.62 7.009A7.378 7.378 0 0012 5.93a7.378 7.378 0 00-4.62 1.08L6.255 4.779a.232.232 0 00-.31-.1.231.231 0 00-.1.31l1.116 2.18A6.745 6.745 0 005 12.34h14a6.745 6.745 0 00-1.961-5.171zM9.5 10.5a1 1 0 110-2 1 1 0 010 2zm5 0a1 1 0 110-2 1 1 0 010 2z"/></svg>
           <div>
             <div class="btn-label">Download APK</div>
-            <div class="btn-sub">Android 8.0+ &nbsp;&middot;&nbsp; 126M</div>
+            <div class="btn-sub">Android 8.0+ &nbsp;&middot;&nbsp; 15M</div>
           </div>
         </a>
         <div class="ios-coming" aria-label="iOS app coming soon">
@@ -921,7 +921,7 @@
       </div>
 
       <div class="download-note">
-        Requires Android 8.0 or higher &nbsp;·&nbsp; Version 1.0.35 &nbsp;·&nbsp; 126M &nbsp;&middot;&nbsp; Released 22 Mar 2026
+        Requires Android 8.0 or higher &nbsp;·&nbsp; Version 1.1.0 &nbsp;·&nbsp; 15M &nbsp;&middot;&nbsp; Released 22 Mar 2026
       </div>
     </div>
 
@@ -996,9 +996,9 @@
       <div class="release-info-card">
         <div class="release-version-badge">
           <span class="release-dot"></span>
-          Latest Release &nbsp;·&nbsp; v1.0.45 &nbsp;·&nbsp; 22 Mar 2026
+          Latest Release &nbsp;·&nbsp; v1.1.0 &nbsp;·&nbsp; 22 Mar 2026
         </div>
-        <h3 class="release-title">What's New in v1.0.45</h3>
+        <h3 class="release-title">What's New in v1.1.0</h3>
         <ul class="release-list">
           <li>
             <span class="release-icon ri-blue">
@@ -1276,6 +1276,42 @@
             </span>
             <div><strong>Live Dashboard Alerts</strong> — Parent web dashboard shows browser notifications for SOS, geofence breach, and critical events in real time via WebSocket — even when the tab is in the background</div>
           </li>
+          <li>
+            <span class="release-icon ri-green">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+            </span>
+            <div><strong>Schedule Grid Drag (Mobile)</strong> — Paint multiple time-block cells in one swipe on Android — drag to block or unblock a range of hours without lifting your finger</div>
+          </li>
+          <li>
+            <span class="release-icon ri-teal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </span>
+            <div><strong>DNS Rules Sync in Real Time</strong> — DNS rule changes on the web dashboard are now broadcast to connected devices via WebSocket; Flutter app cache refreshes within 60 seconds</div>
+          </li>
+          <li>
+            <span class="release-icon ri-orange">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+            </span>
+            <div><strong>AdGuard Resilience</strong> — DNS rule saves now succeed even when AdGuard is temporarily offline; changes are stored in the database and applied when AdGuard comes back</div>
+          </li>
+          <li>
+            <span class="release-icon ri-blue">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+            </span>
+            <div><strong>Email OTP Two-Factor Authentication</strong> — Login can now be secured with a 6-digit email OTP in addition to or instead of TOTP; code expires in 5 minutes with a 60-second resend cooldown</div>
+          </li>
+          <li>
+            <span class="release-icon ri-purple">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+            </span>
+            <div><strong>Offline Support (Flutter)</strong> — App loads cached DNS rules, children list, and notifications instantly while offline; Hive TTL cache refreshes automatically when connectivity returns</div>
+          </li>
+          <li>
+            <span class="release-icon ri-red">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+            </span>
+            <div><strong>Date-Range Reports</strong> — Activity reports on both web and mobile now support custom From/To date filters; default view shows the last 30 days</div>
+          </li>
         </ul>
         <div class="release-meta">
           <span>
@@ -1284,7 +1320,7 @@
           </span>
           <span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm7 14l8-8-1.5-1.5L12 14 8.5 10.5 7 12l5 5z"/></svg>
-            126M &nbsp;(release build)
+            15M &nbsp;(release build)
           </span>
           <span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
@@ -1293,7 +1329,7 @@
         </div>
         <a href="/static/shield-app.apk" class="btn btn-primary btn-download-inline" download>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download v1.0.45 Free
+          Download v1.1.0 Free
         </a>
       </div>
 
@@ -1316,7 +1352,7 @@
           <div class="install-step-num">2</div>
           <div class="install-step-body">
             <strong>Download &amp; install</strong>
-            <p>Tap the Download button above, open the downloaded file, and tap <em>Install</em>. No need to disable Play Protect — v1.0.45 uses standard Android APIs.</p>
+            <p>Tap the Download button above, open the downloaded file, and tap <em>Install</em>. No need to disable Play Protect — v1.1.0 uses standard Android APIs.</p>
           </div>
         </div>
         <div class="install-step">
@@ -1335,7 +1371,7 @@
         </div>
       </div>
       <div class="install-why">
-        <strong>Why sideload?</strong> Shield is pending Play Store review. v1.0.45 no longer uses Accessibility Service or screen overlay — only standard Usage Access and VPN APIs — so Play Protect will not block the installation.
+        <strong>Why sideload?</strong> Shield is pending Play Store review. v1.1.0 no longer uses Accessibility Service or screen overlay — only standard Usage Access and VPN APIs — so Play Protect will not block the installation.
       </div>
     </div>
 
@@ -1403,7 +1439,7 @@
           <span class="faq-arrow" aria-hidden="true">&#9660;</span>
         </button>
         <div class="faq-a" role="region">
-          <p>v1.0.45 no longer uses Accessibility Service or SYSTEM_ALERT_WINDOW — the two permissions that previously triggered Play Protect. App blocking now uses Android's standard <em>Usage Access</em> (PACKAGE_USAGE_STATS) API, which is permitted for parental control apps. If you are installing an older version of the APK you may see a warning — download the latest v1.0.45 from the <a href="#download">Download page</a> to install without any Play Protect warning.</p>
+          <p>v1.1.0 no longer uses Accessibility Service or SYSTEM_ALERT_WINDOW — the two permissions that previously triggered Play Protect. App blocking now uses Android's standard <em>Usage Access</em> (PACKAGE_USAGE_STATS) API, which is permitted for parental control apps. If you are installing an older version of the APK you may see a warning — download the latest v1.1.0 from the <a href="#download">Download page</a> to install without any Play Protect warning.</p>
         </div>
       </div>
             <div class="faq-item">

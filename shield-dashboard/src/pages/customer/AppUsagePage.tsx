@@ -117,7 +117,7 @@ export default function AppUsagePage() {
   // Load profiles
   useEffect(() => {
     setProfilesLoading(true);
-    api.get('/api/v1/profiles/children')
+    api.get('/profiles/children')
       .then((res) => {
         const list: ChildProfile[] = res.data?.data ?? res.data ?? [];
         setProfiles(list);
@@ -133,7 +133,7 @@ export default function AppUsagePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get(`/api/v1/analytics/profiles/${selectedProfile}/app-usage`, {
+      const res = await api.get(`/analytics/profiles/${selectedProfile}/app-usage`, {
         params: { period },
       });
       setData(res.data ?? []);

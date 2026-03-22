@@ -156,7 +156,8 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.fromLTRB(
               24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
-          child: Column(
+          child: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -220,6 +221,7 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),
@@ -583,12 +585,12 @@ class _DrawGeofencePageState extends State<_DrawGeofencePage> {
       // Use InheritedWidget-based Riverpod access via ProviderScope context
       final client =
           ProviderScope.containerOf(context).read(dioProvider);
-      await client.post('/profiles/geofences', data: {
+      await client.post('/location/${widget.profileId}/geofences', data: {
         'profileId': widget.profileId,
         'name': name,
-        'latitude': _center!.latitude,
-        'longitude': _center!.longitude,
-        'radius': _radius.round(),
+        'centerLat': _center!.latitude,
+        'centerLng': _center!.longitude,
+        'radiusMeters': _radius.round(),
         'type': _type,
         'alertOnEnter': _alertOnEnter,
         'alertOnExit': _alertOnExit,

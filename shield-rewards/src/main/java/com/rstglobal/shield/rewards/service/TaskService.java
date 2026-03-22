@@ -114,6 +114,16 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
+    public List<TaskResponse> listTasksByCreator(UUID createdBy, String status) {
+        List<Task> tasks = taskRepository.findByCreatedBy(createdBy);
+        if (status != null && !status.isBlank()) {
+            String upper = status.toUpperCase();
+            tasks = tasks.stream().filter(t -> upper.equals(t.getStatus())).collect(Collectors.toList());
+        }
+        return tasks.stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<TaskResponse> listTasks(UUID profileId, String status) {
         List<Task> tasks;
         if (status != null && !status.isBlank()) {

@@ -38,10 +38,14 @@ export default function NewChildProfilePage() {
 
   const handleSave = async () => {
     if (!name.trim()) { setError('Child name is required'); return; }
+    const parsedAge = parseInt(age);
+    if (age !== '' && (isNaN(parsedAge) || parsedAge < 1 || parsedAge > 17)) {
+      setError('Age must be a number between 1 and 17'); return;
+    }
     setSaving(true);
     setError('');
     try {
-      const ageNum = parseInt(age) || 10;
+      const ageNum = age === '' ? 10 : parsedAge;
       const res = await api.post('/profiles/children', {
         name: name.trim(),
         filterLevel,

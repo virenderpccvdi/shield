@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/auth_state.dart';
 import '../../core/api_client.dart';
+import '../../core/cache_service.dart';
 import '../../core/shield_logo.dart';
 import '../../core/shield_widgets.dart';
 import '../../app/theme.dart';
@@ -27,7 +28,7 @@ final activeSosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>
     // Fetch all profile SOS events in parallel
     final results = await Future.wait(
       validProfiles.map((p) async {
-        final profileId = p['id']!.toString();
+        final profileId = p['id']?.toString() ?? '';
         final childName = p['name']?.toString() ?? 'Child';
         try {
           final res = await client.get('/location/$profileId/sos');
@@ -37,7 +38,8 @@ final activeSosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>
             m['childName'] = childName;
             return m;
           }).toList();
-        } catch (_) {
+        } catch (e) {
+          debugPrint('Dashboard SOS fetch for profile $profileId: $e');
           return <Map<String, dynamic>>[];
         }
       }),
@@ -45,7 +47,8 @@ final activeSosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>
     );
 
     return results.expand((list) => list).toList();
-  } catch (_) {
+  } catch (e) {
+    debugPrint('Dashboard SOS provider error: $e');
     return [];
   }
 });
@@ -64,6 +67,9 @@ final dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref)
     final profilesRes = await client.get('/profiles/children');
     final d = (profilesRes.data is Map) ? profilesRes.data['data'] : profilesRes.data;
     final profiles = (d is List ? d : (d is Map ? (d['content'] ?? d['items'] ?? []) : [])) as List? ?? [];
+
+    // Cache children list for stale-while-revalidate on next load
+    CacheService.put('children', profiles, ttlSeconds: 600);
 
     // Step 2: fetch notifications + per-profile stats + per-profile devices — all in parallel
     final parallelResults = await Future.wait([
@@ -105,7 +111,7 @@ final dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref)
             ? alertData.length
             : (alertData?['totalElements'] as int? ?? 0);
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('Dashboard alerts parse: $e'); }
 
     // 2b: stats per profile
     final statsResults = parallelResults[1] as List?;
@@ -125,7 +131,7 @@ final dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref)
           final stats = (statsRes as dynamic).data['data'] ?? (statsRes as dynamic).data;
           blockedToday += _toInt(stats['blockedQueries'] ?? stats['blocked'] ?? stats['totalBlocked'] ?? 0);
         }
-      } catch (_) {}
+      } catch (e) { debugPrint('Dashboard stats parse [$i]: $e'); }
 
       if (p['online'] == true) safeChildren++;
 
@@ -148,7 +154,7 @@ final dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref)
             }
           }
         }
-      } catch (_) {}
+      } catch (e) { debugPrint('Dashboard device parse [$i]: $e'); }
 
       enrichedProfiles.add(p);
     }
@@ -160,8 +166,14 @@ final dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref)
       'safeChildren':  safeChildren,
       'profiles':      enrichedProfiles,
     };
-  } catch (_) {
-    return {'totalProfiles': 0, 'activeAlerts': 0, 'blockedToday': 0, 'safeChildren': 0, 'profiles': []};
+  } catch (e) {
+    debugPrint('Dashboard provider error (serving cache): $e');
+    // Serve stale cached children list when offline / API error
+    final stale = CacheService.getStale('children');
+    final cachedProfiles = (stale is List) ? List<Map<String, dynamic>>.from(
+      (stale as List).map((e) => Map<String, dynamic>.from(e is Map ? e : <String, dynamic>{}))
+    ) : <Map<String, dynamic>>[];
+    return {'totalProfiles': cachedProfiles.length, 'activeAlerts': 0, 'blockedToday': 0, 'safeChildren': 0, 'profiles': cachedProfiles};
   }
 });
 
@@ -556,7 +568,8 @@ class _ActionChip extends StatelessWidget {
             children: [
               Icon(icon, color: color, size: 22),
               const SizedBox(height: 4),
-              Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
+              Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis, maxLines: 1, textAlign: TextAlign.center),
             ],
           ),
         ),
@@ -807,16 +820,22 @@ class _ChildCard extends StatelessWidget {
                         Icon(isOnline ? Icons.wifi : Icons.wifi_off,
                           size: 12, color: isOnline ? ShieldTheme.successLight : ShieldTheme.textSecondary),
                         const SizedBox(width: 4),
-                        Text(isOnline ? 'Online' : 'Offline',
-                          style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w500,
-                            color: isOnline ? ShieldTheme.successLight : ShieldTheme.textSecondary,
-                          )),
+                        Flexible(
+                          child: Text(isOnline ? 'Online' : 'Offline',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w500,
+                              color: isOnline ? ShieldTheme.successLight : ShieldTheme.textSecondary,
+                            )),
+                        ),
                         const SizedBox(width: 10),
-                        Icon(Icons.shield_outlined, size: 12, color: ShieldTheme.textSecondary),
+                        const Icon(Icons.shield_outlined, size: 12, color: ShieldTheme.textSecondary),
                         const SizedBox(width: 3),
-                        Text(profile['filterLevel'] as String? ?? 'MODERATE',
-                          style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
+                        Flexible(
+                          child: Text(profile['filterLevel'] as String? ?? 'MODERATE',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
+                        ),
                       ]),
                     ],
                   ),
@@ -888,11 +907,11 @@ class _RecentActivitySection extends StatelessWidget {
               onTap: () => context.go('/family'),
             ),
             _MenuRow(
-              icon: Icons.location_on_rounded,
+              icon: Icons.bar_chart_rounded,
               color: ShieldTheme.success,
-              label: 'Geofences',
-              subtitle: 'Safe zones and boundaries',
-              onTap: () => context.go('/family'),
+              label: 'Reports',
+              subtitle: 'Usage analytics per child',
+              onTap: () => context.go('/reports'),
             ),
             _MenuRow(
               icon: Icons.psychology_rounded,

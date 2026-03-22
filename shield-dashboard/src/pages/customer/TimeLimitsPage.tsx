@@ -137,7 +137,7 @@ export default function TimeLimitsPage() {
 
   const { data: budgetConfig, isLoading: loadingBudgets } = useQuery({
     queryKey: ['budgets', profileId],
-    queryFn: () => api.get(`/dns/dns-budgets/${profileId}`).then(r => {
+    queryFn: () => api.get(`/dns/budgets/${profileId}`).then(r => {
       const d = r.data?.data ?? r.data;
       return d as Record<string, number>;
     }),
@@ -146,7 +146,7 @@ export default function TimeLimitsPage() {
 
   const { data: todayUsage } = useQuery({
     queryKey: ['budgets-today', profileId],
-    queryFn: () => api.get(`/dns/dns-budgets/${profileId}/today`).then(r => {
+    queryFn: () => api.get(`/dns/budgets/${profileId}/today`).then(r => {
       const d = r.data?.data ?? r.data;
       return d as BudgetToday;
     }),
@@ -161,7 +161,7 @@ export default function TimeLimitsPage() {
 
   const saveMutation = useMutation({
     mutationFn: (data: Record<string, number>) =>
-      api.put(`/dns/dns-budgets/${profileId}`, { budgets: data }),
+      api.put(`/dns/budgets/${profileId}`, { budgets: data }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['budgets', profileId] });
       setDirty(false);

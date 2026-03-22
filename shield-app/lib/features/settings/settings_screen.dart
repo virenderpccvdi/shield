@@ -38,7 +38,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _loadSubscription() async {
     try {
-      final res = await ref.read(dioProvider).get('/billing/my/subscription');
+      final res = await ref.read(dioProvider).get('/admin/billing/subscription');
       if (mounted) setState(() { _sub = res.data['data']; _loadingSub = false; });
     } catch (_) {
       if (mounted) setState(() => _loadingSub = false);
@@ -251,10 +251,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _showNotificationPrefs(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
-    final dnsAlerts = prefs.getBool('notif_dns') ?? true;
-    final geoAlerts = prefs.getBool('notif_geo') ?? true;
-    final sosAlerts = prefs.getBool('notif_sos') ?? true;
-    final weeklyDigest = prefs.getBool('notif_weekly') ?? false;
+    var dnsAlerts = prefs.getBool('notif_dns') ?? true;
+    var geoAlerts = prefs.getBool('notif_geo') ?? true;
+    var sosAlerts = prefs.getBool('notif_sos') ?? true;
+    var weeklyDigest = prefs.getBool('notif_weekly') ?? false;
 
     if (!context.mounted) return;
     showModalBottomSheet(
@@ -267,13 +267,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const Text('Alert Preferences', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
             const SizedBox(height: 8),
             SwitchListTile(title: const Text('DNS Block Alerts'), subtitle: const Text('Notify when content is blocked'),
-              value: dnsAlerts, onChanged: (v) { setState(() {}); prefs.setBool('notif_dns', v); }),
+              value: dnsAlerts, onChanged: (v) { setState(() { dnsAlerts = v; }); prefs.setBool('notif_dns', v); }),
             SwitchListTile(title: const Text('Geofence Alerts'), subtitle: const Text('Notify on zone entry/exit'),
-              value: geoAlerts, onChanged: (v) { setState(() {}); prefs.setBool('notif_geo', v); }),
+              value: geoAlerts, onChanged: (v) { setState(() { geoAlerts = v; }); prefs.setBool('notif_geo', v); }),
             SwitchListTile(title: const Text('SOS Panic Alerts'), subtitle: const Text('High-priority SOS notifications'),
-              value: sosAlerts, onChanged: (v) { setState(() {}); prefs.setBool('notif_sos', v); }),
+              value: sosAlerts, onChanged: (v) { setState(() { sosAlerts = v; }); prefs.setBool('notif_sos', v); }),
             SwitchListTile(title: const Text('Weekly Report Email'), subtitle: const Text('Digest every Monday 8 AM'),
-              value: weeklyDigest, onChanged: (v) { setState(() {}); prefs.setBool('notif_weekly', v); }),
+              value: weeklyDigest, onChanged: (v) { setState(() { weeklyDigest = v; }); prefs.setBool('notif_weekly', v); }),
             const SizedBox(height: 12),
             SizedBox(width: double.infinity, child: FilledButton(
               onPressed: () => Navigator.pop(ctx),

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress, Tabs, Tab,
-  Chip, Stack, Button, LinearProgress, ToggleButtonGroup, ToggleButton,
+  Chip, Stack, Button, LinearProgress, ToggleButtonGroup, ToggleButton, TextField,
 } from '@mui/material';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DownloadIcon from '@mui/icons-material/Download';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import PeopleIcon from '@mui/icons-material/People';
 import BlockIcon from '@mui/icons-material/Block';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -56,7 +57,22 @@ function fmt(v: number) {
   return String(v);
 }
 
-type Period = 'today' | 'week' | 'month';
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function defaultStartDate() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d.toISOString().split('T')[0];
+}
+
+function daysBetween(start: string, end: string): number {
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  return Math.max(1, Math.ceil(ms / 86_400_000) + 1);
+}
+
+type Period = 'today' | 'week' | 'month' | 'custom';
 
 export default function PlatformAnalyticsPage() {
   const [tab, setTab] = useState(0);
@@ -67,13 +83,30 @@ export default function PlatformAnalyticsPage() {
   const [blocked, setBlocked] = useState<{ name: string; blocks: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Date range state
+  const [startDate, setStartDate] = useState<string>(defaultStartDate);
+  const [endDate, setEndDate] = useState<string>(todayStr);
+  const [appliedStart, setAppliedStart] = useState<string>(defaultStartDate);
+  const [appliedEnd, setAppliedEnd] = useState<string>(todayStr);
+
+  /** Resolves api period string and days count from current selection */
+  function getApiPeriodAndDays(): { apiPeriod: string; days: number } {
+    if (period === 'today') return { apiPeriod: 'today', days: 1 };
+    if (period === 'week') return { apiPeriod: 'week', days: 7 };
+    if (period === 'month') return { apiPeriod: 'month', days: 30 };
+    // custom
+    const d = daysBetween(appliedStart, appliedEnd);
+    const apiPeriod = d <= 1 ? 'today' : d <= 7 ? 'week' : 'month';
+    return { apiPeriod, days: d };
+  }
+
   useEffect(() => {
+    const { apiPeriod, days } = getApiPeriodAndDays();
     setLoading(true);
-    const days = period === 'today' ? 1 : period === 'week' ? 7 : 30;
     Promise.all([
       Promise.all([
         api.get('/admin/platform/stats').then(r => r.data.data || r.data).catch(() => ({})),
-        api.get(`/analytics/platform/overview?period=${period}`).then(r => r.data).catch(() => ({})),
+        api.get(`/analytics/platform/overview?period=${apiPeriod}`).then(r => r.data).catch(() => ({})),
         api.get('/tenants?size=1').then(r => {
           const d = r.data?.data;
           return d?.totalElements ?? d?.content?.length ?? 0;
@@ -91,7 +124,7 @@ export default function PlatformAnalyticsPage() {
         const d = r.data;
         if (Array.isArray(d) && d.length) {
           setDaily(d.map((p: any) => ({
-            day: period === 'month'
+            day: days > 7
               ? new Date(p.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })
               : new Date(p.date).toLocaleDateString('en', { weekday: 'short' }),
             queries: p.totalQueries,
@@ -101,7 +134,7 @@ export default function PlatformAnalyticsPage() {
           setDaily([]);
         }
       }).catch(() => { setDaily([]); }),
-      api.get(`/analytics/platform/categories?period=${period}`).then(r => {
+      api.get(`/analytics/platform/categories?period=${apiPeriod}`).then(r => {
         const d = r.data;
         if (Array.isArray(d) && d.length) {
           const total = d.reduce((s: number, c: any) => s + c.count, 0);
@@ -120,7 +153,16 @@ export default function PlatformAnalyticsPage() {
         }
       }).catch(() => { setCategories([]); setBlocked([]); }),
     ]).finally(() => setLoading(false));
-  }, [period]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period, appliedStart, appliedEnd]);
+
+  function handleApplyDateRange() {
+    setAppliedStart(startDate);
+    setAppliedEnd(endDate);
+  }
+
+  const periodLabel = period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month'
+    : `${appliedStart} → ${appliedEnd}`;
 
   return (
     <AnimatedPage>
@@ -138,7 +180,7 @@ export default function PlatformAnalyticsPage() {
         }
       />
 
-      {/* Period Selector */}
+      {/* Period Selector + Date Range Row */}
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
         <Typography variant="body2" color="text.secondary" fontWeight={600}>Period:</Typography>
         <ToggleButtonGroup
@@ -151,7 +193,43 @@ export default function PlatformAnalyticsPage() {
           <ToggleButton value="today">Today</ToggleButton>
           <ToggleButton value="week">This Week</ToggleButton>
           <ToggleButton value="month">This Month</ToggleButton>
+          <ToggleButton value="custom">Custom</ToggleButton>
         </ToggleButtonGroup>
+
+        {period === 'custom' && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <TextField
+              label="From"
+              type="date"
+              size="small"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              inputProps={{ max: endDate }}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 160 }}
+            />
+            <TextField
+              label="To"
+              type="date"
+              size="small"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              inputProps={{ min: startDate, max: todayStr() }}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 160 }}
+            />
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<FilterListIcon />}
+              onClick={handleApplyDateRange}
+              disabled={!startDate || !endDate || startDate > endDate}
+              sx={{ height: 40, fontWeight: 600, textTransform: 'none', borderRadius: 2 }}
+            >
+              Apply
+            </Button>
+          </Box>
+        )}
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -166,7 +244,7 @@ export default function PlatformAnalyticsPage() {
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
           <StatCard
-            title={period === 'today' ? 'Queries Today' : period === 'week' ? 'Queries This Week' : 'Queries This Month'}
+            title={`Queries — ${periodLabel}`}
             value={fmt(overview.dnsQueriesToday)}
             icon={<DnsIcon />}
             gradient={gradients.purple}
@@ -196,7 +274,7 @@ export default function PlatformAnalyticsPage() {
             <Grid size={12}>
               <Card>
                 <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Daily DNS Queries vs Blocks (7 days)</Typography>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Daily DNS Queries vs Blocks — {periodLabel}</Typography>
                   {daily.length === 0 ? (
                     <Typography color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>No DNS query data available yet. Data will appear once DNS queries are logged.</Typography>
                   ) : (
@@ -303,7 +381,7 @@ export default function PlatformAnalyticsPage() {
             <Grid size={12}>
               <Card>
                 <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Top Blocked Categories — {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : 'This Month'}</Typography>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Top Blocked Categories — {periodLabel}</Typography>
                   {blocked.length === 0 ? (
                     <Typography color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>No blocked content data available yet.</Typography>
                   ) : (

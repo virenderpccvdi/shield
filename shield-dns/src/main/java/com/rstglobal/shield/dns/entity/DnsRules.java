@@ -132,6 +132,7 @@ public class DnsRules {
      * Stored as a raw JSON string so it can be restored on deactivation without
      * triggering JSONB column mapping issues.
      */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "homework_mode_snapshot", columnDefinition = "jsonb")
     private String homeworkModeSnapshot;
 

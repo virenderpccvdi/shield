@@ -224,7 +224,7 @@ class _ChildCard extends StatelessWidget {
                 _QuickBtn(
                   icon: Icons.map_rounded,
                   color: ShieldTheme.primary,
-                  onTap: () => context.go('/map'),
+                  onTap: () => context.go('/map?profileId=${profile['id']}'),
                 ),
                 const SizedBox(width: 8),
                 const Icon(Icons.chevron_right, color: ShieldTheme.textSecondary),

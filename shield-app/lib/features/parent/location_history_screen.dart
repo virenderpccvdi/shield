@@ -161,8 +161,8 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen> {
           if (mounted) setState(() => _playing = false);
           return;
         }
-        // Increment index without setState — camera move doesn't need a widget rebuild
-        _playbackIndex++;
+        // Increment index with setState so polyline/markers rebuild during playback
+        if (mounted) setState(() => _playbackIndex++);
         // Move camera directly — no rebuild needed
         final lat = _d(_points[_playbackIndex]['latitude']);
         final lng = _d(_points[_playbackIndex]['longitude']);

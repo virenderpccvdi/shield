@@ -30,8 +30,8 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
       // Fetch tasks, bank balance, and achievements in parallel
       final results = await Future.wait([
         client.get('/rewards/tasks/${widget.profileId}'),
-        client.get('/rewards/bank/${widget.profileId}').catchError((_) => null),
-        client.get('/rewards/achievements/${widget.profileId}').catchError((_) => null),
+        client.get('/rewards/bank/${widget.profileId}').catchError((e) { debugPrint('Rewards bank fetch: $e'); return null; }),
+        client.get('/rewards/achievements/${widget.profileId}').catchError((e) { debugPrint('Rewards achievements fetch: $e'); return null; }),
       ], eagerError: false);
 
       final tasksRes = results[0] as dynamic;
@@ -45,7 +45,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
         _bank = bankRes != null
             ? Map<String, dynamic>.from((bankRes as dynamic).data['data'] as Map? ?? {})
             : {};
-      } catch (_) { _bank = {}; }
+      } catch (e) { debugPrint('Rewards bank parse: $e'); _bank = {}; }
 
       try {
         final achRes = results[2];
@@ -61,9 +61,11 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
         } else {
           _achievements = [];
         }
-      } catch (_) { _achievements = []; }
-    } catch (_) {
+      } catch (e) { debugPrint('Rewards achievements parse: $e'); _achievements = []; }
+    } catch (e) {
+      debugPrint('Rewards load error: $e');
       _tasks = [];
+      if (mounted) showShieldError(context, e, fallback: 'Failed to load rewards');
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -175,8 +177,8 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final balance = _bank['pointsBalance'] as int? ?? 0;
-    final totalEarned = _bank['totalEarnedPoints'] as int? ?? 0;
+    final balance = (_bank['pointsBalance'] as num?)?.toInt() ?? 0;
+    final totalEarned = (_bank['totalEarnedPoints'] as num?)?.toInt() ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -238,7 +240,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                     final status = task['status'] as String? ?? 'PENDING';
                     final completed = status == 'APPROVED';
                     final pendingApproval = status == 'SUBMITTED';
-                    final points = task['rewardPoints'] as int? ?? task['points'] as int? ?? task['rewardMinutes'] as int? ?? 0;
+                    final points = (task['rewardPoints'] as num?)?.toInt() ?? (task['points'] as num?)?.toInt() ?? (task['rewardMinutes'] as num?)?.toInt() ?? 0;
 
                     Color cardBgColor;
                     Color statusIconColor;
@@ -330,7 +332,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                 else
                   ..._achievements.map((a) {
                     final earned = a['earned'] == true;
-                    final points = a['points'] as int? ?? 0;
+                    final points = (a['points'] as num?)?.toInt() ?? 0;
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       color: earned ? ShieldTheme.warning.withOpacity(0.06) : null,

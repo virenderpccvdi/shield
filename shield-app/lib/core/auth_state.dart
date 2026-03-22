@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'cache_service.dart';
 
 class AuthState {
   final String? userId, accessToken, name, email, role;
@@ -88,6 +89,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
+  /// Update only the access token in state (used after token refresh)
+  void updateToken(String token) {
+    state = AuthState(
+      userId: state.userId, accessToken: token, name: state.name,
+      email: state.email, role: state.role,
+      childProfileId: state.childProfileId, childName: state.childName,
+      isAuthenticated: true, isChildMode: state.isChildMode,
+    );
+  }
+
   /// Clear only child mode — used when exiting child mode without full logout
   Future<void> clearChildMode() async {
     await _storage.delete(key: _childTokenKey);
@@ -97,7 +108,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _load();
   }
 
-  Future<void> logout() async { await _storage.deleteAll(); state = const AuthState(); }
+  Future<void> logout() async {
+    await _storage.deleteAll();
+    await CacheService.clearAll();
+    state = const AuthState();
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier(const FlutterSecureStorage()));

@@ -98,14 +98,11 @@ public class BudgetTrackingService {
     @Scheduled(fixedDelay = 60_000)
     @Transactional
     public void enforceBudgets() {
-        List<DnsRules> allRules = rulesRepo.findAll();
+        List<DnsRules> allRules = rulesRepo.findAllWithDailyBudget();
         int checked = 0;
 
         for (DnsRules rules : allRules) {
             Integer limitMinutes = rules.getDailyBudgetMinutes();
-            if (limitMinutes == null || limitMinutes <= 0) {
-                continue; // No simple budget configured for this profile
-            }
 
             UUID profileId = rules.getProfileId();
             checked++;

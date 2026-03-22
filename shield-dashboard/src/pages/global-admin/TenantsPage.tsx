@@ -70,7 +70,7 @@ export default function TenantsPage() {
     queryKey: ['tenants', page, rowsPerPage],
     queryFn: () => api.get(`/tenants?page=${page}&size=${rowsPerPage}`)
       .then(r => {
-        const d = r.data.data;
+        const d = r.data?.data ?? r.data;
         return { tenants: (d?.content ?? d ?? EMPTY_TENANTS) as Tenant[], total: d?.totalElements ?? 0 };
       })
       .catch(() => ({ tenants: EMPTY_TENANTS, total: 0 })),

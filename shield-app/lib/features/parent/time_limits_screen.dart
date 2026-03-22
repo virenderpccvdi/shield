@@ -257,7 +257,7 @@ class _TimeLimitsScreenState extends ConsumerState<TimeLimitsScreen> {
                       min: 0,
                       max: 480,
                       divisions: 32,
-                      label: _formatMinutes(_totalBudget),
+                      label: MediaQuery.of(context).size.width > 360 ? _formatMinutes(_totalBudget) : null,
                       onChanged: (v) => setState(() => _totalBudget = v.round()),
                     ),
                   ]),

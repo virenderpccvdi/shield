@@ -20,6 +20,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   bool _overrideActive = false;
   String? _overrideType;
   String? _overrideEndsAt;
+  bool? _paintValue; // null = not painting; during drag = value being applied
 
   // Backend uses full lowercase day keys — order matches Mon=0..Sun=6
   static const _dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -77,6 +78,25 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       result[_dayKeys[d]] = List.generate(24, (h) => _grid[d][h] ? 1 : 0);
     }
     return result;
+  }
+
+  /// Returns (dayIndex, hourIndex) for a local position within the grid Column,
+  /// or null if outside grid bounds.
+  (int, int)? _hitTestCell(Offset pos) {
+    // Grid layout constants (must match the build() code)
+    const double headerH = 19.0;  // hour labels row + SizedBox(height:4)
+    const double rowH    = 34.0;  // cell height 30 + margin*2(2) + padding*2(2) per row
+    const double labelW  = 44.0;  // day label SizedBox width
+    const double cellW   = 28.0;  // cell width 26 + margin*2(2)
+    final double dy = pos.dy - headerH;
+    if (dy < 0) return null;
+    final int d = dy ~/ rowH;
+    if (d < 0 || d >= 7) return null;
+    final double dx = pos.dx - labelW;
+    if (dx < 0) return null;
+    final int h = dx ~/ cellW;
+    if (h < 0 || h >= 24) return null;
+    return (d, h);
   }
 
   Future<void> _save() async {
@@ -346,37 +366,53 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Hour headers
-                          Row(children: [
-                            const SizedBox(width: 44),
-                            ...List.generate(24, (h) => SizedBox(
-                              width: 28,
-                              child: Text(h.toString(), textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600,
-                                    color: (h >= 22 || h < 6) ? ShieldTheme.divider : ShieldTheme.textSecondary)),
-                            )),
-                          ]),
-                          const SizedBox(height: 4),
-                          // Day rows
-                          ...List.generate(7, (d) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Row(children: [
-                              SizedBox(
-                                width: 44,
-                                child: Text(_dayLabels[d],
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: d >= 5 ? ShieldTheme.warning : ShieldTheme.textSecondary,
+                      child: Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerDown: (e) {
+                          final cell = _hitTestCell(e.localPosition);
+                          if (cell == null) return;
+                          final (d, h) = cell;
+                          final newVal = !_grid[d][h];
+                          setState(() { _paintValue = newVal; _grid[d][h] = newVal; });
+                        },
+                        onPointerMove: (e) {
+                          if (_paintValue == null) return;
+                          final cell = _hitTestCell(e.localPosition);
+                          if (cell == null) return;
+                          final (d, h) = cell;
+                          if (_grid[d][h] != _paintValue) setState(() => _grid[d][h] = _paintValue!);
+                        },
+                        onPointerUp: (_) { if (_paintValue != null) setState(() => _paintValue = null); },
+                        onPointerCancel: (_) { if (_paintValue != null) setState(() => _paintValue = null); },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Hour headers
+                            Row(children: [
+                              const SizedBox(width: 44),
+                              ...List.generate(24, (h) => SizedBox(
+                                width: 28,
+                                child: Text(h.toString(), textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600,
+                                      color: (h >= 22 || h < 6) ? ShieldTheme.divider : ShieldTheme.textSecondary)),
+                              )),
+                            ]),
+                            const SizedBox(height: 4),
+                            // Day rows
+                            ...List.generate(7, (d) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Row(children: [
+                                SizedBox(
+                                  width: 44,
+                                  child: Text(_dayLabels[d],
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: d >= 5 ? ShieldTheme.warning : ShieldTheme.textSecondary,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              ...List.generate(24, (h) => GestureDetector(
-                                onTap: () => setState(() => _grid[d][h] = !_grid[d][h]),
-                                child: AnimatedContainer(
+                                ...List.generate(24, (h) => AnimatedContainer(
                                   duration: const Duration(milliseconds: 120),
                                   width: 26,
                                   height: 30,
@@ -393,12 +429,12 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                       width: 1,
                                     ),
                                   ),
-                                ),
-                              )),
-                            ]),
-                          )),
-                          const SizedBox(height: 16),
-                        ],
+                                )),
+                              ]),
+                            )),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
                     ),
 

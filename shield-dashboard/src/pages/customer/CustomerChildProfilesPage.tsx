@@ -61,7 +61,7 @@ export default function CustomerChildProfilesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['customer-child-profiles'],
-    queryFn: () => api.get('/profiles/children').then(r => (r.data?.data || r.data) as ChildProfile[])
+    queryFn: () => api.get('/profiles/children').then(r => { const d = r.data?.data; return (d?.content ?? d ?? r.data) as ChildProfile[]; })
       .catch(() => []),
   });
 

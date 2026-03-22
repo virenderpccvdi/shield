@@ -2,13 +2,13 @@ import { useState } from 'react';
 import {
   Box, Grid, Card, CardContent, Typography, CircularProgress, Alert,
   Tabs, Tab, Chip, Table, TableHead, TableRow, TableCell, TableBody,
-  Stack, Divider, LinearProgress, Button, Snackbar,
+  Stack, Divider, LinearProgress, Button, Snackbar, TextField,
 } from '@mui/material';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area,
 } from 'recharts';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import DnsIcon from '@mui/icons-material/Dns';
@@ -18,6 +18,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import LanguageIcon from '@mui/icons-material/Language';
 import CategoryIcon from '@mui/icons-material/Category';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -26,7 +27,7 @@ import EmptyState from '../../components/EmptyState';
 import { gradients } from '../../theme/theme';
 import LoadingPage from '../../components/LoadingPage';
 
-type Period = 'TODAY' | 'WEEK' | 'MONTH';
+type Period = 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM';
 
 const PIE_COLORS = [
   '#1565C0', '#E53935', '#43A047', '#FB8C00', '#9C27B0',
@@ -37,6 +38,7 @@ const PERIOD_LABELS: Record<Period, string> = {
   TODAY: 'Today',
   WEEK: 'This Week',
   MONTH: 'This Month',
+  CUSTOM: 'Custom Range',
 };
 
 function fmt(v: number) {
@@ -53,6 +55,29 @@ function relativeTime(iso: string) {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
+}
+
+function defaultStartDate() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d.toISOString().split('T')[0];
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function daysBetween(start: string, end: string): number {
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  return Math.max(1, Math.ceil(ms / 86_400_000) + 1);
+}
+
+/** Maps a date-range to the closest named period the analytics API understands */
+function dateRangeToApiPeriod(startDate: string, endDate: string): string {
+  const days = daysBetween(startDate, endDate);
+  if (days <= 1) return 'today';
+  if (days <= 7) return 'week';
+  return 'month';
 }
 
 interface DnsEvent { id: string; domain: string; action: 'ALLOWED' | 'BLOCKED'; category: string; queriedAt: string; }
@@ -73,16 +98,50 @@ interface ReportsPageProps {
 export default function ReportsPage({ profileId: profileIdProp }: ReportsPageProps) {
   const { profileId: profileIdParam } = useParams<{ profileId: string }>();
   const profileId = profileIdProp ?? profileIdParam;
+  const queryClient = useQueryClient();
+
   const [period, setPeriod] = useState<Period>('WEEK');
   const [chartTab, setChartTab] = useState(0);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+
+  // Date range state (used when period === 'CUSTOM' or as override for preset periods)
+  const [startDate, setStartDate] = useState<string>(defaultStartDate);
+  const [endDate, setEndDate] = useState<string>(todayStr);
+  // Committed range — only updates when user clicks Apply
+  const [appliedStart, setAppliedStart] = useState<string>(defaultStartDate);
+  const [appliedEnd, setAppliedEnd] = useState<string>(todayStr);
+
+  /** Returns the API `period` string and `days` count to use based on current selection */
+  function getApiParams(): { apiPeriod: string; days: number } {
+    if (period === 'TODAY') return { apiPeriod: 'today', days: 1 };
+    if (period === 'WEEK') return { apiPeriod: 'week', days: 7 };
+    if (period === 'MONTH') return { apiPeriod: 'month', days: 30 };
+    // CUSTOM
+    const days = daysBetween(appliedStart, appliedEnd);
+    return { apiPeriod: dateRangeToApiPeriod(appliedStart, appliedEnd), days };
+  }
+
+  const { apiPeriod, days } = getApiParams();
+
+  // Invalidate all report queries and re-fetch
+  function applyDateRange() {
+    setAppliedStart(startDate);
+    setAppliedEnd(endDate);
+    queryClient.invalidateQueries({ queryKey: ['report-stats', profileId] });
+    queryClient.invalidateQueries({ queryKey: ['report-daily', profileId] });
+    queryClient.invalidateQueries({ queryKey: ['report-categories', profileId] });
+    queryClient.invalidateQueries({ queryKey: ['report-top-blocked', profileId] });
+    queryClient.invalidateQueries({ queryKey: ['report-history', profileId] });
+    queryClient.invalidateQueries({ queryKey: ['app-usage', profileId] });
+  }
 
   const handleDownloadPdf = async () => {
     if (!profileId) return;
     setPdfLoading(true);
     try {
       const response = await api.get(`/analytics/${profileId}/report/pdf`, {
+        params: { period: apiPeriod },
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -103,11 +162,10 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
 
   // Stats query — period-aware
   const statsQuery = useQuery({
-    queryKey: ['report-stats', profileId, period],
+    queryKey: ['report-stats', profileId, period, appliedStart, appliedEnd],
     queryFn: async () => {
-      const r = await api.get(`/analytics/${profileId}/stats`, { params: { period } });
+      const r = await api.get(`/analytics/${profileId}/stats`, { params: { period: apiPeriod } });
       const raw = r.data?.data ?? r.data;
-      // Normalise: API returns blockedQueries/allowedQueries
       return {
         totalQueries: raw?.totalQueries ?? 0,
         totalBlocked: raw?.totalBlocked ?? raw?.blockedQueries ?? 0,
@@ -123,9 +181,8 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
 
   // Daily chart data
   const dailyQuery = useQuery({
-    queryKey: ['report-daily', profileId, period],
+    queryKey: ['report-daily', profileId, period, appliedStart, appliedEnd],
     queryFn: async () => {
-      const days = period === 'TODAY' ? 1 : period === 'WEEK' ? 7 : 30;
       const r = await api.get(`/analytics/${profileId}/daily`, { params: { days } });
       const raw = (r.data?.data ?? r.data) as { date: string; totalQueries: number; blockedQueries: number }[];
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -133,7 +190,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
         const q = d.totalQueries || 0;
         const b = d.blockedQueries || 0;
         return {
-          day: period === 'MONTH'
+          day: days > 7
             ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })
             : dayNames[new Date(d.date).getDay()] || d.date,
           queries: q,
@@ -150,10 +207,9 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
 
   // Category breakdown
   const catQuery = useQuery({
-    queryKey: ['report-categories', profileId, period],
+    queryKey: ['report-categories', profileId, period, appliedStart, appliedEnd],
     queryFn: async () => {
-      const p = period === 'TODAY' ? 'today' : period === 'WEEK' ? 'week' : 'month';
-      const r = await api.get(`/analytics/${profileId}/categories`, { params: { period: p } });
+      const r = await api.get(`/analytics/${profileId}/categories`, { params: { period: apiPeriod } });
       const raw = (r.data?.data ?? r.data) as { category: string; count: number }[];
       if (!raw || !raw.length) return [] as CategoryStat[];
       const total = raw.reduce((s, c) => s + c.count, 0);
@@ -174,9 +230,11 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
 
   // Top blocked domains
   const topBlockedQuery = useQuery({
-    queryKey: ['report-top-blocked', profileId],
+    queryKey: ['report-top-blocked', profileId, period, appliedStart, appliedEnd],
     queryFn: async () => {
-      const r = await api.get(`/analytics/${profileId}/top-domains`, { params: { action: 'BLOCKED', limit: 10 } });
+      const r = await api.get(`/analytics/${profileId}/top-domains`, {
+        params: { action: 'BLOCKED', limit: 10, period: apiPeriod },
+      });
       return (r.data?.data ?? r.data) as TopDomain[];
     },
     enabled: !!profileId,
@@ -187,7 +245,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
 
   // Recent activity — all queries (blocked + allowed), auto-refreshes every 60s
   const historyQuery = useQuery({
-    queryKey: ['report-history', profileId],
+    queryKey: ['report-history', profileId, period, appliedStart, appliedEnd],
     queryFn: async () => {
       const r = await api.get(`/analytics/${profileId}/history`, { params: { page: 0, size: 50 } });
       const raw = r.data?.content ?? r.data?.data?.content ?? r.data?.data ?? r.data;
@@ -201,9 +259,9 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
 
   // App usage query
   const appUsageQuery = useQuery({
-    queryKey: ['app-usage', profileId],
+    queryKey: ['app-usage', profileId, period, appliedStart, appliedEnd],
     queryFn: async () => {
-      const r = await api.get(`/analytics/${profileId}/top-apps`);
+      const r = await api.get(`/analytics/${profileId}/top-apps`, { params: { period: apiPeriod } });
       const raw = r.data?.data ?? r.data;
       return (Array.isArray(raw) ? raw : raw?.content ?? []) as AppUsageItem[];
     },
@@ -235,7 +293,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
         <PageHeader
           icon={<AssessmentIcon />}
           title="Reports & Analytics"
-          subtitle={`DNS activity report — ${PERIOD_LABELS[period]}`}
+          subtitle={`DNS activity report — ${PERIOD_LABELS[period]}${period === 'CUSTOM' ? ` (${appliedStart} → ${appliedEnd})` : ''}`}
           iconColor="#1565C0"
         />
         <Button
@@ -272,9 +330,9 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
         </Alert>
       </Snackbar>
 
-      {/* Period Selector */}
+      {/* Period Selector + Date Range Row */}
       <AnimatedPage delay={0.05}>
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           <Tabs
             value={period}
             onChange={(_, v) => setPeriod(v as Period)}
@@ -287,7 +345,43 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
             <Tab label="Today" value="TODAY" />
             <Tab label="This Week" value="WEEK" />
             <Tab label="This Month" value="MONTH" />
+            <Tab label="Custom" value="CUSTOM" />
           </Tabs>
+
+          {period === 'CUSTOM' && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              <TextField
+                label="From"
+                type="date"
+                size="small"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                inputProps={{ max: endDate }}
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: 160 }}
+              />
+              <TextField
+                label="To"
+                type="date"
+                size="small"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                inputProps={{ min: startDate, max: todayStr() }}
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: 160 }}
+              />
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<FilterListIcon />}
+                onClick={applyDateRange}
+                disabled={!startDate || !endDate || startDate > endDate}
+                sx={{ height: 40, fontWeight: 600, textTransform: 'none', borderRadius: 2 }}
+              >
+                Apply
+              </Button>
+            </Box>
+          )}
         </Box>
       </AnimatedPage>
 
@@ -362,7 +456,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                       DNS Queries vs Blocked
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                      {period === 'TODAY' ? 'Hourly breakdown' : period === 'WEEK' ? 'Daily breakdown — last 7 days' : 'Daily breakdown — last 30 days'}
+                      {days === 1 ? 'Hourly breakdown' : days <= 7 ? `Daily breakdown — last ${days} days` : `Daily breakdown — last ${days} days`}
                     </Typography>
                     {dailyQuery.isLoading ? (
                       <LoadingPage />
@@ -374,7 +468,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                       />
                     ) : (
                       <ResponsiveContainer width="100%" height={320}>
-                        {period === 'MONTH' ? (
+                        {days > 7 ? (
                           <AreaChart data={daily} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                             <defs>
                               <linearGradient id="reportGradQ" x1="0" y1="0" x2="0" y2="1">

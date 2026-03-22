@@ -151,6 +151,37 @@ public class NotificationClient {
         }
     }
 
+    /**
+     * Sends a 6-digit MFA email OTP to a user who has triggered the email-based
+     * second factor during login.
+     */
+    @Async
+    public void sendEmailOtp(String email, String name, String otp) {
+        try {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("name",         name != null ? name : email);
+            variables.put("otp",          otp);
+            variables.put("supportEmail", SUPPORT_EMAIL);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("to",           email);
+            payload.put("subject",      "Shield — Your Login Verification Code");
+            payload.put("templateName", "email/mfa-otp");
+            payload.put("variables",    variables);
+
+            restClient.post()
+                    .uri(notificationBaseUrl + "/internal/notifications/email")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("MFA email OTP dispatched to {}", email);
+        } catch (Exception e) {
+            log.warn("Failed to send MFA email OTP to {}: {}", email, e.getMessage());
+        }
+    }
+
     /** Sends a password-reset email from an admin reset action, containing the new plaintext password. */
     @Async
     public void sendAdminPasswordResetEmail(String email, String name, String newPassword) {

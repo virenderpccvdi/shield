@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import 'auth_state.dart';
+import 'cache_service.dart';
 import 'constants.dart';
 
 /// Local notifications plugin instance
@@ -95,6 +96,25 @@ class WebSocketService {
         if (frame.body != null) {
           _handleNotification(frame.body!);
         }
+      },
+    );
+
+    // Subscribe to sync events for real-time data invalidation
+    _client?.subscribe(
+      destination: '/topic/sync/$userId',
+      callback: (frame) {
+        if (frame.body == null) return;
+        try {
+          final event = json.decode(frame.body!) as Map<String, dynamic>;
+          final type = event['type'] as String? ?? '';
+          if (type == 'DNS_RULES_CHANGED') {
+            // Clear DNS rules cache so next screen open loads fresh data
+            final profileId = event['profileId'] as String? ?? '';
+            if (profileId.isNotEmpty) {
+              CacheService.evict('dns_rules_$profileId');
+            }
+          }
+        } catch (_) {}
       },
     );
   }

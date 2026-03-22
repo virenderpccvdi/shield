@@ -82,6 +82,7 @@ const ChildProfilesPage        = lazy(() => import('./pages/global-admin/ChildPr
 const AdminChildDetailPage     = lazy(() => import('./pages/global-admin/AdminChildDetailPage'));
 const InvoicesPage             = lazy(() => import('./pages/global-admin/InvoicesPage'));
 const GlobalCustomersPage      = lazy(() => import('./pages/global-admin/GlobalCustomersPage'));
+const GlobalAdminCustomerDetailPage = lazy(() => import('./pages/global-admin/GlobalAdminCustomerDetailPage'));
 const GlobalBlocklistPage      = lazy(() => import('./pages/global-admin/GlobalBlocklistPage'));
 const AiModelsPage             = lazy(() => import('./pages/global-admin/AiModelsPage'));
 const FeatureManagementPage    = lazy(() => import('./pages/global-admin/FeatureManagementPage'));
@@ -200,6 +201,8 @@ export default function App() {
               {/* ── Customer ── */}
               <Route element={<PrivateRoute><ErrorBoundary><CustomerLayout /></ErrorBoundary></PrivateRoute>}>
                 <Route path="/dashboard"                          element={<CustomerDashboardPage />} />
+                <Route path="/profiles"                           element={<CustomerChildProfilesPage />} />
+                <Route path="/profiles/new"                       element={<NewChildProfilePage />} />
                 <Route path="/profiles/:profileId"                element={<ChildProfilePage />} />
                 <Route path="/profiles/:profileId/activity"       element={<ActivityPage />} />
                 <Route path="/profiles/:profileId/rules"          element={<RulesPage />} />
@@ -216,8 +219,6 @@ export default function App() {
                 <Route path="/map"                                element={<LocationMapPage />} />
                 <Route path="/alerts"                             element={<AlertsPage />} />
                 <Route path="/subscription"                       element={<SubscriptionPage />} />
-                <Route path="/profiles"                           element={<CustomerChildProfilesPage />} />
-                <Route path="/profiles/new"                       element={<NewChildProfilePage />} />
                 <Route path="/billing/success"                    element={<CheckoutSuccessPage />} />
                 <Route path="/billing/cancel"                     element={<CheckoutCancelPage />} />
                 <Route path="/family-members"                     element={<FamilyMembersPage />} />
@@ -263,7 +264,7 @@ export default function App() {
                 <Route path="/admin/child-profiles/:profileId"    element={<AdminChildDetailPage />} />
                 <Route path="/admin/invoices"                     element={<InvoicesPage />} />
                 <Route path="/admin/customers"                    element={<GlobalCustomersPage />} />
-                <Route path="/admin/customers/:id"                element={<CustomerDetailPage />} />
+                <Route path="/admin/customers/:id"                element={<GlobalAdminCustomerDetailPage />} />
                 <Route path="/admin/blocklist"                    element={<GlobalBlocklistPage />} />
                 <Route path="/admin/ai-models"                    element={<AiModelsPage />} />
                 <Route path="/admin/ai-insights"                  element={<AdminAiInsightsPage />} />

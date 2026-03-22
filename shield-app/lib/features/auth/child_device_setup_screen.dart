@@ -181,20 +181,66 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
       await DnsVpnService.preparePermission();
 
       // Step 2: Fetch the DoH URL and start the VPN service immediately.
-      // If this fails, the child screen will start the VPN on its next launch
+      // If this fails, the child screen will retry on its next launch
       // (permission is already cached so it will start silently).
+      bool vpnStarted = false;
       try {
-        final rulesRes = await dio.get(
-          '/dns/rules/$profileId',
-          options: Options(headers: {'Authorization': 'Bearer $childToken'}),
-        );
-        final d = rulesRes.data['data'] as Map? ?? rulesRes.data as Map? ?? {};
-        final dohUrl = d['dohUrl']?.toString();
-        if (dohUrl != null && dohUrl.isNotEmpty) {
-          await DnsVpnService.start(dohUrl);
+        String? dohUrl;
+        // Try fetching from DNS rules endpoint
+        try {
+          final rulesRes = await dio.get(
+            '/dns/rules/$profileId',
+            options: Options(headers: {'Authorization': 'Bearer $childToken'}),
+          );
+          final d = rulesRes.data['data'] as Map? ?? rulesRes.data as Map? ?? {};
+          dohUrl = d['dohUrl']?.toString();
+          // Fallback: construct from dnsClientId in DNS rules response
+          if ((dohUrl == null || dohUrl.isEmpty) && d['dnsClientId'] != null) {
+            dohUrl = 'https://shield.rstglobal.in/dns/${d['dnsClientId']}/dns-query';
+          }
+        } catch (_) {}
+
+        // Fallback: construct from QR-scanned dnsClientId or fetch profile
+        if (dohUrl == null || dohUrl.isEmpty) {
+          // Use dnsClientId from QR scan if available (manual flow won't have it)
+          final qrDns = _qrDnsClientId;
+          if (qrDns != null && qrDns.isNotEmpty) {
+            dohUrl = 'https://shield.rstglobal.in/dns/$qrDns/dns-query';
+          } else {
+            // Last resort: fetch profile to get dnsClientId
+            try {
+              final profRes = await dio.get(
+                '/profiles/$profileId',
+                options: Options(headers: {'Authorization': 'Bearer $childToken'}),
+              );
+              final pd = profRes.data['data'] as Map? ?? profRes.data as Map? ?? {};
+              final dnsClientId = pd['dnsClientId']?.toString();
+              if (dnsClientId != null && dnsClientId.isNotEmpty) {
+                dohUrl = 'https://shield.rstglobal.in/dns/$dnsClientId/dns-query';
+              }
+            } catch (_) {}
+          }
         }
-      } catch (_) {
-        // Best-effort — permission is granted above, VPN starts on child screen load.
+
+        if (dohUrl != null && dohUrl.isNotEmpty) {
+          vpnStarted = await DnsVpnService.start(dohUrl);
+          debugPrint('[Shield] Setup VPN start result: $vpnStarted, dohUrl: $dohUrl');
+        } else {
+          debugPrint('[Shield] Setup: No dohUrl available — VPN will retry on child screen');
+        }
+      } catch (e) {
+        debugPrint('[Shield] Setup VPN start failed: $e');
+      }
+
+      // Show warning if VPN didn't start (but still proceed to child screen)
+      if (!vpnStarted && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('DNS Protection could not start — it will retry automatically.'),
+          backgroundColor: Colors.orange.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 4),
+        ));
       }
       // ────────────────────────────────────────────────────────────────────────
 

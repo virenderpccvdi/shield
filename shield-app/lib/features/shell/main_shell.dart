@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,10 +16,20 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
+  Timer? _badgeTimer;
+
   @override
   void initState() {
     super.initState();
     _loadBadge();
+    // Refresh badge count every 30 seconds to pick up new notifications
+    _badgeTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadBadge());
+  }
+
+  @override
+  void dispose() {
+    _badgeTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadBadge() async {

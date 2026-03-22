@@ -136,7 +136,7 @@ export default function LiveCheckinButton({ profileId, profileName }: Props) {
     if (!token || !userId) return;
 
     const client = new Client({
-      brokerURL: `wss://${window.location.host}/ws/shield-ws`,
+      brokerURL: `wss://${window.location.host}/ws/websocket`,
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 0,
       onConnect: () => {

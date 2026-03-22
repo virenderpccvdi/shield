@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 import '../../core/api_client.dart';
 import '../../app/theme.dart';
 
@@ -51,6 +52,14 @@ class _NewChildProfileScreenState extends ConsumerState<NewChildProfileScreen> {
           context.go('/family');
         }
       }
+    } on DioException catch (e) {
+      final serverMsg = e.response?.data is Map
+          ? (e.response!.data['message'] ?? e.response!.data['error'])
+          : null;
+      setState(() {
+        _error = serverMsg?.toString() ?? 'Failed to create profile. Please try again.';
+        _saving = false;
+      });
     } catch (e) {
       setState(() {
         _error = 'Failed to create profile. Please try again.';

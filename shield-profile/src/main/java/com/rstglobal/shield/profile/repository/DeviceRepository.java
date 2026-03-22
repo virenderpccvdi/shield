@@ -20,4 +20,5 @@ public interface DeviceRepository extends JpaRepository<Device, UUID> {
     Page<Device> findByTenantId(UUID tenantId, Pageable pageable);
     long countByOnlineTrue();
     long countByTenantIdAndOnlineTrue(UUID tenantId);
+    long countByTenantId(UUID tenantId);
 }

@@ -34,4 +34,11 @@ public interface DnsRulesRepository extends JpaRepository<DnsRules, UUID> {
      */
     @Query("SELECT r FROM DnsRules r WHERE r.bedtimeEnabled = TRUE")
     List<DnsRules> findAllWithBedtimeEnabled();
+
+    /**
+     * Returns only profiles with a configured daily_budget_minutes limit.
+     * Used by BudgetTrackingService — avoids loading the entire table every minute.
+     */
+    @Query("SELECT r FROM DnsRules r WHERE r.dailyBudgetMinutes IS NOT NULL AND r.dailyBudgetMinutes > 0")
+    List<DnsRules> findAllWithDailyBudget();
 }

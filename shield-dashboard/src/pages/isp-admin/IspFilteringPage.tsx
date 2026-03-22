@@ -131,7 +131,10 @@ export default function IspFilteringPage() {
     try {
       const payload: Record<string, boolean> = {};
       categories.forEach(c => { payload[c.key] = !c.blocked; }); // true = enabled, false = blocked
-      await api.put('/dns/rules/tenant/categories', { categories: payload });
+      await api.put('/dns/rules/tenant/categories', { categories: payload }).catch(() => {
+        // Fallback: try the base endpoint
+        return api.put('/dns/rules/tenant', { enabledCategories: payload });
+      });
       setSnack('Content categories saved');
       setCatDirty(false);
     } catch {

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Shield — Login Verification Code</title>
+<style>
+  body{margin:0;padding:0;background:#F8FAFC;font-family:'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08);}
+  .header{background:linear-gradient(135deg,#1565C0,#1976D2,#42A5F5);padding:36px 32px 28px;color:#fff;text-align:center;}
+  .logo{font-size:32px;margin-bottom:6px;}
+  .header h1{margin:0;font-size:24px;font-weight:700;letter-spacing:.3px;}
+  .header p{margin:6px 0 0;opacity:.88;font-size:14px;}
+  .body{padding:36px 32px 28px;}
+  .greeting{color:#1a1a2e;font-size:17px;font-weight:600;margin:0 0 8px;}
+  .sub{color:#444;font-size:14px;line-height:1.65;margin:0 0 24px;}
+  .otp-box{background:#F0F4FF;border:2px dashed #1565C0;border-radius:12px;text-align:center;padding:28px 20px;margin-bottom:24px;}
+  .otp-label{font-size:13px;color:#555;margin:0 0 10px;}
+  .otp-code{font-size:40px;font-weight:800;letter-spacing:10px;color:#1565C0;font-family:'Courier New',monospace;}
+  .expire-note{color:#888;font-size:13px;margin:8px 0 0;}
+  .security-note{background:#FFF8E1;border-left:4px solid #F9A825;border-radius:4px;padding:12px 16px;font-size:13px;color:#555;margin-bottom:8px;}
+  .divider{border:none;border-top:1px solid #ECEFF1;margin:24px 0;}
+  .footer{background:#F8F9FA;padding:20px 32px;text-align:center;color:#888;font-size:12px;border-top:1px solid #ECEFF1;}
+  .footer a{color:#1565C0;text-decoration:none;}
+  @media only screen and (max-width:620px){
+    .wrap{margin:0;border-radius:0;}
+    .body,.header{padding:24px 20px;}
+    .otp-code{font-size:30px;letter-spacing:6px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">&#128737;</div>
+    <h1>Login Verification</h1>
+    <p>Shield Family Internet Protection</p>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <p class="greeting">Hi <span th:text="${name ?: 'there'}">there</span>,</p>
+    <p class="sub">
+      Someone (hopefully you) is signing in to your Shield account. Enter the code below to complete your login.
+    </p>
+
+    <!-- OTP Code -->
+    <div class="otp-box">
+      <p class="otp-label">Your one-time login verification code</p>
+      <div class="otp-code" th:text="${otp}">000000</div>
+      <p class="expire-note">This code expires in <strong>5 minutes</strong>.</p>
+    </div>
+
+    <!-- Security note -->
+    <div class="security-note">
+      &#9888; If you did not try to sign in to Shield, please change your password immediately.
+      Someone may be attempting to access your account.
+    </div>
+
+    <hr class="divider"/>
+    <p style="color:#aaa;font-size:12px;margin:0;">
+      Never share this code with anyone. Shield will never ask for your OTP via phone or chat.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>&copy; 2026 RST Global &nbsp;&middot;&nbsp; <a href="https://shield.rstglobal.in">shield.rstglobal.in</a></p>
+    <p style="margin-top:4px;">
+      Questions? Contact us at
+      <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@pccvdi.com</a>
+    </p>
+  </div>
+</div>
+</body>
+</html>

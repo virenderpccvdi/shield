@@ -65,7 +65,7 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
       final newTasks = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       final newPoints = newTasks
           .where((t) => t['status'] == 'APPROVED')
-          .fold(0, (sum, t) => sum + (t['rewardPoints'] as int? ?? 0));
+          .fold(0, (sum, t) => sum + ((t['rewardPoints'] as num?)?.toInt() ?? 0));
       if (mounted) setState(() {
         _tasks = newTasks;
         _totalPoints = newPoints;
@@ -87,10 +87,7 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
       final auth = ref.read(authProvider);
       final profileId = auth.childProfileId;
       final client = ref.read(dioProvider);
-      await client.post(
-        '/rewards/tasks/$taskId/complete',
-        queryParameters: {'profileId': profileId},
-      );
+      await client.post('/rewards/tasks/$taskId/complete');
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -178,7 +175,7 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                   const SizedBox(height: 8),
                   ...pendingTasks.map((task) {
-                    final points = task['rewardPoints'] as int? ?? task['rewardMinutes'] as int? ?? 0;
+                    final points = (task['rewardPoints'] as num?)?.toInt() ?? (task['rewardMinutes'] as num?)?.toInt() ?? 0;
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: Padding(
@@ -232,7 +229,7 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
                       color: ShieldTheme.warning)),
                   const SizedBox(height: 8),
                   ...submittedTasks.map((task) {
-                    final points = task['rewardPoints'] as int? ?? 0;
+                    final points = (task['rewardPoints'] as num?)?.toInt() ?? 0;
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       color: ShieldTheme.warning.withOpacity(0.07),
@@ -278,7 +275,7 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                   const SizedBox(height: 8),
                   ...approvedTasks.map((task) {
-                    final points = task['rewardPoints'] as int? ?? 0;
+                    final points = (task['rewardPoints'] as num?)?.toInt() ?? 0;
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       color: ShieldTheme.success.withOpacity(0.07),

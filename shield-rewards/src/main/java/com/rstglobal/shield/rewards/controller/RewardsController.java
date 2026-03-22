@@ -43,6 +43,21 @@ public class RewardsController {
     }
 
     /**
+     * List tasks for the calling user (parent). Returns all tasks created by this user.
+     * Optionally filter by profileId and/or status via query params.
+     */
+    @GetMapping("/tasks")
+    public ResponseEntity<List<TaskResponse>> listMyTasks(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestParam(required = false) UUID profileId,
+            @RequestParam(required = false) String status) {
+        if (profileId != null) {
+            return ResponseEntity.ok(taskService.listTasks(profileId, status));
+        }
+        return ResponseEntity.ok(taskService.listTasksByCreator(userId, status));
+    }
+
+    /**
      * List all tasks for a profile, optionally filtered by status.
      */
     @GetMapping("/tasks/{profileId}")

@@ -17,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -152,9 +153,17 @@ public class AuthController {
 
     /** Public: Validate MFA code during login — completes the 2-step login flow. */
     @PostMapping("/mfa/validate")
-    @Operation(summary = "Validate TOTP code with MFA token to complete login")
+    @Operation(summary = "Validate TOTP or email OTP with MFA token to complete login")
     public ApiResponse<AuthResponse> mfaValidate(@Valid @RequestBody MfaValidateRequest req) {
         return ApiResponse.ok(authService.completeMfaLogin(req.getMfaToken(), req.getCode()));
+    }
+
+    /** Public: Send email OTP for MFA — call after login returns mfaRequired=true. */
+    @PostMapping("/mfa/email/send")
+    @Operation(summary = "Send 6-digit email OTP for MFA login (alternative to TOTP)")
+    public ApiResponse<String> sendEmailOtp(@RequestBody Map<String, String> body) {
+        mfaService.sendEmailOtp(body.get("mfaToken"));
+        return ApiResponse.ok("OTP sent to your email");
     }
 
     /** GLOBAL_ADMIN: List all users with optional role filter. */

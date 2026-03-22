@@ -1,6 +1,6 @@
 import {
   Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody,
-  Chip, Stack, Grid, Skeleton,
+  Chip, Stack, Grid, Skeleton, TablePagination, TextField, InputAdornment,
 } from '@mui/material';
 import PublicIcon from '@mui/icons-material/Public';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -8,7 +8,9 @@ import PersonIcon from '@mui/icons-material/Person';
 import DevicesIcon from '@mui/icons-material/Devices';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WifiIcon from '@mui/icons-material/Wifi';
+import SearchIcon from '@mui/icons-material/Search';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -29,6 +31,14 @@ interface Visitor {
   userAgent?: string;
   isMobile?: boolean;
   visitedAt: string;
+}
+
+interface PagedVisitors {
+  content: Visitor[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
 }
 
 interface VisitorStats {
@@ -57,6 +67,10 @@ function formatLocation(visitor: Visitor): string {
 }
 
 export default function VisitorsPage() {
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [search, setSearch] = useState('');
+
   const { data: stats } = useQuery<VisitorStats>({
     queryKey: ['visitor-stats'],
     queryFn: () => api.get('/admin/visitors/stats').then(r => r.data?.data ?? r.data).catch(() => ({
@@ -65,14 +79,27 @@ export default function VisitorsPage() {
     refetchInterval: 60000,
   });
 
-  const { data: visitors = [], isLoading } = useQuery<Visitor[]>({
-    queryKey: ['visitors'],
+  const { data: paged, isLoading } = useQuery<PagedVisitors>({
+    queryKey: ['visitors', page, rowsPerPage],
     queryFn: () =>
-      api.get('/admin/visitors?page=0&size=50').then(r =>
-        r.data?.data?.content ?? r.data?.content ?? []
-      ).catch(() => []),
+      api.get(`/admin/visitors?page=${page}&size=${rowsPerPage}&sort=visitedAt,desc`).then(r => {
+        const d = r.data?.data ?? r.data;
+        if (d?.content) return d as PagedVisitors;
+        // fallback: array response
+        const arr = Array.isArray(d) ? d : [];
+        return { content: arr, totalElements: arr.length, totalPages: 1, number: 0, size: arr.length };
+      }).catch(() => ({ content: [], totalElements: 0, totalPages: 0, number: 0, size: rowsPerPage })),
     refetchInterval: 60000,
   });
+
+  const visitors = paged?.content ?? [];
+  const filtered = search
+    ? visitors.filter(v =>
+        (v.ipAddress ?? '').includes(search) ||
+        (v.country ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (v.pagePath ?? '').toLowerCase().includes(search.toLowerCase())
+      )
+    : visitors;
 
   // Top 10 countries sorted by count
   const topCountries: Array<{ country: string; count: number }> = stats?.byCountry
@@ -97,148 +124,128 @@ export default function VisitorsPage() {
       {/* Stats */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard
-            title="Total Visitors"
-            value={stats?.total ?? 0}
-            icon={<PublicIcon />}
-            gradient={gradients.teal}
-            delay={0}
-          />
+          <StatCard title="Total Visitors" value={stats?.total ?? 0} icon={<PublicIcon />} gradient={gradients.teal} delay={0} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard
-            title="Today"
-            value={stats?.today ?? 0}
-            icon={<TrendingUpIcon />}
-            gradient={gradients.blue}
-            delay={0.05}
-          />
+          <StatCard title="Today" value={stats?.today ?? 0} icon={<TrendingUpIcon />} gradient={gradients.blue} delay={0.05} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard
-            title="This Week"
-            value={stats?.week ?? 0}
-            icon={<WifiIcon />}
-            gradient={gradients.purple}
-            delay={0.1}
-          />
+          <StatCard title="This Week" value={stats?.week ?? 0} icon={<WifiIcon />} gradient={gradients.purple} delay={0.1} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard
-            title="Unique Today"
-            value={stats?.uniqueToday ?? 0}
-            icon={<PersonIcon />}
-            gradient={gradients.green}
-            delay={0.15}
-          />
+          <StatCard title="Unique Today" value={stats?.uniqueToday ?? 0} icon={<PersonIcon />} gradient={gradients.green} delay={0.15} />
         </Grid>
       </Grid>
 
       {/* Main content: table + countries */}
       <Grid container spacing={2.5}>
-        {/* Recent visitors table */}
+        {/* Visitors table */}
         <Grid size={{ xs: 12, md: 8 }}>
           <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
-            <Box sx={{ px: 2.5, pt: 2, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="subtitle1" fontWeight={700}>Recent Visitors</Typography>
-              <Typography variant="caption" color="text.secondary">Last 50 site visits</Typography>
+            <Box sx={{ px: 2.5, pt: 2, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={700}>Visitor Log</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {paged?.totalElements ?? 0} total visitors
+                </Typography>
+              </Box>
+              <TextField
+                size="small"
+                placeholder="Filter by IP, country, page..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+                sx={{ width: 240 }}
+              />
             </Box>
+
             {isLoading ? (
               <Box sx={{ p: 2 }}>
                 {[1, 2, 3, 4, 5].map(i => (
                   <Skeleton key={i} variant="rectangular" height={44} sx={{ mb: 0.5, borderRadius: 1 }} />
                 ))}
               </Box>
-            ) : visitors.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <Box sx={{ py: 8, textAlign: 'center' }}>
                 <PublicIcon sx={{ fontSize: 52, color: 'text.disabled', mb: 1.5 }} />
-                <Typography variant="h6" color="text.secondary" fontWeight={600}>No visitor data yet</Typography>
+                <Typography variant="h6" color="text.secondary" fontWeight={600}>
+                  {search ? 'No matches found' : 'No visitor data yet'}
+                </Typography>
               </Box>
             ) : (
-              <Box sx={{ overflowX: 'auto' }}>
-                <Table size="small" component={Paper} elevation={0}>
-                  <TableHead>
-                    <TableRow>
-                      {['Time', 'IP Address', 'Location', 'Page', 'Device'].map(h => (
-                        <TableCell key={h} sx={{
-                          fontWeight: 700, fontSize: 11, textTransform: 'uppercase',
-                          letterSpacing: 0.8, color: 'text.secondary', bgcolor: 'grey.50',
-                          borderBottom: '2px solid', borderColor: 'divider',
-                        }}>
-                          {h}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {visitors.map((v, idx) => (
-                      <TableRow
-                        key={v.id}
-                        hover
-                        sx={{
+              <>
+                <Box sx={{ overflowX: 'auto' }}>
+                  <Table size="small" component={Paper} elevation={0}>
+                    <TableHead>
+                      <TableRow>
+                        {['Time', 'IP Address', 'Location', 'Page', 'Device'].map(h => (
+                          <TableCell key={h} sx={{
+                            fontWeight: 700, fontSize: 11, textTransform: 'uppercase',
+                            letterSpacing: 0.8, color: 'text.secondary', bgcolor: 'grey.50',
+                            borderBottom: '2px solid', borderColor: 'divider',
+                          }}>
+                            {h}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filtered.map((v, idx) => (
+                        <TableRow key={v.id} hover sx={{
                           '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } },
                           animation: `fadeIn 0.2s ease ${(idx % 25) * 0.02}s both`,
-                        }}
-                      >
-                        {/* Time */}
-                        <TableCell sx={{ whiteSpace: 'nowrap', minWidth: 110 }}>
-                          <Typography variant="body2" fontSize={12} fontWeight={600} color="text.primary">
-                            {timeAgo(v.visitedAt)}
-                          </Typography>
-                        </TableCell>
-
-                        {/* IP */}
-                        <TableCell>
-                          <Typography variant="caption" fontFamily="monospace" fontSize={11} color="text.secondary">
-                            {v.ipAddress ?? '—'}
-                          </Typography>
-                        </TableCell>
-
-                        {/* Location */}
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <LocationOnIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
-                            <Typography variant="caption" fontSize={12} color="text.secondary">
-                              {formatLocation(v)}
+                        }}>
+                          <TableCell sx={{ whiteSpace: 'nowrap', minWidth: 110 }}>
+                            <Typography variant="body2" fontSize={12} fontWeight={600} color="text.primary">
+                              {timeAgo(v.visitedAt)}
                             </Typography>
-                          </Box>
-                        </TableCell>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" fontFamily="monospace" fontSize={11} color="text.secondary">
+                              {v.ipAddress ?? '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <LocationOnIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+                              <Typography variant="caption" fontSize={12} color="text.secondary">
+                                {formatLocation(v)}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={{ maxWidth: 180 }}>
+                            <Typography variant="caption" fontFamily="monospace" fontSize={11} color="text.secondary"
+                              sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {v.pagePath ?? '/'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {v.isMobile ? (
+                              <Chip size="small" label="Mobile"
+                                sx={{ bgcolor: '#FFF3E0', color: '#E65100', fontWeight: 700, fontSize: 11, height: 22 }} />
+                            ) : (
+                              <Chip size="small" icon={<DevicesIcon style={{ fontSize: 12 }} />} label="Desktop"
+                                sx={{ bgcolor: '#E3F2FD', color: '#1565C0', fontWeight: 700, fontSize: 11, height: 22 }} />
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Box>
 
-                        {/* Page */}
-                        <TableCell sx={{ maxWidth: 180 }}>
-                          <Typography
-                            variant="caption"
-                            fontFamily="monospace"
-                            fontSize={11}
-                            color="text.secondary"
-                            sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          >
-                            {v.pagePath ?? '/'}
-                          </Typography>
-                        </TableCell>
-
-                        {/* Device */}
-                        <TableCell>
-                          {v.isMobile ? (
-                            <Chip
-                              size="small"
-                              label="Mobile"
-                              sx={{ bgcolor: '#FFF3E0', color: '#E65100', fontWeight: 700, fontSize: 11, height: 22 }}
-                            />
-                          ) : (
-                            <Chip
-                              size="small"
-                              icon={<DevicesIcon style={{ fontSize: 12 }} />}
-                              label="Desktop"
-                              sx={{ bgcolor: '#E3F2FD', color: '#1565C0', fontWeight: 700, fontSize: 11, height: 22 }}
-                            />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
+                {/* Pagination */}
+                <TablePagination
+                  component="div"
+                  count={paged?.totalElements ?? 0}
+                  page={page}
+                  onPageChange={(_, p) => setPage(p)}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                  rowsPerPageOptions={[10, 25, 50, 100]}
+                  labelRowsPerPage="Rows:"
+                />
+              </>
             )}
           </Card>
         </Grid>
@@ -266,29 +273,21 @@ export default function VisitorsPage() {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                             <PublicIcon sx={{ fontSize: 14, color: '#00897B' }} />
-                            <Typography variant="body2" fontSize={13} fontWeight={600}>
-                              {country}
-                            </Typography>
+                            <Typography variant="body2" fontSize={13} fontWeight={600}>{country}</Typography>
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                             <Typography variant="caption" fontWeight={700} color="text.primary">
                               {count.toLocaleString()}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              ({sharePct}%)
-                            </Typography>
+                            <Typography variant="caption" color="text.secondary">({sharePct}%)</Typography>
                           </Box>
                         </Box>
                         <Box sx={{ height: 6, bgcolor: 'grey.100', borderRadius: 3, overflow: 'hidden' }}>
-                          <Box
-                            sx={{
-                              height: '100%',
-                              width: `${pct}%`,
-                              background: 'linear-gradient(90deg, #00897B 0%, #00ACC1 100%)',
-                              borderRadius: 3,
-                              transition: 'width 0.6s ease',
-                            }}
-                          />
+                          <Box sx={{
+                            height: '100%', width: `${pct}%`,
+                            background: 'linear-gradient(90deg, #00897B 0%, #00ACC1 100%)',
+                            borderRadius: 3, transition: 'width 0.6s ease',
+                          }} />
                         </Box>
                       </Box>
                     );

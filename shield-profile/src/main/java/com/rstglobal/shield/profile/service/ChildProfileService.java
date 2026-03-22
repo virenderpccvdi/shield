@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
 import java.util.*;
@@ -33,6 +34,8 @@ public class ChildProfileService {
 
     @Value("${shield.dns.service.url:http://localhost:8284}")
     private String dnsServiceUrl;
+
+    private static final RestTemplate REST_TEMPLATE = new RestTemplate();
 
     private final ChildProfileRepository childProfileRepository;
     private final CustomerRepository customerRepository;
@@ -76,7 +79,7 @@ public class ChildProfileService {
             if (tenantId != null) {
                 provisionUrl += "&tenantId=" + tenantId;
             }
-            new org.springframework.web.client.RestTemplate().postForObject(provisionUrl, null, String.class);
+            REST_TEMPLATE.postForObject(provisionUrl, null, String.class);
         } catch (Exception e) {
             log.warn("DNS provisioning call failed for profile {}: {}", profile.getId(), e.getMessage());
         }

@@ -46,7 +46,7 @@ export default function CoParentAcceptPage() {
 
     // Accept the invite
     api
-      .post('/api/v1/profiles/family/accept', null, {
+      .post('/profiles/family/accept', null, {
         params: { token },
       })
       .then(() => {

@@ -42,8 +42,10 @@ final childUsageSummaryProvider = FutureProvider.autoDispose.family<Map<String, 
 final childTasksProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, profileId) async {
   final client = ref.read(dioProvider);
   try {
-    final res = await client.get('/rewards/tasks', queryParameters: {'profileId': profileId});
-    return (res.data['data'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final res = await client.get('/rewards/tasks/$profileId');
+    final raw = res.data;
+    final list = raw is List ? raw : (raw is Map ? (raw['data'] as List? ?? []) : <dynamic>[]);
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   } catch (_) { return []; }
 });
 
@@ -187,21 +189,82 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
   /// Called on every app launch — idempotent (VPN service ignores if already running).
   Future<void> _startDnsVpn() async {
     final profileId = ref.read(authProvider).childProfileId;
-    if (profileId == null) return;
+    if (profileId == null) {
+      debugPrint('[Shield] VPN start skipped — no profileId');
+      return;
+    }
     try {
-      final client = ref.read(dioProvider);
-      final res = await client.get('/dns/rules/$profileId');
-      final data = res.data['data'] as Map? ?? res.data as Map? ?? {};
-      final dohUrl = data['dohUrl']?.toString();
-      if (dohUrl == null || dohUrl.isEmpty) return;
+      // Step 1: Try to fetch doH URL from server
+      String? dohUrl;
+      try {
+        final client = ref.read(dioProvider);
+        final res = await client.get('/dns/rules/$profileId');
+        final data = res.data['data'] as Map? ?? res.data as Map? ?? {};
+        dohUrl = data['dohUrl']?.toString();
+        // If server returned empty dohUrl, try constructing from dnsClientId
+        if ((dohUrl == null || dohUrl.isEmpty) && data['dnsClientId'] != null) {
+          final dnsClientId = data['dnsClientId'].toString();
+          dohUrl = 'https://shield.rstglobal.in/dns/$dnsClientId/dns-query';
+          debugPrint('[Shield] Constructed dohUrl from dnsClientId: $dohUrl');
+        }
+      } catch (e) {
+        debugPrint('[Shield] Failed to fetch DNS rules: $e');
+      }
 
+      // Step 2: If still no URL, try fetching the profile to get dnsClientId
+      if (dohUrl == null || dohUrl.isEmpty) {
+        try {
+          final client = ref.read(dioProvider);
+          final profRes = await client.get('/profiles/$profileId');
+          final profData = profRes.data['data'] as Map? ?? profRes.data as Map? ?? {};
+          final dnsClientId = profData['dnsClientId']?.toString();
+          if (dnsClientId != null && dnsClientId.isNotEmpty) {
+            dohUrl = 'https://shield.rstglobal.in/dns/$dnsClientId/dns-query';
+            debugPrint('[Shield] Constructed dohUrl from profile dnsClientId: $dohUrl');
+          }
+        } catch (e) {
+          debugPrint('[Shield] Failed to fetch profile for dnsClientId: $e');
+        }
+      }
+
+      if (dohUrl == null || dohUrl.isEmpty) {
+        debugPrint('[Shield] No dohUrl available — VPN cannot start');
+        if (mounted) setState(() => _vpnActive = false);
+        return;
+      }
+
+      // Step 3: Ensure VPN permission is granted (may have been granted during setup)
+      final permissionGranted = await DnsVpnService.preparePermission();
+      if (!permissionGranted) {
+        debugPrint('[Shield] VPN permission denied — prompting user');
+        if (mounted) {
+          setState(() => _vpnActive = false);
+          _promptVpnPermission(dohUrl);
+        }
+        return;
+      }
+
+      // Step 4: Start VPN
       final started = await DnsVpnService.start(dohUrl);
-      if (mounted) setState(() => _vpnActive = started);
-      // VPN permission is requested during device setup (child_device_setup_screen.dart).
-      // By the time this screen loads, permission is already granted so VPN starts
-      // silently. No dialog needed here — the setup flow handles first-time consent.
+      debugPrint('[Shield] VPN start result: $started');
+
+      // Step 5: Verify running status
+      final running = await DnsVpnService.isRunning();
+      if (mounted) {
+        setState(() => _vpnActive = running || started);
+        if (running || started) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('DNS Protection enabled'),
+            backgroundColor: ShieldTheme.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 2),
+          ));
+        }
+      }
     } catch (e) {
-      // DNS VPN is best-effort — don't crash the child app if it fails
+      debugPrint('[Shield] VPN start failed: $e');
+      if (mounted) setState(() => _vpnActive = false);
     }
   }
 
@@ -663,6 +726,30 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                     ),
                   ),
 
+                  // ── VPN Warning Banner ───────────────────────────────
+                  if (!_vpnActive && !_loading)
+                    SliverToBoxAdapter(
+                      child: Container(
+                        margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: ShieldTheme.warning.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: ShieldTheme.warning.withOpacity(0.4)),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.shield_outlined, color: ShieldTheme.warning, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text('DNS Protection is OFF',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: ShieldTheme.warning))),
+                          TextButton(
+                            onPressed: _startDnsVpn,
+                            child: const Text('Enable', style: TextStyle(fontWeight: FontWeight.w700)),
+                          ),
+                        ]),
+                      ),
+                    ),
+
                   SliverPadding(
                     padding: const EdgeInsets.all(16),
                     sliver: SliverList(
@@ -676,15 +763,6 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                           onTap: _sosSending ? null : _sendSos,
                         ),
                         const SizedBox(height: 16),
-
-                        // ── Check In / Check Out ─────────────────────────────
-                        _CheckInCard(
-                          isCheckedIn: _isCheckedIn,
-                          checkedInAt: _checkedInAt,
-                          loading: _checkingIn,
-                          onTap: _checkingIn ? null : _handleCheckIn,
-                        ),
-                        const SizedBox(height: 12),
 
                         // ── FC-03: "I'm Here" one-tap check-in ───────────────
                         const CheckInButton(),
@@ -727,10 +805,6 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
 
                         // ── CS-03: Speed Dial / Emergency Contacts ─────────────
                         _SpeedDialCard(profileId: profileId),
-                        const SizedBox(height: 16),
-
-                        // ── CS-10: Quick Panic Button ─────────────────────────
-                        const PanicButtonWidget(),
                         const SizedBox(height: 16),
 
                         // ── Achievements ──────────────────────────────────────
@@ -1148,7 +1222,7 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
     final id = task['id']?.toString();
     if (id == null) return;
     if (_completing.contains(id)) return;
-    if (_optimistic[id] == true || task['completed'] == true) return;
+    if (_isDone(task)) return;
 
     setState(() {
       _optimistic[id] = true;
@@ -1157,7 +1231,7 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
 
     try {
       final client = ref.read(dioProvider);
-      await client.patch('/rewards/tasks/$id/complete');
+      await client.post('/rewards/tasks/$id/complete');
       final pts = task['points'] as int? ?? 0;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1187,7 +1261,9 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
 
   bool _isDone(Map<String, dynamic> task) {
     final id = task['id']?.toString() ?? '';
-    return _optimistic[id] == true || task['completed'] == true;
+    if (_optimistic[id] == true) return true;
+    final status = task['status']?.toString().toUpperCase() ?? '';
+    return status == 'COMPLETED' || status == 'SUBMITTED' || status == 'APPROVED' || task['completed'] == true;
   }
 
   @override
