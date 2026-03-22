@@ -165,7 +165,10 @@ export default function GeofencesPage() {
 
   const { data: geofences, isLoading } = useQuery({
     queryKey: ['geofences', profileId],
-    queryFn: () => api.get(`/location/${profileId}/geofences`).then(r => r.data.data as Geofence[]),
+    queryFn: () => api.get(`/location/${profileId}/geofences`).then(r => {
+      const raw = r.data?.data ?? r.data;
+      return (Array.isArray(raw) ? raw : raw?.content ?? []) as Geofence[];
+    }),
     enabled: !!profileId,
   });
 

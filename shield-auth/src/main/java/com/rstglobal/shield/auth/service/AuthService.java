@@ -78,6 +78,15 @@ public class AuthService {
         auditClient.log("USER_REGISTERED", "User", user.getId().toString(),
                 user.getId(), user.getName(), ipAddress,
                 Map.of("email", user.getEmail(), "role", role.name()));
+
+        // Send verification email for self-service registrations (emailVerified defaults to false)
+        final UUID newUserId = user.getId();
+        final String newUserEmail = user.getEmail();
+        final String newUserName  = user.getName();
+        String otp = String.valueOf((int)(Math.random() * 900000) + 100000);
+        redis.opsForValue().set(OTP_PREFIX + "verif:" + newUserId, otp, 24, TimeUnit.HOURS);
+        notificationClient.sendEmailVerificationOtp(newUserId, newUserEmail, newUserName, otp);
+
         return toUserResponse(user);
     }
 
@@ -89,16 +98,23 @@ public class AuthService {
     public UserResponse adminRegister(RegisterRequest req, UserRole role) {
         UserResponse response = register(req, role);
 
-        // Generate a 24-hour OTP (used for password-setup link if needed)
+        // Mark admin-created users as pre-verified so they can log in immediately
+        // after they have set their password via the setup link.
         UUID userId = response.getId();
-        String otp  = String.valueOf((int)(Math.random() * 900000) + 100000);
+        userRepository.findById(userId).ifPresent(u -> {
+            u.setEmailVerified(true);
+            userRepository.save(u);
+        });
+
+        // Generate a 24-hour OTP for the password-setup link
+        String otp = String.valueOf((int)(Math.random() * 900000) + 100000);
         redis.opsForValue().set(OTP_PREFIX + userId, otp, 24, TimeUnit.HOURS);
 
-        // Fire-and-forget welcome email: include the plaintext password so user can login immediately
+        // Fire-and-forget welcome email: send setup link only — no plaintext password
         notificationClient.sendWelcomeEmail(userId, response.getEmail(), response.getName(),
-                role.name(), otp, req.getPassword());
+                role.name(), otp);
 
-        log.info("Admin-created user {} — welcome email dispatched", userId);
+        log.info("Admin-created user {} — welcome email with setup link dispatched", userId);
         return response;
     }
 
@@ -174,6 +190,10 @@ public class AuthService {
 
         if (!user.isActive()) {
             throw ShieldException.forbidden("Account is disabled");
+        }
+
+        if (!user.isEmailVerified()) {
+            throw ShieldException.badRequest("Please verify your email address before logging in.");
         }
 
         if (user.getLockedUntil() != null && Instant.now().isBefore(user.getLockedUntil())) {
@@ -343,6 +363,66 @@ public class AuthService {
         userRepository.save(user);
         redis.delete(OTP_PREFIX + userId);
         log.info("Password reset completed for user {}", userId);
+    }
+
+    // ── Email Verification ────────────────────────────────────────────────────
+
+    /**
+     * Sends a verification OTP to the given user's email address.
+     * Call this after self-service registration to trigger the verification flow.
+     */
+    @Transactional
+    public void sendVerificationEmail(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> ShieldException.notFound("User", userId));
+        if (user.isEmailVerified()) return; // already verified — no-op
+        String otp = String.valueOf((int)(Math.random() * 900000) + 100000);
+        redis.opsForValue().set(OTP_PREFIX + "verif:" + userId, otp, 24, TimeUnit.HOURS);
+        notificationClient.sendEmailVerificationOtp(userId, user.getEmail(), user.getName(), otp);
+        log.info("Email verification OTP dispatched for user {}", userId);
+    }
+
+    /**
+     * Verifies the user's email using either a Base64 token (userId:otp) or
+     * an email + code pair.  Sets emailVerified = true on success.
+     */
+    @Transactional
+    public void verifyEmail(String token, String email, String code) {
+        UUID   userId;
+        String otp;
+
+        if (token != null && !token.isBlank()) {
+            String decoded;
+            try {
+                decoded = new String(java.util.Base64.getDecoder().decode(token));
+            } catch (Exception e) {
+                throw ShieldException.badRequest("Invalid verification token");
+            }
+            String[] parts = decoded.split(":", 2);
+            if (parts.length != 2) throw ShieldException.badRequest("Invalid verification token");
+            userId = UUID.fromString(parts[0]);
+            otp    = parts[1];
+        } else if (email != null && code != null) {
+            User u = userRepository.findByEmail(email.toLowerCase())
+                    .orElseThrow(() -> ShieldException.badRequest("Invalid email or code"));
+            userId = u.getId();
+            otp    = code.trim();
+        } else {
+            throw ShieldException.badRequest("Provide either a verification token or email + code");
+        }
+
+        String stored = redis.opsForValue().get(OTP_PREFIX + "verif:" + userId);
+        if (stored == null || !stored.equals(otp)) {
+            throw ShieldException.badRequest("Verification code expired or invalid");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> ShieldException.notFound("User", userId));
+
+        user.setEmailVerified(true);
+        userRepository.save(user);
+        redis.delete(OTP_PREFIX + "verif:" + userId);
+        log.info("Email verified for user {}", userId);
     }
 
     // ── Change password ───────────────────────────────────────────────────────

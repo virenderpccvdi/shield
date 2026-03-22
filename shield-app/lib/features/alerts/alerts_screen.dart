@@ -57,7 +57,8 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> with SingleTickerPr
     try {
       final client = ref.read(dioProvider);
       final profilesRes = await client.get('/profiles/children');
-      final profiles = profilesRes.data['data'] as List? ?? [];
+      final _apd = (profilesRes.data is Map) ? profilesRes.data['data'] : profilesRes.data;
+      final profiles = (_apd is List ? _apd : (_apd is Map ? (_apd['content'] ?? _apd['items'] ?? []) : [])) as List? ?? [];
 
       // Filter valid profiles, then fetch all SOS events in parallel
       final validProfiles = profiles
@@ -652,7 +653,8 @@ class _SpoofingAlertsViewState extends ConsumerState<_SpoofingAlertsView> {
     try {
       final client = ref.read(dioProvider);
       final profilesRes = await client.get('/profiles/children');
-      final profiles = profilesRes.data['data'] as List? ?? [];
+      final _spd = (profilesRes.data is Map) ? profilesRes.data['data'] : profilesRes.data;
+      final profiles = (_spd is List ? _spd : (_spd is Map ? (_spd['content'] ?? _spd['items'] ?? []) : [])) as List? ?? [];
 
       final allAlerts = <_SpoofingAlert>[];
       for (final p in profiles) {

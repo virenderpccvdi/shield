@@ -374,8 +374,9 @@ class _RecentActivityCard extends ConsumerWidget {
         if (snap.connectionState == ConnectionState.waiting) {
           return const ShieldCardSkeleton(lines: 4);
         }
-        final raw = snap.data?.data['data'];
-        final events = (raw is Map ? (raw['content'] ?? raw['items'] ?? []) : raw) as List? ?? [];
+        final d = snap.data?.data;
+        final inner = d is Map ? (d['data'] ?? d) : d;
+        final events = inner is List ? inner : (inner is Map ? (inner['content'] ?? inner['items'] ?? []) : []) as List? ?? [];
         if (events.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(20),

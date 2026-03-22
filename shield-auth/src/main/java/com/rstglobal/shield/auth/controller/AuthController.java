@@ -50,6 +50,25 @@ public class AuthController {
         return ApiResponse.ok(authService.refresh(req));
     }
 
+    /** Public: Verify email address using a token or email + code. */
+    @PostMapping("/verify-email")
+    @Operation(summary = "Verify email address with token or email + code")
+    public ApiResponse<Void> verifyEmail(
+            @RequestParam(required = false) String token,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String code) {
+        authService.verifyEmail(token, email, code);
+        return ApiResponse.ok(null, "Email verified successfully.");
+    }
+
+    /** Authenticated: Resend the email verification OTP. */
+    @PostMapping("/send-verification-email")
+    @Operation(summary = "Resend email verification OTP")
+    public ApiResponse<Void> sendVerificationEmail(@RequestHeader("X-User-Id") UUID userId) {
+        authService.sendVerificationEmail(userId);
+        return ApiResponse.ok(null, "Verification email sent.");
+    }
+
     /** Public: Request a password reset OTP (sent via notification service). */
     @PostMapping("/forgot-password")
     @Operation(summary = "Request password reset OTP")

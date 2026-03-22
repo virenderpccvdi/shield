@@ -36,6 +36,7 @@ public class NotificationClient {
     /**
      * Sends a welcome email to a newly-admin-created user that includes a
      * password-setup link valid for 24 hours.
+     * Does NOT include a plaintext password — the user must set their password via the link.
      *
      * @param userId  the new user's UUID (used to build the setup token)
      * @param email   recipient address
@@ -45,32 +46,21 @@ public class NotificationClient {
      */
     @Async
     public void sendWelcomeEmail(UUID userId, String email, String name, String role, String otp) {
-        sendWelcomeEmail(userId, email, name, role, otp, null);
-    }
-
-    @Async
-    public void sendWelcomeEmail(UUID userId, String email, String name, String role, String otp, String plainPassword) {
         try {
-            String rawToken   = userId + ":" + otp;
+            String rawToken  = userId + ":" + otp;
             String setupToken = Base64.getEncoder().encodeToString(rawToken.getBytes());
-            String loginUrl   = APP_DOMAIN + "/app/login";
-            String setupUrl   = plainPassword != null
-                    ? loginUrl
-                    : APP_DOMAIN + "/app/reset-password?token=" + setupToken;
+            String setupUrl  = APP_DOMAIN + "/app/reset-password?token=" + setupToken;
 
             Map<String, Object> variables = new HashMap<>();
-            variables.put("name",            name != null ? name : email);
-            variables.put("email",           email);
-            variables.put("role",            role);
-            variables.put("setupUrl",        setupUrl);
-            variables.put("supportEmail",    SUPPORT_EMAIL);
-            variables.put("initialPassword", plainPassword); // null if not provided
+            variables.put("name",         name != null ? name : email);
+            variables.put("email",        email);
+            variables.put("role",         role);
+            variables.put("setupUrl",     setupUrl);
+            variables.put("supportEmail", SUPPORT_EMAIL);
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("to",           email);
-            payload.put("subject",      plainPassword != null
-                    ? "Welcome to Shield — Your Account Details"
-                    : "Welcome to Shield — Set Up Your Account");
+            payload.put("subject",      "Welcome to Shield — Set Up Your Account");
             payload.put("templateName", "welcome-user");
             payload.put("variables",    variables);
 
@@ -121,6 +111,43 @@ public class NotificationClient {
             log.info("Password-reset OTP email dispatched for userId={}", userId);
         } catch (Exception e) {
             log.warn("Failed to send password-reset OTP email to {}: {}", email, e.getMessage());
+        }
+    }
+
+    /**
+     * Sends an email address verification OTP (self-service registration flow).
+     * The OTP is also embedded in a signed Base64 token: userId:otp.
+     */
+    @Async
+    public void sendEmailVerificationOtp(UUID userId, String email, String name, String otp) {
+        try {
+            String rawToken   = userId + ":" + otp;
+            String verifToken = Base64.getEncoder().encodeToString(rawToken.getBytes());
+            String verifUrl   = APP_DOMAIN + "/app/verify-email?token=" + verifToken;
+
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("name",         name != null ? name : email);
+            variables.put("email",        email);
+            variables.put("otp",          otp);
+            variables.put("verifUrl",     verifUrl);
+            variables.put("supportEmail", SUPPORT_EMAIL);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("to",           email);
+            payload.put("subject",      "Shield — Verify Your Email Address");
+            payload.put("templateName", "email-verification");
+            payload.put("variables",    variables);
+
+            restClient.post()
+                    .uri(notificationBaseUrl + "/internal/notifications/email")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Email verification OTP dispatched for userId={}", userId);
+        } catch (Exception e) {
+            log.warn("Failed to send email verification OTP to {}: {}", email, e.getMessage());
         }
     }
 

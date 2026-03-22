@@ -16,7 +16,8 @@ final activeSosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>
   try {
     final client = ref.read(dioProvider);
     final profilesRes = await client.get('/profiles/children');
-    final profiles = profilesRes.data['data'] as List? ?? [];
+    final _pd = (profilesRes.data is Map) ? profilesRes.data['data'] : profilesRes.data;
+    final profiles = (_pd is List ? _pd : (_pd is Map ? (_pd['content'] ?? _pd['items'] ?? []) : [])) as List? ?? [];
 
     // Filter out profiles with empty IDs before parallel fetch
     final validProfiles = profiles
@@ -49,6 +50,11 @@ final activeSosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>
   }
 });
 
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+/// Safely converts any numeric value to int (handles int, double, num from JSON).
+int _toInt(dynamic v) => v is int ? v : (v is num ? v.toInt() : 0);
+
 // ── Data providers ─────────────────────────────────────────────────────────
 
 final dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
@@ -56,8 +62,8 @@ final dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref)
   try {
     // Step 1: fetch profiles first (needed for subsequent calls)
     final profilesRes = await client.get('/profiles/children');
-    final d = profilesRes.data['data'];
-    final profiles = (d is Map ? (d['content'] ?? d['items'] ?? []) : d) as List? ?? [];
+    final d = (profilesRes.data is Map) ? profilesRes.data['data'] : profilesRes.data;
+    final profiles = (d is List ? d : (d is Map ? (d['content'] ?? d['items'] ?? []) : [])) as List? ?? [];
 
     // Step 2: fetch notifications + per-profile stats + per-profile devices — all in parallel
     final parallelResults = await Future.wait([
@@ -117,7 +123,7 @@ final dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref)
         final statsRes = statsResults?[i];
         if (statsRes != null) {
           final stats = (statsRes as dynamic).data['data'] ?? (statsRes as dynamic).data;
-          blockedToday += (stats['blockedQueries'] as int? ?? stats['blocked'] as int? ?? 0);
+          blockedToday += _toInt(stats['blockedQueries'] ?? stats['blocked'] ?? stats['totalBlocked'] ?? 0);
         }
       } catch (_) {}
 

@@ -32,6 +32,7 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import LoadingPage from '../../components/LoadingPage';
+import { useAuthStore } from '../../store/auth.store';
 
 /* ─── Types ─────────────────────────────────────────── */
 interface Customer {
@@ -396,6 +397,7 @@ function DeleteDialog({ open, title, onClose, onConfirm, loading }: {
 /* ─── Main Page ──────────────────────────────────────── */
 export default function CustomerDetailPage() {
   const { id } = useParams();
+  const tenantId = useAuthStore(s => s.user?.tenantId);
   const navigate = useNavigate();
   const location = useLocation();
   const backPath = location.pathname.startsWith('/admin') ? '/admin/customers' : '/isp/customers';
@@ -466,7 +468,7 @@ export default function CustomerDetailPage() {
 
   const { data: stats } = useQuery({
     queryKey: ['customer-stats-isp', id],
-    queryFn: () => api.get(`/analytics/customer/${id}`).then(r => r.data?.data).catch(() => ({ totalQueries: 0, totalBlocks: 0, activeDevices: 0 })),
+    queryFn: () => api.get(`/analytics/customer/${id}`, { params: tenantId ? { tenantId } : undefined }).then(r => r.data?.data).catch(() => ({ totalQueries: 0, totalBlocks: 0, activeDevices: 0 })),
     enabled: !!id,
   });
 

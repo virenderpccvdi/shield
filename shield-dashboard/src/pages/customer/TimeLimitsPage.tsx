@@ -137,13 +137,19 @@ export default function TimeLimitsPage() {
 
   const { data: budgetConfig, isLoading: loadingBudgets } = useQuery({
     queryKey: ['budgets', profileId],
-    queryFn: () => api.get(`/dns/dns-budgets/${profileId}`).then(r => r.data.data as Record<string, number>),
+    queryFn: () => api.get(`/dns/dns-budgets/${profileId}`).then(r => {
+      const d = r.data?.data ?? r.data;
+      return d as Record<string, number>;
+    }),
     enabled: !!profileId,
   });
 
   const { data: todayUsage } = useQuery({
     queryKey: ['budgets-today', profileId],
-    queryFn: () => api.get(`/dns/dns-budgets/${profileId}/today`).then(r => r.data.data as BudgetToday),
+    queryFn: () => api.get(`/dns/dns-budgets/${profileId}/today`).then(r => {
+      const d = r.data?.data ?? r.data;
+      return d as BudgetToday;
+    }),
     enabled: !!profileId,
     refetchInterval: 30000,
   });

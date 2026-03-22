@@ -113,7 +113,7 @@ export default function IspDashboardPage() {
     queryKey: ['isp-dashboard', tId],
     queryFn: async () => {
       const [customersRes, dailyRes, overviewRes, catRes] = await Promise.allSettled([
-        api.get('/profiles/customers'),
+        api.get('/profiles/customers', { params: tId ? { tenantId: tId } : undefined }),
         tId
           ? api.get(`/analytics/tenant/${tId}/daily?days=7`)
           : api.get('/analytics/platform/daily?days=7'),
@@ -157,7 +157,8 @@ export default function IspDashboardPage() {
 
       let categories: CategoryEntry[] = [];
       if (catRes.status === 'fulfilled') {
-        const d = Array.isArray(catRes.value.data) ? catRes.value.data : [];
+        const raw = catRes.value.data?.data ?? catRes.value.data;
+        const d = Array.isArray(raw) ? raw : [];
         if (d.length) {
           const total = d.reduce((s: number, c: { count: number }) => s + c.count, 0);
           categories = d.slice(0, 5).map((c: { category?: string; count: number }, i: number) => ({
