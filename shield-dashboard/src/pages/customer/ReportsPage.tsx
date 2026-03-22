@@ -176,7 +176,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
   const topBlockedQuery = useQuery({
     queryKey: ['report-top-blocked', profileId],
     queryFn: async () => {
-      const r = await api.get(`/analytics/${profileId}/top-blocked`, { params: { limit: 10 } });
+      const r = await api.get(`/analytics/${profileId}/top-domains`, { params: { action: 'BLOCKED', limit: 10 } });
       return (r.data?.data ?? r.data) as TopDomain[];
     },
     enabled: !!profileId,
@@ -203,7 +203,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
   const appUsageQuery = useQuery({
     queryKey: ['app-usage', profileId],
     queryFn: async () => {
-      const r = await api.get(`/analytics/${profileId}/apps`);
+      const r = await api.get(`/analytics/${profileId}/top-apps`);
       const raw = r.data?.data ?? r.data;
       return (Array.isArray(raw) ? raw : raw?.content ?? []) as AppUsageItem[];
     },

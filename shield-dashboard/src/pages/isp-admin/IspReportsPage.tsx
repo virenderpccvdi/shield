@@ -146,7 +146,7 @@ export default function IspReportsPage() {
     queryKey: ['isp-customers-reports'],
     queryFn: () => api.get('/profiles/customers').then(r => {
       const d = r.data?.data;
-      return (d?.content ?? d ?? []) as Customer[];
+      return (Array.isArray(d) ? d : d?.content ?? []) as Customer[];
     }).catch(() => []),
   });
 
@@ -156,7 +156,7 @@ export default function IspReportsPage() {
     enabled: !!selectedCustomer,
     queryFn: () => api.get(`/profiles/customers/${selectedCustomer}/children`).then(r => {
       const d = r.data?.data;
-      return (d?.content ?? d ?? []) as ChildProfile[];
+      return (Array.isArray(d) ? d : d?.content ?? []) as ChildProfile[];
     }).catch(() => []),
   });
 
@@ -172,7 +172,7 @@ export default function IspReportsPage() {
     Promise.allSettled(
       customers.map(c => api.get(`/profiles/customers/${c.id}/children`).then(r => {
         const d = r.data?.data;
-        return { id: c.id, profiles: (d?.content ?? d ?? []) as ChildProfile[] };
+        return { id: c.id, profiles: (Array.isArray(d) ? d : d?.content ?? []) as ChildProfile[] };
       }))
     ).then(results => {
       const map: Record<string, ChildProfile[]> = {};

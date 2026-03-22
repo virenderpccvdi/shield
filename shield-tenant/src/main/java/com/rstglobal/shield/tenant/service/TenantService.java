@@ -77,7 +77,9 @@ public class TenantService {
             entry("report_cards",        false),
             entry("location_sharing",    false),
             entry("battery_alerts",      false),
-            entry("advanced_schedules",  false)
+            entry("advanced_schedules",  false),
+            entry("ai_insights",         false),
+            entry("white_label",         false)
         ),
         TenantPlan.GROWTH, Map.ofEntries(
             entry("maxCustomers", 1000),
@@ -100,7 +102,9 @@ public class TenantService {
             entry("report_cards",        false),
             entry("location_sharing",    false),
             entry("battery_alerts",      false),
-            entry("advanced_schedules",  false)
+            entry("advanced_schedules",  false),
+            entry("ai_insights",         true),
+            entry("white_label",         false)
         ),
         TenantPlan.ENTERPRISE, Map.ofEntries(
             entry("maxCustomers", 100000),
@@ -123,7 +127,9 @@ public class TenantService {
             entry("report_cards",        true),
             entry("location_sharing",    true),
             entry("battery_alerts",      true),
-            entry("advanced_schedules",  true)
+            entry("advanced_schedules",  true),
+            entry("ai_insights",         true),
+            entry("white_label",         true)
         )
     );
 

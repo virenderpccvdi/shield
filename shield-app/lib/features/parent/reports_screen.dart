@@ -129,7 +129,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       client.get('/analytics/${widget.profileId}/daily').catchError((_) => null),
       client.get('/analytics/${widget.profileId}/top-domains').catchError((_) => null),
       client.get('/analytics/${widget.profileId}/categories').catchError((_) => null),
-      client.get('/analytics/${widget.profileId}/apps').catchError((_) => null),
+      client.get('/analytics/${widget.profileId}/top-apps').catchError((_) => null),
     ], eagerError: false);
 
     try {
