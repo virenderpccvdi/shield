@@ -27,7 +27,10 @@ public class ProfileProvisionService {
         if (dnsClientId != null && !dnsClientId.isBlank()) {
             rules.setDnsClientId(dnsClientId);
             rulesRepo.save(rules);
+            // Create AdGuard client, then immediately sync current category rules
+            // (createClient sets blocked_services=[] — syncRules pushes the real filter config)
             adGuardClient.createClient(dnsClientId, profileName != null ? profileName : dnsClientId, profileId.toString());
+            rulesService.syncRules(profileId);
         }
         scheduleService.initSchedule(tenantId, profileId);
     }

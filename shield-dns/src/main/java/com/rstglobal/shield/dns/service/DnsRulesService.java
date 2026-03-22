@@ -300,6 +300,33 @@ public class DnsRulesService {
         return toResponse(rules);
     }
 
+    /**
+     * Push current DB rules to AdGuard by profileId only (no tenantId needed).
+     * Used internally after provisioning sets the dnsClientId.
+     */
+    @Transactional(readOnly = true)
+    public void syncRules(UUID profileId) {
+        rulesRepo.findByProfileId(profileId).ifPresent(this::syncToAdGuard);
+    }
+
+    /**
+     * Force-sync ALL profiles that have a dnsClientId set.
+     * Useful for fixing profiles that were provisioned before the sync bug was fixed.
+     */
+    @Transactional(readOnly = true)
+    public int syncAllProfiles() {
+        List<DnsRules> all = rulesRepo.findAll();
+        int synced = 0;
+        for (DnsRules rules : all) {
+            if (rules.getDnsClientId() != null && !rules.getDnsClientId().isBlank()) {
+                syncToAdGuard(rules);
+                synced++;
+            }
+        }
+        log.info("syncAllProfiles: synced {} profiles to AdGuard", synced);
+        return synced;
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     /** Finds existing DNS rules or auto-initializes with MODERATE defaults (lazy provision). */
@@ -339,29 +366,43 @@ public class DnsRulesService {
         }
 
         // Determine blocked services from categories
-        // Maps internal category slug → AdGuard service IDs (one category may block multiple services)
+        // Maps internal category slug → AdGuard service IDs (verified against AdGuard Home service list)
         List<String> blocked = new ArrayList<>();
         java.util.List<String[]> serviceMapping = java.util.List.of(
             // Social media (both legacy "social" slug and current "social_media")
-            new String[]{"social_media", "instagram", "facebook", "twitter", "tiktok", "snapchat", "reddit", "pinterest", "vk", "tumblr"},
+            new String[]{"social_media", "instagram", "facebook", "twitter", "tiktok", "snapchat",
+                         "reddit", "pinterest", "vk", "tumblr", "bluesky", "linkedin", "mastodon"},
             new String[]{"social",       "instagram", "facebook", "twitter", "tiktok", "snapchat", "reddit"},
             new String[]{"tiktok",       "tiktok"},
             // Streaming
-            new String[]{"streaming",    "youtube", "netflix", "amazon_prime_video", "hulu", "disneyplus", "twitch"},
-            new String[]{"live_streaming","twitch", "youtube"},
-            new String[]{"music",        "spotify", "soundcloud"},
+            new String[]{"streaming",    "youtube", "netflix", "amazon_streaming", "hulu", "disneyplus",
+                         "twitch", "max", "crunchyroll", "peacock_tv", "paramountplus",
+                         "apple_streaming", "dailymotion", "vimeo"},
+            new String[]{"live_streaming","twitch", "youtube", "bigo_live", "dailymotion"},
+            new String[]{"music",        "spotify", "soundcloud", "deezer", "tidal"},
+            new String[]{"youtube",      "youtube"},
             // Gaming
-            new String[]{"gaming",       "twitch", "steam", "roblox", "minecraft"},
-            new String[]{"online_gaming","twitch", "steam", "roblox"},
-            new String[]{"game_stores",  "steam"},
+            new String[]{"gaming",       "twitch", "steam", "roblox", "minecraft",
+                         "battle_net", "epic_games", "nintendo", "xboxlive", "playstation",
+                         "leagueoflegends", "riot_games", "valorant", "electronic_arts"},
+            new String[]{"online_gaming","twitch", "steam", "roblox", "riot_games",
+                         "leagueoflegends", "valorant", "battle_net"},
+            new String[]{"game_stores",  "steam", "playstore", "nintendo", "epic_games"},
             // Gambling
-            new String[]{"gambling",     "betway", "bookmaker"},
+            new String[]{"gambling",     "betway", "betano", "betfair"},
             // Messaging / chat
-            new String[]{"messaging",    "whatsapp", "telegram", "viber", "signal"},
-            new String[]{"chat",         "discord", "telegram", "whatsapp"},
-            // Privacy bypass
-            new String[]{"vpn_proxy",    "vpn"},
-            new String[]{"tor",          "i2p"}
+            new String[]{"messaging",    "whatsapp", "telegram", "viber", "signal", "line", "kakaotalk"},
+            new String[]{"chat",         "discord", "telegram", "whatsapp", "wechat", "kik", "slack"},
+            // Dating
+            new String[]{"dating",       "tinder", "plenty_of_fish"},
+            // Adult / explicit
+            new String[]{"adult",        "onlyfans"},
+            new String[]{"pornography",  "onlyfans"},
+            // Privacy bypass (icloud_private_relay, proton VPN, privacy.com)
+            new String[]{"vpn_proxy",    "icloud_private_relay", "proton", "privacy"},
+            // AI tools
+            new String[]{"ai_tools",     "chatgpt", "gemini", "copilot", "claude", "grok",
+                         "deepseek", "perplexity", "manus", "meta_ai"}
         );
         for (String[] entry : serviceMapping) {
             String category = entry[0];
