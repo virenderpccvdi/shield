@@ -20,6 +20,15 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import InfoIcon from '@mui/icons-material/Info';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import SecurityIcon from '@mui/icons-material/Security';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import HistoryIcon from '@mui/icons-material/History';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import EmailIcon from '@mui/icons-material/Email';
+import ShareIcon from '@mui/icons-material/Share';
+import VideocamIcon from '@mui/icons-material/Videocam';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import BrushIcon from '@mui/icons-material/Brush';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
@@ -32,14 +41,33 @@ interface Tenant {
 }
 
 const FEATURES = [
-  { key: 'dns_filtering',     label: 'DNS Filtering',     desc: 'Block malicious & adult content via DNS', icon: <DnsIcon />,              color: '#1565C0', bg: '#E3F2FD' },
-  { key: 'ai_monitoring',     label: 'AI Monitoring',     desc: 'AI-powered anomaly detection',           icon: <PsychologyIcon />,        color: '#6A1B9A', bg: '#F3E5F5' },
-  { key: 'gps_tracking',      label: 'GPS Tracking',      desc: 'Real-time device location tracking',     icon: <LocationOnIcon />,        color: '#00695C', bg: '#E0F2F1' },
-  { key: 'screen_time',       label: 'Screen Time',       desc: 'Daily screen time limits & schedules',   icon: <AccessTimeIcon />,        color: '#E65100', bg: '#FFF3E0' },
-  { key: 'rewards',           label: 'Rewards',           desc: 'Gamified rewards for responsible use',   icon: <EmojiEventsIcon />,       color: '#F9A825', bg: '#FFFDE7' },
-  { key: 'instant_pause',     label: 'Instant Pause',     desc: 'One-click internet pause per device',    icon: <PauseCircleIcon />,       color: '#C62828', bg: '#FFEBEE' },
-  { key: 'content_reporting', label: 'Content Reports',   desc: 'Detailed browsing & blocking reports',   icon: <AssessmentIcon />,        color: '#2E7D32', bg: '#E8F5E9' },
-  { key: 'multi_admin',       label: 'Multi-Admin',       desc: 'Multiple ISP admin accounts',            icon: <SupervisorAccountIcon />, color: '#4527A0', bg: '#EDE7F6' },
+  // Core
+  { key: 'dns_filtering',      label: 'DNS Filtering',        desc: 'Block malicious & adult content via DNS',          icon: <DnsIcon />,              color: '#1565C0', bg: '#E3F2FD',  group: 'Core' },
+  { key: 'screen_time',        label: 'Screen Time',          desc: 'Daily screen time limits & schedules',             icon: <AccessTimeIcon />,        color: '#E65100', bg: '#FFF3E0',  group: 'Core' },
+  { key: 'instant_pause',      label: 'Instant Pause',        desc: 'One-click internet pause per child',               icon: <PauseCircleIcon />,       color: '#C62828', bg: '#FFEBEE',  group: 'Core' },
+  // Safety
+  { key: 'gps_tracking',       label: 'GPS Tracking',         desc: 'Real-time device location tracking',               icon: <LocationOnIcon />,        color: '#00695C', bg: '#E0F2F1',  group: 'Safety' },
+  { key: 'geofences',          label: 'Geofences',            desc: 'Safe zones with entry/exit alerts',                icon: <LocationOnIcon />,        color: '#1B5E20', bg: '#E8F5E9',  group: 'Safety' },
+  { key: 'sos',                label: 'SOS Panic Button',     desc: 'Emergency SOS alert to parents & contacts',        icon: <SecurityIcon />,          color: '#B71C1C', bg: '#FFEBEE',  group: 'Safety' },
+  { key: 'battery_alerts',     label: 'Battery Alerts',       desc: 'Alert parents when battery is low',                icon: <NotificationsIcon />,     color: '#FF6F00', bg: '#FFF8E1',  group: 'Safety' },
+  // Intelligence
+  { key: 'ai_monitoring',      label: 'AI Monitoring',        desc: 'AI-powered anomaly & threat detection',            icon: <PsychologyIcon />,        color: '#6A1B9A', bg: '#F3E5F5',  group: 'Intelligence' },
+  { key: 'browsing_history',   label: 'Browsing History',     desc: 'Full DNS query log with blocked/allowed filter',   icon: <HistoryIcon />,           color: '#0277BD', bg: '#E1F5FE',  group: 'Intelligence' },
+  { key: 'content_reporting',  label: 'Content Reports',      desc: 'Detailed browsing & blocking reports',             icon: <AssessmentIcon />,        color: '#2E7D32', bg: '#E8F5E9',  group: 'Intelligence' },
+  { key: 'ai_chat',            label: 'AI Learning Buddy',    desc: 'Safe educational AI chat for children',            icon: <SmartToyIcon />,          color: '#1565C0', bg: '#E3F2FD',  group: 'Intelligence' },
+  // Family
+  { key: 'rewards',            label: 'Rewards & Badges',     desc: 'Gamified rewards for responsible internet use',    icon: <EmojiEventsIcon />,       color: '#F9A825', bg: '#FFFDE7',  group: 'Family' },
+  { key: 'co_parent',          label: 'Co-Parent Access',     desc: 'Invite second parent/guardian to account',         icon: <SupervisorAccountIcon />, color: '#4527A0', bg: '#EDE7F6',  group: 'Family' },
+  { key: 'weekly_digest',      label: 'Weekly Digest',        desc: 'Automated weekly summary email to parents',        icon: <EmailIcon />,             color: '#00838F', bg: '#E0F7FA',  group: 'Family' },
+  { key: 'report_cards',       label: 'Monthly Report Cards', desc: 'Monthly graded internet safety report email',      icon: <AssessmentIcon />,        color: '#558B2F', bg: '#F1F8E9',  group: 'Family' },
+  { key: 'location_sharing',   label: 'Location Sharing',     desc: 'Temporary shareable location links',               icon: <ShareIcon />,             color: '#00695C', bg: '#E0F2F1',  group: 'Family' },
+  // Advanced
+  { key: 'video_checkin',      label: 'Video Check-in',       desc: 'One-tap video call request to child device',       icon: <VideocamIcon />,          color: '#1565C0', bg: '#E3F2FD',  group: 'Advanced' },
+  { key: 'advanced_schedules', label: 'Access Schedules',     desc: 'Day-of-week + time-window internet control',       icon: <ScheduleIcon />,          color: '#4E342E', bg: '#EFEBE9',  group: 'Advanced' },
+  { key: 'multi_admin',        label: 'Multi-Admin',          desc: 'Multiple ISP admin accounts',                      icon: <SupervisorAccountIcon />, color: '#4527A0', bg: '#EDE7F6',  group: 'Advanced' },
+  // ISP
+  { key: 'ai_insights',        label: 'AI Insights',          desc: 'AI-powered usage pattern analysis',                icon: <PsychologyIcon />,        color: '#880E4F', bg: '#FCE4EC',  group: 'ISP' },
+  { key: 'white_label',        label: 'White Label',          desc: 'Custom branding for ISP customers',                icon: <BrushIcon />,             color: '#37474F', bg: '#ECEFF1',  group: 'ISP' },
 ];
 
 const PLAN_COLORS: Record<string, { color: string; bg: string }> = {
@@ -49,9 +77,38 @@ const PLAN_COLORS: Record<string, { color: string; bg: string }> = {
 };
 
 const PLAN_DEFAULTS: Record<string, Record<string, boolean>> = {
-  STARTER:    { dns_filtering: true,  ai_monitoring: false, gps_tracking: false, screen_time: true,  rewards: false, instant_pause: true,  content_reporting: false, multi_admin: false },
-  GROWTH:     { dns_filtering: true,  ai_monitoring: true,  gps_tracking: true,  screen_time: true,  rewards: true,  instant_pause: true,  content_reporting: true,  multi_admin: false },
-  ENTERPRISE: { dns_filtering: true,  ai_monitoring: true,  gps_tracking: true,  screen_time: true,  rewards: true,  instant_pause: true,  content_reporting: true,  multi_admin: true  },
+  STARTER: {
+    dns_filtering: true,  screen_time: true,   instant_pause: true,
+    gps_tracking: false,  geofences: false,    sos: false,          battery_alerts: false,
+    ai_monitoring: false, browsing_history: false, content_reporting: false, ai_chat: false,
+    rewards: false,       co_parent: false,    weekly_digest: false, report_cards: false, location_sharing: false,
+    video_checkin: false, advanced_schedules: false, multi_admin: false,
+    ai_insights: false,   white_label: false,
+  },
+  GROWTH: {
+    dns_filtering: true,  screen_time: true,   instant_pause: true,
+    gps_tracking: true,   geofences: true,     sos: true,           battery_alerts: false,
+    ai_monitoring: true,  browsing_history: true, content_reporting: true, ai_chat: true,
+    rewards: true,        co_parent: false,    weekly_digest: true, report_cards: false, location_sharing: false,
+    video_checkin: false, advanced_schedules: false, multi_admin: false,
+    ai_insights: false,   white_label: false,
+  },
+  ENTERPRISE: {
+    dns_filtering: true,  screen_time: true,   instant_pause: true,
+    gps_tracking: true,   geofences: true,     sos: true,           battery_alerts: true,
+    ai_monitoring: true,  browsing_history: true, content_reporting: true, ai_chat: true,
+    rewards: true,        co_parent: true,     weekly_digest: true, report_cards: true, location_sharing: true,
+    video_checkin: true,  advanced_schedules: true, multi_admin: true,
+    ai_insights: true,    white_label: true,
+  },
+};
+
+// Get ordered list of unique groups
+const GROUPS = Array.from(new Set(FEATURES.map(f => f.group)));
+
+const GROUP_COLORS: Record<string, string> = {
+  Core: '#1565C0', Safety: '#B71C1C', Intelligence: '#6A1B9A',
+  Family: '#00838F', Advanced: '#4E342E', ISP: '#880E4F',
 };
 
 export default function FeatureManagementPage() {
@@ -181,22 +238,33 @@ export default function FeatureManagementPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {FEATURES.map(f => (
-                  <TableRow key={f.key} sx={{ '&:hover': { bgcolor: '#FAFAFA' } }}>
-                    <TableCell>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Box sx={{ color: f.color, display: 'flex', fontSize: 16 }}>{f.icon}</Box>
-                        <Typography variant="body2" fontWeight={600}>{f.label}</Typography>
-                      </Stack>
-                    </TableCell>
-                    {(['STARTER', 'GROWTH', 'ENTERPRISE'] as const).map(plan => (
-                      <TableCell key={plan} align="center">
-                        {PLAN_DEFAULTS[plan][f.key]
-                          ? <CheckCircleIcon sx={{ fontSize: 18, color: '#43A047' }} />
-                          : <CancelIcon sx={{ fontSize: 18, color: '#BDBDBD' }} />}
+                {GROUPS.map(group => (
+                  <>
+                    <TableRow key={`group-${group}`} sx={{ bgcolor: '#F8FAFC' }}>
+                      <TableCell colSpan={4} sx={{ py: 0.75, px: 2 }}>
+                        <Typography variant="caption" fontWeight={800} sx={{ color: GROUP_COLORS[group] ?? 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
+                          {group}
+                        </Typography>
                       </TableCell>
+                    </TableRow>
+                    {FEATURES.filter(f => f.group === group).map(f => (
+                      <TableRow key={f.key} sx={{ '&:hover': { bgcolor: '#FAFAFA' } }}>
+                        <TableCell>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Box sx={{ color: f.color, display: 'flex', fontSize: 16 }}>{f.icon}</Box>
+                            <Typography variant="body2" fontWeight={600}>{f.label}</Typography>
+                          </Stack>
+                        </TableCell>
+                        {(['STARTER', 'GROWTH', 'ENTERPRISE'] as const).map(plan => (
+                          <TableCell key={plan} align="center">
+                            {PLAN_DEFAULTS[plan][f.key]
+                              ? <CheckCircleIcon sx={{ fontSize: 18, color: '#43A047' }} />
+                              : <CancelIcon sx={{ fontSize: 18, color: '#BDBDBD' }} />}
+                          </TableCell>
+                        ))}
+                      </TableRow>
                     ))}
-                  </TableRow>
+                  </>
                 ))}
               </TableBody>
             </Table>
@@ -252,7 +320,7 @@ export default function FeatureManagementPage() {
                               <Typography variant="body2" fontWeight={700} noWrap>{tenant.name}</Typography>
                               <Stack direction="row" spacing={0.5}>
                                 <Chip size="small" label={tenant.plan} sx={{ height: 16, fontSize: 9, fontWeight: 700, bgcolor: pc?.bg, color: pc?.color, border: 'none' }} />
-                                <Chip size="small" label={`${enabledFeatureCount}/8`} sx={{ height: 16, fontSize: 9, bgcolor: '#F0F0F0', color: 'text.secondary' }} />
+                                <Chip size="small" label={`${enabledFeatureCount}/21`} sx={{ height: 16, fontSize: 9, bgcolor: '#F0F0F0', color: 'text.secondary' }} />
                               </Stack>
                             </Box>
                           </Box>

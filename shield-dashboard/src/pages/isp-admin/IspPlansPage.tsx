@@ -16,6 +16,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import DnsIcon from '@mui/icons-material/Dns';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -40,20 +41,45 @@ interface Plan {
 }
 
 const FEATURE_META = [
-  { key: 'dns_filtering',     label: 'DNS Filtering',    icon: <SecurityIcon sx={{ fontSize: 16 }} />,        color: '#1565C0', desc: 'Block harmful/adult content via DNS' },
-  { key: 'screen_time',       label: 'Screen Time',      icon: <AccessTimeIcon sx={{ fontSize: 16 }} />,      color: '#E65100', desc: 'Daily screen time limits & schedules' },
-  { key: 'gps_tracking',      label: 'GPS Tracking',     icon: <LocationOnIcon sx={{ fontSize: 16 }} />,      color: '#00695C', desc: 'Real-time location tracking' },
-  { key: 'ai_monitoring',     label: 'AI Monitoring',    icon: <PsychologyIcon sx={{ fontSize: 16 }} />,      color: '#6A1B9A', desc: 'AI-powered anomaly detection' },
-  { key: 'rewards',           label: 'Rewards',          icon: <EmojiEventsIcon sx={{ fontSize: 16 }} />,     color: '#F9A825', desc: 'Gamified rewards for responsible use' },
-  { key: 'instant_pause',     label: 'Instant Pause',    icon: <PauseCircleIcon sx={{ fontSize: 16 }} />,     color: '#C62828', desc: 'One-click internet pause per child' },
-  { key: 'content_reporting', label: 'Reports',          icon: <AssessmentIcon sx={{ fontSize: 16 }} />,      color: '#2E7D32', desc: 'Detailed browsing & activity reports' },
-  { key: 'geofencing',        label: 'Geofencing',       icon: <LocationOnIcon sx={{ fontSize: 16 }} />,      color: '#1B5E20', desc: 'Safe zones and location alerts' },
+  // Core
+  { key: 'dns_filtering',      label: 'DNS Filtering',       icon: <DnsIcon sx={{ fontSize: 16 }} />,              color: '#1565C0', desc: 'Block harmful/adult content via DNS',            group: 'Core' },
+  { key: 'screen_time',        label: 'Screen Time',         icon: <AccessTimeIcon sx={{ fontSize: 16 }} />,       color: '#E65100', desc: 'Daily time limits & bedtime lock',               group: 'Core' },
+  { key: 'instant_pause',      label: 'Instant Pause',       icon: <PauseCircleIcon sx={{ fontSize: 16 }} />,      color: '#C62828', desc: 'One-tap pause all internet for child',           group: 'Core' },
+  // Safety
+  { key: 'gps_tracking',       label: 'GPS Tracking',        icon: <LocationOnIcon sx={{ fontSize: 16 }} />,       color: '#00695C', desc: 'Real-time location tracking',                   group: 'Safety' },
+  { key: 'geofences',          label: 'Geofences',           icon: <LocationOnIcon sx={{ fontSize: 16 }} />,       color: '#1B5E20', desc: 'Safe zones and alerts',                         group: 'Safety' },
+  { key: 'sos',                label: 'SOS Button',          icon: <SecurityIcon sx={{ fontSize: 16 }} />,         color: '#B71C1C', desc: 'Emergency SOS alert to parents',                group: 'Safety' },
+  { key: 'battery_alerts',     label: 'Battery Alerts',      icon: <NotificationsIcon sx={{ fontSize: 16 }} />,    color: '#FF6F00', desc: 'Alert when child battery is low',               group: 'Safety' },
+  // Intelligence
+  { key: 'ai_monitoring',      label: 'AI Monitoring',       icon: <PsychologyIcon sx={{ fontSize: 16 }} />,       color: '#6A1B9A', desc: 'AI anomaly detection',                          group: 'Intelligence' },
+  { key: 'browsing_history',   label: 'Browsing History',    icon: <AssessmentIcon sx={{ fontSize: 16 }} />,       color: '#0277BD', desc: '30-day DNS query log',                          group: 'Intelligence' },
+  { key: 'content_reporting',  label: 'Reports',             icon: <AssessmentIcon sx={{ fontSize: 16 }} />,       color: '#2E7D32', desc: 'Detailed activity reports',                     group: 'Intelligence' },
+  { key: 'ai_chat',            label: 'AI Learning Buddy',   icon: <PsychologyIcon sx={{ fontSize: 16 }} />,       color: '#1565C0', desc: 'Safe educational AI chat',                      group: 'Intelligence' },
+  // Family
+  { key: 'rewards',            label: 'Rewards & Badges',    icon: <EmojiEventsIcon sx={{ fontSize: 16 }} />,      color: '#F9A825', desc: 'Points and achievement badges',                 group: 'Family' },
+  { key: 'co_parent',          label: 'Co-Parent Access',    icon: <SecurityIcon sx={{ fontSize: 16 }} />,         color: '#4527A0', desc: 'Second parent/guardian account',               group: 'Family' },
+  { key: 'weekly_digest',      label: 'Weekly Digest',       icon: <AssessmentIcon sx={{ fontSize: 16 }} />,       color: '#00838F', desc: 'Weekly email summary to parents',              group: 'Family' },
+  { key: 'report_cards',       label: 'Report Cards',        icon: <AssessmentIcon sx={{ fontSize: 16 }} />,       color: '#558B2F', desc: 'Monthly graded safety reports',                group: 'Family' },
+  { key: 'location_sharing',   label: 'Location Sharing',    icon: <LocationOnIcon sx={{ fontSize: 16 }} />,       color: '#00695C', desc: 'Shareable location links',                     group: 'Family' },
+  // Advanced
+  { key: 'video_checkin',      label: 'Video Check-in',      icon: <SecurityIcon sx={{ fontSize: 16 }} />,         color: '#1565C0', desc: 'Video call request to child',                  group: 'Advanced' },
+  { key: 'advanced_schedules', label: 'Access Schedules',    icon: <AccessTimeIcon sx={{ fontSize: 16 }} />,       color: '#4E342E', desc: 'Day+time internet control windows',             group: 'Advanced' },
+  { key: 'multi_admin',        label: 'Multi-Admin',         icon: <SecurityIcon sx={{ fontSize: 16 }} />,         color: '#4527A0', desc: 'Multiple ISP admin accounts',                  group: 'Advanced' },
 ];
 
 const EMPTY_FEATURES: Record<string, boolean> = {
-  dns_filtering: true, screen_time: true, gps_tracking: false,
-  ai_monitoring: false, rewards: false, instant_pause: true,
-  content_reporting: false, geofencing: false,
+  dns_filtering: true, screen_time: true, instant_pause: true,
+  gps_tracking: false, geofences: false, sos: false, battery_alerts: false,
+  ai_monitoring: false, browsing_history: false, content_reporting: false, ai_chat: false,
+  rewards: false, co_parent: false, weekly_digest: false, report_cards: false, location_sharing: false,
+  video_checkin: false, advanced_schedules: false, multi_admin: false,
+};
+
+const GROUPS = Array.from(new Set(FEATURE_META.map(f => f.group)));
+
+const GROUP_COLORS: Record<string, string> = {
+  Core: '#1565C0', Safety: '#B71C1C', Intelligence: '#6A1B9A',
+  Family: '#00838F', Advanced: '#4E342E',
 };
 
 function PlanDialog({ open, plan, onClose, onSaved }: {
@@ -142,42 +168,55 @@ function PlanDialog({ open, plan, onClose, onSaved }: {
 
           <Divider />
 
-          {/* Feature toggles */}
+          {/* Feature toggles grouped by category */}
           <Box>
             <Typography variant="body2" fontWeight={700} sx={{ mb: 1.5 }}>
               Features Included in this Plan
             </Typography>
-            <Grid container spacing={1}>
-              {FEATURE_META.map(f => {
-                const enabled = features[f.key] ?? false;
-                return (
-                  <Grid key={f.key} size={{ xs: 12, sm: 6 }}>
-                    <Box
-                      onClick={() => toggleFeature(f.key)}
-                      sx={{
-                        p: 1.25, borderRadius: 1.5, cursor: 'pointer',
-                        border: `1.5px solid ${enabled ? f.color + '60' : '#E2E8F0'}`,
-                        bgcolor: enabled ? f.color + '08' : '#FAFAFA',
-                        transition: 'all 0.15s ease',
-                        display: 'flex', alignItems: 'center', gap: 1,
-                        '&:hover': { borderColor: f.color + '80' },
-                      }}
-                    >
-                      <Box sx={{ color: enabled ? f.color : '#CBD5E1' }}>{f.icon}</Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography fontSize={12} fontWeight={600} color={enabled ? 'text.primary' : 'text.disabled'}>
-                          {f.label}
-                        </Typography>
-                        <Typography fontSize={10} color="text.disabled">{f.desc}</Typography>
-                      </Box>
-                      {enabled
-                        ? <CheckCircleIcon sx={{ fontSize: 16, color: f.color }} />
-                        : <CancelIcon sx={{ fontSize: 16, color: '#CBD5E1' }} />}
-                    </Box>
+            <Stack spacing={1.5}>
+              {GROUPS.map(group => (
+                <Box key={group}>
+                  <Typography variant="caption" fontWeight={800} sx={{
+                    color: GROUP_COLORS[group] ?? 'text.secondary',
+                    textTransform: 'uppercase', letterSpacing: 0.8,
+                    display: 'block', mb: 0.75,
+                  }}>
+                    {group}
+                  </Typography>
+                  <Grid container spacing={1}>
+                    {FEATURE_META.filter(f => f.group === group).map(f => {
+                      const enabled = features[f.key] ?? false;
+                      return (
+                        <Grid key={f.key} size={{ xs: 12, sm: 6 }}>
+                          <Box
+                            onClick={() => toggleFeature(f.key)}
+                            sx={{
+                              p: 1.25, borderRadius: 1.5, cursor: 'pointer',
+                              border: `1.5px solid ${enabled ? f.color + '60' : '#E2E8F0'}`,
+                              bgcolor: enabled ? f.color + '08' : '#FAFAFA',
+                              transition: 'all 0.15s ease',
+                              display: 'flex', alignItems: 'center', gap: 1,
+                              '&:hover': { borderColor: f.color + '80' },
+                            }}
+                          >
+                            <Box sx={{ color: enabled ? f.color : '#CBD5E1' }}>{f.icon}</Box>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography fontSize={12} fontWeight={600} color={enabled ? 'text.primary' : 'text.disabled'}>
+                                {f.label}
+                              </Typography>
+                              <Typography fontSize={10} color="text.disabled">{f.desc}</Typography>
+                            </Box>
+                            {enabled
+                              ? <CheckCircleIcon sx={{ fontSize: 16, color: f.color }} />
+                              : <CancelIcon sx={{ fontSize: 16, color: '#CBD5E1' }} />}
+                          </Box>
+                        </Grid>
+                      );
+                    })}
                   </Grid>
-                );
-              })}
-            </Grid>
+                </Box>
+              ))}
+            </Stack>
           </Box>
 
           <FormControlLabel control={<Switch checked={active} onChange={e => setActive(e.target.checked)} />}

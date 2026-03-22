@@ -115,6 +115,7 @@ const BulkImportPage       = lazy(() => import('./pages/isp-admin/BulkImportPage
 const CommunicationsPage   = lazy(() => import('./pages/isp-admin/CommunicationsPage'));
 const AnalyticsExportPage  = lazy(() => import('./pages/isp-admin/AnalyticsExportPage'));
 const IspLiveDashboardPage = lazy(() => import('./pages/isp-admin/IspLiveDashboardPage'));
+const IspMyPlanPage        = lazy(() => import('./pages/isp-admin/IspMyPlanPage'));
 
 // ── Shared pages ──────────────────────────────────────────────────────────────
 const PlatformAlertsPage   = lazy(() => import('./pages/PlatformAlertsPage'));
@@ -302,6 +303,7 @@ export default function App() {
                 <Route path="/isp/communications"                element={<CommunicationsPage />} />
                 <Route path="/isp/analytics-export"              element={<AnalyticsExportPage />} />
                 <Route path="/isp/live-dashboard"               element={<IspLiveDashboardPage />} />
+                <Route path="/isp/my-plan"                      element={<IspMyPlanPage />} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />

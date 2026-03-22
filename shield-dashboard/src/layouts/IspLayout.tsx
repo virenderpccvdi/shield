@@ -20,6 +20,7 @@ import DevicesIcon from '@mui/icons-material/Devices';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
 import PaymentIcon from '@mui/icons-material/Payment';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
+import TuneIcon from '@mui/icons-material/Tune';
 import BlockIcon from '@mui/icons-material/Block';
 import DnsIcon from '@mui/icons-material/Dns';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
@@ -59,7 +60,8 @@ const sections = [
     items: [
       { label: 'Customers', icon: <PeopleIcon />, path: '/isp/customers' },
       { label: 'Bulk Import', icon: <GroupAddIcon />, path: '/isp/customers/import' },
-      { label: 'Plans', icon: <CardMembershipIcon />, path: '/isp/plans' },
+      { label: 'My Plan', icon: <TuneIcon />, path: '/isp/my-plan' },
+      { label: 'Customer Plans', icon: <CardMembershipIcon />, path: '/isp/plans' },
       { label: 'App Control', icon: <PhonelinkSetupIcon />, path: '/isp/app-control' },
       { label: 'Devices', icon: <DevicesIcon />, path: '/isp/devices' },
       { label: 'Child Profiles', icon: <ChildCareIcon />, path: '/isp/child-profiles' },
