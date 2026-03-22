@@ -164,8 +164,9 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
             data: {
               'parentUserId': uid,
               'childProfileId': profileId,
-              'pin': '0000',
+              'pin': '0000', // placeholder — endpoint validates parent JWT, not PIN
             },
+            options: Options(headers: {'Authorization': 'Bearer $token'}),
           );
           final issued = childTokenRes.data['data']?['accessToken'] as String?;
           if (issued != null) childToken = issued;

@@ -163,10 +163,18 @@ public class AuthController {
         return ApiResponse.ok(authService.adminRegister(req, role));
     }
 
-    /** Public: Issue a limited child device token. Parent must own the child profile. */
+    /** Authenticated: Issue a limited child device token. Caller must be the parent. */
     @PostMapping("/child/token")
-    @Operation(summary = "Issue child app token for a child profile")
-    public ApiResponse<AuthResponse> childToken(@Valid @RequestBody com.rstglobal.shield.auth.dto.request.ChildTokenRequest req) {
+    @Operation(summary = "Issue child app token for a child profile (requires parent JWT)")
+    public ApiResponse<AuthResponse> childToken(
+            @Valid @RequestBody com.rstglobal.shield.auth.dto.request.ChildTokenRequest req,
+            @RequestHeader(value = "X-User-Id", required = false) UUID callerId) {
+        // Gateway injects X-User-Id from the validated JWT.
+        // Verify that the caller IS the claimed parentUserId (prevents impersonation).
+        if (callerId != null && !callerId.equals(req.getParentUserId())) {
+            throw com.rstglobal.shield.common.exception.ShieldException.forbidden(
+                    "Caller is not the parent of this profile");
+        }
         return ApiResponse.ok(authService.issueChildToken(
                 req.getParentUserId(), req.getChildProfileId(), req.getPin()));
     }

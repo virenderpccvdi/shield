@@ -1,12 +1,23 @@
-import 'package:flutter/services.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service to manage app lock and deletion protection for child accounts.
 /// Uses a parent-set PIN code to prevent unauthorized app removal.
+/// PIN is stored as SHA-256 hash in FlutterSecureStorage (Keystore/Keychain backed).
 class AppLockService {
-  static const String _pinKey = 'shield_parent_pin';
+  static const FlutterSecureStorage _secure = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+  static const String _pinHashKey = 'shield_parent_pin_hash';
   static const String _lockEnabledKey = 'shield_app_lock_enabled';
   static const String _isChildKey = 'shield_is_child_account';
+
+  static String _hashPin(String pin) {
+    final bytes = utf8.encode(pin);
+    return sha256.convert(bytes).toString();
+  }
 
   /// Check if the current account is a child account with app lock
   static Future<bool> isChildLocked() async {
@@ -15,10 +26,10 @@ class AppLockService {
         prefs.getBool(_lockEnabledKey) == true;
   }
 
-  /// Set up app lock for a child account with a parent PIN
+  /// Set up app lock for a child account with a parent PIN (stored as SHA-256 hash)
   static Future<void> enableAppLock(String pin) async {
+    await _secure.write(key: _pinHashKey, value: _hashPin(pin));
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_pinKey, pin);
     await prefs.setBool(_lockEnabledKey, true);
     await prefs.setBool(_isChildKey, true);
   }
@@ -32,18 +43,16 @@ class AppLockService {
     }
   }
 
-  /// Verify the parent PIN
+  /// Verify the parent PIN against stored hash
   static Future<bool> verifyPin(String pin) async {
-    final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString(_pinKey);
-    return stored != null && stored == pin;
+    final stored = await _secure.read(key: _pinHashKey);
+    return stored != null && stored == _hashPin(pin);
   }
 
   /// Change the parent PIN (requires old PIN verification)
   static Future<bool> changePin(String oldPin, String newPin) async {
     if (await verifyPin(oldPin)) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_pinKey, newPin);
+      await _secure.write(key: _pinHashKey, value: _hashPin(newPin));
       return true;
     }
     return false;
@@ -51,8 +60,8 @@ class AppLockService {
 
   /// Check if a PIN has been set
   static Future<bool> hasPinSet() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_pinKey) != null;
+    final stored = await _secure.read(key: _pinHashKey);
+    return stored != null;
   }
 
   /// Disable app lock (requires PIN verification)
@@ -66,12 +75,10 @@ class AppLockService {
   }
 
   /// Prevent the app from being removed by intercepting back button
-  /// and showing PIN dialog when user tries to leave/uninstall
   static Future<bool> handleBackPress() async {
     if (await isChildLocked()) {
-      // Block back press on child app — child cannot leave
-      return false; // Don't allow back
+      return false; // Block back on child app
     }
-    return true; // Allow back
+    return true;
   }
 }
