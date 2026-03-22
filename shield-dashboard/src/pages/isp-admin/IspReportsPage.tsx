@@ -17,6 +17,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/auth.store';
+import { alpha, useTheme } from '@mui/material/styles';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -99,9 +100,11 @@ function getInitials(name?: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
+// Decorative avatar rotation palette (hex required for dynamic sx bgcolor)
 const AVATAR_COLORS = ['#00897B', '#1565C0', '#7B1FA2', '#E53935', '#FB8C00'];
 
 export default function IspReportsPage() {
+  const theme = useTheme();
   const user = useAuthStore(s => s.user);
   const tenantId = (user as any)?.tenant_id ?? (user as any)?.tenantId;
 
@@ -253,9 +256,9 @@ export default function IspReportsPage() {
   }));
 
   const alertSeverityColor = (s?: string) => {
-    if (s === 'HIGH') return '#E53935';
-    if (s === 'MEDIUM') return '#F57F17';
-    return '#1565C0';
+    if (s === 'HIGH') return theme.palette.error.main;
+    if (s === 'MEDIUM') return theme.palette.warning.main;
+    return theme.palette.primary.main;
   };
 
   return (
@@ -279,7 +282,7 @@ export default function IspReportsPage() {
               <Button variant="outlined" size="small" startIcon={<DownloadIcon />}
                 onClick={() => exportChildSummary(customers ?? [], allProfilesMap)}
                 disabled={!customers?.length || Object.keys(allProfilesMap).length === 0}
-                sx={{ borderRadius: 2, borderColor: '#1565C0', color: '#1565C0', '&:hover': { bgcolor: '#E3F2FD' } }}>
+                sx={{ borderRadius: 2, borderColor: 'primary.main', color: 'primary.main', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) } }}>
                 Child CSV
               </Button>
             </Tooltip>
@@ -294,13 +297,13 @@ export default function IspReportsPage() {
         <AnimatedPage delay={0.1}>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <StatCard label="Total Queries" value={(tenantOverview.totalQueries ?? 0).toLocaleString()} color="#1565C0" sub="Platform-wide" />
+              <StatCard label="Total Queries" value={(tenantOverview.totalQueries ?? 0).toLocaleString()} color="primary.main" sub="Platform-wide" />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <StatCard label="Blocked" value={(tenantOverview.totalBlocked ?? 0).toLocaleString()} color="#E53935" sub="Blocked requests" />
+              <StatCard label="Blocked" value={(tenantOverview.totalBlocked ?? 0).toLocaleString()} color="error.main" sub="Blocked requests" />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <StatCard label="Block Rate" value={`${((tenantOverview.blockRate ?? 0) * 100).toFixed(1)}%`} color="#F57F17" sub="Of all queries" />
+              <StatCard label="Block Rate" value={`${((tenantOverview.blockRate ?? 0) * 100).toFixed(1)}%`} color="warning.main" sub="Of all queries" />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
               <StatCard label="Active Profiles" value={tenantOverview.activeProfiles ?? 0} color="#00897B" sub="Child profiles" />
@@ -337,9 +340,9 @@ export default function IspReportsPage() {
           <Card sx={{ mb: 3, border: '1px solid #FFECB3' }}>
             <CardContent sx={{ pb: '12px !important' }}>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-                <WarningAmberIcon sx={{ color: '#F57F17', fontSize: 20 }} />
+                <WarningAmberIcon sx={{ color: 'warning.main', fontSize: 20 }} />
                 <Typography fontWeight={700} fontSize={15}>Recent Alerts Across Your Customers</Typography>
-                <Chip size="small" label={tenantAlerts!.length} sx={{ bgcolor: '#FFF8E1', color: '#F57F17', fontWeight: 700, height: 20 }} />
+                <Chip size="small" label={tenantAlerts!.length} sx={{ bgcolor: 'warning.light', color: 'warning.main', fontWeight: 700, height: 20 }} />
               </Stack>
               <Stack spacing={1}>
                 {(tenantAlerts ?? []).slice(0, 5).map(a => (
@@ -426,7 +429,7 @@ export default function IspReportsPage() {
               {selectedProfile && (
                 <Tooltip title="Open printable PDF report in new tab">
                   <Button variant="outlined" size="small" startIcon={<OpenInNewIcon />} onClick={openPdfReport}
-                    sx={{ whiteSpace: 'nowrap', borderColor: '#7B1FA2', color: '#7B1FA2', '&:hover': { bgcolor: '#F3E5F5' } }}>
+                    sx={{ whiteSpace: 'nowrap', borderColor: '#7B1FA2', color: '#7B1FA2', '&:hover': { bgcolor: alpha('#7B1FA2', 0.08) } }}>
                     PDF Report
                   </Button>
                 </Tooltip>
@@ -435,7 +438,7 @@ export default function IspReportsPage() {
 
             {!selectedCustomer && (
               <EmptyState
-                icon={<PeopleIcon sx={{ fontSize: 36, color: '#7B1FA2' }} />}
+                icon={<PeopleIcon sx={{ fontSize: 36, color: 'secondary.main' }} />}
                 title="Select a customer"
                 description="Choose a customer above to view detailed content filtering reports for their child profiles"
               />
@@ -443,7 +446,7 @@ export default function IspReportsPage() {
 
             {selectedCustomer && !selectedProfile && (
               <EmptyState
-                icon={<DnsIcon sx={{ fontSize: 36, color: '#7B1FA2' }} />}
+                icon={<DnsIcon sx={{ fontSize: 36, color: 'secondary.main' }} />}
                 title="No child profiles"
                 description="This customer has no child profiles yet"
               />
@@ -466,7 +469,7 @@ export default function IspReportsPage() {
                     {selectedProfileObj?.dnsClientId && (
                       <Chip size="small" icon={<DnsIcon sx={{ fontSize: 12 }} />}
                         label={selectedProfileObj.dnsClientId}
-                        sx={{ height: 22, fontSize: 10, fontFamily: 'monospace', bgcolor: '#E3F2FD', color: '#1565C0', fontWeight: 600 }} />
+                        sx={{ height: 22, fontSize: 10, fontFamily: 'monospace', bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main', fontWeight: 600 }} />
                     )}
                   </Stack>
                 </Box>
@@ -477,26 +480,26 @@ export default function IspReportsPage() {
                 ) : profileStats && (
                   <Grid container spacing={2} sx={{ mb: 2 }}>
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box sx={{ p: 1.5, bgcolor: '#EFF6FF', borderRadius: 2, textAlign: 'center' }}>
-                        <Typography variant="h5" fontWeight={700} color="#1565C0">{(profileStats.totalQueries ?? 0).toLocaleString()}</Typography>
+                      <Box sx={{ p: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), borderRadius: 2, textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight={700} color="primary.main">{(profileStats.totalQueries ?? 0).toLocaleString()}</Typography>
                         <Typography variant="caption" color="text.secondary">Total Queries</Typography>
                       </Box>
                     </Grid>
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box sx={{ p: 1.5, bgcolor: '#FEF2F2', borderRadius: 2, textAlign: 'center' }}>
-                        <Typography variant="h5" fontWeight={700} color="#E53935">{(profileStats.totalBlocked ?? 0).toLocaleString()}</Typography>
+                      <Box sx={{ p: 1.5, bgcolor: alpha(theme.palette.error.main, 0.08), borderRadius: 2, textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight={700} color="error.main">{(profileStats.totalBlocked ?? 0).toLocaleString()}</Typography>
                         <Typography variant="caption" color="text.secondary">Blocked</Typography>
                       </Box>
                     </Grid>
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box sx={{ p: 1.5, bgcolor: '#F0FDF4', borderRadius: 2, textAlign: 'center' }}>
-                        <Typography variant="h5" fontWeight={700} color="#15803D">{(profileStats.totalAllowed ?? 0).toLocaleString()}</Typography>
+                      <Box sx={{ p: 1.5, bgcolor: alpha(theme.palette.success.main, 0.08), borderRadius: 2, textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight={700} color="success.main">{(profileStats.totalAllowed ?? 0).toLocaleString()}</Typography>
                         <Typography variant="caption" color="text.secondary">Allowed</Typography>
                       </Box>
                     </Grid>
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box sx={{ p: 1.5, bgcolor: '#FFFBEB', borderRadius: 2, textAlign: 'center' }}>
-                        <Typography variant="h5" fontWeight={700} color="#D97706">{((profileStats.blockRate ?? 0) * 100).toFixed(1)}%</Typography>
+                      <Box sx={{ p: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.08), borderRadius: 2, textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight={700} color="warning.main">{((profileStats.blockRate ?? 0) * 100).toFixed(1)}%</Typography>
                         <Typography variant="caption" color="text.secondary">Block Rate</Typography>
                       </Box>
                     </Grid>
@@ -525,15 +528,15 @@ export default function IspReportsPage() {
                           {topDomains!.map((d, i) => {
                             const max = topDomains![0]?.count ?? 1;
                             return (
-                              <Box key={d.domain} sx={{ p: 1.5, bgcolor: '#FEF2F2', borderRadius: 1.5 }}>
+                              <Box key={d.domain} sx={{ p: 1.5, bgcolor: alpha(theme.palette.error.main, 0.06), borderRadius: 1.5 }}>
                                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }}>
-                                  <Chip size="small" label={i + 1} sx={{ minWidth: 26, height: 20, fontSize: 11, fontWeight: 700, bgcolor: '#E53935', color: 'white' }} />
+                                  <Chip size="small" label={i + 1} sx={{ minWidth: 26, height: 20, fontSize: 11, fontWeight: 700, bgcolor: 'error.main', color: 'white' }} />
                                   <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace', flex: 1 }}>{d.domain}</Typography>
                                   <Chip size="small" icon={<BlockIcon sx={{ fontSize: 12 }} />} label={d.count}
-                                    sx={{ height: 20, fontSize: 11, fontWeight: 700, bgcolor: '#FFEBEE', color: '#B71C1C' }} />
+                                    sx={{ height: 20, fontSize: 11, fontWeight: 700, bgcolor: alpha(theme.palette.error.main, 0.12), color: 'error.dark' }} />
                                 </Stack>
                                 <LinearProgress variant="determinate" value={(d.count / max) * 100}
-                                  sx={{ height: 4, borderRadius: 2, bgcolor: '#FECACA', '& .MuiLinearProgress-bar': { bgcolor: '#E53935' } }} />
+                                  sx={{ height: 4, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.15), '& .MuiLinearProgress-bar': { bgcolor: 'error.main' } }} />
                               </Box>
                             );
                           })}
@@ -611,8 +614,8 @@ export default function IspReportsPage() {
                                     label={h.action}
                                     sx={{
                                       height: 20, fontSize: 10, fontWeight: 700,
-                                      bgcolor: h.action === 'BLOCKED' ? '#FFEBEE' : '#E8F5E9',
-                                      color: h.action === 'BLOCKED' ? '#B71C1C' : '#1B5E20',
+                                      bgcolor: h.action === 'BLOCKED' ? alpha(theme.palette.error.main, 0.12) : alpha(theme.palette.success.main, 0.12),
+                                      color: h.action === 'BLOCKED' ? 'error.dark' : 'success.dark',
                                     }}
                                   />
                                 </TableCell>
@@ -660,7 +663,7 @@ export default function IspReportsPage() {
                                   {a.severity && (
                                     <Chip size="small" label={a.severity}
                                       sx={{ height: 20, fontSize: 10, fontWeight: 600,
-                                        bgcolor: a.severity === 'HIGH' ? '#E53935' : a.severity === 'MEDIUM' ? '#F57F17' : '#1565C0',
+                                        bgcolor: a.severity === 'HIGH' ? 'error.main' : a.severity === 'MEDIUM' ? 'warning.main' : 'primary.main',
                                         color: 'white' }} />
                                   )}
                                 </Stack>

@@ -26,7 +26,8 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/internal/location/**"
+                                "/internal/location/**",
+                                "/public/**"
                         ).permitAll()
                         .anyRequest().permitAll()
                 )

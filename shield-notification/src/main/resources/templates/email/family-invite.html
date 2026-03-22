@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>You're invited to join a Shield Family</title>
+<style>
+  body{margin:0;padding:0;background:#F8FAFC;font-family:'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08);}
+  .header{background:linear-gradient(135deg,#1565C0,#1976D2,#42A5F5);padding:36px 32px 28px;color:#fff;text-align:center;}
+  .logo{font-size:32px;margin-bottom:6px;}
+  .header h1{margin:0;font-size:24px;font-weight:700;letter-spacing:.3px;}
+  .header p{margin:6px 0 0;opacity:.88;font-size:14px;}
+  .body{padding:36px 32px 28px;}
+  .greeting{color:#1a1a2e;font-size:17px;font-weight:600;margin:0 0 8px;}
+  .sub{color:#444;font-size:14px;line-height:1.65;margin:0 0 24px;}
+  .invite-card{background:#F0F4FF;border-left:4px solid #1565C0;border-radius:6px;padding:18px 20px;margin-bottom:24px;}
+  .invite-card p{margin:0 0 6px;font-size:13px;color:#333;}
+  .invite-card p:last-child{margin:0;}
+  .invite-card strong{color:#1565C0;}
+  .role-badge{display:inline-block;background:#1565C0;color:#fff;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+  .cta-wrap{text-align:center;margin:28px 0;}
+  .cta{display:inline-block;background:#1565C0;color:#fff !important;text-decoration:none;padding:15px 40px;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:.3px;}
+  .expire-note{color:#888;font-size:13px;text-align:center;margin:0 0 28px;}
+  .features{display:flex;gap:16px;margin:24px 0;flex-wrap:wrap;}
+  .feature{flex:1;min-width:140px;background:#F8FAFC;border-radius:8px;padding:14px 16px;text-align:center;}
+  .feature-icon{font-size:22px;margin-bottom:6px;}
+  .feature-text{font-size:12px;color:#555;line-height:1.4;}
+  .divider{border:none;border-top:1px solid #ECEFF1;margin:24px 0;}
+  .footer{background:#F8F9FA;padding:20px 32px;text-align:center;color:#888;font-size:12px;border-top:1px solid #ECEFF1;}
+  .footer a{color:#1565C0;text-decoration:none;}
+  @media only screen and (max-width:620px){
+    .wrap{margin:0;border-radius:0;}
+    .body,.header{padding:24px 20px;}
+    .features{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">&#128737;</div>
+    <h1>Family Invitation</h1>
+    <p>Shield Family Internet Protection</p>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <p class="greeting">Hi <span th:text="${inviteeName ?: 'there'}">there</span>,</p>
+    <p class="sub">
+      <strong th:text="${inviterName ?: 'A Shield user'}">A parent</strong> has invited you to join their family on Shield —
+      a smart internet protection platform that keeps children safe online.
+    </p>
+
+    <!-- Invite details -->
+    <div class="invite-card">
+      <p><strong>Invited by:</strong> <span th:text="${inviterName}">Parent Name</span></p>
+      <p><strong>Your role:</strong> <span class="role-badge" th:text="${role ?: 'CO_PARENT'}">CO_PARENT</span></p>
+      <p style="margin-top:10px;font-size:12px;color:#666;">
+        This invitation expires in 7 days.
+      </p>
+    </div>
+
+    <!-- What you can do -->
+    <p style="color:#333;font-size:14px;font-weight:600;margin:0 0 14px;">As a family member you can:</p>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">&#128100;</div>
+        <div class="feature-text">View all child profiles and their online activity</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#9201;</div>
+        <div class="feature-text">Set screen time schedules and content filters</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#128205;</div>
+        <div class="feature-text">See real-time location and receive safety alerts</div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-wrap">
+      <a th:href="${acceptUrl}" href="#" class="cta">Accept Invitation →</a>
+    </div>
+    <p class="expire-note">
+      This link expires in 7 days &nbsp;·&nbsp;
+      If you didn't expect this, you can safely ignore this email.
+    </p>
+
+    <hr class="divider"/>
+    <p style="color:#888;font-size:12px;margin:0;">
+      Or copy this link into your browser:<br/>
+      <a th:href="${acceptUrl}" th:text="${acceptUrl}" style="color:#1565C0;word-break:break-all;">https://shield.rstglobal.in/...</a>
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>&copy; 2026 RST Global &nbsp;·&nbsp; <a href="https://shield.rstglobal.in">shield.rstglobal.in</a></p>
+    <p style="margin-top:4px;">You received this because your email was used to invite you to a Shield family.</p>
+  </div>
+</div>
+</body>
+</html>

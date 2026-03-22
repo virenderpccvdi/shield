@@ -18,4 +18,7 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, UUID
     Optional<FamilyMember> findByUserId(UUID userId);
 
     boolean existsByFamilyIdAndUserId(UUID familyId, UUID userId);
+
+    /** Returns all active family memberships for a given user (co-parent or guardian). */
+    List<FamilyMember> findByUserIdAndStatus(UUID userId, String status);
 }

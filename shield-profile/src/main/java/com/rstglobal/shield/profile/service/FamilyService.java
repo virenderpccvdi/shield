@@ -12,13 +12,18 @@ import com.rstglobal.shield.profile.repository.FamilyInviteRepository;
 import com.rstglobal.shield.profile.repository.FamilyMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -28,6 +33,14 @@ public class FamilyService {
 
     private static final int INVITE_EXPIRY_DAYS = 7;
     private static final List<String> VALID_ROLES = List.of("GUARDIAN", "CO_PARENT", "OBSERVER");
+
+    @Value("${shield.notification.service.url:http://localhost:8286}")
+    private String notificationServiceUrl;
+
+    @Value("${shield.app.domain:shield.rstglobal.in}")
+    private String appDomain;
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyInviteRepository familyInviteRepository;
@@ -101,7 +114,35 @@ public class FamilyService {
         log.info("Family invite created: {} invited {} as {} to family {}",
                 userId, req.getEmail(), role, familyId);
 
-        // TODO: Send invite email via notification service (POST /api/v1/notifications/send)
+        // Send invite email via internal notification service
+        try {
+            String inviterName = customerRepository.findByUserId(userId)
+                    .map(c -> c.getName() != null ? c.getName() : "A Shield parent")
+                    .orElse("A Shield parent");
+            String acceptUrl = "https://" + appDomain + "/app/family/invite?token=" + invite.getToken();
+
+            Map<String, Object> emailReq = new HashMap<>();
+            emailReq.put("to", invite.getEmail());
+            emailReq.put("subject", inviterName + " invited you to join their Shield family");
+            emailReq.put("templateName", "family-invite");
+            if (tenantId != null) emailReq.put("tenantId", tenantId.toString());
+            emailReq.put("variables", Map.of(
+                    "inviterName", inviterName,
+                    "role", role,
+                    "acceptUrl", acceptUrl
+            ));
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            restTemplate.postForObject(
+                    notificationServiceUrl + "/internal/notifications/email",
+                    new HttpEntity<>(emailReq, headers),
+                    String.class
+            );
+            log.info("Invite email sent to {}", invite.getEmail());
+        } catch (Exception e) {
+            log.warn("Failed to send invite email to {}: {}", invite.getEmail(), e.getMessage());
+        }
 
         return toInviteResponse(invite);
     }

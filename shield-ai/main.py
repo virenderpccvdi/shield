@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import health, insights, analysis, keywords, alerts, training, config, chat
+from routers import health, insights, analysis, keywords, alerts, training, config, chat, safe_chat
 from services.anomaly_service import load_model
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -43,6 +43,7 @@ app.include_router(alerts.router)
 app.include_router(training.router)
 app.include_router(config.router)
 app.include_router(chat.router)
+app.include_router(safe_chat.router)
 
 
 @app.get("/actuator/health")

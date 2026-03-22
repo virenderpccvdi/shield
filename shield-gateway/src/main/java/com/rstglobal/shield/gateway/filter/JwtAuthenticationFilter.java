@@ -52,7 +52,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/v1/admin/contact/submit",
             "/api/v1/admin/visitors/track",
             "/actuator",
-            "/docs/"
+            "/docs/",
+            "/public/"
     );
 
     @Value("${shield.jwt.secret}")

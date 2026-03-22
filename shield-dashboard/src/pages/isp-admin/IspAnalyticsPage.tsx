@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Grid, Card, CardContent, Typography, CircularProgress, Button,
-  Tabs, Tab, Stack, Chip, LinearProgress,
+  Tabs, Tab, Stack, Chip, LinearProgress, TextField,
+  Table, TableBody, TableCell, TableHead, TableRow, Paper,
 } from '@mui/material';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -10,6 +11,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import BlockIcon from '@mui/icons-material/Block';
 import PeopleIcon from '@mui/icons-material/People';
 import CategoryIcon from '@mui/icons-material/Category';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, Legend,
@@ -25,6 +27,8 @@ import LoadingPage from '../../components/LoadingPage';
 
 interface DayQueries { day: string; queries: number; blocks: number; }
 interface CategoryStat { name: string; value: number; percent: number; }
+interface TopDomain { domain: string; category: string | null; count: number; percent: number; }
+interface HourlyPoint { hour: number; count: number; }
 
 const PIE_COLORS = [
   '#00897B', '#1565C0', '#E53935', '#FB8C00', '#9C27B0',
@@ -63,6 +67,10 @@ export default function IspAnalyticsPage() {
   const [daily, setDaily] = useState<DayQueries[]>([]);
   const [categories, setCategories] = useState<CategoryStat[]>([]);
   const [overview, setOverview] = useState({ totalQueries: 0, totalBlocked: 0, blockRate: 0, activeProfiles: 0 });
+  const [topDomains, setTopDomains] = useState<TopDomain[]>([]);
+  const [hourlyData, setHourlyData] = useState<HourlyPoint[]>([]);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [hourlyLoading, setHourlyLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const tenantId = useAuthStore(s => s.user?.tenantId);
 
@@ -76,12 +84,20 @@ export default function IspAnalyticsPage() {
     const overviewEndpoint = tenantId
       ? `/analytics/tenant/${tenantId}/overview?period=week`
       : '/analytics/platform/overview?period=week';
+    const topDomainsEndpoint = tenantId
+      ? `/analytics/tenant/${tenantId}/top-domains?period=week&limit=10`
+      : null;
 
-    Promise.all([
+    const requests: Promise<any>[] = [
       api.get(dailyEndpoint).catch(() => ({ data: [] })),
       api.get(catEndpoint).catch(() => ({ data: [] })),
       api.get(overviewEndpoint).catch(() => ({ data: {} })),
-    ]).then(([dailyRes, catRes, overviewRes]) => {
+    ];
+    if (topDomainsEndpoint) {
+      requests.push(api.get(topDomainsEndpoint).catch(() => ({ data: [] })));
+    }
+
+    Promise.all(requests).then(([dailyRes, catRes, overviewRes, domainsRes]) => {
       // Daily
       const dailyRaw = Array.isArray(dailyRes.data) ? dailyRes.data : (dailyRes.data?.data || []);
       if (dailyRaw.length) {
@@ -114,14 +130,64 @@ export default function IspAnalyticsPage() {
         blockRate: ov.blockRate || 0,
         activeProfiles: ov.activeProfiles || 0,
       });
+      // Top Domains
+      if (domainsRes) {
+        const domsRaw = Array.isArray(domainsRes.data) ? domainsRes.data : (domainsRes.data?.data || []);
+        if (domsRaw.length) {
+          const total = domsRaw.reduce((s: number, d: any) => s + (d.count || 0), 0);
+          setTopDomains(domsRaw.map((d: any) => ({
+            domain: d.domain || '',
+            category: d.category || null,
+            count: d.count || 0,
+            percent: total > 0 ? Math.round(d.count / total * 1000) / 10 : 0,
+          })));
+        }
+      }
     }).finally(() => setLoading(false));
   }, [tenantId]);
+
+  const loadHourlyData = async (date: string) => {
+    if (!tenantId) return;
+    setHourlyLoading(true);
+    try {
+      const res = await api.get(`/analytics/tenant/${tenantId}/hourly?date=${date}`);
+      const raw = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      setHourlyData(raw.map((p: any) => ({ hour: p.hour, count: p.count || 0 })));
+    } catch {
+      setHourlyData([]);
+    } finally {
+      setHourlyLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === 3 && tenantId) {
+      loadHourlyData(selectedDate);
+    }
+  }, [tab, tenantId]);
+
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+    if (tenantId) loadHourlyData(newDate);
+  };
 
   const totalQueries = overview.totalQueries || daily.reduce((s, d) => s + d.queries, 0);
   const totalBlocked = overview.totalBlocked || daily.reduce((s, d) => s + d.blocks, 0);
   const peakDay = daily.length > 0 ? daily.reduce((a, b) => a.queries > b.queries ? a : b) : null;
   const avgQueries = daily.length > 0 ? Math.round(totalQueries / daily.length) : 0;
-  const blockRate = totalQueries > 0 ? ((totalBlocked / totalQueries) * 100).toFixed(1) : '0';
+
+  // Format hour label
+  const formatHour = (h: number) => {
+    if (h === 0) return '12am';
+    if (h < 12) return `${h}am`;
+    if (h === 12) return '12pm';
+    return `${h - 12}pm`;
+  };
+
+  const hourlyChartData = hourlyData.map(p => ({
+    hour: formatHour(p.hour),
+    queries: p.count,
+  }));
 
   return (
     <AnimatedPage>
@@ -166,18 +232,18 @@ export default function IspAnalyticsPage() {
         onChange={(_, v) => setTab(v)}
         sx={{
           mb: 3,
-          borderBottom: '1px solid #E8EDF2',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
           '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 },
         }}
       >
         <Tab label="DNS Traffic" />
         <Tab label="Category Breakdown" />
-        <Tab label="Blocked Content" />
+        <Tab label="Top Blocked Domains" />
+        <Tab label="Hourly Activity" />
       </Tabs>
 
-      {loading && (
-        <LoadingPage />
-      )}
+      {loading && <LoadingPage />}
 
       {/* Tab 0: DNS Traffic */}
       {!loading && tab === 0 && (
@@ -336,68 +402,163 @@ export default function IspAnalyticsPage() {
         </AnimatedPage>
       )}
 
-      {/* Tab 2: Blocked Content */}
+      {/* Tab 2: Top Blocked Domains */}
       {!loading && tab === 2 && (
         <AnimatedPage delay={0.1}>
-          <Grid container spacing={3}>
-            <Grid size={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
-                    Top Blocked Categories
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Most blocked content types across your customers this week
-                  </Typography>
-                  {categories.length === 0 ? (
-                    <EmptyState
-                      icon={<BlockIcon sx={{ fontSize: 36, color: '#E53935' }} />}
-                      title="No blocked content data"
-                      description="Data will appear once customers start filtering content"
-                    />
-                  ) : (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart
-                        data={categories}
-                        margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
-                      >
-                        <defs>
-                          <linearGradient id="blockedIspGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#E53935" stopOpacity={1} />
-                            <stop offset="100%" stopColor="#B71C1C" stopOpacity={0.85} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                        <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" interval={0} height={50} />
-                        <YAxis tickFormatter={formatK} tick={{ fontSize: 12 }} />
-                        <Tooltip formatter={(v: number) => [formatK(v), 'Queries']} contentStyle={{ borderRadius: 8 }} />
-                        <Bar dataKey="value" name="Queries" fill="url(#blockedIspGrad)" radius={[6, 6, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
+                Top Blocked Domains
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Most frequently blocked domains across your customers this week
+              </Typography>
+              {topDomains.length === 0 ? (
+                <EmptyState
+                  icon={<BlockIcon sx={{ fontSize: 36, color: 'error.main' }} />}
+                  title="No blocked domain data"
+                  description="Data will appear once customers start filtering content"
+                />
+              ) : (
+                <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'action.hover' }}>
+                        <TableCell sx={{ fontWeight: 700, width: 40 }}>#</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Domain</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
+                        <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Count</TableCell>
+                        <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>% of Blocked</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {topDomains.map((d, i) => (
+                        <TableRow key={d.domain} hover>
+                          <TableCell>
+                            <Typography variant="body2" color="text.secondary" fontWeight={600}>{i + 1}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace' }}>
+                              {d.domain}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {d.category ? (
+                              <Chip
+                                label={d.category}
+                                size="small"
+                                sx={{ fontSize: 11, height: 20, bgcolor: '#E53935' + '15', color: '#E53935', fontWeight: 600 }}
+                              />
+                            ) : (
+                              <Typography variant="caption" color="text.disabled">—</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            <Typography variant="body2" fontWeight={700}>{formatK(d.count)}</Typography>
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            <Typography variant="body2" color="text.secondary">{d.percent}%</Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Paper>
+              )}
+            </CardContent>
+          </Card>
+        </AnimatedPage>
+      )}
 
-            {categories.length > 0 && (
-              <Grid size={12}>
-                <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
-                  {categories.map((c, i) => (
-                    <Chip
-                      key={c.name}
-                      label={`${c.name}: ${formatK(c.value)}`}
-                      sx={{
-                        bgcolor: `${PIE_COLORS[i % PIE_COLORS.length]}18`,
-                        color: PIE_COLORS[i % PIE_COLORS.length],
-                        fontWeight: 600,
-                        mb: 1,
-                      }}
-                    />
-                  ))}
-                </Stack>
-              </Grid>
-            )}
-          </Grid>
+      {/* Tab 3: Hourly Activity */}
+      {!loading && tab === 3 && (
+        <AnimatedPage delay={0.1}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5, flexWrap: 'wrap', gap: 2 }}>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    Hourly Query Activity
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    DNS queries by hour of day for all customers
+                  </Typography>
+                </Box>
+                <TextField
+                  type="date"
+                  size="small"
+                  value={selectedDate}
+                  onChange={e => handleDateChange(e.target.value)}
+                  inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+                  sx={{ width: 160 }}
+                  label="Date"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+
+              <Box sx={{ mt: 3 }}>
+                {!tenantId ? (
+                  <EmptyState
+                    icon={<AccessTimeIcon sx={{ fontSize: 36, color: '#00897B' }} />}
+                    title="No tenant selected"
+                    description="Hourly activity is available for ISP tenants"
+                  />
+                ) : hourlyLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                    <CircularProgress sx={{ color: '#00897B' }} />
+                  </Box>
+                ) : hourlyChartData.every(p => p.queries === 0) ? (
+                  <EmptyState
+                    icon={<AccessTimeIcon sx={{ fontSize: 36, color: '#00897B' }} />}
+                    title="No data for this date"
+                    description="Select a date with DNS query activity to see the hourly breakdown"
+                  />
+                ) : (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <BarChart data={hourlyChartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                      <defs>
+                        <linearGradient id="hourlyGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#00897B" stopOpacity={1} />
+                          <stop offset="100%" stopColor="#00695C" stopOpacity={0.85} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                      <XAxis dataKey="hour" tick={{ fontSize: 10 }} interval={1} />
+                      <YAxis tickFormatter={formatK} tick={{ fontSize: 12 }} />
+                      <Tooltip
+                        formatter={(v: number) => [formatK(v), 'Queries']}
+                        contentStyle={{ borderRadius: 8, border: '1px solid #E8EDF2' }}
+                      />
+                      <Bar dataKey="queries" name="Queries" fill="url(#hourlyGrad)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </Box>
+
+              {/* Peak hours summary */}
+              {!hourlyLoading && hourlyChartData.some(p => p.queries > 0) && (
+                <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    Peak Hours:
+                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                    {[...hourlyChartData]
+                      .sort((a, b) => b.queries - a.queries)
+                      .slice(0, 5)
+                      .filter(p => p.queries > 0)
+                      .map(p => (
+                        <Chip
+                          key={p.hour}
+                          label={`${p.hour}: ${formatK(p.queries)}`}
+                          size="small"
+                          sx={{ fontSize: 11, bgcolor: '#00897B15', color: '#00897B', fontWeight: 600 }}
+                        />
+                      ))}
+                  </Stack>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
         </AnimatedPage>
       )}
     </AnimatedPage>

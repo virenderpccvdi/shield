@@ -7,6 +7,8 @@ import '../../core/auth_state.dart';
 import '../../core/api_client.dart';
 import '../../core/biometric_service.dart';
 import '../../core/theme_provider.dart';
+import '../../app/theme.dart';
+import '../../core/shield_widgets.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -55,17 +57,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-              ),
+              gradient: ShieldTheme.heroGradient,
             ),
             child: Row(children: [
               CircleAvatar(
                 radius: 30,
                 backgroundColor: Colors.white,
                 child: Text((auth.name ?? 'U')[0].toUpperCase(),
-                  style: const TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.w800, fontSize: 24)),
+                  style: const TextStyle(color: ShieldTheme.primary, fontWeight: FontWeight.w800, fontSize: 24)),
               ),
               const SizedBox(width: 16),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -90,13 +89,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () => _showChangePassword(context)),
           _SettingsTile(icon: Icons.security_outlined, title: 'Two-Factor Authentication', subtitle: 'Enable TOTP for extra security',
             onTap: () => _launchWeb(context, 'settings')),
+          _SettingsTile(icon: Icons.pin_outlined, title: 'App PIN Lock', subtitle: 'Set a PIN to lock the parent app',
+            onTap: () => context.push('/pin-setup')),
           _SettingsTile(icon: Icons.group_add_rounded, title: 'Family Members', subtitle: 'Invite co-parents and manage family access',
             onTap: () => context.go('/family/members')),
           _SettingsTile(icon: Icons.phonelink_setup_rounded, title: 'Child Device Setup', subtitle: 'Link this phone as a child device',
             onTap: () => context.push('/child-setup')),
           if (_biometricAvailable)
             SwitchListTile(
-              secondary: const Icon(Icons.fingerprint, color: Color(0xFF1565C0)),
+              secondary: const Icon(Icons.fingerprint, color: ShieldTheme.primary),
               title: const Text('Biometric Unlock', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               subtitle: const Text('Use fingerprint or face to unlock app', style: TextStyle(fontSize: 12)),
               value: _biometricEnabled,
@@ -105,7 +106,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (mounted) {
                   setState(() => _biometricEnabled = val);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Biometric unlock ${val ? 'enabled' : 'disabled'}')),
+                    SnackBar(
+                      content: Text('Biometric unlock ${val ? 'enabled' : 'disabled'}'),
+                      backgroundColor: ShieldTheme.success,
+                      behavior: SnackBarBehavior.floating,
+                    ),
                   );
                 }
               },
@@ -123,25 +128,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(height: 1),
           _SectionHeader('Subscription'),
           if (_loadingSub)
-            const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()))
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ShieldCardSkeleton(lines: 2),
+            )
           else ...[
             if (_sub != null)
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0).withAlpha(10),
+                  color: ShieldTheme.primary.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF1565C0).withAlpha(40)),
+                  border: Border.all(color: ShieldTheme.primary.withOpacity(0.18)),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.card_membership, color: Color(0xFF1565C0)),
+                  const Icon(Icons.card_membership, color: ShieldTheme.primary),
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(_sub!['planName'] ?? 'Plan', style: const TextStyle(fontWeight: FontWeight.w700)),
                     Text(
                       _sub!['status'] == 'ACTIVE' ? 'Active — renews ${_fmtDate(_sub!['currentPeriodEnd'])}' : (_sub!['status'] ?? ''),
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: const TextStyle(fontSize: 12, color: ShieldTheme.textSecondary),
                     ),
                   ])),
                   TextButton(onPressed: () => _launchWeb(context, 'subscription'), child: const Text('Manage')),
@@ -162,13 +170,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () => _launchWeb(context, '')),
           _SettingsTile(icon: Icons.info_outline, title: 'About Shield', subtitle: 'Version 1.0.0',
             onTap: () => showAboutDialog(context: context, applicationName: 'Shield', applicationVersion: '1.0.0',
-              applicationIcon: const Icon(Icons.shield, color: Color(0xFF1565C0), size: 40),
+              applicationIcon: const Icon(Icons.shield, color: ShieldTheme.primary, size: 40),
               children: [const Text('Family Internet Protection powered by AI.')])),
 
           const Divider(height: 1),
           ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Sign Out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+            leading: const Icon(Icons.logout, color: ShieldTheme.danger),
+            title: const Text('Sign Out', style: TextStyle(color: ShieldTheme.danger, fontWeight: FontWeight.w600)),
             onTap: () async {
               final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
                 title: const Text('Sign Out'),
@@ -176,7 +184,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 actions: [
                   TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
                   FilledButton(onPressed: () => Navigator.pop(ctx, true),
-                    style: FilledButton.styleFrom(backgroundColor: Colors.red), child: const Text('Sign Out')),
+                    style: FilledButton.styleFrom(backgroundColor: ShieldTheme.danger), child: const Text('Sign Out')),
                 ],
               ));
               if (ok == true && context.mounted) {
@@ -198,7 +206,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         TextFormField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Full Name')),
         const SizedBox(height: 8),
-        Text(auth.email ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+        Text(auth.email ?? '', style: const TextStyle(color: ShieldTheme.textSecondary, fontSize: 12)),
       ]),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -206,9 +214,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Navigator.pop(ctx);
           try {
             await ref.read(dioProvider).put('/auth/me', data: {'name': nameCtrl.text});
-            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated')));
+            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated'), backgroundColor: ShieldTheme.success, behavior: SnackBarBehavior.floating));
           } catch (e) {
-            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: ShieldTheme.danger, behavior: SnackBarBehavior.floating));
           }
         }, child: const Text('Save')),
       ],
@@ -232,9 +240,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           try {
             await ref.read(dioProvider).put('/auth/change-password',
               data: {'currentPassword': oldCtrl.text, 'newPassword': newCtrl.text});
-            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed')));
+            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed'), backgroundColor: ShieldTheme.success, behavior: SnackBarBehavior.floating));
           } catch (e) {
-            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: ShieldTheme.danger, behavior: SnackBarBehavior.floating));
           }
         }, child: const Text('Change')),
       ],
@@ -300,7 +308,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           await prefs.setString('quiet_to', toCtrl.text);
           if (ctx.mounted) Navigator.pop(ctx);
           if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Quiet hours saved')));
+            const SnackBar(content: Text('Quiet hours saved'), backgroundColor: ShieldTheme.success, behavior: SnackBarBehavior.floating));
         }, child: const Text('Save')),
       ],
     ));
@@ -312,7 +320,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       content: const SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Point your router\'s DNS to:', style: TextStyle(fontWeight: FontWeight.w600)),
         SizedBox(height: 12),
-        Text('Primary:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        const Text('Primary:', style: TextStyle(fontSize: 12, color: ShieldTheme.textSecondary)),
         SelectableText('shield.rstglobal.in', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w700)),
         SizedBox(height: 12),
         Text('Or configure each child\'s device with their personal DoH URL (found in Family → child profile).',
@@ -342,7 +350,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-    child: Text(title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Colors.grey, letterSpacing: 1)),
+    child: Text(title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: ShieldTheme.textSecondary, letterSpacing: 1)),
   );
 }
 
@@ -354,10 +362,10 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-    leading: Icon(icon, color: const Color(0xFF1565C0)),
+    leading: Icon(icon, color: ShieldTheme.primary),
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
     subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-    trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+    trailing: const Icon(Icons.chevron_right, color: ShieldTheme.textSecondary, size: 18),
     onTap: onTap,
   );
 }
@@ -372,7 +380,7 @@ class _DarkModeTile extends ConsumerWidget {
     return SwitchListTile(
       secondary: Icon(
         isDark ? Icons.dark_mode : Icons.light_mode,
-        color: const Color(0xFF1565C0),
+        color: ShieldTheme.primary,
       ),
       title: const Text('Dark Mode',
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/auth_state.dart';
+import '../core/fcm_service.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/child_device_setup_screen.dart';
 import '../features/auth/biometric_gate.dart';
+import '../features/auth/app_lock_wrapper.dart';
+import '../features/auth/pin_setup_screen.dart';
 import '../features/shell/main_shell.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/family/family_screen.dart';
@@ -33,6 +36,11 @@ import '../features/child/child_rewards_screen.dart';
 import '../features/child/child_sos_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/notifications/notification_history_screen.dart';
+import '../features/parent/location_share_screen.dart';
+import '../features/parent/checkin_reminder_screen.dart';
+import '../features/child_app/ai_chat_screen.dart';
+import '../features/child_app/achievements_screen.dart';
+import '../features/parent/schedule_viewer_screen.dart';
 
 // ── Auth change notifier — drives GoRouter refresh without recreating it ────
 
@@ -59,6 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final initial = ref.read(authProvider);
 
   return GoRouter(
+    navigatorKey: FcmService.navigatorKey,
     initialLocation: initial.isChildMode
         ? '/child'
         : (initial.isAuthenticated ? '/dashboard' : '/login'),
@@ -90,8 +99,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/child/tasks', builder: (_, __) => const ChildTasksScreen()),
       GoRoute(path: '/child/rewards', builder: (_, __) => const ChildRewardsScreen()),
       GoRoute(path: '/child/sos', builder: (_, __) => const ChildSosScreen()),
+      GoRoute(path: '/achievements', builder: (_, __) => const AchievementsScreen()),
+      GoRoute(path: '/chat', builder: (_, __) => const AiChatScreen()),
+      // PIN setup route (accessible within authenticated parent session)
+      GoRoute(path: '/pin-setup', builder: (_, __) => const PinSetupScreen()),
+
       ShellRoute(
-        builder: (context, state, child) => BiometricGate(child: MainShell(child: child)),
+        builder: (context, state, child) =>
+            AppLockWrapper(child: BiometricGate(child: MainShell(child: child))),
         routes: [
           GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
           GoRoute(path: '/family', builder: (_, __) => const FamilyScreen()),
@@ -126,6 +141,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(path: '/notifications', builder: (_, __) => const NotificationHistoryScreen()),
+          GoRoute(
+            path: '/family/:profileId/location-share',
+            builder: (_, state) => LocationShareScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/:profileId/checkin-reminder',
+            builder: (_, state) => CheckinReminderScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/:profileId/schedule-viewer',
+            builder: (_, state) => ScheduleViewerScreen(profileId: state.pathParameters['profileId']!),
+          ),
         ],
       ),
     ],

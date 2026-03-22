@@ -346,18 +346,22 @@ class _DnsStatusCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: paused ? Colors.orange.shade200 : Colors.green.shade200,
+          color: paused
+              ? ShieldTheme.warning.withOpacity(0.4)
+              : ShieldTheme.success.withOpacity(0.4),
           width: 1,
         ),
       ),
-      color: paused ? Colors.orange.shade50 : Colors.green.shade50,
+      color: paused
+          ? ShieldTheme.warning.withOpacity(0.08)
+          : ShieldTheme.success.withOpacity(0.08),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
             Icon(
               paused ? Icons.warning_amber_rounded : Icons.security,
-              color: paused ? Colors.orange : Colors.green,
+              color: paused ? ShieldTheme.warning : ShieldTheme.success,
               size: 22,
             ),
             const SizedBox(width: 10),
@@ -367,7 +371,7 @@ class _DnsStatusCard extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
-                  color: paused ? Colors.orange.shade800 : Colors.green.shade800,
+                  color: paused ? ShieldTheme.warning : ShieldTheme.success,
                 ),
               ),
             ),
@@ -378,7 +382,7 @@ class _DnsStatusCard extends StatelessWidget {
               : ElevatedButton(
                   onPressed: onToggle,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: paused ? Colors.green : Colors.orange,
+                    backgroundColor: paused ? ShieldTheme.success : ShieldTheme.warning,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     minimumSize: const Size(0, 32),
@@ -434,7 +438,7 @@ class _CategoriesTab extends StatelessWidget {
     return Column(children: [
       // ── Filter level selector ───────────────────────────────────────────
       Container(
-        color: Colors.white,
+        color: ShieldTheme.cardBg,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Protection Level',
@@ -508,14 +512,14 @@ class _CategoriesTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
+                color: ShieldTheme.warning.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(children: [
-                const Icon(Icons.info_outline, color: Colors.orange, size: 16),
+                const Icon(Icons.info_outline, color: ShieldTheme.warning, size: 16),
                 const SizedBox(width: 6),
                 Expanded(child: Text('$error — save to apply to your account.',
-                  style: const TextStyle(fontSize: 11, color: Colors.orange))),
+                  style: const TextStyle(fontSize: 11, color: ShieldTheme.warning))),
               ]),
             ),
           ],
@@ -532,7 +536,7 @@ class _CategoriesTab extends StatelessWidget {
             return Container(
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: ShieldTheme.cardBg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: blocked ? ShieldTheme.dangerLight.withOpacity(0.3) : ShieldTheme.divider,
@@ -663,7 +667,7 @@ class _DomainListTab extends StatelessWidget {
     return Column(children: [
       // Header
       Container(
-        color: Colors.white,
+        color: ShieldTheme.cardBg,
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         child: Row(children: [
           Container(
@@ -737,7 +741,7 @@ class _DomainTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: ShieldTheme.cardBg,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: ShieldTheme.divider),
       ),
@@ -753,7 +757,7 @@ class _DomainTile extends StatelessWidget {
         ),
         title: Text(domain, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
         trailing: IconButton(
-          icon: Icon(Icons.remove_circle_outline, color: Colors.red.shade400, size: 20),
+          icon: const Icon(Icons.remove_circle_outline, color: ShieldTheme.danger, size: 20),
           onPressed: onRemove,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),

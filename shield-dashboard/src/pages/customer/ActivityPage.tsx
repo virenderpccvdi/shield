@@ -1,4 +1,5 @@
 import { Box, Typography, Card, CardContent, Chip, TextField, InputAdornment, type SxProps, type Theme } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import WifiIcon from '@mui/icons-material/Wifi';
@@ -34,6 +35,7 @@ const EVENT_ROW_BASE_SX: SxProps<Theme> = {
 } as const;
 
 export default function ActivityPage({ profileId: profileIdProp }: ActivityPageProps) {
+  const theme = useTheme();
   const { profileId: profileIdParam } = useParams();
   const profileId = profileIdProp ?? profileIdParam;
   const [events, setEvents] = useState<DnsEvent[]>([]);
@@ -97,7 +99,7 @@ export default function ActivityPage({ profileId: profileIdProp }: ActivityPageP
           events.length > 0 ? `${events.length} events` : '',
           stats ? `Block rate: ${Number.isFinite(stats.blockRate) ? stats.blockRate.toFixed(1) : '0.0'}%` : '',
         ].filter(Boolean).join(' · ')}
-        iconColor="#1565C0"
+        iconColor={theme.palette.primary.main}
       />
 
       <AnimatedPage delay={0.1}>
@@ -122,7 +124,7 @@ export default function ActivityPage({ profileId: profileIdProp }: ActivityPageP
           <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
             {filtered.length === 0 ? (
               <EmptyState
-                icon={<WifiIcon sx={{ fontSize: 36, color: '#1565C0' }} />}
+                icon={<WifiIcon sx={{ fontSize: 36, color: 'primary.main' }} />}
                 title="Waiting for DNS events..."
                 description="Events will appear here in real-time as they are processed"
               />
@@ -131,7 +133,7 @@ export default function ActivityPage({ profileId: profileIdProp }: ActivityPageP
                 {filtered.slice(0, 100).map((ev, i) => (
                   <Box key={ev.id || i} sx={{
                     ...EVENT_ROW_BASE_SX,
-                    borderLeft: `4px solid ${ev.action === 'BLOCKED' ? '#E53935' : '#43A047'}`,
+                    borderLeft: `4px solid ${ev.action === 'BLOCKED' ? theme.palette.error.main : theme.palette.success.main}`,
                     animation: `slideInLeft 0.3s ease ${Math.min(i * 0.03, 0.5)}s both`,
                   }}>
                     <Typography variant="caption" color="text.secondary" sx={{ minWidth: 80, fontFamily: '"JetBrains Mono", monospace', fontSize: 11, bgcolor: '#F8FAFC', px: 1, py: 0.3, borderRadius: 1 }}>

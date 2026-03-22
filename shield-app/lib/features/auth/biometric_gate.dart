@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/biometric_service.dart';
+import '../../app/theme.dart';
 
 class BiometricGate extends StatefulWidget {
   final Widget child;
@@ -47,7 +48,7 @@ class _BiometricGateState extends State<BiometricGate> with WidgetsBindingObserv
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.fingerprint, size: 80, color: Color(0xFF1565C0)),
+              const Icon(Icons.fingerprint, size: 80, color: ShieldTheme.primary),
               const SizedBox(height: 16),
               const Text(
                 'Biometric Authentication Required',

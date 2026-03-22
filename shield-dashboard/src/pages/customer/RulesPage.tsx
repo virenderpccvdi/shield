@@ -70,15 +70,15 @@ function rulesToCategories(rules: DnsRulesResponse): Category[] {
 }
 
 const categoryIcons: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
-  adult: { icon: <BlockIcon />, color: '#E53935', bg: '#FFEBEE' },
-  gambling: { icon: <CasinoIcon />, color: '#FB8C00', bg: '#FFF3E0' },
+  adult: { icon: <BlockIcon />, color: 'error.main', bg: 'rgba(229,57,53,0.08)' },
+  gambling: { icon: <CasinoIcon />, color: 'warning.main', bg: 'rgba(251,140,0,0.08)' },
   gaming: { icon: <SportsEsportsIcon />, color: '#7B1FA2', bg: '#F3E5F5' },
-  social: { icon: <PeopleIcon />, color: '#1565C0', bg: '#E3F2FD' },
+  social: { icon: <PeopleIcon />, color: 'primary.main', bg: 'rgba(21,101,192,0.08)' },
   streaming: { icon: <LiveTvIcon />, color: '#00897B', bg: '#E0F2F1' },
-  drugs: { icon: <LocalPharmacyIcon />, color: '#C62828', bg: '#FFEBEE' },
+  drugs: { icon: <LocalPharmacyIcon />, color: 'error.main', bg: 'rgba(229,57,53,0.08)' },
   violence: { icon: <ReportProblemIcon />, color: '#D84315', bg: '#FBE9E7' },
-  malware: { icon: <BugReportIcon />, color: '#B71C1C', bg: '#FFCDD2' },
-  phishing: { icon: <PhishingIcon />, color: '#880E4F', bg: '#FCE4EC' },
+  malware: { icon: <BugReportIcon />, color: 'error.dark', bg: 'rgba(229,57,53,0.12)' },
+  phishing: { icon: <PhishingIcon />, color: '#880E4F', bg: 'rgba(229,57,53,0.08)' },
   vpn: { icon: <VpnKeyIcon />, color: '#4527A0', bg: '#EDE7F6' },
 };
 
@@ -140,7 +140,7 @@ function CsvImportDialog({ open, title, onClose, onImport }: CsvImportDialogProp
       <DialogContent>
         {done ? (
           <Box sx={{ textAlign: 'center', py: 3 }}>
-            <CheckCircleIcon sx={{ fontSize: 56, color: '#43A047', mb: 1 }} />
+            <CheckCircleIcon sx={{ fontSize: 56, color: 'success.main', mb: 1 }} />
             <Typography variant="h6" fontWeight={700}>Import Complete</Typography>
             <Typography color="text.secondary">{domains.length} domains imported successfully</Typography>
           </Box>
@@ -372,7 +372,7 @@ export default function RulesPage() {
                             {cat.alwaysOn && (
                               <Chip size="small" label="Always On" sx={{
                                 height: 18, fontSize: 10, fontWeight: 700,
-                                bgcolor: '#FFEBEE', color: '#C62828',
+                                bgcolor: 'rgba(229,57,53,0.08)', color: 'error.main',
                               }} />
                             )}
                           </Box>
@@ -407,23 +407,23 @@ export default function RulesPage() {
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography variant="subtitle1" fontWeight={600} color="#E53935">
+                  <Typography variant="subtitle1" fontWeight={600} color="error.main">
                     Custom Blocklist
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
                       size="small" variant="outlined" startIcon={<UploadFileIcon />}
                       onClick={() => setCsvBlockOpen(true)}
-                      sx={{ borderRadius: 2, borderColor: '#E53935', color: '#E53935', fontSize: 12,
-                        '&:hover': { bgcolor: '#FFF5F5', borderColor: '#E53935' } }}
+                      sx={{ borderRadius: 2, borderColor: 'error.main', color: 'error.main', fontSize: 12,
+                        '&:hover': { bgcolor: 'rgba(229,57,53,0.04)', borderColor: 'error.main' } }}
                     >
                       Import CSV
                     </Button>
                     <Button
                       size="small" variant="outlined" startIcon={<AddCircleOutlineIcon />}
                       onClick={() => setAddBlockOpen(true)}
-                      sx={{ borderRadius: 2, borderColor: '#E53935', color: '#E53935', fontSize: 12,
-                        '&:hover': { bgcolor: '#FFF5F5', borderColor: '#E53935' } }}
+                      sx={{ borderRadius: 2, borderColor: 'error.main', color: 'error.main', fontSize: 12,
+                        '&:hover': { bgcolor: 'rgba(229,57,53,0.04)', borderColor: 'error.main' } }}
                     >
                       Add
                     </Button>
@@ -444,7 +444,7 @@ export default function RulesPage() {
                         secondaryAction={
                           <IconButton size="small" edge="end"
                             onClick={() => removeFromListMutation.mutate({ list: 'blocklist', domain })}
-                            sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFF5F5' } }}
+                            sx={{ color: 'error.main', '&:hover': { bgcolor: 'rgba(229,57,53,0.04)' } }}
                           >
                             <DeleteIcon fontSize="small" />
                           </IconButton>
@@ -469,23 +469,23 @@ export default function RulesPage() {
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography variant="subtitle1" fontWeight={600} color="#43A047">
+                  <Typography variant="subtitle1" fontWeight={600} color="success.main">
                     Custom Allowlist
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
                       size="small" variant="outlined" startIcon={<UploadFileIcon />}
                       onClick={() => setCsvAllowOpen(true)}
-                      sx={{ borderRadius: 2, borderColor: '#43A047', color: '#43A047', fontSize: 12,
-                        '&:hover': { bgcolor: '#F5FFF5', borderColor: '#43A047' } }}
+                      sx={{ borderRadius: 2, borderColor: 'success.main', color: 'success.main', fontSize: 12,
+                        '&:hover': { bgcolor: 'rgba(67,160,71,0.04)', borderColor: 'success.main' } }}
                     >
                       Import CSV
                     </Button>
                     <Button
                       size="small" variant="outlined" startIcon={<AddCircleOutlineIcon />}
                       onClick={() => setAddAllowOpen(true)}
-                      sx={{ borderRadius: 2, borderColor: '#43A047', color: '#43A047', fontSize: 12,
-                        '&:hover': { bgcolor: '#F5FFF5', borderColor: '#43A047' } }}
+                      sx={{ borderRadius: 2, borderColor: 'success.main', color: 'success.main', fontSize: 12,
+                        '&:hover': { bgcolor: 'rgba(67,160,71,0.04)', borderColor: 'success.main' } }}
                     >
                       Add
                     </Button>
@@ -506,7 +506,7 @@ export default function RulesPage() {
                         secondaryAction={
                           <IconButton size="small" edge="end"
                             onClick={() => removeFromListMutation.mutate({ list: 'allowlist', domain })}
-                            sx={{ color: '#43A047', '&:hover': { bgcolor: '#F5FFF5' } }}
+                            sx={{ color: 'success.main', '&:hover': { bgcolor: 'rgba(67,160,71,0.04)' } }}
                           >
                             <DeleteIcon fontSize="small" />
                           </IconButton>
@@ -530,14 +530,14 @@ export default function RulesPage() {
       <AddDomainDialog
         open={addBlockOpen}
         title="Block a Domain"
-        color="#E53935"
+        color="error.main"
         onClose={() => setAddBlockOpen(false)}
         onAdd={(domain) => addToListMutation.mutate({ list: 'blocklist', domain })}
       />
       <AddDomainDialog
         open={addAllowOpen}
         title="Allow a Domain"
-        color="#43A047"
+        color="success.main"
         onClose={() => setAddAllowOpen(false)}
         onAdd={(domain) => addToListMutation.mutate({ list: 'allowlist', domain })}
       />

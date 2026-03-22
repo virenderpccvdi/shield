@@ -128,6 +128,17 @@ spring:
                     name: locationCB
                     fallbackUri: forward:/fallback/service-unavailable
 
+            # ── Location Sharing (public — no auth) ──────────────────────────────
+            - id: shield-location-share-public
+              uri: lb://SHIELD-LOCATION
+              predicates:
+                - Path=/public/location/share/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: locationCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
             # ── Notification Service (also handles WebSocket /ws/) ───────────────
             - id: shield-notification
               uri: lb://SHIELD-NOTIFICATION
@@ -178,6 +189,8 @@ spring:
                     fallbackUri: forward:/fallback/service-unavailable
 
             # ── AI / Insights Service (FastAPI on 8291) ──────────────────────
+            # FastAPI routes are prefixed /ai/** (no /api/v1 prefix).
+            # RewritePath strips the /api/v1 portion before forwarding.
             - id: shield-ai
               uri: http://localhost:8291
               predicates:
@@ -187,7 +200,7 @@ spring:
                   args:
                     name: aiCB
                     fallbackUri: forward:/fallback/service-unavailable
-                - RewritePath=/api/v1/ai/(?<segment>.*), /api/v1/ai/${segment}
+                - RewritePath=/api/v1/ai/(?<segment>.*), /ai/${segment}
 
             # ── Billing Webhook (public) ─────────────────────────────────────────
             - id: shield-billing-webhook

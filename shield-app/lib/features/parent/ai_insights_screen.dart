@@ -793,9 +793,9 @@ class _RiskScoreCard extends StatelessWidget {
   }
 
   Color get _bgColor {
-    if (riskScore <= 30) return const Color(0xFFE8F5E9);
-    if (riskScore <= 70) return const Color(0xFFFFF8E1);
-    return const Color(0xFFFFEBEE);
+    if (riskScore <= 30) return ShieldTheme.success.withOpacity(0.1);
+    if (riskScore <= 70) return ShieldTheme.warning.withOpacity(0.1);
+    return ShieldTheme.danger.withOpacity(0.08);
   }
 
   @override
@@ -1202,11 +1202,11 @@ class _BlockedCategoriesCard extends StatelessWidget {
   const _BlockedCategoriesCard({required this.categories});
 
   static const _palette = [
-    Color(0xFF1565C0),
-    Color(0xFFF57C00),
-    Color(0xFFC62828),
-    Color(0xFF00838F),
-    Color(0xFF1565C0),
+    ShieldTheme.primary,
+    ShieldTheme.warning,
+    ShieldTheme.danger,
+    ShieldTheme.accent,
+    ShieldTheme.primaryDark,
   ];
 
   @override
@@ -1676,11 +1676,11 @@ class _AskAiSection extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFF1565C0).withOpacity(0.10),
+                color: ShieldTheme.primary.withOpacity(0.10),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.smart_toy_rounded,
-                  size: 18, color: Color(0xFF1565C0)),
+                  size: 18, color: ShieldTheme.primary),
             ),
             const SizedBox(width: 10),
             const Expanded(
@@ -1742,11 +1742,11 @@ class _AskAiSection extends StatelessWidget {
                   width: 30,
                   height: 30,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1565C0).withOpacity(0.1),
+                    color: ShieldTheme.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.smart_toy_rounded,
-                      size: 16, color: Color(0xFF1565C0)),
+                      size: 16, color: ShieldTheme.primary),
                 ),
                 const SizedBox(width: 10),
                 const SizedBox(
@@ -1792,7 +1792,7 @@ class _AskAiSection extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 8),
                 child: IconButton(
                   icon: const Icon(Icons.send_rounded),
-                  color: const Color(0xFF1565C0),
+                  color: ShieldTheme.primary,
                   onPressed: chatLoading
                       ? null
                       : () => onSend(chatController.text),
@@ -1866,11 +1866,11 @@ class _ChatBubble extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0).withOpacity(0.12),
+                  color: ShieldTheme.primary.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.smart_toy_rounded,
-                    size: 16, color: Color(0xFF1565C0)),
+                    size: 16, color: ShieldTheme.primary),
               ),
               const SizedBox(width: 8),
               Flexible(
@@ -1878,7 +1878,7 @@ class _ChatBubble extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2FD),
+                    color: ShieldTheme.primary.withOpacity(0.07),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(4),
                       topRight: Radius.circular(16),
@@ -1912,17 +1912,17 @@ class _ChatBubble extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1565C0).withOpacity(0.08),
+                        color: ShieldTheme.primary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                            color: const Color(0xFF1565C0).withOpacity(0.25)),
+                            color: ShieldTheme.primary.withOpacity(0.25)),
                       ),
                       child: Text(
                         s,
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1565C0),
+                          color: ShieldTheme.primary,
                         ),
                       ),
                     ),

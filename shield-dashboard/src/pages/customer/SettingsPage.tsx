@@ -1,7 +1,7 @@
 import {
   Box, Typography, Card, CardContent, TextField, Button, Switch, Divider,
   Alert, Avatar, Grid, Dialog, DialogTitle, DialogContent, DialogActions,
-  CircularProgress, InputAdornment, IconButton, Snackbar, Chip,
+  CircularProgress, InputAdornment, IconButton, Snackbar, Chip, FormControlLabel,
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PersonIcon from '@mui/icons-material/Person';
@@ -18,6 +18,8 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import PhoneIcon from '@mui/icons-material/Phone';
 import SecurityIcon from '@mui/icons-material/Security';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
+import PinIcon from '@mui/icons-material/Pin';
+import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useState, useEffect } from 'react';
@@ -68,8 +70,33 @@ export default function SettingsPage() {
   const [mfaMsg, setMfaMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showBackupCodes, setShowBackupCodes] = useState(false);
 
+  // PIN Lock state
+  const [pinEnabled, setPinEnabled] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [pinSettingsLoading, setPinSettingsLoading] = useState(false);
+  const [pinDialog, setPinDialog] = useState(false);
+  const [pinCurrentVal, setPinCurrentVal] = useState('');
+  const [pinNewVal, setPinNewVal] = useState('');
+  const [pinConfirmVal, setPinConfirmVal] = useState('');
+  const [pinMsg, setPinMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [pinSaving, setPinSaving] = useState(false);
+
   // Snackbar
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+
+  // Load PIN settings on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get('/auth/pin/settings');
+        const s = data.data ?? {};
+        setPinEnabled(!!s.pinEnabled);
+        setBiometricEnabled(!!s.biometricEnabled);
+      } catch {
+        // PIN settings not critical
+      }
+    })();
+  }, []);
 
   // Load profile on mount
   useEffect(() => {
@@ -205,6 +232,62 @@ export default function SettingsPage() {
     }
   };
 
+  // PIN handlers
+  const handleSavePin = async () => {
+    setPinMsg(null);
+    if (!pinNewVal || pinNewVal.length < 4) {
+      setPinMsg({ type: 'error', text: 'PIN must be at least 4 digits.' });
+      return;
+    }
+    if (pinNewVal !== pinConfirmVal) {
+      setPinMsg({ type: 'error', text: 'PINs do not match.' });
+      return;
+    }
+    if (!/^\d+$/.test(pinNewVal)) {
+      setPinMsg({ type: 'error', text: 'PIN must contain digits only.' });
+      return;
+    }
+    setPinSaving(true);
+    try {
+      await api.post('/auth/pin/set', { pin: pinNewVal });
+      setPinEnabled(true);
+      setPinDialog(false);
+      setPinCurrentVal(''); setPinNewVal(''); setPinConfirmVal('');
+      setSnackbar({ open: true, message: 'App PIN lock set successfully.', severity: 'success' });
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setPinMsg({ type: 'error', text: e.response?.data?.message || 'Failed to save PIN.' });
+    } finally {
+      setPinSaving(false);
+    }
+  };
+
+  const handleRemovePin = async () => {
+    setPinSettingsLoading(true);
+    try {
+      await api.delete('/auth/pin/remove');
+      setPinEnabled(false);
+      setSnackbar({ open: true, message: 'App PIN lock removed.', severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to remove PIN.', severity: 'error' });
+    } finally {
+      setPinSettingsLoading(false);
+    }
+  };
+
+  const handleToggleBiometric = async (enabled: boolean) => {
+    setPinSettingsLoading(true);
+    try {
+      await api.put('/auth/pin/biometric', { enabled });
+      setBiometricEnabled(enabled);
+      setSnackbar({ open: true, message: enabled ? 'Biometric unlock enabled.' : 'Biometric unlock disabled.', severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to update biometric setting.', severity: 'error' });
+    } finally {
+      setPinSettingsLoading(false);
+    }
+  };
+
   const inputSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
 
   return (
@@ -225,18 +308,18 @@ export default function SettingsPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                   <Box sx={{
                     width: 36, height: 36, borderRadius: '10px',
-                    bgcolor: '#E3F2FD', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: 'rgba(21,101,192,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <PersonIcon sx={{ color: '#1565C0', fontSize: 20 }} />
+                    <PersonIcon sx={{ color: 'primary.main', fontSize: 20 }} />
                   </Box>
                   <Typography variant="subtitle1" fontWeight={600}>Account Information</Typography>
                 </Box>
 
                 {/* Avatar */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, p: 2, bgcolor: '#F8FAFC', borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
                   <Avatar sx={{
                     width: 64, height: 64, fontSize: 22, fontWeight: 700,
-                    background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)',
+                    bgcolor: 'primary.main',
                   }}>
                     {getInitials(name || user?.name || '')}
                   </Avatar>
@@ -245,8 +328,8 @@ export default function SettingsPage() {
                     <Typography variant="body2" color="text.secondary">{user?.email}</Typography>
                     <Typography variant="caption" sx={{
                       mt: 0.5, display: 'inline-block', px: 1, py: 0.25, borderRadius: 1,
-                      bgcolor: user?.role === 'GLOBAL_ADMIN' ? '#E8EAF6' : user?.role === 'ISP_ADMIN' ? '#E0F2F1' : '#E3F2FD',
-                      color: user?.role === 'GLOBAL_ADMIN' ? '#283593' : user?.role === 'ISP_ADMIN' ? '#00695C' : '#1565C0',
+                      bgcolor: user?.role === 'GLOBAL_ADMIN' ? '#E8EAF6' : user?.role === 'ISP_ADMIN' ? '#E0F2F1' : 'rgba(21,101,192,0.08)',
+                      color: user?.role === 'GLOBAL_ADMIN' ? '#283593' : user?.role === 'ISP_ADMIN' ? '#00695C' : 'primary.main',
                       fontWeight: 600,
                     }}>
                       {user?.role?.replace('_', ' ')}
@@ -291,7 +374,7 @@ export default function SettingsPage() {
                       variant="contained"
                       onClick={handleSaveProfile}
                       disabled={profileSaving}
-                      sx={{ alignSelf: 'flex-start', borderRadius: 2, background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)' }}
+                      sx={{ alignSelf: 'flex-start', borderRadius: 2, bgcolor: 'primary.main' }}
                     >
                       {profileSaving ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
                     </Button>
@@ -310,9 +393,9 @@ export default function SettingsPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                   <Box sx={{
                     width: 36, height: 36, borderRadius: '10px',
-                    bgcolor: '#FFF3E0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: 'rgba(251,140,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <LockIcon sx={{ color: '#FB8C00', fontSize: 20 }} />
+                    <LockIcon sx={{ color: 'warning.main', fontSize: 20 }} />
                   </Box>
                   <Typography variant="subtitle1" fontWeight={600}>Change Password</Typography>
                 </Box>
@@ -372,7 +455,7 @@ export default function SettingsPage() {
                     variant="contained"
                     onClick={handleChangePassword}
                     disabled={pwdSaving || !currentPwd || !newPwd || !confirmPwd || newPwd !== confirmPwd}
-                    sx={{ alignSelf: 'flex-start', borderRadius: 2, bgcolor: '#FB8C00', '&:hover': { bgcolor: '#E65100' } }}
+                    sx={{ alignSelf: 'flex-start', borderRadius: 2, bgcolor: 'warning.main', '&:hover': { bgcolor: 'warning.dark' } }}
                   >
                     {pwdSaving ? <CircularProgress size={20} color="inherit" /> : 'Update Password'}
                   </Button>
@@ -390,9 +473,9 @@ export default function SettingsPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                   <Box sx={{
                     width: 36, height: 36, borderRadius: '10px',
-                    bgcolor: '#E8F5E9', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: 'rgba(67,160,71,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <SecurityIcon sx={{ color: '#2E7D32', fontSize: 20 }} />
+                    <SecurityIcon sx={{ color: 'success.main', fontSize: 20 }} />
                   </Box>
                   <Typography variant="subtitle1" fontWeight={600}>Two-Factor Authentication</Typography>
                   <Chip
@@ -418,7 +501,7 @@ export default function SettingsPage() {
                         startIcon={mfaLoading ? <CircularProgress size={18} color="inherit" /> : <QrCode2Icon />}
                         onClick={handleMfaSetup}
                         disabled={mfaLoading}
-                        sx={{ borderRadius: 2, bgcolor: '#2E7D32', '&:hover': { bgcolor: '#1B5E20' } }}
+                        sx={{ borderRadius: 2, bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }}
                       >
                         Enable MFA
                       </Button>
@@ -429,7 +512,7 @@ export default function SettingsPage() {
                         </Typography>
                         <Box sx={{
                           display: 'flex', justifyContent: 'center', p: 2, mb: 2,
-                          bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E0E0E0',
+                          bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider',
                         }}>
                           <img
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(mfaSetupData.qrCodeUrl)}`}
@@ -445,7 +528,7 @@ export default function SettingsPage() {
                         </Typography>
                         <Box sx={{
                           display: 'flex', alignItems: 'center', gap: 1, mb: 2,
-                          p: 1.5, bgcolor: '#F5F5F5', borderRadius: 1.5, fontFamily: 'monospace',
+                          p: 1.5, bgcolor: 'action.hover', borderRadius: 1.5, fontFamily: 'monospace',
                         }}>
                           <Typography variant="body2" sx={{ fontFamily: 'monospace', wordBreak: 'break-all', flex: 1 }}>
                             {mfaSetupData.secret}
@@ -474,7 +557,7 @@ export default function SettingsPage() {
                             variant="contained"
                             onClick={handleMfaVerify}
                             disabled={mfaLoading || mfaCode.length < 6}
-                            sx={{ borderRadius: 2, bgcolor: '#2E7D32', '&:hover': { bgcolor: '#1B5E20' } }}
+                            sx={{ borderRadius: 2, bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }}
                           >
                             {mfaLoading ? <CircularProgress size={20} color="inherit" /> : 'Verify'}
                           </Button>
@@ -501,9 +584,9 @@ export default function SettingsPage() {
                 ) : (
                   // ── MFA IS enabled ──
                   <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.5, bgcolor: '#E8F5E9', borderRadius: 2 }}>
-                      <CheckCircleIcon sx={{ color: '#2E7D32' }} />
-                      <Typography variant="body2" color="#2E7D32" fontWeight={600}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.5, bgcolor: 'rgba(67,160,71,0.08)', borderRadius: 2 }}>
+                      <CheckCircleIcon sx={{ color: 'success.main' }} />
+                      <Typography variant="body2" color="success.main" fontWeight={600}>
                         Two-factor authentication is active on your account.
                       </Typography>
                     </Box>
@@ -543,7 +626,7 @@ export default function SettingsPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                   <Box sx={{
                     width: 36, height: 36, borderRadius: '10px',
-                    bgcolor: '#F3E5F5', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: 'rgba(123,31,162,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     <NotificationsIcon sx={{ color: '#7B1FA2', fontSize: 20 }} />
                   </Box>
@@ -551,7 +634,7 @@ export default function SettingsPage() {
                 </Box>
 
                 {[
-                  { label: 'Email Alerts', desc: 'Receive alerts via email', checked: emailAlerts, onChange: setEmailAlerts, icon: <EmailIcon sx={{ fontSize: 18, color: '#1565C0' }} /> },
+                  { label: 'Email Alerts', desc: 'Receive alerts via email', checked: emailAlerts, onChange: setEmailAlerts, icon: <EmailIcon sx={{ fontSize: 18, color: 'primary.main' }} /> },
                   { label: 'Push Notifications', desc: 'Browser push notifications', checked: pushAlerts, onChange: setPushAlerts, icon: <NotificationsIcon sx={{ fontSize: 18, color: '#7B1FA2' }} /> },
                   { label: 'Weekly Report', desc: 'Summary email every Sunday', checked: weeklyReport, onChange: setWeeklyReport, icon: <EmailIcon sx={{ fontSize: 18, color: '#00897B' }} /> },
                 ].map((pref, i) => (
@@ -561,7 +644,7 @@ export default function SettingsPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       py: 1, px: 1, borderRadius: 1.5,
                       transition: 'background 0.2s',
-                      '&:hover': { bgcolor: '#FAFBFC' },
+                      '&:hover': { bgcolor: 'action.hover' },
                     }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         {pref.icon}
@@ -587,9 +670,9 @@ export default function SettingsPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                   <Box sx={{
                     width: 36, height: 36, borderRadius: '10px',
-                    bgcolor: '#E8F5E9', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: 'rgba(67,160,71,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <WhatsAppIcon sx={{ color: '#43A047', fontSize: 20 }} />
+                    <WhatsAppIcon sx={{ color: 'success.main', fontSize: 20 }} />
                   </Box>
                   <Typography variant="subtitle1" fontWeight={600}>Messaging Channels</Typography>
                 </Box>
@@ -598,7 +681,7 @@ export default function SettingsPage() {
                     label="WhatsApp number"
                     placeholder="+1234567890"
                     fullWidth size="small"
-                    InputProps={{ startAdornment: <InputAdornment position="start"><WhatsAppIcon sx={{ color: '#43A047', fontSize: 20 }} /></InputAdornment> }}
+                    InputProps={{ startAdornment: <InputAdornment position="start"><WhatsAppIcon sx={{ color: 'success.main', fontSize: 20 }} /></InputAdornment> }}
                     sx={inputSx}
                   />
                   <TextField
@@ -608,9 +691,85 @@ export default function SettingsPage() {
                     sx={inputSx}
                   />
                   <Button variant="contained"
-                    sx={{ alignSelf: 'flex-start', borderRadius: 2, bgcolor: '#43A047', '&:hover': { bgcolor: '#2E7D32' } }}>
+                    sx={{ alignSelf: 'flex-start', borderRadius: 2, bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }}>
                     Save Preferences
                   </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </AnimatedPage>
+        </Grid>
+
+        {/* ─── PIN Lock ─── */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <AnimatedPage delay={0.45}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Box sx={{
+                    width: 36, height: 36, borderRadius: '10px',
+                    bgcolor: 'rgba(183,28,28,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <PinIcon sx={{ color: '#B71C1C', fontSize: 20 }} />
+                  </Box>
+                  <Typography variant="subtitle1" fontWeight={600}>App PIN Lock</Typography>
+                  <Chip
+                    label={pinEnabled ? 'Active' : 'Off'}
+                    size="small"
+                    color={pinEnabled ? 'error' : 'default'}
+                    sx={{ ml: 'auto', fontWeight: 600 }}
+                  />
+                </Box>
+
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Require a PIN to open the Shield mobile app. After 60 seconds in the background the app will lock automatically.
+                </Typography>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<PinIcon />}
+                    onClick={() => { setPinDialog(true); setPinMsg(null); }}
+                    disabled={pinSettingsLoading}
+                    sx={{ alignSelf: 'flex-start', borderRadius: 2, bgcolor: '#B71C1C', '&:hover': { bgcolor: '#8B0000' } }}
+                  >
+                    {pinEnabled ? 'Change PIN' : 'Set PIN'}
+                  </Button>
+
+                  {pinEnabled && (
+                    <>
+                      <Divider />
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={biometricEnabled}
+                            onChange={(e) => handleToggleBiometric(e.target.checked)}
+                            disabled={pinSettingsLoading}
+                            color="primary"
+                          />
+                        }
+                        label={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <FingerprintIcon sx={{ fontSize: 18, color: '#1565C0' }} />
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>Biometric unlock</Typography>
+                              <Typography variant="caption" color="text.secondary">Use fingerprint or face to unlock</Typography>
+                            </Box>
+                          </Box>
+                        }
+                      />
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        onClick={handleRemovePin}
+                        disabled={pinSettingsLoading}
+                        sx={{ alignSelf: 'flex-start', borderRadius: 2 }}
+                      >
+                        Remove PIN
+                      </Button>
+                    </>
+                  )}
                 </Box>
               </CardContent>
             </Card>
@@ -625,9 +784,9 @@ export default function SettingsPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                   <Box sx={{
                     width: 36, height: 36, borderRadius: '10px',
-                    bgcolor: '#FFEBEE', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: 'rgba(229,57,53,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <PrivacyTipIcon sx={{ color: '#C62828', fontSize: 20 }} />
+                    <PrivacyTipIcon sx={{ color: 'error.main', fontSize: 20 }} />
                   </Box>
                   <Typography variant="subtitle1" fontWeight={600}>Privacy & Data</Typography>
                 </Box>
@@ -666,6 +825,56 @@ export default function SettingsPage() {
           </AnimatedPage>
         </Grid>
       </Grid>
+
+      {/* PIN Lock Dialog */}
+      <Dialog open={pinDialog} onClose={() => setPinDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <PinIcon sx={{ color: '#B71C1C' }} />
+          {pinEnabled ? 'Change PIN' : 'Set App PIN'}
+        </DialogTitle>
+        <DialogContent>
+          {pinMsg && <Alert severity={pinMsg.type} sx={{ mb: 2, borderRadius: 2 }}>{pinMsg.text}</Alert>}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Choose a 4–8 digit PIN to lock the Shield app.
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="New PIN"
+              type="password"
+              inputProps={{ inputMode: 'numeric', maxLength: 8, pattern: '[0-9]*' }}
+              value={pinNewVal}
+              onChange={(e) => setPinNewVal(e.target.value.replace(/\D/g, ''))}
+              fullWidth size="small"
+              helperText="4–8 digits"
+              sx={inputSx}
+            />
+            <TextField
+              label="Confirm PIN"
+              type="password"
+              inputProps={{ inputMode: 'numeric', maxLength: 8, pattern: '[0-9]*' }}
+              value={pinConfirmVal}
+              onChange={(e) => setPinConfirmVal(e.target.value.replace(/\D/g, ''))}
+              fullWidth size="small"
+              error={!!pinConfirmVal && pinConfirmVal !== pinNewVal}
+              helperText={pinConfirmVal && pinConfirmVal !== pinNewVal ? 'PINs do not match' : ''}
+              sx={inputSx}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => { setPinDialog(false); setPinNewVal(''); setPinConfirmVal(''); setPinCurrentVal(''); }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSavePin}
+            disabled={pinSaving || !pinNewVal || !pinConfirmVal || pinNewVal !== pinConfirmVal}
+            sx={{ bgcolor: '#B71C1C', '&:hover': { bgcolor: '#8B0000' } }}
+          >
+            {pinSaving ? <CircularProgress size={20} color="inherit" /> : 'Save PIN'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Delete Account Dialog */}
       <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)} maxWidth="xs" fullWidth>

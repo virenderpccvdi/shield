@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
+import '../../app/theme.dart';
 import '../../core/shield_widgets.dart';
 
 class ScheduleScreen extends ConsumerStatefulWidget {
@@ -41,9 +42,12 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     } catch (e) {
       debugPrint('[Shield] Schedule load: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not load schedule'), backgroundColor: Colors.orange),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Could not load schedule'),
+          backgroundColor: ShieldTheme.warning,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
     if (mounted) setState(() => _loading = false);
@@ -81,15 +85,21 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       final client = ref.read(dioProvider);
       await client.put('/dns/schedules/${widget.profileId}', data: {'grid': _buildApiGrid()});
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Schedule saved'), backgroundColor: Colors.green),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Schedule saved'),
+          backgroundColor: ShieldTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -103,15 +113,21 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       final data = (res.data['data'] ?? res.data) as Map<String, dynamic>? ?? {};
       setState(() => _parseGrid(data));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$preset preset applied'), backgroundColor: Colors.green),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('$preset preset applied'),
+          backgroundColor: ShieldTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
   }
@@ -125,9 +141,12 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       setState(() => _parseGrid(data));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Override failed: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Override failed: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
   }
@@ -140,9 +159,12 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       setState(() => _parseGrid(data));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cancel failed: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Cancel failed: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
   }
@@ -186,7 +208,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             FilledButton(
               onPressed: () { Navigator.pop(ctx); _applyOverride(type, durationMins); },
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              style: FilledButton.styleFrom(backgroundColor: ShieldTheme.danger),
               child: const Text('Apply'),
             ),
           ],
@@ -198,10 +220,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: ShieldTheme.surface,
       appBar: AppBar(
         title: const Text('Internet Schedule', style: TextStyle(fontWeight: FontWeight.w700)),
-        backgroundColor: Colors.white,
+        backgroundColor: ShieldTheme.cardBg,
         elevation: 0,
         actions: [
           if (_saving)
@@ -236,29 +258,29 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         margin: const EdgeInsets.all(12),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
+                          color: ShieldTheme.warning.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.orange.shade200),
+                          border: Border.all(color: ShieldTheme.warning.withOpacity(0.3)),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.pause_circle, color: Colors.orange.shade700),
+                            const Icon(Icons.pause_circle, color: ShieldTheme.warning),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text('Override Active: ${_overrideType ?? ''}',
-                                      style: TextStyle(fontWeight: FontWeight.w700, color: Colors.orange.shade800)),
+                                      style: const TextStyle(fontWeight: FontWeight.w700, color: ShieldTheme.warning)),
                                   if (_overrideEndsAt != null)
                                     Text('Ends: ${_formatTime(_overrideEndsAt!)}',
-                                        style: TextStyle(fontSize: 12, color: Colors.orange.shade700)),
+                                        style: const TextStyle(fontSize: 12, color: ShieldTheme.warning)),
                                 ],
                               ),
                             ),
                             TextButton(
                               onPressed: _cancelOverride,
-                              child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+                              child: const Text('Cancel', style: TextStyle(color: ShieldTheme.danger)),
                             ),
                           ],
                         ),
@@ -270,22 +292,22 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Quick Presets', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF546E7A))),
+                          const Text('Quick Presets', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: ShieldTheme.textSecondary)),
                           const SizedBox(height: 8),
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Row(children: [
-                              _PresetBtn(label: 'School Hours', icon: Icons.school, color: const Color(0xFF1565C0), onTap: () => _applyServerPreset('SCHOOL')),
+                              _PresetBtn(label: 'School Hours', icon: Icons.school, color: ShieldTheme.primary, onTap: () => _applyServerPreset('SCHOOL')),
                               const SizedBox(width: 8),
-                              _PresetBtn(label: 'Bedtime', icon: Icons.bedtime, color: const Color(0xFF1565C0), onTap: () => _applyServerPreset('BEDTIME')),
+                              _PresetBtn(label: 'Bedtime', icon: Icons.bedtime, color: ShieldTheme.warning, onTap: () => _applyServerPreset('BEDTIME')),
                               const SizedBox(width: 8),
-                              _PresetBtn(label: 'Weekend', icon: Icons.weekend, color: const Color(0xFFFB8C00), onTap: () => _applyServerPreset('WEEKEND')),
+                              _PresetBtn(label: 'Weekend', icon: Icons.weekend, color: ShieldTheme.success, onTap: () => _applyServerPreset('WEEKEND')),
                               const SizedBox(width: 8),
-                              _PresetBtn(label: 'Strict', icon: Icons.security, color: const Color(0xFFC62828), onTap: () => _applyServerPreset('STRICT')),
+                              _PresetBtn(label: 'Strict', icon: Icons.security, color: ShieldTheme.danger, onTap: () => _applyServerPreset('STRICT')),
                               const SizedBox(width: 8),
-                              _PresetBtn(label: 'Override', icon: Icons.pause_circle, color: Colors.red, onTap: _showOverrideDialog),
+                              _PresetBtn(label: 'Override', icon: Icons.pause_circle, color: ShieldTheme.danger, onTap: _showOverrideDialog),
                               const SizedBox(width: 8),
-                              _PresetBtn(label: 'Clear All', icon: Icons.clear_all, color: Colors.grey, onTap: () {
+                              _PresetBtn(label: 'Clear All', icon: Icons.clear_all, color: ShieldTheme.textSecondary, onTap: () {
                                 setState(() {
                                   for (var row in _grid) { for (int h = 0; h < 24; h++) row[h] = false; }
                                   _activePreset = null;
@@ -303,15 +325,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(children: [
-                        _LegendDot(color: Colors.red.shade400, label: 'Blocked'),
+                        _LegendDot(color: ShieldTheme.danger, label: 'Blocked'),
                         const SizedBox(width: 16),
-                        _LegendDot(color: const Color(0xFFC8E6C9), label: 'Allowed'),
+                        _LegendDot(color: ShieldTheme.success.withOpacity(0.3), label: 'Allowed'),
                         if (_activePreset != null) ...[
                           const Spacer(),
                           Chip(
                             label: Text(_activePreset!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                            backgroundColor: const Color(0xFFE3F2FD),
-                            side: const BorderSide(color: Color(0xFF90CAF9)),
+                            backgroundColor: ShieldTheme.primary.withOpacity(0.08),
+                            side: BorderSide(color: ShieldTheme.primary.withOpacity(0.3)),
                             visualDensity: VisualDensity.compact,
                           ),
                         ],
@@ -334,7 +356,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                               width: 28,
                               child: Text(h.toString(), textAlign: TextAlign.center,
                                 style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600,
-                                    color: (h >= 22 || h < 6) ? Colors.grey.shade400 : const Color(0xFF546E7A))),
+                                    color: (h >= 22 || h < 6) ? ShieldTheme.divider : ShieldTheme.textSecondary)),
                             )),
                           ]),
                           const SizedBox(height: 4),
@@ -348,7 +370,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
-                                    color: d >= 5 ? const Color(0xFFFB8C00) : const Color(0xFF546E7A),
+                                    color: d >= 5 ? ShieldTheme.warning : ShieldTheme.textSecondary,
                                   ),
                                 ),
                               ),
@@ -360,10 +382,14 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                   height: 30,
                                   margin: const EdgeInsets.all(1),
                                   decoration: BoxDecoration(
-                                    color: _grid[d][h] ? Colors.red.shade400 : const Color(0xFFC8E6C9),
+                                    color: _grid[d][h]
+                                        ? ShieldTheme.danger.withOpacity(0.7)
+                                        : ShieldTheme.success.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(4),
                                     border: Border.all(
-                                      color: _grid[d][h] ? Colors.red.shade300 : const Color(0xFFA5D6A7),
+                                      color: _grid[d][h]
+                                          ? ShieldTheme.danger.withOpacity(0.5)
+                                          : ShieldTheme.success.withOpacity(0.3),
                                       width: 1,
                                     ),
                                   ),
@@ -389,7 +415,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                               : const Icon(Icons.save),
                           label: Text(_saving ? 'Saving...' : 'Save Schedule'),
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF1565C0),
+                            backgroundColor: ShieldTheme.primary,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
@@ -444,7 +470,7 @@ class _LegendDot extends StatelessWidget {
     return Row(children: [
       Container(width: 14, height: 14, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
       const SizedBox(width: 5),
-      Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      Text(label, style: const TextStyle(fontSize: 12, color: ShieldTheme.textSecondary)),
     ]);
   }
 }

@@ -296,30 +296,42 @@ public class AuthService {
         userRepository.findByEmail(req.getEmail().toLowerCase()).ifPresent(user -> {
             String otp = String.valueOf((int)(Math.random() * 900000) + 100000);
             redis.opsForValue().set(OTP_PREFIX + user.getId(), otp, 15, TimeUnit.MINUTES);
-            // TODO: publish OTP via notification service
-            log.info("Password reset OTP generated for user {} (send via notification service)", user.getId());
+            notificationClient.sendPasswordResetOtpEmail(user.getId(), user.getEmail(), user.getName(), otp);
+            log.info("Password reset OTP generated and email dispatched for user {}", user.getId());
         });
         // Always return 200 — prevents email enumeration
     }
 
     @Transactional
     public void resetPassword(ResetPasswordRequest req) {
-        String decoded;
-        try {
-            decoded = new String(java.util.Base64.getDecoder().decode(req.getToken()));
-        } catch (Exception e) {
-            throw ShieldException.badRequest("Invalid reset token");
+        UUID   userId;
+        String otp;
+
+        if (req.getToken() != null && !req.getToken().isBlank()) {
+            // Link-based flow: token = Base64(userId:otp)
+            String decoded;
+            try {
+                decoded = new String(java.util.Base64.getDecoder().decode(req.getToken()));
+            } catch (Exception e) {
+                throw ShieldException.badRequest("Invalid reset token");
+            }
+            String[] parts = decoded.split(":", 2);
+            if (parts.length != 2) throw ShieldException.badRequest("Invalid reset token");
+            userId = UUID.fromString(parts[0]);
+            otp    = parts[1];
+        } else if (req.getEmail() != null && req.getCode() != null) {
+            // In-app flow: email + code
+            User u = userRepository.findByEmail(req.getEmail().toLowerCase())
+                    .orElseThrow(() -> ShieldException.badRequest("Invalid email or code"));
+            userId = u.getId();
+            otp    = req.getCode().trim();
+        } else {
+            throw ShieldException.badRequest("Provide either a reset token or email + code");
         }
-        String[] parts = decoded.split(":", 2);
-        if (parts.length != 2) {
-            throw ShieldException.badRequest("Invalid reset token");
-        }
-        UUID   userId = UUID.fromString(parts[0]);
-        String otp    = parts[1];
 
         String stored = redis.opsForValue().get(OTP_PREFIX + userId);
         if (stored == null || !stored.equals(otp)) {
-            throw ShieldException.badRequest("Reset token expired or invalid");
+            throw ShieldException.badRequest("Reset code expired or invalid");
         }
 
         User user = userRepository.findById(userId)

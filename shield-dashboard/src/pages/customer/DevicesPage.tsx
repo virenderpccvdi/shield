@@ -60,10 +60,10 @@ const DEVICE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const DEVICE_COLORS: Record<string, { color: string; bg: string }> = {
-  PHONE: { color: '#1565C0', bg: '#E3F2FD' },
+  PHONE: { color: 'primary.main', bg: '#E3F2FD' },
   TABLET: { color: '#7B1FA2', bg: '#F3E5F5' },
   LAPTOP: { color: '#00897B', bg: '#E0F2F1' },
-  DESKTOP: { color: '#FB8C00', bg: '#FFF3E0' },
+  DESKTOP: { color: 'warning.main', bg: '#FFF3E0' },
 };
 
 function formatDate(iso?: string) {
@@ -128,7 +128,7 @@ function SetupDnsDialog({ child, open, onClose }: { child: ChildProfile; open: b
           {/* Step 1 — Download App */}
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: '#00897B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>1</Box>
+              <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: 'secondary.main', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>1</Box>
               <Typography fontWeight={600} fontSize={14}>Download the Shield App</Typography>
             </Box>
             <Box sx={{ pl: 4 }}>
@@ -137,10 +137,11 @@ function SetupDnsDialog({ child, open, onClose }: { child: ChildProfile; open: b
               </Typography>
               <Button
                 variant="contained"
+                color="secondary"
                 startIcon={<DownloadIcon />}
                 href="/shield-app.apk"
                 download="Shield.apk"
-                sx={{ bgcolor: '#00897B', '&:hover': { bgcolor: '#00796B' }, textTransform: 'none', fontWeight: 600 }}
+                sx={{ textTransform: 'none', fontWeight: 600 }}
               >
                 Download Shield App (APK)
               </Button>
@@ -155,7 +156,7 @@ function SetupDnsDialog({ child, open, onClose }: { child: ChildProfile; open: b
           {/* Step 2 — QR Code */}
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: '#00897B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>2</Box>
+              <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: 'secondary.main', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>2</Box>
               <Typography fontWeight={600} fontSize={14}>Scan QR Code to Configure DNS</Typography>
             </Box>
             <Box sx={{ pl: 4 }}>
@@ -164,8 +165,8 @@ function SetupDnsDialog({ child, open, onClose }: { child: ChildProfile; open: b
               </Typography>
               <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
                 {qrLoading ? (
-                  <Box sx={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F5F5F5', borderRadius: 2 }}>
-                    <CircularProgress size={32} sx={{ color: '#00897B' }} />
+                  <Box sx={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'action.hover', borderRadius: 2 }}>
+                    <CircularProgress size={32} color="secondary" />
                   </Box>
                 ) : qrUrl ? (
                   <Box sx={{ p: 1.5, bgcolor: '#fff', border: '2px solid #E0E0E0', borderRadius: 2, display: 'inline-block' }}>
@@ -192,13 +193,13 @@ function SetupDnsDialog({ child, open, onClose }: { child: ChildProfile; open: b
               </Typography>
 
               {privateDns ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 1.5, px: 2, py: 1.25 }}>
-                  <DnsIcon sx={{ color: '#1565C0', fontSize: 18, flexShrink: 0 }} />
-                  <Typography sx={{ fontFamily: 'monospace', fontSize: 13, color: '#1565C0', flex: 1, wordBreak: 'break-all' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'primary.light', border: '1px solid', borderColor: 'primary.light', borderRadius: 1.5, px: 2, py: 1.25 }}>
+                  <DnsIcon sx={{ color: 'primary.main', fontSize: 18, flexShrink: 0 }} />
+                  <Typography sx={{ fontFamily: 'monospace', fontSize: 13, color: 'primary.main', flex: 1, wordBreak: 'break-all' }}>
                     {privateDns}
                   </Typography>
                   <Tooltip title={copied ? 'Copied!' : 'Copy'}>
-                    <IconButton size="small" onClick={() => handleCopy(privateDns)} sx={{ color: copied ? '#00897B' : '#1565C0' }}>
+                    <IconButton size="small" onClick={() => handleCopy(privateDns)} sx={{ color: copied ? 'secondary.main' : 'primary.main' }}>
                       {copied ? <CheckCircleIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
                     </IconButton>
                   </Tooltip>
@@ -299,9 +300,9 @@ export default function DevicesPage() {
                 onClick={() => setSelectedChild(c.id)}
                 sx={{
                   fontWeight: 600,
-                  bgcolor: (profileId === c.id) ? '#00897B' : '#E0F2F1',
-                  color: (profileId === c.id) ? 'white' : '#00897B',
-                  '&:hover': { bgcolor: (profileId === c.id) ? '#00796B' : '#B2DFDB' },
+                  bgcolor: (profileId === c.id) ? 'secondary.main' : 'success.light',
+                  color: (profileId === c.id) ? 'white' : 'secondary.main',
+                  '&:hover': { filter: 'brightness(0.92)' },
                 }}
               />
             ))}
@@ -310,7 +311,7 @@ export default function DevicesPage() {
                 variant="outlined"
                 startIcon={<QrCodeIcon />}
                 onClick={() => setSetupChild(activeChild)}
-                sx={{ borderColor: '#00897B', color: '#00897B', '&:hover': { bgcolor: '#E0F2F1' }, textTransform: 'none', fontWeight: 600 }}
+                sx={{ borderColor: 'secondary.main', color: 'secondary.main', '&:hover': { bgcolor: 'success.light' }, textTransform: 'none', fontWeight: 600 }}
               >
                 Connect Device
               </Button>
@@ -320,16 +321,16 @@ export default function DevicesPage() {
                 variant="outlined"
                 startIcon={<AndroidIcon />}
                 onClick={() => navigate(`/profiles/${profileId}/apps`)}
-                sx={{ borderColor: '#43A047', color: '#43A047', '&:hover': { bgcolor: '#F1F8E9' }, textTransform: 'none', fontWeight: 600 }}
+                sx={{ borderColor: 'success.main', color: 'success.main', '&:hover': { bgcolor: 'success.light' }, textTransform: 'none', fontWeight: 600 }}
               >
                 View Apps
               </Button>
             )}
             <Button
               variant="contained"
+              color="secondary"
               startIcon={<AddIcon />}
               onClick={() => setAddOpen(true)}
-              sx={{ bgcolor: '#00897B', '&:hover': { bgcolor: '#00796B' } }}
             >
               Add Device
             </Button>
@@ -356,7 +357,8 @@ export default function DevicesPage() {
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={device.id}>
                 <AnimatedPage delay={0.1 + i * 0.05}>
                   <Card sx={{
-                    borderTop: `4px solid ${isOnline(device) ? '#43A047' : '#E0E0E0'}`,
+                    borderTop: `4px solid`,
+                    borderTopColor: isOnline(device) ? 'success.main' : 'divider',
                     transition: 'all 0.2s ease',
                     '&:hover': { transform: 'translateY(-3px)' },
                   }}>
@@ -385,7 +387,7 @@ export default function DevicesPage() {
                         <IconButton
                           size="small"
                           onClick={() => deleteMutation.mutate(device.id)}
-                          sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFEBEE' } }}
+                          sx={{ color: 'error.main', '&:hover': { bgcolor: 'error.light' } }}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -412,7 +414,7 @@ export default function DevicesPage() {
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Typography variant="caption" color="text.secondary">Battery</Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <BatteryFullIcon sx={{ fontSize: 14, color: device.batteryPct < 20 ? '#E53935' : device.batteryPct < 50 ? '#FB8C00' : '#43A047' }} />
+                              <BatteryFullIcon sx={{ fontSize: 14, color: device.batteryPct < 20 ? 'error.main' : device.batteryPct < 50 ? 'warning.main' : 'success.main' }} />
                               <Typography variant="caption" fontWeight={500}>{device.batteryPct}%</Typography>
                             </Box>
                           </Box>
@@ -434,7 +436,7 @@ export default function DevicesPage() {
                             <Chip
                               size="small"
                               label={device.dnsMethod}
-                              sx={{ height: 20, fontSize: 10, fontWeight: 600, bgcolor: '#E3F2FD', color: '#1565C0' }}
+                              sx={{ height: 20, fontSize: 10, fontWeight: 600, bgcolor: 'primary.light', color: 'primary.main' }}
                             />
                           </Box>
                         )}
@@ -461,7 +463,7 @@ export default function DevicesPage() {
                           size="small"
                           startIcon={<QrCodeIcon />}
                           onClick={() => activeChild && setSetupChild(activeChild)}
-                          sx={{ color: '#00897B', fontWeight: 600, fontSize: 12, textTransform: 'none', '&:hover': { bgcolor: '#E0F2F1' } }}
+                          sx={{ color: 'secondary.main', fontWeight: 600, fontSize: 12, textTransform: 'none', '&:hover': { bgcolor: 'success.light' } }}
                         >
                           Setup DNS Filtering
                         </Button>
@@ -508,7 +510,7 @@ export default function DevicesPage() {
             variant="contained"
             onClick={handleAdd}
             disabled={!newDevice.name || addMutation.isPending}
-            sx={{ bgcolor: '#00897B', '&:hover': { bgcolor: '#00796B' } }}
+            color="secondary"
           >
             {addMutation.isPending ? 'Registering...' : 'Register'}
           </Button>

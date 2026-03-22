@@ -8,6 +8,10 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import RouterIcon from '@mui/icons-material/Router';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell,
@@ -215,6 +219,61 @@ export default function IspDashboardPage() {
 
       <PlatformSosBanner />
 
+      {/* Getting Started card — shown when no customers yet */}
+      {customerCount === 0 && (
+        <AnimatedPage delay={0.1}>
+          <Card sx={{ mb: 4, border: '1px dashed', borderColor: '#00897B60', bgcolor: '#00897B05' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                <RocketLaunchIcon sx={{ color: '#00897B', fontSize: 28 }} />
+                <Box>
+                  <Typography variant="h6" fontWeight={700}>Welcome to Shield ISP Dashboard</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Get started by following these steps to onboard your first customers
+                  </Typography>
+                </Box>
+              </Box>
+              <Grid container spacing={2}>
+                {[
+                  { icon: <CheckCircleIcon sx={{ color: '#43A047' }} />, step: '1', title: 'Account Ready', desc: 'Your ISP account is configured and active', done: true },
+                  { icon: <GroupAddIcon sx={{ color: '#1565C0' }} />, step: '2', title: 'Add Customers', desc: 'Invite customers via the Customers page or bulk import CSV', done: false },
+                  { icon: <RouterIcon sx={{ color: '#FB8C00' }} />, step: '3', title: 'Configure DNS', desc: 'Customers configure their router to use your DNS endpoint', done: false },
+                  { icon: <DnsIcon sx={{ color: '#00897B' }} />, step: '4', title: 'See Live Data', desc: 'DNS queries and analytics appear here automatically', done: false },
+                ].map(item => (
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.step}>
+                    <Box sx={{
+                      p: 2, borderRadius: 2, border: '1px solid', height: '100%',
+                      borderColor: item.done ? '#43A04730' : 'divider',
+                      bgcolor: item.done ? '#43A04708' : 'background.paper',
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        {item.icon}
+                        <Typography variant="caption" fontWeight={700} color="text.secondary">
+                          STEP {item.step}
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5 }}>{item.title}</Typography>
+                      <Typography variant="caption" color="text.secondary">{item.desc}</Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+              <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+                <a href="/app/isp/customers" style={{ textDecoration: 'none' }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    sx={{ color: '#00897B', textDecoration: 'underline', cursor: 'pointer' }}
+                  >
+                    Go to Customers →
+                  </Typography>
+                </a>
+              </Box>
+            </CardContent>
+          </Card>
+        </AnimatedPage>
+      )}
+
       {/* Stat Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -285,7 +344,7 @@ export default function IspDashboardPage() {
                     {recentSignups.map((signup, i) => (
                       <Box key={signup.id} sx={{
                         display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: 2,
-                        transition: 'all 0.2s ease', '&:hover': { bgcolor: '#F5F9FF', transform: 'translateX(4px)' },
+                        transition: 'all 0.2s ease', '&:hover': { bgcolor: 'action.hover', transform: 'translateX(4px)' },
                         '@keyframes fadeInRight': { from: { opacity: 0, transform: 'translateX(-10px)' }, to: { opacity: 1, transform: 'translateX(0)' } },
                         animation: `fadeInRight 0.4s ease ${0.5 + i * 0.1}s both`,
                       }}>
@@ -300,7 +359,7 @@ export default function IspDashboardPage() {
                         </Box>
                         <Chip size="small"
                           label={`${signup.profileCount || signup.profiles || 0} profile${(signup.profileCount || signup.profiles || 0) !== 1 ? 's' : ''}`}
-                          sx={{ height: 22, fontSize: 11, bgcolor: '#E0F2F1', color: '#00695C' }} />
+                          sx={{ height: 22, fontSize: 11, bgcolor: 'success.light', color: 'success.dark' }} />
                       </Box>
                     ))}
                   </Box>

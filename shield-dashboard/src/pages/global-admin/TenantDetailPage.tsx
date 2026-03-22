@@ -6,6 +6,7 @@ import {
   Avatar, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions,
   FormControl, InputLabel, Select, MenuItem, Snackbar,
 } from '@mui/material';
+import LoadingPage from '../../components/LoadingPage';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
@@ -25,6 +26,7 @@ import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import EmptyState from '../../components/EmptyState';
 import { gradients } from '../../theme/theme';
+import { alpha, useTheme } from '@mui/material/styles';
 
 const TENANT_PLANS = [
   { value: 'STARTER', label: 'Starter', description: 'Up to 100 customers' },
@@ -43,6 +45,7 @@ function getInitials(name: string) {
 }
 
 export default function TenantDetailPage() {
+  const theme = useTheme();
   const { tenantId } = useParams<{ tenantId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -144,7 +147,7 @@ export default function TenantDetailPage() {
     setStatusSaving(false);
   };
 
-  if (loadingTenant) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (loadingTenant) return <LoadingPage hasTable={true} />;
   if (!tenant) return <EmptyState icon={<BusinessIcon sx={{ fontSize: 36 }} />} title="Tenant not found" description="The requested ISP tenant could not be loaded" />;
 
   const totalQueries = daily.reduce((s: number, d: any) => s + d.queries, 0);
@@ -161,12 +164,12 @@ export default function TenantDetailPage() {
         icon={<BusinessIcon />}
         title={tenant.name}
         subtitle={`${tenant.slug} — ${tenant.plan} plan`}
-        iconColor="#1565C0"
+        iconColor={theme.palette.primary.main}
         action={
           <Stack direction="row" spacing={1.5}>
             <Button variant="outlined" startIcon={<EditIcon />}
               onClick={() => { setSelectedPlan(tenant.plan ?? 'STARTER'); setChangePlanOpen(true); }}
-              sx={{ borderColor: '#1565C0', color: '#1565C0' }}>
+              sx={{ borderColor: 'primary.main', color: 'primary.main' }}>
               Change Plan
             </Button>
             <Button
@@ -225,7 +228,7 @@ export default function TenantDetailPage() {
                   Enabled Features ({Object.values(tenant.features).filter(Boolean).length}/{Object.keys(tenant.features).length})
                 </Typography>
                 <Button size="small" variant="outlined" onClick={handleSyncFeatures} disabled={syncingSaving}
-                  sx={{ fontSize: 11, py: 0.25, px: 1, borderColor: '#1565C0', color: '#1565C0' }}>
+                  sx={{ fontSize: 11, py: 0.25, px: 1, borderColor: 'primary.main', color: 'primary.main' }}>
                   {syncingSaving ? <CircularProgress size={12} /> : 'Sync to Plan'}
                 </Button>
               </Stack>
@@ -260,20 +263,20 @@ export default function TenantDetailPage() {
                 <AreaChart data={daily} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                   <defs>
                     <linearGradient id="tdQ" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1565C0" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#1565C0" stopOpacity={0} />
+                      <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.2} />
+                      <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="tdB" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#E53935" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#E53935" stopOpacity={0} />
+                      <stop offset="5%" stopColor={theme.palette.error.main} stopOpacity={0.2} />
+                      <stop offset="95%" stopColor={theme.palette.error.main} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
                   <XAxis dataKey="day" tick={{ fontSize: 12 }} />
                   <YAxis tickFormatter={fmt} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(v: number) => [fmt(v), '']} />
-                  <Area type="monotone" dataKey="queries" name="Queries" stroke="#1565C0" strokeWidth={2} fill="url(#tdQ)" dot={{ r: 3, fill: '#1565C0' }} />
-                  <Area type="monotone" dataKey="blocked" name="Blocked" stroke="#E53935" strokeWidth={2} fill="url(#tdB)" dot={{ r: 3, fill: '#E53935' }} />
+                  <Area type="monotone" dataKey="queries" name="Queries" stroke={theme.palette.primary.main} strokeWidth={2} fill="url(#tdQ)" dot={{ r: 3, fill: theme.palette.primary.main }} />
+                  <Area type="monotone" dataKey="blocked" name="Blocked" stroke={theme.palette.error.main} strokeWidth={2} fill="url(#tdB)" dot={{ r: 3, fill: theme.palette.error.main }} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -285,11 +288,11 @@ export default function TenantDetailPage() {
         <Card>
           <Paper>
             {customers.length === 0 ? (
-              <EmptyState icon={<PeopleIcon sx={{ fontSize: 36, color: '#1565C0' }} />} title="No customers" description="No customers registered for this tenant yet" />
+              <EmptyState icon={<PeopleIcon sx={{ fontSize: 36, color: 'primary.main' }} />} title="No customers" description="No customers registered for this tenant yet" />
             ) : (
               <Table>
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow sx={{ bgcolor: 'background.default' }}>
                     {['Customer', 'Email', 'Profiles', 'Status', 'Joined'].map(h => (
                       <TableCell key={h} sx={{ fontWeight: 600, fontSize: 12, textTransform: 'uppercase', color: 'text.secondary' }}>{h}</TableCell>
                     ))}
@@ -300,12 +303,12 @@ export default function TenantDetailPage() {
                     <TableRow key={c.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/admin/users/${c.userId || c.id}`)}>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Avatar sx={{ width: 32, height: 32, fontSize: 13, bgcolor: '#00897B' }}>{getInitials(c.name)}</Avatar>
+                          <Avatar sx={{ width: 32, height: 32, fontSize: 13, bgcolor: 'primary.main' }}>{getInitials(c.name)}</Avatar>
                           <Typography fontWeight={600} fontSize={14}>{c.name}</Typography>
                         </Box>
                       </TableCell>
                       <TableCell><Typography variant="body2" color="text.secondary">{c.email}</Typography></TableCell>
-                      <TableCell><Chip size="small" label={c.profiles || 0} sx={{ height: 22, bgcolor: '#E3F2FD', color: '#1565C0' }} /></TableCell>
+                      <TableCell><Chip size="small" label={c.profiles || 0} sx={{ height: 22, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }} /></TableCell>
                       <TableCell><Chip size="small" label={c.status || 'ACTIVE'} color={c.status === 'ACTIVE' || !c.status ? 'success' : 'error'} sx={{ height: 22, fontSize: 11 }} /></TableCell>
                       <TableCell><Typography variant="body2" color="text.secondary">{c.joinedAt ? new Date(c.joinedAt).toLocaleDateString() : '—'}</Typography></TableCell>
                     </TableRow>
@@ -321,11 +324,11 @@ export default function TenantDetailPage() {
         <Card>
           <Paper>
             {users.length === 0 ? (
-              <EmptyState icon={<PeopleIcon sx={{ fontSize: 36, color: '#1565C0' }} />} title="No users" description="No users assigned to this tenant" />
+              <EmptyState icon={<PeopleIcon sx={{ fontSize: 36, color: 'primary.main' }} />} title="No users" description="No users assigned to this tenant" />
             ) : (
               <Table>
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow sx={{ bgcolor: 'background.default' }}>
                     {['Name', 'Email', 'Role', 'Status', 'Created'].map(h => (
                       <TableCell key={h} sx={{ fontWeight: 600, fontSize: 12, textTransform: 'uppercase', color: 'text.secondary' }}>{h}</TableCell>
                     ))}
@@ -353,7 +356,7 @@ export default function TenantDetailPage() {
         <Card>
           <CardContent>
             {/* Subscription summary */}
-            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2.5, p: 2, bgcolor: '#F8FAFC', borderRadius: 2 }}>
+            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2.5, p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="caption" color="text.secondary">Current Plan</Typography>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.25 }}>
@@ -376,7 +379,7 @@ export default function TenantDetailPage() {
               </Box>
               <Button variant="outlined" size="small" startIcon={<EditIcon />}
                 onClick={() => { setSelectedPlan(tenant.plan ?? 'STARTER'); setChangePlanOpen(true); }}
-                sx={{ borderColor: '#1565C0', color: '#1565C0' }}>
+                sx={{ borderColor: 'primary.main', color: 'primary.main' }}>
                 Change Plan
               </Button>
             </Stack>
@@ -388,7 +391,7 @@ export default function TenantDetailPage() {
               <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                    <TableRow sx={{ bgcolor: 'background.default' }}>
                       {['Invoice', 'Plan', 'Amount', 'Status', 'Date'].map(h => (
                         <TableCell key={h} sx={{ fontWeight: 600, fontSize: 12, textTransform: 'uppercase', color: 'text.secondary', letterSpacing: 0.5 }}>{h}</TableCell>
                       ))}
@@ -396,9 +399,9 @@ export default function TenantDetailPage() {
                   </TableHead>
                   <TableBody>
                     {invoices.map((inv: any) => (
-                      <TableRow key={inv.id} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
+                      <TableRow key={inv.id} sx={{ '&:hover': { bgcolor: 'background.default' } }}>
                         <TableCell><Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: 11 }}>{inv.id?.slice(0, 8).toUpperCase()}</Typography></TableCell>
-                        <TableCell><Chip size="small" label={inv.planName} sx={{ height: 20, fontSize: 11, fontWeight: 600, bgcolor: '#EDE7F6', color: '#4527A0' }} /></TableCell>
+                        <TableCell><Chip size="small" label={inv.planName} sx={{ height: 20, fontSize: 11, fontWeight: 600, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }} /></TableCell>
                         <TableCell><Typography variant="body2" fontWeight={600}>₹{inv.amount}</Typography></TableCell>
                         <TableCell><Chip size="small" label={inv.status} color={inv.status === 'PAID' ? 'success' : 'warning'} sx={{ height: 20, fontSize: 11 }} /></TableCell>
                         <TableCell><Typography variant="body2" color="text.secondary">{inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</Typography></TableCell>
@@ -436,7 +439,7 @@ export default function TenantDetailPage() {
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={() => setChangePlanOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleChangePlan} disabled={saving || !selectedPlan || selectedPlan === tenant.plan}
-            sx={{ bgcolor: '#1565C0' }}>
+            sx={{ bgcolor: 'primary.main' }}>
             {saving ? <CircularProgress size={18} color="inherit" /> : 'Change Plan'}
           </Button>
         </DialogActions>

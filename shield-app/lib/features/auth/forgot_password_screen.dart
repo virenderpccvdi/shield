@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../core/constants.dart';
+import '../../app/theme.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -83,7 +84,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1565C0),
+      backgroundColor: ShieldTheme.primary,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -112,17 +113,38 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // ── Step progress indicator ──────────────────────────
+                        if (_step != _Step.done) ...[
+                          Row(
+                            children: [
+                              _StepDot(active: true, label: 'Request'),
+                              _StepLine(active: _step == _Step.code || _step == _Step.newPassword),
+                              _StepDot(active: _step == _Step.code || _step == _Step.newPassword, label: 'Verify'),
+                              _StepLine(active: _step == _Step.newPassword),
+                              _StepDot(active: _step == _Step.newPassword, label: 'Reset'),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                        ],
                         if (_error != null) ...[
                           Container(
                             padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                            child: Text(_error!, style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+                            decoration: BoxDecoration(
+                              color: ShieldTheme.danger.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: ShieldTheme.danger.withOpacity(0.3)),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.error_outline, color: ShieldTheme.danger, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(_error!, style: const TextStyle(color: ShieldTheme.danger, fontSize: 13))),
+                            ]),
                           ),
                           const SizedBox(height: 16),
                         ],
 
                         if (_step == _Step.done) ...[
-                          const Icon(Icons.check_circle, color: Colors.green, size: 64),
+                          const Icon(Icons.check_circle, color: ShieldTheme.success, size: 64),
                           const SizedBox(height: 16),
                           const Text('Password Reset!', textAlign: TextAlign.center,
                             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
@@ -230,5 +252,54 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     _passwordCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
+  }
+}
+
+class _StepDot extends StatelessWidget {
+  final bool active;
+  final String label;
+  const _StepDot({required this.active, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active ? ShieldTheme.primary : ShieldTheme.divider,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+            color: active ? ShieldTheme.primary : ShieldTheme.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StepLine extends StatelessWidget {
+  final bool active;
+  const _StepLine({required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        height: 2,
+        margin: const EdgeInsets.only(bottom: 14),
+        color: active ? ShieldTheme.primary : ShieldTheme.divider,
+      ),
+    );
   }
 }

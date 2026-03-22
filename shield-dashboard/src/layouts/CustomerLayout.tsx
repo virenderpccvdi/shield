@@ -8,15 +8,21 @@ import {
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import MapIcon from '@mui/icons-material/Map';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import SettingsIcon from '@mui/icons-material/Settings';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import FenceIcon from '@mui/icons-material/Fence';
 import HistoryIcon from '@mui/icons-material/History';
 import PsychologyIcon from '@mui/icons-material/Psychology';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import DevicesIcon from '@mui/icons-material/Devices';
 import PhonelinkSetupIcon from '@mui/icons-material/PhonelinkSetup';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
+import SchoolIcon from '@mui/icons-material/School';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import TimerIcon from '@mui/icons-material/Timer';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import MenuIcon from '@mui/icons-material/Menu';
 import ShieldIcon from '@mui/icons-material/Shield';
@@ -25,6 +31,17 @@ import LightModeIcon from '@mui/icons-material/LightMode';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ContactEmergencyIcon from '@mui/icons-material/ContactEmergency';
+import BatteryAlertIcon from '@mui/icons-material/BatteryAlert';
+import NightlightIcon from '@mui/icons-material/Nightlight';
+import GavelIcon from '@mui/icons-material/Gavel';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
+import DnsIcon from '@mui/icons-material/Dns';
+import IosShareIcon from '@mui/icons-material/IosShare';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { useAuthStore } from '../store/auth.store';
 import { useAlertStore } from '../store/alert.store';
 import { useThemeStore } from '../store/theme.store';
@@ -34,10 +51,6 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 const DRAWER_EXPANDED = 240;
 const DRAWER_COLLAPSED = 56;
 
-const BG = '#0C1A2E';
-const BG_HOVER = 'rgba(255,255,255,0.06)';
-const BG_SELECTED = '#1A3A6E';
-const ACCENT = '#60A5FA';
 
 const sections = [
   {
@@ -55,20 +68,49 @@ const sections = [
       { label: 'Time Limits', icon: <AccessTimeIcon />, path: '/time-limits' },
       { label: 'Geofences', icon: <FenceIcon />, path: '/geofences' },
       { label: 'Devices', icon: <DevicesIcon />, path: '/devices' },
+      { label: 'Homework Mode', icon: <SchoolIcon />, path: '/homework' },
+      { label: 'App Requests', icon: <CheckCircleOutlineIcon />, path: '/approvals' },
+      { label: 'App Budgets', icon: <TimerIcon />, path: '/app-budgets' },
+      { label: 'Access Schedule', icon: <ScheduleIcon />, path: '/access-schedule' },
+      { label: 'Achievements', icon: <EmojiEventsIcon sx={{ color: '#F9A825' }} />, path: '/achievements' },
+      { label: 'Safe Filters', icon: <VerifiedUserIcon />, path: '/safe-filters' },
+    ],
+  },
+  {
+    title: 'Safety',
+    items: [
+      { label: 'Screen Time Requests', icon: <TimerIcon sx={{ color: '#1B5E20' }} />, path: '/screen-time-requests' },
+      { label: 'Family Rules', icon: <GavelIcon sx={{ color: '#1565C0' }} />, path: '/family-rules' },
+      { label: 'Emergency Contacts', icon: <ContactEmergencyIcon sx={{ color: '#C62828' }} />, path: '/emergency-contacts' },
+      { label: 'Battery Alerts', icon: <BatteryAlertIcon sx={{ color: '#E65100' }} />, path: '/battery-alerts' },
+      { label: 'Bedtime Lock', icon: <NightlightIcon sx={{ color: '#1A237E' }} />, path: '/bedtime' },
+      { label: 'School Zone', icon: <SchoolIcon sx={{ color: '#1B5E20' }} />, path: '/school-zone' },
+      { label: 'Suspicious Activity', icon: <ReportProblemIcon sx={{ color: '#B71C1C' }} />, path: '/suspicious-activity' },
     ],
   },
   {
     title: 'Monitoring',
     items: [
       { label: 'Location History', icon: <HistoryIcon />, path: '/location-history' },
+      { label: 'Browsing History', icon: <DnsIcon sx={{ color: '#1565C0' }} />, path: '/browsing-history' },
       { label: 'AI Insights', icon: <PsychologyIcon />, path: '/ai-insights' },
+      { label: 'AI Learning Buddy', icon: <SmartToyIcon sx={{ color: '#1565C0' }} />, path: '/ai-chat' },
+      { label: 'App Usage', icon: <QueryStatsIcon sx={{ color: '#00695C' }} />, path: '/app-usage' },
       { label: 'Alerts', icon: <NotificationsIcon />, path: '/alerts' },
+      { label: 'Check-in Reminders', icon: <NotificationsActiveIcon />, path: '/checkin-reminders' },
+    ],
+  },
+  {
+    title: 'Family',
+    items: [
+      { label: 'Co-Parent Access', icon: <SupervisorAccountIcon sx={{ color: '#1A237E' }} />, path: '/co-parent' },
+      { label: 'Family Members', icon: <GroupAddIcon />, path: '/family-members' },
+      { label: 'Share Location', icon: <IosShareIcon sx={{ color: '#00695C' }} />, path: '/location-share' },
     ],
   },
   {
     title: 'Account',
     items: [
-      { label: 'Family Members', icon: <GroupAddIcon />, path: '/family-members' },
       { label: 'Subscription', icon: <CardMembershipIcon />, path: '/subscription' },
       { label: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     ],
@@ -95,7 +137,7 @@ export default function CustomerLayout() {
 
   const drawer = (
     <Box sx={{
-      height: '100%', bgcolor: BG, color: 'white',
+      height: '100%', bgcolor: 'background.paper', color: 'text.primary',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
     }}>
@@ -107,38 +149,40 @@ export default function CustomerLayout() {
         alignItems: 'center',
         gap: collapsed && !isMobile ? 0 : 1.5,
         minHeight: 64,
-        background: 'linear-gradient(135deg, #0C1A2E 0%, #162544 100%)',
+        bgcolor: 'background.paper',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
       }}>
-        <ShieldIcon sx={{ color: ACCENT, fontSize: 26, flexShrink: 0 }} />
+        <ShieldIcon sx={{ color: 'primary.main', fontSize: 26, flexShrink: 0 }} />
         {(!collapsed || isMobile) && (
           <Box>
-            <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 800, lineHeight: 1.1, letterSpacing: -0.3 }}>
+            <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 800, lineHeight: 1.1, letterSpacing: -0.3 }}>
               Shield
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase' }}>
               Family Dashboard
             </Typography>
           </Box>
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+      <Divider />
 
       {/* Scrollable nav */}
       <Box sx={{
         flex: 1, overflowY: 'auto', overflowX: 'hidden', py: 1,
         '&::-webkit-scrollbar': { width: 4 },
-        '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 },
+        '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 },
       }}>
         <List disablePadding sx={{ px: collapsed && !isMobile ? 0.5 : 1 }}>
           {sections.map((section, si) => (
             <Box key={section.title}>
-              {si > 0 && <Box sx={{ my: 1, mx: 1 }}><Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} /></Box>}
+              {si > 0 && <Box sx={{ my: 1, mx: 1 }}><Divider /></Box>}
               {(!collapsed || isMobile) && (
                 <Typography variant="overline" sx={{
                   px: 2, py: 0.5, display: 'block',
-                  color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700,
+                  color: 'text.disabled', fontSize: 10, fontWeight: 700,
                   letterSpacing: 1.5,
                 }}>
                   {section.title}
@@ -158,7 +202,7 @@ export default function CustomerLayout() {
                       minHeight: 40,
                       px: collapsed && !isMobile ? 1 : 1.5,
                       justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
-                      color: active ? ACCENT : 'rgba(255,255,255,0.6)',
+                      color: active ? 'primary.main' : 'text.secondary',
                       position: 'relative',
                       overflow: 'hidden',
                       transition: 'all 0.18s ease',
@@ -166,17 +210,17 @@ export default function CustomerLayout() {
                         content: '""',
                         position: 'absolute', left: 0, top: '20%',
                         width: 3, height: active ? '60%' : 0,
-                        bgcolor: ACCENT, borderRadius: '0 3px 3px 0',
+                        bgcolor: 'primary.main', borderRadius: '0 3px 3px 0',
                         transition: 'height 0.2s ease',
                       },
                       '&.Mui-selected': {
-                        bgcolor: BG_SELECTED,
-                        color: ACCENT,
-                        '& .MuiListItemIcon-root': { color: ACCENT },
+                        bgcolor: 'primary.main',
+                        color: 'primary.contrastText',
+                        '& .MuiListItemIcon-root': { color: 'primary.contrastText' },
                       },
-                      '&.Mui-selected:hover': { bgcolor: BG_SELECTED },
+                      '&.Mui-selected:hover': { bgcolor: 'primary.dark' },
                       '&:hover': {
-                        bgcolor: BG_HOVER,
+                        bgcolor: 'action.hover',
                         '& .MuiListItemIcon-root': { transform: 'scale(1.15)' },
                       },
                       '& .MuiListItemIcon-root': { transition: 'transform 0.18s ease' },
@@ -199,7 +243,7 @@ export default function CustomerLayout() {
                         primary={item.label}
                         primaryTypographyProps={{ fontSize: 13.5, fontWeight: active ? 600 : 500 }}
                         secondary={isAlerts && unreadCount > 0 ? `${unreadCount} unread` : undefined}
-                        secondaryTypographyProps={{ fontSize: 10.5, color: '#F87171' }}
+                        secondaryTypographyProps={{ fontSize: 10.5, color: 'error.light' }}
                       />
                     )}
                   </ListItemButton>
@@ -223,7 +267,7 @@ export default function CustomerLayout() {
         </List>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+      <Divider />
 
       {/* User section */}
       <Box sx={{
@@ -237,7 +281,7 @@ export default function CustomerLayout() {
         {collapsed && !isMobile ? (
           <Tooltip title={`${user?.name ?? ''} — Sign out`} placement="right" arrow>
             <Avatar
-              sx={{ width: 32, height: 32, bgcolor: ACCENT, color: BG, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              sx={{ width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
               onClick={() => { logout(); navigate('/login'); }}
             >
               {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
@@ -245,19 +289,19 @@ export default function CustomerLayout() {
           </Tooltip>
         ) : (
           <>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: ACCENT, color: BG, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
               {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" sx={{ color: 'white', fontWeight: 600, fontSize: 12.5, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600, fontSize: 12.5, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.name ?? 'User'}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
                 {user?.email ?? ''}
               </Typography>
             </Box>
             <Tooltip title="Sign out">
-              <IconButton size="small" onClick={() => { logout(); navigate('/login'); }} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#F87171' } }}>
+              <IconButton size="small" onClick={() => { logout(); navigate('/login'); }} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
                 <LogoutIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -268,13 +312,13 @@ export default function CustomerLayout() {
       {/* Collapse toggle */}
       {!isMobile && (
         <>
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+          <Divider />
           <Box sx={{ display: 'flex', justifyContent: collapsed ? 'center' : 'flex-end', px: 1, py: 0.75 }}>
             <Tooltip title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} placement="right">
               <IconButton
                 size="small"
                 onClick={() => setCollapsed(c => !c)}
-                sx={{ color: 'rgba(255,255,255,0.35)', '&:hover': { color: ACCENT, bgcolor: BG_HOVER } }}
+                sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main', bgcolor: 'action.hover' } }}
               >
                 {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
               </IconButton>
@@ -332,7 +376,7 @@ export default function CustomerLayout() {
               <Badge badgeContent={unreadCount} color="error"><NotificationsIcon /></Badge>
             </IconButton>
             <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} aria-label="User menu" sx={{ ml: 0.5 }}>
-              <Avatar sx={{ width: 34, height: 34, bgcolor: '#1565C0', fontSize: 14, fontWeight: 700 }}>
+              <Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: 14, fontWeight: 700 }}>
                 {user?.name?.charAt(0)?.toUpperCase() || 'U'}
               </Avatar>
             </IconButton>

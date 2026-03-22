@@ -110,10 +110,12 @@ public class DnsRulesService {
         boolean paused = Boolean.TRUE.equals(cats.get("__paused__"));
         boolean scheduleBlocked = Boolean.TRUE.equals(cats.get(ScheduleService.SCHEDULE_BLOCKED_KEY));
         boolean budgetExhausted = Boolean.TRUE.equals(cats.get(BudgetEnforcementService.BUDGET_EXHAUSTED_KEY));
+        boolean bedtimeLocked   = Boolean.TRUE.equals(cats.get(BedtimeLockService.BEDTIME_LOCKED_KEY));
         cats.putAll(defaults);
         if (paused) cats.put("__paused__", true);
         if (scheduleBlocked) cats.put(ScheduleService.SCHEDULE_BLOCKED_KEY, true);
         if (budgetExhausted) cats.put(BudgetEnforcementService.BUDGET_EXHAUSTED_KEY, true);
+        if (bedtimeLocked)   cats.put(BedtimeLockService.BEDTIME_LOCKED_KEY, true);
         rules.setEnabledCategories(cats);
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
@@ -347,20 +349,21 @@ public class DnsRulesService {
 
         Map<String, Boolean> cats = Optional.ofNullable(rules.getEnabledCategories()).orElse(Map.of());
 
-        // If schedule enforcement, budget exhaustion, OR pause flag is active, disable
-        // filtering entirely (filteringEnabled=false in AdGuard blocks ALL DNS for the client)
+        // If schedule enforcement, budget exhaustion, bedtime lock, OR pause flag is active,
+        // disable filtering entirely (filteringEnabled=false in AdGuard blocks ALL DNS for the client)
         boolean scheduleBlocked = Boolean.TRUE.equals(cats.get(ScheduleService.SCHEDULE_BLOCKED_KEY));
         boolean budgetExhausted = Boolean.TRUE.equals(cats.get(BudgetEnforcementService.BUDGET_EXHAUSTED_KEY));
+        boolean bedtimeLocked   = Boolean.TRUE.equals(cats.get(BedtimeLockService.BEDTIME_LOCKED_KEY));
         boolean paused = Boolean.TRUE.equals(cats.get("__paused__"));
-        if (scheduleBlocked || budgetExhausted || paused) {
+        if (scheduleBlocked || budgetExhausted || bedtimeLocked || paused) {
             AdGuardClient.AdGuardClientData data = new AdGuardClient.AdGuardClientData(
                     false, false, false,
                     Map.of("enabled", false, "google", false, "bing", false,
                             "duckduckgo", false, "youtube", false),
                     List.of()
             );
-            log.info("AdGuard sync: profileId={} clientId={} — BLOCKED (scheduleBlocked={} budgetExhausted={} paused={})",
-                    rules.getProfileId(), clientId, scheduleBlocked, budgetExhausted, paused);
+            log.info("AdGuard sync: profileId={} clientId={} — BLOCKED (scheduleBlocked={} budgetExhausted={} bedtimeLocked={} paused={})",
+                    rules.getProfileId(), clientId, scheduleBlocked, budgetExhausted, bedtimeLocked, paused);
             adGuard.updateClient(clientId, clientId, data);
             return;
         }
@@ -434,6 +437,11 @@ public class DnsRulesService {
         );
         log.debug("AdGuard sync: profileId={} clientId={} blockedServices={}", rules.getProfileId(), clientId, blocked);
         adGuard.updateClient(clientId, clientId, data);
+
+        // PC-05: YouTube Safe Mode — DNS CNAME rewrites
+        applyYoutubeRewrites(rules.isYoutubeSafeMode());
+        // PC-06: Safe Search — DNS CNAME rewrites
+        applySafeSearchRewrites(rules.isSafeSearch());
     }
 
     private DnsRulesResponse toResponse(DnsRules r) {
@@ -454,6 +462,71 @@ public class DnsRulesService {
                 .youtubeRestricted(r.getYoutubeRestricted())
                 .adsBlocked(r.getAdsBlocked())
                 .timeBudgets(r.getTimeBudgets())
+                .youtubeSafeMode(r.isYoutubeSafeMode())
+                .safeSearch(r.isSafeSearch())
                 .build();
+    }
+
+    // ── PC-05: YouTube Safe Mode ───────────────────────────────────────────────
+
+    /**
+     * Enable or disable YouTube Restricted Mode for a child profile.
+     * When enabled, youtube.com / www.youtube.com / m.youtube.com are rewritten
+     * via AdGuard DNS CNAME to restrict.youtube.com.
+     */
+    @Transactional
+    public DnsRulesResponse setYoutubeSafeMode(UUID profileId, boolean enabled) {
+        DnsRules rules = rulesRepo.findByProfileId(profileId)
+                .orElseThrow(() -> ShieldException.notFound("dns-rules", profileId.toString()));
+        rules.setYoutubeSafeMode(enabled);
+        rules = rulesRepo.save(rules);
+        applyYoutubeRewrites(enabled);
+        log.info("YouTube safe mode {} for profile={}", enabled ? "ENABLED" : "DISABLED", profileId);
+        return toResponse(rules);
+    }
+
+    // ── PC-06: Safe Search ────────────────────────────────────────────────────
+
+    /**
+     * Enable or disable DNS-level safe search enforcement for a child profile.
+     * When enabled, major search engines are rewritten to their safe-search endpoints.
+     */
+    @Transactional
+    public DnsRulesResponse setSafeSearch(UUID profileId, boolean enabled) {
+        DnsRules rules = rulesRepo.findByProfileId(profileId)
+                .orElseThrow(() -> ShieldException.notFound("dns-rules", profileId.toString()));
+        rules.setSafeSearch(enabled);
+        rules = rulesRepo.save(rules);
+        applySafeSearchRewrites(enabled);
+        log.info("Safe search {} for profile={}", enabled ? "ENABLED" : "DISABLED", profileId);
+        return toResponse(rules);
+    }
+
+    // ── DNS Rewrite helpers ───────────────────────────────────────────────────
+
+    private void applyYoutubeRewrites(boolean enable) {
+        if (enable) {
+            adGuard.setDnsRewrite("youtube.com", "restrict.youtube.com");
+            adGuard.setDnsRewrite("www.youtube.com", "restrict.youtube.com");
+            adGuard.setDnsRewrite("m.youtube.com", "restrict.youtube.com");
+        } else {
+            adGuard.removeDnsRewrite("youtube.com", "restrict.youtube.com");
+            adGuard.removeDnsRewrite("www.youtube.com", "restrict.youtube.com");
+            adGuard.removeDnsRewrite("m.youtube.com", "restrict.youtube.com");
+        }
+    }
+
+    private void applySafeSearchRewrites(boolean enable) {
+        if (enable) {
+            adGuard.setDnsRewrite("www.google.com", "forcesafesearch.google.com");
+            adGuard.setDnsRewrite("google.com", "forcesafesearch.google.com");
+            adGuard.setDnsRewrite("www.bing.com", "strict.bing.com");
+            adGuard.setDnsRewrite("duckduckgo.com", "safe.duckduckgo.com");
+        } else {
+            adGuard.removeDnsRewrite("www.google.com", "forcesafesearch.google.com");
+            adGuard.removeDnsRewrite("google.com", "forcesafesearch.google.com");
+            adGuard.removeDnsRewrite("www.bing.com", "strict.bing.com");
+            adGuard.removeDnsRewrite("duckduckgo.com", "safe.duckduckgo.com");
+        }
     }
 }

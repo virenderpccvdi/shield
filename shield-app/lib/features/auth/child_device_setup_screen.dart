@@ -7,6 +7,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/auth_state.dart';
 import '../../core/constants.dart';
 import '../../core/dns_vpn_service.dart';
+import '../../app/theme.dart';
 
 class ChildDeviceSetupScreen extends ConsumerStatefulWidget {
   const ChildDeviceSetupScreen({super.key});
@@ -288,7 +289,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B5E20),
+      backgroundColor: ShieldTheme.success,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -356,7 +357,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade800.withOpacity(0.9),
+                      color: ShieldTheme.danger.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(_qrError!,
@@ -369,7 +370,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
         ),
         Container(
           padding: const EdgeInsets.all(20),
-          color: const Color(0xFF1B5E20),
+          color: ShieldTheme.success,
           child: Column(
             children: [
               const Text(
@@ -423,15 +424,15 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
+                      color: ShieldTheme.success.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF1B5E20), width: 1.5),
+                      border: Border.all(color: ShieldTheme.success, width: 1.5),
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 22,
-                          backgroundColor: const Color(0xFF1B5E20),
+                          backgroundColor: ShieldTheme.success,
                           child: Text(
                             (_qrProfileName ?? 'C').isNotEmpty ? (_qrProfileName ?? 'C')[0].toUpperCase() : 'C',
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
@@ -451,7 +452,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                             ],
                           ),
                         ),
-                        const Icon(Icons.check_circle, color: Color(0xFF1B5E20)),
+                        const Icon(Icons.check_circle, color: ShieldTheme.success),
                       ],
                     ),
                   ),
@@ -464,8 +465,16 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                   if (_qrError != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Text(_qrError!, style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+                      decoration: BoxDecoration(
+                        color: ShieldTheme.danger.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: ShieldTheme.danger.withOpacity(0.3)),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.error_outline, color: ShieldTheme.danger, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(_qrError!, style: const TextStyle(color: ShieldTheme.danger, fontSize: 13))),
+                      ]),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -493,7 +502,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                     onPressed: _qrLoading ? null : _activateFromQr,
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
-                      backgroundColor: const Color(0xFF1B5E20),
+                      backgroundColor: ShieldTheme.success,
                     ),
                     child: _qrLoading
                         ? const SizedBox(height: 20, width: 20,
@@ -556,8 +565,16 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                   if (_error != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Text(_error!, style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+                      decoration: BoxDecoration(
+                        color: ShieldTheme.danger.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: ShieldTheme.danger.withOpacity(0.3)),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.error_outline, color: ShieldTheme.danger, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(_error!, style: const TextStyle(color: ShieldTheme.danger, fontSize: 13))),
+                      ]),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -587,7 +604,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                     onPressed: _loading ? null : _fetchProfiles,
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
-                      backgroundColor: const Color(0xFF1B5E20),
+                      backgroundColor: ShieldTheme.success,
                     ),
                     child: _loading
                         ? const SizedBox(height: 20, width: 20,
@@ -626,8 +643,16 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                 if (_error != null) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                    child: Text(_error!, style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+                    decoration: BoxDecoration(
+                      color: ShieldTheme.danger.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: ShieldTheme.danger.withOpacity(0.3)),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.error_outline, color: ShieldTheme.danger, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_error!, style: const TextStyle(color: ShieldTheme.danger, fontSize: 13))),
+                    ]),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -651,16 +676,16 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: selected ? const Color(0xFF1B5E20) : Colors.grey.shade300,
+                            color: selected ? ShieldTheme.success : Colors.grey.shade300,
                             width: selected ? 2 : 1,
                           ),
-                          color: selected ? const Color(0xFFE8F5E9) : Colors.grey.shade50,
+                          color: selected ? ShieldTheme.success.withOpacity(0.08) : Colors.grey.shade50,
                         ),
                         child: Row(
                           children: [
                             CircleAvatar(
                               radius: 22,
-                              backgroundColor: selected ? const Color(0xFF1B5E20) : Colors.grey.shade300,
+                              backgroundColor: selected ? ShieldTheme.success : Colors.grey.shade300,
                               child: Text(
                                 name.isNotEmpty ? name[0].toUpperCase() : 'C',
                                 style: TextStyle(
@@ -684,7 +709,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                                 ],
                               ),
                             ),
-                            if (selected) const Icon(Icons.check_circle, color: Color(0xFF1B5E20)),
+                            if (selected) const Icon(Icons.check_circle, color: ShieldTheme.success),
                           ],
                         ),
                       ),
@@ -700,7 +725,7 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
                   ),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(50),
-                    backgroundColor: const Color(0xFF1B5E20),
+                    backgroundColor: ShieldTheme.success,
                   ),
                   child: _saving
                       ? const SizedBox(height: 20, width: 20,

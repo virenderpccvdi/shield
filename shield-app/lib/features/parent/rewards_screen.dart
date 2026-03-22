@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
+import '../../app/theme.dart';
 import '../../core/shield_widgets.dart';
 
 class RewardsScreen extends ConsumerStatefulWidget {
@@ -73,15 +74,21 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
       await client.post('/rewards/tasks/$taskId/approve', data: {'approved': true});
       _load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task approved! Reward credited.'), backgroundColor: Colors.green),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Task approved! Reward credited.'),
+          backgroundColor: ShieldTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
   }
@@ -92,15 +99,21 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
       await client.post('/rewards/tasks/$taskId/reject', data: {'approved': false});
       _load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task rejected.'), backgroundColor: Colors.orange),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Task rejected.'),
+          backgroundColor: ShieldTheme.warning,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
   }
@@ -149,9 +162,12 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
         _load();
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to create: $e'), backgroundColor: Colors.red),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Failed to create: $e'),
+            backgroundColor: ShieldTheme.danger,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
         }
       }
     }
@@ -170,7 +186,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
         onPressed: _createTask,
         icon: const Icon(Icons.add),
         label: const Text('New Task'),
-        backgroundColor: const Color(0xFF1565C0),
+        backgroundColor: ShieldTheme.primary,
         foregroundColor: Colors.white,
       ),
       body: _loading
@@ -188,7 +204,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
               children: [
                 // Bank card
                 Card(
-                  color: const Color(0xFF1565C0),
+                  color: ShieldTheme.primary,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Row(children: [
@@ -199,7 +215,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                         Text('Total earned: $totalEarned pts', style: const TextStyle(color: Colors.white60, fontSize: 12)),
                       ]),
                       const Spacer(),
-                      const Icon(Icons.emoji_events, color: Colors.amber, size: 48),
+                      const Icon(Icons.emoji_events, color: ShieldTheme.warning, size: 48),
                     ]),
                   ),
                 ),
@@ -208,19 +224,15 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                 Row(children: [
                   const Text('Tasks', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                   const Spacer(),
-                  Text('${_tasks.length} total', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  Text('${_tasks.length} total', style: const TextStyle(color: ShieldTheme.textSecondary, fontSize: 13)),
                 ]),
                 const SizedBox(height: 12),
                 if (_tasks.isEmpty)
-                  const Center(child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Column(children: [
-                      Icon(Icons.task_alt, size: 48, color: Colors.grey),
-                      SizedBox(height: 12),
-                      Text('No tasks yet', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
-                      Text('Tap + to create a task', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                    ]),
-                  ))
+                  const ShieldEmptyState(
+                    icon: Icons.task_alt,
+                    title: 'No pending tasks',
+                    subtitle: 'Tasks your child completes will appear here',
+                  )
                 else
                   ..._tasks.map((task) {
                     final status = task['status'] as String? ?? 'PENDING';
@@ -228,27 +240,46 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                     final pendingApproval = status == 'SUBMITTED';
                     final points = task['rewardPoints'] as int? ?? task['points'] as int? ?? task['rewardMinutes'] as int? ?? 0;
 
+                    Color cardBgColor;
+                    Color statusIconColor;
+                    IconData statusIcon;
+                    if (completed) {
+                      cardBgColor = ShieldTheme.success.withOpacity(0.06);
+                      statusIconColor = ShieldTheme.success;
+                      statusIcon = Icons.check_circle;
+                    } else if (pendingApproval) {
+                      cardBgColor = ShieldTheme.primary.withOpacity(0.06);
+                      statusIconColor = ShieldTheme.primary;
+                      statusIcon = Icons.hourglass_top;
+                    } else {
+                      cardBgColor = ShieldTheme.warning.withOpacity(0.06);
+                      statusIconColor = ShieldTheme.warning;
+                      statusIcon = Icons.circle_outlined;
+                    }
+
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
+                      color: cardBgColor,
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(children: [
-                              Icon(
-                                completed ? Icons.check_circle : pendingApproval ? Icons.hourglass_top : Icons.circle_outlined,
-                                color: completed ? Colors.green : pendingApproval ? Colors.orange : Colors.grey,
-                              ),
+                              Icon(statusIcon, color: statusIconColor),
                               const SizedBox(width: 8),
                               Expanded(child: Text(task['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
-                              Chip(label: Text('+$points pts', style: const TextStyle(fontSize: 11)),
-                                backgroundColor: Colors.amber.shade50, side: BorderSide.none, padding: EdgeInsets.zero),
+                              Chip(
+                                label: Text('+$points pts', style: const TextStyle(fontSize: 11)),
+                                backgroundColor: ShieldTheme.warning.withOpacity(0.1),
+                                side: BorderSide.none,
+                                padding: EdgeInsets.zero,
+                              ),
                             ]),
                             if (task['description'] != null && (task['description'] as String).isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(left: 32, top: 4),
-                                child: Text(task['description'], style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                                child: Text(task['description'], style: const TextStyle(fontSize: 13, color: ShieldTheme.textSecondary)),
                               ),
                             if (pendingApproval)
                               Padding(
@@ -256,11 +287,19 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                                 child: Row(children: [
                                   FilledButton.tonal(
                                     onPressed: () => _approveTask(task['id'].toString()),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: ShieldTheme.success.withOpacity(0.15),
+                                      foregroundColor: ShieldTheme.success,
+                                    ),
                                     child: const Text('Approve'),
                                   ),
                                   const SizedBox(width: 8),
                                   OutlinedButton(
                                     onPressed: () => _rejectTask(task['id'].toString()),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: ShieldTheme.danger,
+                                      side: const BorderSide(color: ShieldTheme.danger),
+                                    ),
                                     child: const Text('Reject'),
                                   ),
                                 ]),
@@ -274,53 +313,54 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                 // Achievements section
                 const SizedBox(height: 24),
                 Row(children: [
-                  const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                  const Icon(Icons.emoji_events, color: ShieldTheme.warning, size: 20),
                   const SizedBox(width: 8),
                   const Text('Achievements', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                   const Spacer(),
                   Text('${_achievements.where((a) => a['earned'] == true).length}/${_achievements.length}',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    style: const TextStyle(color: ShieldTheme.textSecondary, fontSize: 13)),
                 ]),
                 const SizedBox(height: 12),
                 if (_achievements.isEmpty)
-                  const Center(child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text('No achievements yet', style: TextStyle(color: Colors.grey)),
-                  ))
+                  const ShieldEmptyState(
+                    icon: Icons.emoji_events,
+                    title: 'No achievements yet',
+                    subtitle: 'Achievements will appear as your child reaches milestones',
+                  )
                 else
                   ..._achievements.map((a) {
                     final earned = a['earned'] == true;
                     final points = a['points'] as int? ?? 0;
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
-                      color: earned ? Colors.amber.shade50 : null,
+                      color: earned ? ShieldTheme.warning.withOpacity(0.06) : null,
                       child: ListTile(
                         leading: Icon(
                           Icons.emoji_events,
-                          color: earned ? Colors.amber : Colors.grey.shade400,
+                          color: earned ? ShieldTheme.warning : ShieldTheme.divider,
                           size: 28,
                         ),
                         title: Text(a['name'] as String? ?? '',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
-                            color: earned ? null : Colors.grey.shade500,
+                            color: earned ? null : ShieldTheme.textSecondary,
                           )),
                         subtitle: Text(a['description'] as String? ?? '',
                           style: TextStyle(
                             fontSize: 12,
-                            color: earned ? Colors.grey.shade700 : Colors.grey.shade400,
+                            color: earned ? ShieldTheme.textSecondary : ShieldTheme.divider,
                           )),
                         trailing: earned
                           ? Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.amber.shade100,
+                                color: ShieldTheme.warning.withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text('+$points pts',
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.amber)),
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: ShieldTheme.warning)),
                             )
-                          : Icon(Icons.lock_outline, color: Colors.grey.shade400, size: 18),
+                          : const Icon(Icons.lock_outline, color: ShieldTheme.divider, size: 18),
                       ),
                     );
                   }),

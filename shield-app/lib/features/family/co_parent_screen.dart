@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../core/api_client.dart';
 import '../../app/theme.dart';
+import '../../core/shield_widgets.dart';
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 
@@ -154,6 +155,7 @@ class _CoParentScreenState extends ConsumerState<CoParentScreen> {
           content: Text('Invite sent to $email'),
           backgroundColor: ShieldTheme.success,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
       }
     } on DioException catch (e) {
@@ -163,6 +165,7 @@ class _CoParentScreenState extends ConsumerState<CoParentScreen> {
           content: Text(msg),
           backgroundColor: ShieldTheme.danger,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
       }
     } finally {
@@ -197,7 +200,9 @@ class _CoParentScreenState extends ConsumerState<CoParentScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Invite to $email cancelled'),
+          backgroundColor: ShieldTheme.success,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
       }
     } on DioException catch (e) {
@@ -207,6 +212,7 @@ class _CoParentScreenState extends ConsumerState<CoParentScreen> {
           content: Text(msg),
           backgroundColor: ShieldTheme.danger,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
       }
     }
@@ -237,9 +243,11 @@ class _CoParentScreenState extends ConsumerState<CoParentScreen> {
       await ref.read(dioProvider).delete('/profiles/family/${member['id']}');
       ref.invalidate(familyMembersProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Family member removed'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Family member removed'),
+          backgroundColor: ShieldTheme.success,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
       }
     } on DioException catch (e) {
@@ -249,6 +257,7 @@ class _CoParentScreenState extends ConsumerState<CoParentScreen> {
           content: Text(msg),
           backgroundColor: ShieldTheme.danger,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
       }
     }
@@ -281,7 +290,14 @@ class _CoParentScreenState extends ConsumerState<CoParentScreen> {
         elevation: 2,
       ),
       body: familyAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 3),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]),
+        ),
         error: (e, _) => _ErrorState(onRetry: () => ref.invalidate(familyMembersProvider)),
         data: (data) => RefreshIndicator(
           onRefresh: () => ref.refresh(familyMembersProvider.future),
@@ -360,9 +376,9 @@ class _MemberCard extends StatelessWidget {
   const _MemberCard({required this.member, this.onRemove});
 
   static const _roleColors = {
-    'GUARDIAN':  Color(0xFF1565C0),
-    'CO_PARENT': Color(0xFF1565C0),
-    'OBSERVER':  Color(0xFF00695C),
+    'GUARDIAN':  ShieldTheme.primary,
+    'CO_PARENT': ShieldTheme.primary,
+    'OBSERVER':  ShieldTheme.success,
   };
 
   @override
@@ -449,15 +465,15 @@ class _InviteCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFFF3E0)),
+        border: Border.all(color: ShieldTheme.warning.withOpacity(0.3)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(children: [
           CircleAvatar(
             radius: 22,
-            backgroundColor: const Color(0xFFFFF3E0),
-            child: Text(initial, style: const TextStyle(color: Color(0xFFF57C00), fontWeight: FontWeight.w800, fontSize: 16)),
+            backgroundColor: ShieldTheme.warning.withOpacity(0.1),
+            child: Text(initial, style: const TextStyle(color: ShieldTheme.warning, fontWeight: FontWeight.w800, fontSize: 16)),
           ),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -467,10 +483,10 @@ class _InviteCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E1),
+                  color: ShieldTheme.warning.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text('Pending', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFF57C00))),
+                child: const Text('Pending', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: ShieldTheme.warning)),
               ),
               if (expiryLabel != null) ...[
                 const SizedBox(width: 6),
@@ -478,7 +494,7 @@ class _InviteCard extends StatelessWidget {
               ],
             ]),
           ])),
-          _RoleBadge(role: role, color: const Color(0xFF1565C0)),
+          _RoleBadge(role: role, color: ShieldTheme.primary),
           const SizedBox(width: 6),
           TextButton.icon(
             icon: const Icon(Icons.cancel_outlined, size: 14),

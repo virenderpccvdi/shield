@@ -17,6 +17,7 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import LoadingPage from '../../components/LoadingPage';
+import { alpha, useTheme } from '@mui/material/styles';
 
 interface BlockedDomain {
   id: string;
@@ -27,6 +28,7 @@ interface BlockedDomain {
 }
 
 export default function GlobalBlocklistPage() {
+  const theme = useTheme();
   const [domains, setDomains] = useState<BlockedDomain[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -107,10 +109,10 @@ export default function GlobalBlocklistPage() {
         icon={<BlockIcon />}
         title="Global Blocklist"
         subtitle={`Platform-wide blocked domains applied to all tenants${total > 0 ? ` — ${total} domain${total !== 1 ? 's' : ''}` : ''}`}
-        iconColor="#C62828"
+        iconColor={theme.palette.error.main}
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
-            sx={{ bgcolor: '#C62828', '&:hover': { bgcolor: '#B71C1C' }, borderRadius: 2 }}>
+            sx={{ bgcolor: 'error.main', '&:hover': { bgcolor: 'error.dark' }, borderRadius: 2 }}>
             Add Domain
           </Button>
         }
@@ -149,7 +151,7 @@ export default function GlobalBlocklistPage() {
           <LoadingPage />
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={<BlockIcon sx={{ fontSize: 36, color: '#C62828' }} />}
+            icon={<BlockIcon sx={{ fontSize: 36, color: 'error.main' }} />}
             title={search ? `No domains matching "${search}"` : 'No global blocked domains'}
             description={search ? 'Try a different search term' : 'Add domains that should be blocked across the entire platform for all tenants and users.'}
           />
@@ -158,7 +160,7 @@ export default function GlobalBlocklistPage() {
             <TableContainer>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#FFF8F8' }}>
+                  <TableRow sx={{ bgcolor: alpha(theme.palette.error.main, 0.03) }}>
                     {['Domain', 'Reason', 'Type', 'Added', ''].map((h, i) => (
                       <TableCell key={i} sx={{
                         fontWeight: 700, fontSize: 11, textTransform: 'uppercase',
@@ -182,7 +184,7 @@ export default function GlobalBlocklistPage() {
                           size="small"
                           sx={{
                             fontFamily: 'monospace', fontWeight: 600, fontSize: 12.5,
-                            bgcolor: '#FFF3E0', color: '#E65100', borderRadius: '6px',
+                            bgcolor: alpha(theme.palette.warning.main, 0.1), color: 'warning.dark', borderRadius: '6px',
                           }}
                         />
                       </TableCell>
@@ -287,7 +289,7 @@ export default function GlobalBlocklistPage() {
             variant="contained"
             onClick={handleAdd}
             disabled={saving}
-            sx={{ bgcolor: newEmergency ? '#C62828' : 'primary.main', '&:hover': { bgcolor: newEmergency ? '#B71C1C' : 'primary.dark' } }}
+            sx={{ bgcolor: newEmergency ? 'error.main' : 'primary.main', '&:hover': { bgcolor: newEmergency ? 'error.dark' : 'primary.dark' } }}
           >
             {saving ? <CircularProgress size={18} color="inherit" /> : 'Add Domain'}
           </Button>

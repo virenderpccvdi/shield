@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../core/constants.dart';
+import '../../app/theme.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -22,7 +23,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final dio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl, connectTimeout: AppConstants.connectTimeout));
       await dio.post('/auth/register', data: {'name': _name.text.trim(), 'email': _email.text.trim(), 'password': _password.text});
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account created! Please sign in.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Account created! Please sign in.'),
+          backgroundColor: ShieldTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
         context.go('/login');
       }
     } on DioException catch (e) {
@@ -35,7 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1565C0),
+      backgroundColor: ShieldTheme.primary,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -55,7 +61,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         if (_error != null) ...[
-                          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)), child: Text(_error!, style: TextStyle(color: Colors.red.shade700, fontSize: 13))),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: ShieldTheme.danger.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: ShieldTheme.danger.withOpacity(0.3)),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.error_outline, color: ShieldTheme.danger, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(_error!, style: const TextStyle(color: ShieldTheme.danger, fontSize: 13))),
+                            ]),
+                          ),
                           const SizedBox(height: 16),
                         ],
                         TextFormField(controller: _name, decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person_outlined)), validator: (v) => v!.isEmpty ? 'Required' : null),

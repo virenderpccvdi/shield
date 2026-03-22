@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
+import '../../app/theme.dart';
 
 class NewChildProfileScreen extends ConsumerStatefulWidget {
   const NewChildProfileScreen({super.key});
@@ -18,10 +19,10 @@ class _NewChildProfileScreenState extends ConsumerState<NewChildProfileScreen> {
   bool _saving = false;
   String? _error;
 
-  static const _filterOptions = [
-    {'value': 'STRICT',   'label': 'Strict',   'desc': 'Maximum protection (ages 2–8)',  'color': 0xFFC62828},
-    {'value': 'MODERATE', 'label': 'Moderate', 'desc': 'Balanced protection (ages 8–13)', 'color': 0xFFF57F17},
-    {'value': 'RELAXED',  'label': 'Relaxed',  'desc': 'Light filtering (ages 13+)',      'color': 0xFF2E7D32},
+  static final _filterOptions = [
+    {'value': 'STRICT',   'label': 'Strict',   'desc': 'Maximum protection (ages 2–8)',   'color': ShieldTheme.danger},
+    {'value': 'MODERATE', 'label': 'Moderate', 'desc': 'Balanced protection (ages 8–13)', 'color': ShieldTheme.warning},
+    {'value': 'RELAXED',  'label': 'Relaxed',  'desc': 'Light filtering (ages 13+)',      'color': ShieldTheme.success},
   ];
 
   String _ageGroup(int age) {
@@ -83,11 +84,11 @@ class _NewChildProfileScreenState extends ConsumerState<NewChildProfileScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: ShieldTheme.danger.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: ShieldTheme.danger.withOpacity(0.3)),
                 ),
-                child: Text(_error!, style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+                child: Text(_error!, style: const TextStyle(color: ShieldTheme.danger, fontSize: 13)),
               ),
 
             Text('Child\'s Name *', style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
@@ -123,7 +124,7 @@ class _NewChildProfileScreenState extends ConsumerState<NewChildProfileScreen> {
             Row(
               children: _filterOptions.map((f) {
                 final selected = _filterLevel == f['value'];
-                final color = Color(f['color'] as int);
+                final color = f['color'] as Color;
                 return Expanded(
                   child: GestureDetector(
                     onTap: () => setState(() => _filterLevel = f['value'] as String),
@@ -134,7 +135,7 @@ class _NewChildProfileScreenState extends ConsumerState<NewChildProfileScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: selected ? color : Colors.grey.shade300,
+                          color: selected ? color : ShieldTheme.divider,
                           width: selected ? 2 : 1,
                         ),
                         color: selected ? color.withOpacity(0.08) : Colors.transparent,
@@ -149,7 +150,7 @@ class _NewChildProfileScreenState extends ConsumerState<NewChildProfileScreen> {
                           child: Text(f['label'] as String, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12)),
                         ),
                         const SizedBox(height: 6),
-                        Text(f['desc'] as String, style: TextStyle(fontSize: 10, color: Colors.grey.shade600), textAlign: TextAlign.center),
+                        Text(f['desc'] as String, style: const TextStyle(fontSize: 10, color: ShieldTheme.textSecondary), textAlign: TextAlign.center),
                       ]),
                     ),
                   ),
@@ -163,7 +164,7 @@ class _NewChildProfileScreenState extends ConsumerState<NewChildProfileScreen> {
               child: ElevatedButton(
                 onPressed: _saving ? null : _save,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1565C0),
+                  backgroundColor: ShieldTheme.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),

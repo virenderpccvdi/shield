@@ -42,7 +42,7 @@ class FamilyScreen extends ConsumerWidget {
             onPressed: () => context.push('/child-setup'),
             icon: const Icon(Icons.phonelink_setup_rounded),
             label: const Text('Link Child Device'),
-            backgroundColor: const Color(0xFF1565C0),
+            backgroundColor: ShieldTheme.primary,
             foregroundColor: Colors.white,
             elevation: 2,
           ),
@@ -139,9 +139,9 @@ class _ChildCard extends StatelessWidget {
   const _ChildCard({required this.profile, required this.index});
 
   static const _avatarColors = [
-    Color(0xFF1565C0), Color(0xFF1565C0), Color(0xFF00695C),
-    Color(0xFFBF360C), Color(0xFF1B5E20), Color(0xFF0D47A1),
-    Color(0xFF0D47A1), Color(0xFF01579B),
+    ShieldTheme.primary, ShieldTheme.primaryLight, ShieldTheme.success,
+    ShieldTheme.danger, ShieldTheme.successLight, ShieldTheme.primaryDark,
+    ShieldTheme.primaryDark, ShieldTheme.accent,
   ];
 
   @override

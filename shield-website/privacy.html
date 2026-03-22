@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Privacy Policy — Shield Family Internet Protection</title>
+  <meta name="description" content="Shield's Privacy Policy. Learn how RST Global collects, uses, and protects your family's data, including children's privacy under COPPA and India's DPDP Act."/>
+  <meta name="robots" content="index, follow"/>
+  <link rel="canonical" href="https://shield.rstglobal.in/privacy.html"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://shield.rstglobal.in/privacy.html"/>
+  <meta property="og:title" content="Privacy Policy — Shield Family Internet Protection"/>
+  <meta property="og:description" content="How RST Global collects, uses, and protects your family's data."/>
+  <meta property="og:image" content="https://shield.rstglobal.in/og-image.svg"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#1565C0"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css?v=2"/>
+  <style>
+    /* ── Privacy page layout ── */
+    .policy-hero {
+      background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+      padding: 120px 0 60px;
+      text-align: center;
+      color: #fff;
+    }
+    .policy-hero h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      margin: 0 0 12px;
+    }
+    .policy-hero p {
+      font-size: 1.05rem;
+      opacity: 0.85;
+      margin: 0;
+    }
+    .policy-body {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+    .policy-toc {
+      background: #F0F4FF;
+      border-left: 4px solid #1565C0;
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+    }
+    .policy-toc h2 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #1565C0;
+      margin: 0 0 12px;
+    }
+    .policy-toc ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .policy-toc li {
+      margin-bottom: 6px;
+    }
+    .policy-toc a {
+      color: #1565C0;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    .policy-toc a:hover {
+      text-decoration: underline;
+    }
+    .policy-section {
+      margin-bottom: 52px;
+    }
+    .policy-section h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #0D47A1;
+      margin: 0 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #E3EAFE;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .policy-section h2 .sec-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      background: #1565C0;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .policy-section h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin: 24px 0 10px;
+    }
+    .policy-section p {
+      color: #374151;
+      line-height: 1.75;
+      margin: 0 0 14px;
+    }
+    .policy-section ul, .policy-section ol {
+      color: #374151;
+      line-height: 1.75;
+      padding-left: 22px;
+      margin: 0 0 14px;
+    }
+    .policy-section li {
+      margin-bottom: 6px;
+    }
+    .policy-highlight {
+      background: #F0F7FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .policy-highlight p {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    .policy-highlight strong {
+      color: #1565C0;
+    }
+    .policy-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.92rem;
+    }
+    .policy-table th {
+      background: #1565C0;
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .policy-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #E5E7EB;
+      color: #374151;
+      vertical-align: top;
+    }
+    .policy-table tr:nth-child(even) td {
+      background: #F9FAFB;
+    }
+    .policy-contact-card {
+      background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+      border: 1px solid #BFDBFE;
+      border-radius: 12px;
+      padding: 28px 32px;
+      text-align: center;
+    }
+    .policy-contact-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1565C0;
+      margin: 0 0 8px;
+    }
+    .policy-contact-card p {
+      margin: 0 0 10px;
+      color: #374151;
+    }
+    .policy-contact-card a {
+      color: #1565C0;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .policy-contact-card a:hover {
+      text-decoration: underline;
+    }
+    .policy-updated {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #9CA3AF;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #E5E7EB;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ NAVBAR ═══════════════════════════ -->
+<header class="nav" id="mainNav">
+  <div class="nav-inner">
+
+    <a href="/" class="nav-logo" aria-label="Shield — Home">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1565C0"/>
+            <stop offset="100%" stop-color="#0D47A1"/>
+          </linearGradient>
+        </defs>
+        <path d="M16 2L28 7.5V16C28 23.5 22.8 29.8 16 32C9.2 29.8 4 23.5 4 16V7.5Z" fill="url(#sg)"/>
+        <path d="M10 16L14 20.5L22 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Shield</span>
+    </a>
+
+    <ul class="nav-links" role="list">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="/#how-it-works">How It Works</a></li>
+      <li><a href="/#pricing">Pricing</a></li>
+      <li><a href="/#download">Download</a></li>
+      <li><a href="/#faq">FAQ</a></li>
+      <li><a href="/#contact">Contact</a></li>
+    </ul>
+
+    <div class="nav-cta">
+      <a href="login.html" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="register.html" class="btn btn-primary btn-sm">Get Started Free</a>
+    </div>
+
+    <button class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer">
+      <span></span><span></span><span></span>
+    </button>
+
+  </div>
+
+  <!-- Mobile drawer -->
+  <div class="nav-drawer" id="navDrawer" aria-hidden="true">
+    <nav aria-label="Mobile navigation">
+      <a href="/#features">Features</a>
+      <a href="/#how-it-works">How It Works</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/#download">Download</a>
+      <a href="/#faq">FAQ</a>
+    </nav>
+    <div class="nav-drawer-cta">
+      <a href="login.html" class="btn btn-ghost">Sign In</a>
+      <a href="register.html" class="btn btn-primary">Get Started Free</a>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<section class="policy-hero">
+  <h1>Privacy Policy</h1>
+  <p>Effective date: March 2026 &nbsp;·&nbsp; RST Global, India</p>
+</section>
+
+<!-- ═══════════════════════════ CONTENT ═══════════════════════════ -->
+<main class="policy-body">
+
+  <div class="policy-highlight">
+    <p><strong>The short version:</strong> Shield is a family safety tool. We collect only what we need to make parental controls work. We never sell your data or use it for advertising. Parents are always in control of their family's information.</p>
+  </div>
+
+  <!-- Table of Contents -->
+  <div class="policy-toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#data-we-collect">Data We Collect</a></li>
+      <li><a href="#how-we-use-it">How We Use Your Data</a></li>
+      <li><a href="#data-retention">Data Retention</a></li>
+      <li><a href="#childrens-privacy">Children's Privacy</a></li>
+      <li><a href="#data-sharing">Data Sharing</a></li>
+      <li><a href="#security">Security</a></li>
+      <li><a href="#your-rights">Your Rights as a Parent</a></li>
+      <li><a href="#changes">Changes to This Policy</a></li>
+      <li><a href="#contact">Contact Us</a></li>
+    </ol>
+  </div>
+
+  <!-- Section 1 -->
+  <section class="policy-section" id="data-we-collect">
+    <h2><span class="sec-num">1</span> Data We Collect</h2>
+    <p>We collect different types of data depending on how you and your family use Shield. Here is a clear breakdown:</p>
+
+    <h3>Account Information</h3>
+    <p>When you create a Shield account we collect:</p>
+    <ul>
+      <li>Your name, email address, and password (stored as a one-way hash — we never see your plain-text password)</li>
+      <li>Account role (parent, co-parent, or family admin)</li>
+      <li>Subscription plan and billing details (processed by Stripe — we do not store card numbers)</li>
+    </ul>
+
+    <h3>Child Profile Information</h3>
+    <p>For each child profile you create, we store:</p>
+    <ul>
+      <li>Display name and age group (used to apply age-appropriate defaults)</li>
+      <li>A unique DNS client identifier that links the child's device to their filter rules</li>
+      <li>Filter level, schedule rules, time budgets, and custom allow/block lists that <em>you</em> configure</li>
+    </ul>
+    <p>We do not collect the child's real name unless you choose to enter it as the display name.</p>
+
+    <h3>DNS Query Logs</h3>
+    <p>Every time a device protected by Shield tries to visit a website or use an app, that DNS lookup is logged. Each log entry records:</p>
+    <ul>
+      <li>The domain name requested (e.g., <code>example.com</code>)</li>
+      <li>Whether the request was allowed or blocked, and the reason</li>
+      <li>The content category matched (e.g., Social Media, Gaming)</li>
+      <li>A timestamp</li>
+      <li>The child profile the request belongs to</li>
+    </ul>
+    <p>DNS logs do <strong>not</strong> include the full URL, page content, search terms, or any payload data — only the domain name.</p>
+
+    <h3>Device Information</h3>
+    <p>When a device is registered with Shield, we collect:</p>
+    <ul>
+      <li>Device name and operating system type (Android/iOS)</li>
+      <li>A device identifier used to apply per-device rules</li>
+      <li>Last-seen timestamp (to show whether a device is active)</li>
+    </ul>
+    <p>We do not collect hardware serial numbers, IMEI numbers, or any other persistent hardware identifiers.</p>
+
+    <h3>Location Data</h3>
+    <p>Location tracking is an <strong>opt-in</strong> feature. It is only active if you explicitly enable it for a child profile. When enabled, we collect:</p>
+    <ul>
+      <li>GPS coordinates (latitude, longitude, accuracy) from the Shield app on the child's device</li>
+      <li>Timestamps for each location update</li>
+      <li>Geofence entry/exit events (when a child arrives at or leaves a saved place)</li>
+    </ul>
+    <p>Location data is never collected passively and is never used for any purpose other than the family safety features you activate.</p>
+
+    <h3>Usage and Analytics Data</h3>
+    <p>We collect aggregated, anonymised data about how families use Shield — for example, the most common filter categories, average screen time trends, and platform performance metrics. This data cannot be linked back to any individual family.</p>
+  </section>
+
+  <!-- Section 2 -->
+  <section class="policy-section" id="how-we-use-it">
+    <h2><span class="sec-num">2</span> How We Use Your Data</h2>
+
+    <table class="policy-table">
+      <thead>
+        <tr>
+          <th>Purpose</th>
+          <th>Data used</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>DNS filtering</strong> — blocking or allowing domains based on your rules</td>
+          <td>DNS queries, child profile settings, schedule rules</td>
+        </tr>
+        <tr>
+          <td><strong>Parental controls</strong> — enforcing screen time limits and schedules</td>
+          <td>Time budget settings, device activity timestamps</td>
+        </tr>
+        <tr>
+          <td><strong>Activity reports</strong> — showing you what your children browsed</td>
+          <td>DNS query logs, category data</td>
+        </tr>
+        <tr>
+          <td><strong>Safety alerts</strong> — notifying you when blocked content is accessed or a geofence is crossed</td>
+          <td>DNS logs, location events, notification preferences</td>
+        </tr>
+        <tr>
+          <td><strong>AI insights</strong> — surfacing usage patterns and anomalies</td>
+          <td>Aggregated DNS logs (anonymised per family)</td>
+        </tr>
+        <tr>
+          <td><strong>Account management</strong> — login, billing, support</td>
+          <td>Account information, subscription data</td>
+        </tr>
+        <tr>
+          <td><strong>Platform improvement</strong> — fixing bugs, improving performance</td>
+          <td>Anonymised analytics, error logs</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>We do <strong>not</strong> use your data for targeted advertising, and we do not build advertising profiles of your family members.</p>
+  </section>
+
+  <!-- Section 3 -->
+  <section class="policy-section" id="data-retention">
+    <h2><span class="sec-num">3</span> Data Retention</h2>
+    <p>We keep data only as long as necessary to provide the service:</p>
+
+    <table class="policy-table">
+      <thead>
+        <tr>
+          <th>Data type</th>
+          <th>Retention period</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>DNS query logs</td>
+          <td>90 days, then automatically deleted</td>
+        </tr>
+        <tr>
+          <td>Location history</td>
+          <td>30 days, then automatically deleted</td>
+        </tr>
+        <tr>
+          <td>Geofence event logs</td>
+          <td>30 days, then automatically deleted</td>
+        </tr>
+        <tr>
+          <td>Account and profile data</td>
+          <td>Retained while your account is active</td>
+        </tr>
+        <tr>
+          <td>Billing records</td>
+          <td>7 years (required by Indian accounting regulations)</td>
+        </tr>
+        <tr>
+          <td>Anonymised platform analytics</td>
+          <td>Up to 2 years</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>When you delete your account, all personal data — including child profiles, DNS logs, and location history — is permanently deleted within 30 days. Billing records are retained for the legally required period only.</p>
+  </section>
+
+  <!-- Section 4 -->
+  <section class="policy-section" id="childrens-privacy">
+    <h2><span class="sec-num">4</span> Children's Privacy</h2>
+
+    <div class="policy-highlight">
+      <p><strong>Key principle:</strong> We process children's data solely at the direction of their parent or guardian. Children do not create Shield accounts — parents do.</p>
+    </div>
+
+    <h3>COPPA (Children's Online Privacy Protection Act)</h3>
+    <p>Shield is designed for parents to manage their children's internet safety. We do not knowingly collect personal information directly from children under 13. All child profiles are created and managed by a verified adult account holder. If you believe a child has submitted personal information to us without parental consent, please contact us immediately at <a href="mailto:privacy@rstglobal.in">privacy@rstglobal.in</a> and we will delete it promptly.</p>
+
+    <h3>India's Digital Personal Data Protection (DPDP) Act, 2023</h3>
+    <p>Under India's DPDP Act, processing the personal data of children (under 18) requires verifiable parental consent. Shield's architecture ensures this by design:</p>
+    <ul>
+      <li>Only adults can register for a Shield account</li>
+      <li>All child profiles are sub-accounts created under an adult account</li>
+      <li>The parent's act of creating a child profile constitutes the verifiable parental consent required by the DPDP Act</li>
+      <li>Children do not interact with Shield's servers directly — DNS filtering operates at the network level</li>
+    </ul>
+    <p>We do not process children's data for behavioural advertising, profiling, or any purpose beyond the family safety features the parent has enabled.</p>
+
+    <h3>Minimum age for parent accounts</h3>
+    <p>You must be 18 years or older to create a Shield parent account.</p>
+  </section>
+
+  <!-- Section 5 -->
+  <section class="policy-section" id="data-sharing">
+    <h2><span class="sec-num">5</span> Data Sharing</h2>
+    <p>We do not sell, rent, or trade your personal data. We share data only in the following limited circumstances:</p>
+
+    <h3>Service providers</h3>
+    <p>We work with a small number of trusted companies who help us deliver the service. Each is bound by a data processing agreement and may only use data to provide services to us:</p>
+    <ul>
+      <li><strong>Stripe</strong> — payment processing (they handle card data; we receive only transaction confirmation)</li>
+      <li><strong>Email delivery provider</strong> — sending alerts, weekly reports, and billing notifications</li>
+      <li><strong>Cloud infrastructure provider</strong> — hosting Shield's servers in India</li>
+    </ul>
+
+    <h3>Legal requirements</h3>
+    <p>We may disclose data if required by Indian law, court order, or valid legal process. We will notify you before disclosing your data wherever legally permitted to do so.</p>
+
+    <h3>Business transfers</h3>
+    <p>If RST Global is acquired or merges with another company, your data may be transferred as part of that transaction. We will notify you beforehand and the new entity will be required to honour this Privacy Policy.</p>
+
+    <h3>What we never do</h3>
+    <ul>
+      <li>We never share your data with advertising networks</li>
+      <li>We never sell your data to data brokers</li>
+      <li>We never share your children's data with third parties for their own purposes</li>
+      <li>We never use DNS query data to build advertising profiles</li>
+    </ul>
+  </section>
+
+  <!-- Section 6 -->
+  <section class="policy-section" id="security">
+    <h2><span class="sec-num">6</span> Security</h2>
+    <p>Protecting family data is central to everything we build. Our security measures include:</p>
+    <ul>
+      <li><strong>Encryption in transit:</strong> All communication between your devices and Shield's servers uses TLS 1.2 or higher. DNS queries use DNS-over-HTTPS (DoH) to prevent interception.</li>
+      <li><strong>Encryption at rest:</strong> Sensitive fields in the database are encrypted. Passwords are hashed using bcrypt and are never stored in plain text.</li>
+      <li><strong>Access controls:</strong> Shield's systems follow the principle of least privilege. Staff access to production data is strictly limited and logged.</li>
+      <li><strong>Multi-factor authentication:</strong> MFA (TOTP) is available for all parent accounts and strongly recommended.</li>
+      <li><strong>JWT session tokens:</strong> Authentication tokens are short-lived and cryptographically signed. Refresh tokens are rotated on use.</li>
+      <li><strong>Regular backups:</strong> Database backups run daily and are tested regularly. Data is retained in geographically separate storage.</li>
+      <li><strong>Vulnerability management:</strong> We perform regular security reviews and apply patches promptly.</li>
+    </ul>
+    <p>No system is perfectly secure. If you discover a security vulnerability in Shield, please report it responsibly to <a href="mailto:privacy@rstglobal.in">privacy@rstglobal.in</a>.</p>
+  </section>
+
+  <!-- Section 7 -->
+  <section class="policy-section" id="your-rights">
+    <h2><span class="sec-num">7</span> Your Rights as a Parent</h2>
+    <p>As the account holder, you have full control over your family's data. You can exercise any of the following rights at any time:</p>
+
+    <h3>Access</h3>
+    <p>You can view all data Shield holds about your family through the Shield dashboard. DNS logs, location history, device records, and child profiles are all visible to you in real time.</p>
+
+    <h3>Correction</h3>
+    <p>You can update your account information, child profile names, and device names directly in the app or dashboard at any time.</p>
+
+    <h3>Deletion</h3>
+    <p>You can delete individual child profiles, clear DNS logs, or delete your entire account from the Shield dashboard. Account deletion permanently removes all personal data within 30 days.</p>
+
+    <h3>Data export</h3>
+    <p>You can request a copy of your family's data in a machine-readable format by emailing <a href="mailto:privacy@rstglobal.in">privacy@rstglobal.in</a>. We will fulfil the request within 30 days.</p>
+
+    <h3>Restriction</h3>
+    <p>You can disable optional features (such as location tracking) at any time from the parent dashboard without closing your account.</p>
+
+    <h3>Complaints</h3>
+    <p>If you believe we have not handled your data correctly, you have the right to lodge a complaint with India's Data Protection Board once it is established under the DPDP Act. We would always prefer the opportunity to resolve your concern directly first — please contact us at <a href="mailto:privacy@rstglobal.in">privacy@rstglobal.in</a>.</p>
+  </section>
+
+  <!-- Section 8 -->
+  <section class="policy-section" id="changes">
+    <h2><span class="sec-num">8</span> Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time as the platform evolves or as legal requirements change. When we make significant changes, we will:</p>
+    <ul>
+      <li>Post the updated policy on this page with a new effective date</li>
+      <li>Send an email notification to all account holders</li>
+      <li>Show an in-app notice on your next login</li>
+    </ul>
+    <p>Continuing to use Shield after the effective date of a revised policy constitutes your acceptance of the changes. If you disagree with a change, you may delete your account at any time.</p>
+  </section>
+
+  <!-- Section 9 -->
+  <section class="policy-section" id="contact">
+    <h2><span class="sec-num">9</span> Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy or about how we handle your family's data, please get in touch:</p>
+
+    <div class="policy-contact-card">
+      <h3>RST Global — Privacy Team</h3>
+      <p>Email: <a href="mailto:privacy@rstglobal.in">privacy@rstglobal.in</a></p>
+      <p>Address: RST Global, India</p>
+      <p style="font-size:0.9rem; color:#6B7280; margin-top:12px;">We aim to respond to all privacy enquiries within 5 business days.</p>
+    </div>
+  </section>
+
+  <p class="policy-updated">This Privacy Policy was last updated on 1 March 2026.</p>
+
+</main>
+
+<!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo" aria-label="Shield — Home">
+          <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 2 L28 7.5 V16 C28 23.5 22.8 29.8 16 32 C9.2 29.8 4 23.5 4 16 V7.5 Z" fill="rgba(255,255,255,0.9)"/>
+            <path d="M16 5.5 L25.5 9.5 V16 C25.5 22 21.5 27.5 16 29.5 C10.5 27.5 6.5 22 6.5 16 V9.5 Z" fill="rgba(13,71,161,0.15)"/>
+            <path d="M10 16 L14 20.5 L22 12" stroke="#1565C0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <span>Shield</span>
+        </a>
+        <p>Keeping children safe online with intelligent DNS-based protection that works everywhere.</p>
+      </div>
+      <div class="footer-links">
+        <nav class="footer-col" aria-label="Product links">
+          <h4>Product</h4>
+          <a href="/#features">Features</a>
+          <a href="/#how-it-works">How It Works</a>
+          <a href="/#pricing">Pricing</a>
+          <a href="/#download">Download</a>
+          <a href="/#faq">FAQ</a>
+        </nav>
+        <nav class="footer-col" aria-label="Account links">
+          <h4>Account</h4>
+          <a href="register.html">Create Account</a>
+          <a href="login.html">Sign In</a>
+        </nav>
+        <nav class="footer-col" aria-label="Company links">
+          <h4>Company</h4>
+          <a href="#">About RST Global</a>
+          <a href="/privacy.html">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Contact</a>
+        </nav>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 RST Global. All rights reserved. Shield is a product of RST Global.</p>
+      <p>Made with &#10084; for families everywhere.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── Nav scroll effect ──────────────────────────────
+const mainNav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => {
+  mainNav.classList.toggle('scrolled', window.scrollY > 20);
+}, { passive: true });
+
+// ── Mobile nav drawer ──────────────────────────────
+const navBurger = document.getElementById('navBurger');
+const navDrawer = document.getElementById('navDrawer');
+
+function closeDrawer() {
+  navDrawer.setAttribute('aria-hidden', 'true');
+  navBurger.setAttribute('aria-expanded', 'false');
+  navBurger.classList.remove('is-open');
+}
+
+navBurger.addEventListener('click', () => {
+  const opening = navDrawer.getAttribute('aria-hidden') === 'true';
+  navDrawer.setAttribute('aria-hidden', opening ? 'false' : 'true');
+  navBurger.setAttribute('aria-expanded', opening ? 'true' : 'false');
+  navBurger.classList.toggle('is-open', opening);
+});
+
+document.addEventListener('click', (e) => {
+  if (!mainNav.contains(e.target)) closeDrawer();
+});
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 900) closeDrawer();
+}, { passive: true });
+</script>
+
+</body>
+</html>

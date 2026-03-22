@@ -19,6 +19,8 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import SkeletonTable from '../../components/SkeletonTable';
 import EmptyState from '../../components/EmptyState';
+import { alpha } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import CreateTenantDialog from '../../components/CreateTenantDialog';
 
 interface Tenant {
@@ -40,13 +42,15 @@ const EMPTY_FORM: TenantForm = {
 };
 const EMPTY_TENANTS: Tenant[] = [];
 
-const PLAN_GRADIENT: Record<string, { bg: string; color: string }> = {
-  STARTER: { bg: 'linear-gradient(135deg, #E3F2FD, #BBDEFB)', color: '#1565C0' },
-  GROWTH: { bg: 'linear-gradient(135deg, #E8F5E9, #C8E6C9)', color: '#2E7D32' },
-  ENTERPRISE: { bg: 'linear-gradient(135deg, #F3E5F5, #E1BEE7)', color: '#7B1FA2' },
+// Plan badge styles using palette-aligned values
+const PLAN_STYLES: Record<string, { bgKey: 'primary' | 'success' | 'secondary'; label: string }> = {
+  STARTER: { bgKey: 'primary', label: 'STARTER' },
+  GROWTH: { bgKey: 'success', label: 'GROWTH' },
+  ENTERPRISE: { bgKey: 'secondary', label: 'ENTERPRISE' },
 };
 
 export default function TenantsPage() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
@@ -119,24 +123,27 @@ export default function TenantsPage() {
           <Stack direction="row" spacing={2}>
             <TextField size="small" placeholder="Search tenants..." value={search} onChange={e => setSearch(e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }} sx={{ width: 240 }} />
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddIspOpen(true)} sx={{ bgcolor: '#1565C0', whiteSpace: 'nowrap' }}>Add ISP</Button>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddIspOpen(true)} sx={{ bgcolor: 'primary.main', whiteSpace: 'nowrap' }}>Add ISP</Button>
           </Stack>
         }
       />
 
       {/* Summary chips */}
       <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-        {(['STARTER', 'GROWTH', 'ENTERPRISE'] as const).map(plan => {
-          const g = PLAN_GRADIENT[plan];
-          return (
-            <Chip key={plan}
-              label={`${plan}: ${data.filter(t => t.plan === plan).length}`}
-              sx={{ background: g.bg, color: g.color, fontWeight: 600, border: 'none' }}
-            />
-          );
-        })}
+        <Chip
+          label={`STARTER: ${data.filter(t => t.plan === 'STARTER').length}`}
+          sx={{ bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main', fontWeight: 600, border: 'none' }}
+        />
+        <Chip
+          label={`GROWTH: ${data.filter(t => t.plan === 'GROWTH').length}`}
+          sx={{ bgcolor: alpha(theme.palette.success.main, 0.12), color: 'success.dark', fontWeight: 600, border: 'none' }}
+        />
+        <Chip
+          label={`ENTERPRISE: ${data.filter(t => t.plan === 'ENTERPRISE').length}`}
+          sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.12), color: 'secondary.main', fontWeight: 600, border: 'none' }}
+        />
         <Chip label={`SUSPENDED: ${data.filter(t => t.status === 'SUSPENDED').length}`}
-          sx={{ background: 'linear-gradient(135deg, #FFEBEE, #FFCDD2)', color: '#C62828', fontWeight: 600, border: 'none' }} />
+          sx={{ bgcolor: alpha(theme.palette.error.main, 0.1), color: 'error.main', fontWeight: 600, border: 'none' }} />
       </Stack>
 
       {/* Table */}
@@ -145,7 +152,7 @@ export default function TenantsPage() {
       ) : tenants.length === 0 ? (
         <Card>
           <EmptyState
-            icon={<BusinessIcon sx={{ fontSize: 36, color: '#1565C0' }} />}
+            icon={<BusinessIcon sx={{ fontSize: 36, color: 'primary.main' }} />}
             title="No tenants found"
             description={search ? 'Try adjusting your search query' : 'Get started by adding your first ISP tenant'}
             action={search ? undefined : { label: 'Add ISP', onClick: () => setAddIspOpen(true) }}
@@ -156,7 +163,7 @@ export default function TenantsPage() {
           <Paper>
             <Table aria-label="ISP Tenants list">
               <TableHead>
-                <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                <TableRow sx={{ bgcolor: 'background.default' }}>
                   {['ISP Name', 'Slug', 'Contact Email', 'Plan', 'Max Customers', 'Sub Ends', 'Features', 'Status', 'Actions'].map(h => (
                     <TableCell key={h} sx={{ fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>{h}</TableCell>
                   ))}
@@ -179,9 +186,14 @@ export default function TenantsPage() {
                     <TableCell>{t.contactEmail}</TableCell>
                     <TableCell>
                       {(() => {
-                        const g = PLAN_GRADIENT[t.plan];
+                        const planColorMap: Record<string, { bg: string; color: string }> = {
+                          STARTER: { bg: alpha(theme.palette.primary.main, 0.12), color: theme.palette.primary.main },
+                          GROWTH: { bg: alpha(theme.palette.success.main, 0.12), color: theme.palette.success.dark },
+                          ENTERPRISE: { bg: alpha(theme.palette.secondary.main, 0.12), color: theme.palette.secondary.main },
+                        };
+                        const g = planColorMap[t.plan];
                         return g
-                          ? <Chip size="small" label={t.plan} sx={{ background: g.bg, color: g.color, fontWeight: 600, border: 'none' }} />
+                          ? <Chip size="small" label={t.plan} sx={{ bgcolor: g.bg, color: g.color, fontWeight: 600, border: 'none' }} />
                           : <Chip size="small" label={t.plan} />;
                       })()}
                     </TableCell>
@@ -193,21 +205,21 @@ export default function TenantsPage() {
                     </TableCell>
                     <TableCell>
                       <Chip size="small" label={`${t.features ? Object.values(t.features).filter(Boolean).length : 0} on`}
-                        sx={{ height: 22, fontSize: 11, bgcolor: '#E3F2FD', color: '#1565C0' }} />
+                        sx={{ height: 22, fontSize: 11, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }} />
                     </TableCell>
                     <TableCell><Chip size="small" label={t.status} color={t.status === 'ACTIVE' ? 'success' : 'error'} /></TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={0.5}>
                         <Tooltip title="Edit">
                           <IconButton size="small" aria-label={`Edit ${t.name}`} onClick={(e) => { e.stopPropagation(); openEdit(t); }}
-                            sx={{ color: '#1565C0', transition: 'transform 0.15s ease', '&:hover': { transform: 'scale(1.15)' } }}>
+                            sx={{ color: 'primary.main', transition: 'transform 0.15s ease', '&:hover': { transform: 'scale(1.15)' } }}>
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title={t.status === 'SUSPENDED' ? 'Activate ISP' : 'Suspend ISP'}>
                           <IconButton size="small"
                             onClick={(e) => { e.stopPropagation(); updateMutation.mutate({ id: t.id, body: { ...t, active: t.status === 'SUSPENDED', maxCustomers: t.maxCustomers, maxProfilesPerCustomer: t.maxProfilesPerCustomer } as any }); }}
-                            sx={{ color: t.status === 'SUSPENDED' ? '#2E7D32' : '#F57F17', transition: 'transform 0.15s ease', '&:hover': { transform: 'scale(1.15)' } }}>
+                            sx={{ color: t.status === 'SUSPENDED' ? 'success.main' : 'warning.main', transition: 'transform 0.15s ease', '&:hover': { transform: 'scale(1.15)' } }}>
                             {t.status === 'SUSPENDED' ? <CheckCircleIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
                           </IconButton>
                         </Tooltip>
@@ -281,12 +293,12 @@ export default function TenantsPage() {
               <Grid size={12}>
                 <FormControlLabel
                   control={<Switch checked={form.active} onChange={(_, c) => setForm(f => ({ ...f, active: c }))}
-                    sx={{ '& .MuiSwitch-thumb': { bgcolor: form.active ? '#2E7D32' : '#C62828' } }} />}
+                    sx={{ '& .MuiSwitch-thumb': { bgcolor: form.active ? 'success.main' : 'error.main' } }} />}
                   label={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       {form.active
-                        ? <><CheckCircleIcon sx={{ fontSize: 16, color: '#2E7D32' }} /><Typography variant="body2" fontWeight={600} color="#2E7D32">Active — ISP can operate normally</Typography></>
-                        : <><BlockIcon sx={{ fontSize: 16, color: '#C62828' }} /><Typography variant="body2" fontWeight={600} color="#C62828">Suspended — ISP access disabled</Typography></>}
+                        ? <><CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} /><Typography variant="body2" fontWeight={600} color="success.main">Active — ISP can operate normally</Typography></>
+                        : <><BlockIcon sx={{ fontSize: 16, color: 'error.main' }} /><Typography variant="body2" fontWeight={600} color="error.main">Suspended — ISP access disabled</Typography></>}
                     </Box>
                   }
                 />
@@ -296,7 +308,7 @@ export default function TenantsPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleClose} disabled={saving}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={saving} sx={{ bgcolor: '#1565C0', minWidth: 100 }}>
+          <Button variant="contained" onClick={handleSave} disabled={saving} sx={{ bgcolor: 'primary.main', minWidth: 100 }}>
             {saving ? <CircularProgress size={18} color="inherit" /> : editing ? 'Save Changes' : 'Create ISP'}
           </Button>
         </DialogActions>

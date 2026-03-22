@@ -2,6 +2,7 @@ import {
   Box, Typography, Card, CardContent, Button, CircularProgress, LinearProgress,
   Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Stack, Tooltip,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
@@ -46,6 +47,7 @@ interface RewardsPageProps {
 }
 
 export default function RewardsPage({ profileId: profileIdProp }: RewardsPageProps) {
+  const theme = useTheme();
   const { profileId: profileIdParam } = useParams();
   const profileId = profileIdProp ?? profileIdParam;
   const qc = useQueryClient();
@@ -114,11 +116,11 @@ export default function RewardsPage({ profileId: profileIdProp }: RewardsPagePro
         icon={<EmojiEventsIcon />}
         title="Tasks & Rewards"
         subtitle="Assign tasks and track your child's progress"
-        iconColor="#FB8C00"
+        iconColor={theme.palette.warning.main}
         action={
           <Button variant="contained" size="small" startIcon={<AddIcon />}
             onClick={() => setCreateOpen(true)}
-            sx={{ borderRadius: 2, bgcolor: '#FB8C00', '&:hover': { bgcolor: '#E65100' }, fontWeight: 700 }}>
+            sx={{ borderRadius: 2, bgcolor: 'warning.main', '&:hover': { filter: 'brightness(0.9)' }, fontWeight: 700 }}>
             Assign Task
           </Button>
         }
@@ -161,7 +163,7 @@ export default function RewardsPage({ profileId: profileIdProp }: RewardsPagePro
         <AnimatedPage delay={0.15}>
           <Card sx={{ mb: 3, border: '2px solid #FFA000', bgcolor: '#FFFDE7' }}>
             <CardContent>
-              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5, color: '#E65100', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5, color: 'warning.dark', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <HourglassBottomIcon sx={{ fontSize: 18 }} /> Awaiting Your Approval ({submitted.length})
               </Typography>
               <Stack spacing={1}>
@@ -171,10 +173,10 @@ export default function RewardsPage({ profileId: profileIdProp }: RewardsPagePro
                       <Typography fontWeight={600}>{task.title}</Typography>
                       {task.description && <Typography variant="caption" color="text.secondary">{task.description}</Typography>}
                     </Box>
-                    <Chip size="small" label={`+${task.rewardPoints || 0} pts`} sx={{ fontWeight: 700, bgcolor: '#FFF3E0', color: '#E65100' }} />
+                    <Chip size="small" label={`+${task.rewardPoints || 0} pts`} sx={{ fontWeight: 700, bgcolor: 'warning.light', color: 'warning.dark' }} />
                     <Button size="small" variant="contained" onClick={() => approveMutation.mutate(task.id)}
                       disabled={approveMutation.isPending || rejectMutation.isPending}
-                      sx={{ borderRadius: 2, bgcolor: '#43A047', '&:hover': { bgcolor: '#2E7D32' }, fontWeight: 700 }}>
+                      sx={{ borderRadius: 2, bgcolor: 'success.main', '&:hover': { filter: 'brightness(0.9)' }, fontWeight: 700 }}>
                       {approveMutation.isPending ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : 'Approve'}
                     </Button>
                     <Tooltip title="Reject task">
@@ -204,7 +206,7 @@ export default function RewardsPage({ profileId: profileIdProp }: RewardsPagePro
                     display: 'flex', alignItems: 'center', gap: 2, p: 2, borderRadius: 2,
                     border: '1px solid', borderColor: task.status === 'APPROVED' ? '#E8F5E9' : '#E8EDF2',
                     bgcolor: task.status === 'APPROVED' ? '#FAFFF5' : '#fff',
-                    transition: 'all 0.2s ease', '&:hover': { borderColor: '#1565C030' },
+                    transition: 'all 0.2s ease', '&:hover': { borderColor: 'primary.light' },
                   }}>
                     <Box sx={{ color: task.status === 'APPROVED' ? 'success.main' : 'text.disabled' }}>
                       {task.status === 'APPROVED'
@@ -221,7 +223,7 @@ export default function RewardsPage({ profileId: profileIdProp }: RewardsPagePro
                       )}
                     </Box>
                     <Chip size="small" label={`+${task.rewardPoints || 0} pts`}
-                      sx={{ fontWeight: 700, fontSize: 12, bgcolor: task.status === 'APPROVED' ? '#E8F5E9' : '#FFF3E0', color: task.status === 'APPROVED' ? '#2E7D32' : '#E65100' }} />
+                      sx={{ fontWeight: 700, fontSize: 12, bgcolor: task.status === 'APPROVED' ? 'success.light' : 'warning.light', color: task.status === 'APPROVED' ? 'success.dark' : 'warning.dark' }} />
                     <Chip size="small" label={statusLabel(task.status)} color={statusColor(task.status)}
                       sx={{ fontSize: 11, fontWeight: 600, minWidth: 90 }} />
                   </Box>
@@ -272,7 +274,7 @@ export default function RewardsPage({ profileId: profileIdProp }: RewardsPagePro
             Cancel
           </Button>
           <Button variant="contained" onClick={handleCreate} disabled={createMutation.isPending}
-            sx={{ borderRadius: 2, bgcolor: '#FB8C00', '&:hover': { bgcolor: '#E65100' }, fontWeight: 700, px: 3 }}>
+            sx={{ borderRadius: 2, bgcolor: 'warning.main', '&:hover': { filter: 'brightness(0.9)' }, fontWeight: 700, px: 3 }}>
             {createMutation.isPending ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Assign Task'}
           </Button>
         </DialogActions>

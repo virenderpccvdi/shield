@@ -20,6 +20,8 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import SkeletonTable from '../../components/SkeletonTable';
 import EmptyState from '../../components/EmptyState';
+import { alpha } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 
 interface User {
   id: string; name: string; email: string; phone?: string;
@@ -38,6 +40,7 @@ const EMPTY_FORM: UserForm = { name: '', email: '', password: '', phone: '', rol
 const ROLE_COLOR: Record<string, 'error' | 'warning' | 'success' | 'default'> = {
   GLOBAL_ADMIN: 'error', ISP_ADMIN: 'warning', CUSTOMER: 'success',
 };
+// Palette-aligned avatar colors (primary, success, warning, error, secondary, teal)
 const AVATAR_COLORS = ['#1565C0', '#43A047', '#FB8C00', '#E53935', '#7B1FA2', '#00897B'];
 
 function getInitials(name: string): string {
@@ -59,6 +62,7 @@ function exportCSV(users: User[]) {
 }
 
 export default function UsersPage() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
@@ -175,13 +179,13 @@ export default function UsersPage() {
               <Select value={tenantFilter} label="Filter by ISP" onChange={e => setTenantFilter(e.target.value)}>
                 <MenuItem value="">All ISPs</MenuItem>
                 <MenuItem value="__none__">No ISP (Platform)</MenuItem>
-                {tenants.map(t => <MenuItem key={t.id} value={t.id}><Stack direction="row" spacing={0.75} alignItems="center"><BusinessIcon sx={{ fontSize: 14, color: '#1565C0' }} /><span>{t.name}</span></Stack></MenuItem>)}
+                {tenants.map(t => <MenuItem key={t.id} value={t.id}><Stack direction="row" spacing={0.75} alignItems="center"><BusinessIcon sx={{ fontSize: 14, color: 'primary.main' }} /><span>{t.name}</span></Stack></MenuItem>)}
               </Select>
             </FormControl>
             <Button variant="outlined" size="small" startIcon={<DownloadIcon />}
               onClick={() => exportCSV(filtered)} sx={{ borderRadius: 2 }}>Export</Button>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm(EMPTY_FORM); setFormError(''); setOpen(true); }}
-              sx={{ bgcolor: '#1565C0', whiteSpace: 'nowrap' }}>Add User</Button>
+              sx={{ bgcolor: 'primary.main', whiteSpace: 'nowrap' }}>Add User</Button>
           </Stack>
         }
       />
@@ -196,14 +200,14 @@ export default function UsersPage() {
       {isLoading ? (
         <Card><Paper sx={{ p: 0 }}><SkeletonTable rows={5} columns={7} /></Paper></Card>
       ) : filtered.length === 0 ? (
-        <Card><EmptyState icon={<PeopleIcon sx={{ fontSize: 36, color: '#1565C0' }} />} title="No users found"
+        <Card><EmptyState icon={<PeopleIcon sx={{ fontSize: 36, color: 'primary.main' }} />} title="No users found"
           description={search ? 'Try adjusting your search query' : 'No users have been registered yet'} /></Card>
       ) : (
         <Card>
           <Paper>
             <Table aria-label="Users list">
               <TableHead>
-                <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                <TableRow sx={{ bgcolor: 'background.default' }}>
                   {['Name', 'Email', 'Role', 'Tenant', 'Status', 'Created', 'Actions'].map(h => (
                     <TableCell key={h} sx={{ fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>{h}</TableCell>
                   ))}
@@ -235,12 +239,12 @@ export default function UsersPage() {
                             size="small"
                             icon={<BusinessIcon sx={{ fontSize: 13 }} />}
                             label={t?.name ?? `${u.tenantId.slice(0, 8)}…`}
-                            sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#E3F2FD', color: '#1565C0', maxWidth: 160 }}
+                            sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', maxWidth: 160 }}
                           />
                         );
                       })() : (
                         u.role === 'GLOBAL_ADMIN'
-                          ? <Chip size="small" label="Platform" sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#FCE4EC', color: '#880E4F' }} />
+                          ? <Chip size="small" label="Platform" sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: alpha(theme.palette.error.main, 0.1), color: 'error.dark' }} />
                           : <Typography variant="caption" color="text.secondary">—</Typography>
                       )}
                     </TableCell>
@@ -297,7 +301,7 @@ export default function UsersPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={() => setOpen(false)} disabled={createMutation.isPending}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={createMutation.isPending} sx={{ bgcolor: '#1565C0', minWidth: 120 }}>
+          <Button variant="contained" onClick={handleSave} disabled={createMutation.isPending} sx={{ bgcolor: 'primary.main', minWidth: 120 }}>
             {createMutation.isPending ? <CircularProgress size={18} color="inherit" /> : 'Create User'}
           </Button>
         </DialogActions>
@@ -336,7 +340,7 @@ export default function UsersPage() {
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={() => setEditOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={() => editUser && updateMutation.mutate({ id: editUser.id, data: editForm })}
-            disabled={updateMutation.isPending} sx={{ bgcolor: '#1565C0', minWidth: 120 }}>
+            disabled={updateMutation.isPending} sx={{ bgcolor: 'primary.main', minWidth: 120 }}>
             {updateMutation.isPending ? <CircularProgress size={18} color="inherit" /> : 'Save Changes'}
           </Button>
         </DialogActions>

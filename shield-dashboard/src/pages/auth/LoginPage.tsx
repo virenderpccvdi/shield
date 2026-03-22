@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Box, TextField, Button, Typography, Alert, CircularProgress,
   InputAdornment, IconButton, Divider,
@@ -21,6 +21,8 @@ const FEATURES = [
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
   const setAuth = useAuthStore((s) => s.setAuth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,7 +42,8 @@ export default function LoginPage() {
         accessToken,
         refreshToken,
       );
-      if (role === 'GLOBAL_ADMIN') navigate('/admin/dashboard');
+      if (redirectTo) navigate(redirectTo);
+      else if (role === 'GLOBAL_ADMIN') navigate('/admin/dashboard');
       else if (role === 'ISP_ADMIN') navigate('/isp/dashboard');
       else navigate('/dashboard');
     } catch (err: unknown) {

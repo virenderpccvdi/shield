@@ -100,10 +100,10 @@ export default function IspBillingPage() {
                   const isCurrent = plan.name === sub?.planName;
                   return (
                     <Grid key={plan.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                      <Card sx={{ border: isCurrent ? '2px solid #00897B' : '1px solid #E0E0E0' }}>
+                      <Card sx={{ border: isCurrent ? '2px solid' : '1px solid', borderColor: isCurrent ? 'secondary.main' : 'divider' }}>
                         <CardContent>
                           <Typography variant="h6" fontWeight={700}>{plan.displayName}</Typography>
-                          <Typography variant="h4" fontWeight={800} color="#00897B" sx={{ my: 1 }}>
+                          <Typography variant="h4" fontWeight={800} color="secondary.main" sx={{ my: 1 }}>
                             ₹{plan.price}<Typography component="span" variant="body2" color="text.secondary">/{plan.billingCycle === 'YEARLY' ? 'yr' : 'mo'}</Typography>
                           </Typography>
                           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{plan.description}</Typography>
@@ -113,7 +113,7 @@ export default function IspBillingPage() {
                             {isCurrent ? (
                               <Button fullWidth variant="outlined" disabled>Current Plan</Button>
                             ) : (
-                              <Button fullWidth variant="contained" sx={{ bgcolor: '#00897B' }}
+                              <Button fullWidth variant="contained" color="secondary"
                                 disabled={checkoutMutation.isPending}
                                 onClick={() => checkoutMutation.mutate(plan.id)}>
                                 {checkoutMutation.isPending ? <CircularProgress size={18} color="inherit" /> : 'Subscribe'}

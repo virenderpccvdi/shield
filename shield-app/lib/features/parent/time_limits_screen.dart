@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
+import '../../app/theme.dart';
 import '../../core/shield_widgets.dart';
 
 class TimeLimitsScreen extends ConsumerStatefulWidget {
@@ -81,15 +82,21 @@ class _TimeLimitsScreenState extends ConsumerState<TimeLimitsScreen> {
         'categories': _budgets,
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Time limits saved'), backgroundColor: Colors.green),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Time limits saved'),
+          backgroundColor: ShieldTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -129,15 +136,21 @@ class _TimeLimitsScreenState extends ConsumerState<TimeLimitsScreen> {
         await client.post('/dns/budgets/${widget.profileId}/extend', data: {'minutes': minutes});
         setState(() => _totalBudget += minutes);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Added $minutes extra minutes'), backgroundColor: Colors.green),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Added $minutes extra minutes'),
+            backgroundColor: ShieldTheme.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Failed: $e'),
+            backgroundColor: ShieldTheme.danger,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
         }
       }
     }
@@ -182,7 +195,7 @@ class _TimeLimitsScreenState extends ConsumerState<TimeLimitsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(children: [
                     Row(children: [
-                      const Icon(Icons.timer, color: Color(0xFF1565C0)),
+                      const Icon(Icons.timer, color: ShieldTheme.primary),
                       const SizedBox(width: 8),
                       const Text("Today's Usage", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                       const Spacer(),
@@ -195,8 +208,12 @@ class _TimeLimitsScreenState extends ConsumerState<TimeLimitsScreen> {
                       child: LinearProgressIndicator(
                         value: usagePercent,
                         minHeight: 12,
-                        backgroundColor: Colors.grey.shade200,
-                        color: usagePercent > 0.9 ? Colors.red : usagePercent > 0.7 ? Colors.orange : const Color(0xFF1565C0),
+                        backgroundColor: ShieldTheme.divider,
+                        color: usagePercent > 0.9
+                            ? ShieldTheme.danger
+                            : usagePercent > 0.7
+                                ? ShieldTheme.warning
+                                : ShieldTheme.primary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -205,7 +222,7 @@ class _TimeLimitsScreenState extends ConsumerState<TimeLimitsScreen> {
                         ? 'Time budget exhausted!'
                         : '${_formatMinutes((_totalBudget - _totalUsed).clamp(0, _totalBudget))} remaining',
                       style: TextStyle(
-                        color: usagePercent >= 1.0 ? Colors.red : Colors.grey.shade600,
+                        color: usagePercent >= 1.0 ? ShieldTheme.danger : ShieldTheme.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -265,7 +282,7 @@ class _TimeLimitsScreenState extends ConsumerState<TimeLimitsScreen> {
                           Text(_formatCat(entry.key), style: const TextStyle(fontWeight: FontWeight.w600)),
                           const Spacer(),
                           Text('${_formatMinutes(used)} / ${_formatMinutes(budget)}',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                            style: const TextStyle(fontSize: 12, color: ShieldTheme.textSecondary)),
                         ]),
                         const SizedBox(height: 6),
                         ClipRRect(
@@ -273,8 +290,8 @@ class _TimeLimitsScreenState extends ConsumerState<TimeLimitsScreen> {
                           child: LinearProgressIndicator(
                             value: pct,
                             minHeight: 6,
-                            backgroundColor: Colors.grey.shade200,
-                            color: pct > 0.9 ? Colors.red : const Color(0xFF1565C0),
+                            backgroundColor: ShieldTheme.divider,
+                            color: pct > 0.9 ? ShieldTheme.danger : ShieldTheme.primary,
                           ),
                         ),
                         Slider(

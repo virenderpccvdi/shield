@@ -115,6 +115,30 @@ public class AdGuardClient {
         return java.util.List.of();
     }
 
+    // ── DNS Rewrite rules (PC-05 / PC-06) ────────────────────────────────────
+
+    /**
+     * Add a DNS CNAME rewrite rule.
+     * AdGuard Home API: POST /control/rewrite/add  { "domain": "...", "answer": "..." }
+     * Best-effort: errors are logged and swallowed.
+     */
+    public void setDnsRewrite(String domain, String answer) {
+        if (!enabled) { log.debug("AdGuard disabled — skipping setDnsRewrite({} -> {})", domain, answer); return; }
+        post("/control/rewrite/add", Map.of("domain", domain, "answer", answer));
+        log.debug("DNS rewrite set: {} -> {}", domain, answer);
+    }
+
+    /**
+     * Remove a DNS rewrite rule for the given domain/answer pair.
+     * AdGuard Home API: POST /control/rewrite/delete  { "domain": "...", "answer": "..." }
+     * Best-effort: errors are logged and swallowed.
+     */
+    public void removeDnsRewrite(String domain, String answer) {
+        if (!enabled) { log.debug("AdGuard disabled — skipping removeDnsRewrite({})", domain); return; }
+        post("/control/rewrite/delete", Map.of("domain", domain, "answer", answer));
+        log.debug("DNS rewrite removed: {} -> {}", domain, answer);
+    }
+
     // ── Internal helpers ─────────────────────────────────────────────────────
 
     private void post(String path, Object body) {

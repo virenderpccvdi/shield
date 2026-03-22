@@ -57,15 +57,15 @@ interface DnsRules {
 /* ─── Configs ────────────────────────────────────────── */
 const FILTER_COLORS: Record<string, { bg: string; text: string }> = {
   STRICT:   { bg: '#FFEBEE', text: '#C62828' },
-  MODERATE: { bg: '#FFF8E1', text: '#F57F17' },
-  RELAXED:  { bg: '#E8F5E9', text: '#2E7D32' },
-  CUSTOM:   { bg: '#E3F2FD', text: '#1565C0' },
+  MODERATE: { bg: '#FFF8E1', text: 'warning.main' },
+  RELAXED:  { bg: '#E8F5E9', text: 'success.dark' },
+  CUSTOM:   { bg: '#E3F2FD', text: 'primary.main' },
 };
 const PLAN_COLORS: Record<string, { bg: string; text: string }> = {
   FREE:       { bg: '#F5F5F5', text: '#757575' },
-  BASIC:      { bg: '#E3F2FD', text: '#1565C0' },
+  BASIC:      { bg: '#E3F2FD', text: 'primary.main' },
   PREMIUM:    { bg: '#F3E5F5', text: '#7B1FA2' },
-  ENTERPRISE: { bg: '#FFF8E1', text: '#F57F17' },
+  ENTERPRISE: { bg: '#FFF8E1', text: 'warning.dark' },
 };
 interface AvailablePlan { id: string; name: string; displayName: string; price: number; billingCycle: string; maxProfilesPerCustomer?: number; features?: Record<string, boolean>; }
 
@@ -183,13 +183,13 @@ function DnsRulesDialog({ profile, open, onClose }: { profile: ChildProfile; ope
                           <TableCell>
                             <Chip size="small" label={cat.blocked ? 'Blocked' : 'Allowed'}
                               sx={{ height: 20, fontSize: 10, fontWeight: 600,
-                                bgcolor: cat.blocked ? '#FFEBEE' : '#E8F5E9',
-                                color: cat.blocked ? '#B71C1C' : '#1B5E20' }} />
+                                bgcolor: cat.blocked ? 'error.light' : 'success.light',
+                                color: cat.blocked ? 'error.dark' : 'success.dark' }} />
                           </TableCell>
                           <TableCell>
                             <Switch checked={cat.blocked} size="small"
                               onChange={() => setCategories(p => p.map((c, idx) => idx === i ? { ...c, blocked: !c.blocked } : c))}
-                              sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#E53935' } }} />
+                              sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'error.main' } }} />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -212,7 +212,7 @@ function DnsRulesDialog({ profile, open, onClose }: { profile: ChildProfile; ope
                     value={newBlockDomain} onChange={e => setNewBlockDomain(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addDomain('block')} />
                   <Button variant="outlined" onClick={() => addDomain('block')}
-                    sx={{ whiteSpace: 'nowrap', borderColor: '#B71C1C', color: '#B71C1C', '&:hover': { bgcolor: '#FFEBEE' } }}>
+                    sx={{ whiteSpace: 'nowrap', borderColor: 'error.dark', color: 'error.dark', '&:hover': { bgcolor: 'error.light' } }}>
                     Add Block
                   </Button>
                 </Stack>
@@ -222,14 +222,14 @@ function DnsRulesDialog({ profile, open, onClose }: { profile: ChildProfile; ope
                   ) : blocklist.map(d => (
                     <Stack key={d} direction="row" alignItems="center" justifyContent="space-between"
                       sx={{ py: 0.75, px: 1, borderRadius: 1, '&:hover': { bgcolor: '#FFF5F5' } }}>
-                      <Chip size="small" label={d} sx={{ fontFamily: 'monospace', bgcolor: '#FFEBEE', color: '#B71C1C', fontWeight: 600 }} />
+                      <Chip size="small" label={d} sx={{ fontFamily: 'monospace', bgcolor: 'error.light', color: 'error.dark', fontWeight: 600 }} />
                       <IconButton size="small" onClick={() => setBlocklist(p => p.filter(x => x !== d))}
-                        sx={{ color: '#B71C1C' }}><DeleteIcon fontSize="small" /></IconButton>
+                        sx={{ color: 'error.dark' }}><DeleteIcon fontSize="small" /></IconButton>
                     </Stack>
                   ))}
                 </Box>
                 <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveList('block')}
-                  disabled={saving} sx={{ bgcolor: '#B71C1C', '&:hover': { bgcolor: '#C62828' } }}>
+                  disabled={saving} sx={{ bgcolor: 'error.dark', '&:hover': { filter: 'brightness(1.1)' } }}>
                   Save Blocklist
                 </Button>
               </Box>
@@ -242,7 +242,7 @@ function DnsRulesDialog({ profile, open, onClose }: { profile: ChildProfile; ope
                     value={newAllowDomain} onChange={e => setNewAllowDomain(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addDomain('allow')} />
                   <Button variant="outlined" onClick={() => addDomain('allow')}
-                    sx={{ whiteSpace: 'nowrap', borderColor: '#1B5E20', color: '#1B5E20', '&:hover': { bgcolor: '#E8F5E9' } }}>
+                    sx={{ whiteSpace: 'nowrap', borderColor: 'success.dark', color: 'success.dark', '&:hover': { bgcolor: 'success.light' } }}>
                     Add Allow
                   </Button>
                 </Stack>
@@ -252,14 +252,14 @@ function DnsRulesDialog({ profile, open, onClose }: { profile: ChildProfile; ope
                   ) : allowlist.map(d => (
                     <Stack key={d} direction="row" alignItems="center" justifyContent="space-between"
                       sx={{ py: 0.75, px: 1, borderRadius: 1, '&:hover': { bgcolor: '#F0FFF4' } }}>
-                      <Chip size="small" label={d} sx={{ fontFamily: 'monospace', bgcolor: '#E8F5E9', color: '#1B5E20', fontWeight: 600 }} />
+                      <Chip size="small" label={d} sx={{ fontFamily: 'monospace', bgcolor: 'success.light', color: 'success.dark', fontWeight: 600 }} />
                       <IconButton size="small" onClick={() => setAllowlist(p => p.filter(x => x !== d))}
-                        sx={{ color: '#1B5E20' }}><DeleteIcon fontSize="small" /></IconButton>
+                        sx={{ color: 'success.dark' }}><DeleteIcon fontSize="small" /></IconButton>
                     </Stack>
                   ))}
                 </Box>
                 <Button variant="contained" startIcon={<SaveIcon />} onClick={() => saveList('allow')}
-                  disabled={saving} sx={{ bgcolor: '#1B5E20', '&:hover': { bgcolor: '#2E7D32' } }}>
+                  disabled={saving} sx={{ bgcolor: 'success.dark', '&:hover': { filter: 'brightness(1.1)' } }}>
                   Save Allowlist
                 </Button>
               </Box>
@@ -379,7 +379,7 @@ function DeleteDialog({ open, title, onClose, onConfirm, loading }: {
 }) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle fontWeight={700} sx={{ color: '#B71C1C' }}>Confirm Delete</DialogTitle>
+      <DialogTitle fontWeight={700} sx={{ color: 'error.dark' }}>Confirm Delete</DialogTitle>
       <DialogContent>
         <Typography>{title}</Typography>
       </DialogContent>
@@ -601,8 +601,8 @@ export default function CustomerDetailPage() {
                   </Typography>
                   <Chip size="small" label={status}
                     sx={{ height: 22, fontSize: 11, fontWeight: 600,
-                      bgcolor: status === 'ACTIVE' ? '#E8F5E9' : '#FFEBEE',
-                      color: status === 'ACTIVE' ? '#1B5E20' : '#B71C1C' }} />
+                      bgcolor: status === 'ACTIVE' ? 'success.light' : 'error.light',
+                      color: status === 'ACTIVE' ? 'success.dark' : 'error.dark' }} />
                   <Chip size="small" label={plan}
                     sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: planColor.bg, color: planColor.text }} />
                 </Box>
@@ -641,9 +641,9 @@ export default function CustomerDetailPage() {
                 <Button variant="outlined" size="small"
                   startIcon={status === 'ACTIVE' ? <PauseCircleIcon /> : <CheckCircleIcon />}
                   onClick={toggleSuspend} disabled={actionLoading}
-                  sx={{ borderColor: status === 'ACTIVE' ? '#F57F17' : '#1B5E20',
-                    color: status === 'ACTIVE' ? '#F57F17' : '#1B5E20', fontWeight: 600,
-                    '&:hover': { bgcolor: status === 'ACTIVE' ? '#FFF8E1' : '#E8F5E9' } }}>
+                  sx={{ borderColor: status === 'ACTIVE' ? 'warning.main' : 'success.dark',
+                    color: status === 'ACTIVE' ? 'warning.main' : 'success.dark', fontWeight: 600,
+                    '&:hover': { bgcolor: status === 'ACTIVE' ? 'warning.light' : 'success.light' } }}>
                   {status === 'ACTIVE' ? 'Suspend' : 'Activate'}
                 </Button>
                 {customer.userId && (
@@ -669,8 +669,8 @@ export default function CustomerDetailPage() {
       {/* Stats Row */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
-          { label: 'DNS Queries', value: stats?.totalQueries ?? 0, icon: <DnsIcon />, color: '#1565C0', bg: '#E3F2FD' },
-          { label: 'Blocked', value: stats?.totalBlocks ?? 0, icon: <BlockIcon />, color: '#E53935', bg: '#FFEBEE' },
+          { label: 'DNS Queries', value: stats?.totalQueries ?? 0, icon: <DnsIcon />, color: 'primary.main', bg: 'primary.light' },
+          { label: 'Blocked', value: stats?.totalBlocks ?? 0, icon: <BlockIcon />, color: 'error.main', bg: 'error.light' },
           { label: 'Devices', value: (devices ?? []).length, icon: <DevicesIcon />, color: '#00897B', bg: '#E0F2F1' },
           { label: 'Profiles', value: (profiles ?? []).length, icon: <ChildCareIcon />, color: '#7B1FA2', bg: '#F3E5F5' },
         ].map((s, i) => (
@@ -753,7 +753,7 @@ export default function CustomerDetailPage() {
                         <TableCell>
                           {p.dnsClientId ? (
                             <Tooltip title="Copy DNS hostname">
-                              <Typography variant="caption" sx={{ fontFamily: 'monospace', color: '#1565C0', cursor: 'pointer' }}
+                              <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'primary.main', cursor: 'pointer' }}
                                 onClick={() => { navigator.clipboard.writeText(p.dnsClientId!); setSnack('Copied!'); }}>
                                 {p.dnsClientId}
                               </Typography>
@@ -775,7 +775,7 @@ export default function CustomerDetailPage() {
                             </Tooltip>
                             <Tooltip title="Delete Profile">
                               <IconButton size="small" onClick={() => setDeleteProfileOpen(p)}
-                                sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFEBEE' } }}>
+                                sx={{ color: 'error.main', '&:hover': { bgcolor: 'error.light' } }}>
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
@@ -836,7 +836,7 @@ export default function CustomerDetailPage() {
                       <TableCell>
                         <Tooltip title="Remove Device">
                           <IconButton size="small" onClick={() => setDeleteDeviceOpen(d)}
-                            sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFEBEE' } }}>
+                            sx={{ color: 'error.main', '&:hover': { bgcolor: 'error.light' } }}>
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>

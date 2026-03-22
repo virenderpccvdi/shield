@@ -62,6 +62,12 @@ management:
       prometheus:
         enabled: true
 
+shield:
+  ai:
+    service-url: ${SHIELD_AI_URL:http://localhost:8291}
+  notification:
+    service-url: ${SHIELD_NOTIFICATION_URL:http://localhost:8286}
+
 logging:
   level:
     com.rstglobal.shield.analytics: DEBUG

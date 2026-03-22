@@ -34,6 +34,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import LoadingPage from '../../components/LoadingPage';
+import { alpha, useTheme } from '@mui/material/styles';
 
 interface AuditEntry {
   id: string;
@@ -126,6 +127,7 @@ function exportCSV(entries: AuditEntry[]) {
 }
 
 function ExpandableDetails({ details }: { details: Record<string, unknown> }) {
+  const theme = useTheme();
   const [open, setOpen] = useState(false);
   const entries = Object.entries(details);
   if (entries.length === 0) return <Typography variant="caption" color="text.disabled">—</Typography>;
@@ -141,14 +143,14 @@ function ExpandableDetails({ details }: { details: Record<string, unknown> }) {
           <Chip size="small" label={open ? 'Show less' : `+${entries.length - 2} more`}
             onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
             icon={open ? <KeyboardArrowUpIcon style={{ fontSize: 12 }} /> : <KeyboardArrowDownIcon style={{ fontSize: 12 }} />}
-            sx={{ height: 20, fontSize: 10, cursor: 'pointer', bgcolor: '#EDE7F6', color: '#4A148C', border: 'none' }} />
+            sx={{ height: 20, fontSize: 10, cursor: 'pointer', bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', border: 'none' }} />
         )}
       </Box>
       <Collapse in={open}>
         <Box sx={{ mt: 1, bgcolor: 'grey.50', borderRadius: 1, p: 1.5, fontFamily: 'monospace', fontSize: 11, overflowX: 'auto' }}>
           {entries.map(([k, v]) => (
             <Box key={k} sx={{ mb: 0.25, display: 'flex', gap: 0.5 }}>
-              <Typography component="span" sx={{ fontWeight: 700, color: '#6A1B9A', fontSize: 11, flexShrink: 0 }}>{k}:</Typography>
+              <Typography component="span" sx={{ fontWeight: 700, color: 'primary.dark', fontSize: 11, flexShrink: 0 }}>{k}:</Typography>
               <Typography component="span" sx={{ fontSize: 11, wordBreak: 'break-all', color: 'text.secondary' }}>{String(v)}</Typography>
             </Box>
           ))}
@@ -159,6 +161,7 @@ function ExpandableDetails({ details }: { details: Record<string, unknown> }) {
 }
 
 function AuditRow({ entry, idx }: { entry: AuditEntry; idx: number }) {
+  const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const cfg = ACTION_CONFIG[entry.action] || DEFAULT_CONFIG;
   const hasDetails = entry.details && Object.keys(entry.details).length > 0;
@@ -173,7 +176,7 @@ function AuditRow({ entry, idx }: { entry: AuditEntry; idx: number }) {
           '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } },
           animation: `fadeIn 0.2s ease ${(idx % 20) * 0.02}s both`,
           '& td': { borderBottom: expanded ? 'none' : undefined },
-          bgcolor: expanded ? 'rgba(92,107,192,0.03)' : undefined,
+          bgcolor: expanded ? alpha(theme.palette.primary.main, 0.03) : undefined,
         }}
       >
         {/* Timestamp */}
@@ -208,7 +211,7 @@ function AuditRow({ entry, idx }: { entry: AuditEntry; idx: number }) {
         <TableCell sx={{ width: 160 }}>
           {entry.userName ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Avatar sx={{ width: 24, height: 24, fontSize: 11, bgcolor: '#5C6BC0' }}>
+              <Avatar sx={{ width: 24, height: 24, fontSize: 11, bgcolor: 'primary.main' }}>
                 {entry.userName[0]?.toUpperCase()}
               </Avatar>
               <Typography variant="body2" fontSize={12} noWrap sx={{ maxWidth: 110 }}>
@@ -252,7 +255,7 @@ function AuditRow({ entry, idx }: { entry: AuditEntry; idx: number }) {
       {/* Expanded details row */}
       {hasDetails && (
         <TableRow>
-          <TableCell colSpan={6} sx={{ py: 0, border: expanded ? undefined : 'none !important', bgcolor: 'rgba(92,107,192,0.03)' }}>
+          <TableCell colSpan={6} sx={{ py: 0, border: expanded ? undefined : 'none !important', bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <Box sx={{ py: 1.5, px: 2 }}>
                 <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10, mb: 1, display: 'block' }}>
@@ -269,6 +272,7 @@ function AuditRow({ entry, idx }: { entry: AuditEntry; idx: number }) {
 }
 
 export default function AuditLogPage() {
+  const theme = useTheme();
   const [actionFilter, setActionFilter] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -316,13 +320,13 @@ export default function AuditLogPage() {
         icon={<HistoryIcon />}
         title="Audit Log"
         subtitle={`${total.toLocaleString()} event${total !== 1 ? 's' : ''} tracked`}
-        iconColor="#5C6BC0"
+        iconColor={theme.palette.primary.main}
         action={
           <Stack direction="row" spacing={1} alignItems="center">
             <FormControlLabel
               control={
                 <Switch size="small" checked={autoRefresh} onChange={e => handleAutoRefreshToggle(e.target.checked)}
-                  sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#5C6BC0' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#5C6BC0' } }}
+                  sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: 'primary.main' } }}
                 />
               }
               label={<Typography variant="caption" color="text.secondary">Live</Typography>}
@@ -374,7 +378,7 @@ export default function AuditLogPage() {
             {autoRefresh && (
               <Chip size="small" icon={<RefreshIcon style={{ fontSize: 12 }} />}
                 label="Auto-refreshing every 30s"
-                sx={{ bgcolor: '#E8EAF6', color: '#3949AB', fontWeight: 600, fontSize: 11 }} />
+                sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontWeight: 600, fontSize: 11 }} />
             )}
           </Stack>
         </Box>

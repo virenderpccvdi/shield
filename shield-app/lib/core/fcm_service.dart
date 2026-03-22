@@ -7,9 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'auth_state.dart';
 import 'constants.dart';
+import '../features/child_app/video_checkin_screen.dart';
 
 /// Top-level handler for background messages (must be a top-level function).
 @pragma('vm:entry-point')
@@ -147,7 +149,12 @@ class FcmService {
       initSettings,
       onDidReceiveNotificationResponse: (details) {
         debugPrint('FCM: Local notification tapped: ${details.payload}');
-        // Handle navigation based on payload
+        if (details.payload != null) {
+          try {
+            final data = jsonDecode(details.payload!) as Map<String, dynamic>;
+            _navigateForData(data);
+          } catch (_) {}
+        }
       },
     );
 
@@ -189,6 +196,22 @@ class FcmService {
       return;
     }
 
+    // CS-01 Live Video Check-in request — show accept/decline dialog
+    if (message.data['type'] == 'VIDEO_CHECKIN_REQUEST') {
+      _showVideoCheckinRequestDialog(message.data);
+      return;
+    }
+
+    // FC-02: Screen time request decision — show coloured snackbar
+    if (message.data['type'] == 'SCREEN_TIME_APPROVED') {
+      _showScreenTimeSnackbar(message.data, approved: true);
+      return;
+    }
+    if (message.data['type'] == 'SCREEN_TIME_DENIED') {
+      _showScreenTimeSnackbar(message.data, approved: false);
+      return;
+    }
+
     final notification = message.notification;
     if (notification == null) return;
 
@@ -227,7 +250,133 @@ class FcmService {
     debugPrint('FCM message opened app: ${message.data}');
     if (message.data['type'] == 'APP_UPDATE') {
       _showAppUpdateDialog(message.data);
+      return;
     }
+    // CS-01: tapping a VIDEO_CHECKIN_REQUEST notification opens the dialog
+    if (message.data['type'] == 'VIDEO_CHECKIN_REQUEST') {
+      _showVideoCheckinRequestDialog(message.data);
+      return;
+    }
+    // FC-02: tapping a screen-time decision notification shows a snackbar
+    if (message.data['type'] == 'SCREEN_TIME_APPROVED') {
+      _showScreenTimeSnackbar(message.data, approved: true);
+      return;
+    }
+    if (message.data['type'] == 'SCREEN_TIME_DENIED') {
+      _showScreenTimeSnackbar(message.data, approved: false);
+      return;
+    }
+    _navigateForData(message.data);
+  }
+
+  /// Navigate to the appropriate screen based on notification data.
+  void _navigateForData(Map<String, dynamic> data) {
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null) return;
+
+    final type       = data['type'] as String? ?? '';
+    final profileId  = data['profileId'] as String?;
+    final alertId    = data['alertId'] as String?;
+
+    switch (type) {
+      case 'SOS_ALERT':
+      case 'PANIC_ALERT':
+        // Navigate to SOS alerts tab
+        _go(ctx, '/alerts/sos');
+        break;
+
+      case 'GEOFENCE_BREACH':
+      case 'GEOFENCE_BREACH_HIGH':
+      case 'LOCATION_SPOOFING':
+        // Navigate to live map if we have a profileId, otherwise alerts
+        if (profileId != null && profileId.isNotEmpty) {
+          _go(ctx, '/map?profileId=$profileId');
+        } else {
+          _go(ctx, '/alerts');
+        }
+        break;
+
+      case 'TIME_LIMIT_REACHED':
+      case 'SCREEN_TIME_WARNING':
+        if (profileId != null && profileId.isNotEmpty) {
+          _go(ctx, '/family/$profileId/time-limits');
+        } else {
+          _go(ctx, '/dashboard');
+        }
+        break;
+
+      case 'GOAL_COMPLETED':
+      case 'REWARD_EARNED':
+        if (profileId != null && profileId.isNotEmpty) {
+          _go(ctx, '/family/$profileId/rewards');
+        } else {
+          _go(ctx, '/dashboard');
+        }
+        break;
+
+      case 'WEEKLY_REPORT':
+      case 'REPORT_READY':
+        if (profileId != null && profileId.isNotEmpty) {
+          _go(ctx, '/family/$profileId/reports');
+        } else {
+          _go(ctx, '/dashboard');
+        }
+        break;
+
+      case 'DNS_ALERT':
+      case 'BLOCKED_DOMAIN':
+        if (profileId != null && profileId.isNotEmpty) {
+          _go(ctx, '/family/$profileId/dns-rules');
+        } else {
+          _go(ctx, '/alerts');
+        }
+        break;
+
+      default:
+        if (alertId != null) {
+          _go(ctx, '/alerts');
+        }
+        break;
+    }
+  }
+
+  // ignore: avoid_unused_parameters
+  void _go(BuildContext _, String route) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = navigatorKey.currentContext;
+      if (ctx == null) return;
+      try {
+        GoRouter.of(ctx).go(route);
+      } catch (e) {
+        debugPrint('FCM: Navigation to $route failed: $e');
+      }
+    });
+  }
+
+  /// CS-01: Show the video check-in accept/decline dialog to the child.
+  void _showVideoCheckinRequestDialog(Map<String, dynamic> data) {
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null) return;
+
+    final sessionId    = data['sessionId']    as String? ?? '';
+    final profileId    = data['profileId']    as String? ?? '';
+    final parentUserId = data['parentUserId'] as String? ?? '';
+
+    if (sessionId.isEmpty) {
+      debugPrint('FCM: VIDEO_CHECKIN_REQUEST missing sessionId — ignored');
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx2 = navigatorKey.currentContext;
+      if (ctx2 == null) return;
+      showVideoCheckinRequestDialog(
+        ctx2,
+        sessionId:    sessionId,
+        profileId:    profileId,
+        parentUserId: parentUserId,
+      );
+    });
   }
 
   void _showAppUpdateDialog(Map<String, dynamic> data) {
@@ -259,6 +408,29 @@ class FcmService {
         ],
       ),
     );
+  }
+
+  /// FC-02: Show a snackbar to the child when the parent approves or denies their request.
+  void _showScreenTimeSnackbar(Map<String, dynamic> data, {required bool approved}) {
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null) return;
+
+    final minutesStr = data['minutes'] as String? ?? '';
+    final message = approved
+        ? 'Your parent approved${minutesStr.isNotEmpty ? " $minutesStr extra minutes!" : " your screen time request!"}'
+        : 'Your screen time request was not approved.';
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx2 = navigatorKey.currentContext;
+      if (ctx2 == null) return;
+      ScaffoldMessenger.of(ctx2).showSnackBar(SnackBar(
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
+        backgroundColor: approved ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 5),
+      ));
+    });
   }
 
   Future<void> _registerTokenWithBackend({

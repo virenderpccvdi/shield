@@ -292,7 +292,7 @@ class _ProtectionPage extends StatelessWidget {
         children: [
           _IconCircle(
             icon: Icons.shield_rounded,
-            color: const Color(0xFF2E7D32),
+            color: ShieldTheme.success,
             size: 72,
           ),
           const SizedBox(height: 32),
@@ -321,9 +321,9 @@ class _ProtectionPage extends StatelessWidget {
             spacing: 10,
             runSpacing: 10,
             children: const [
-              _FeatureChip(label: 'DNS Filtering', icon: Icons.dns_rounded, color: Color(0xFF1565C0)),
-              _FeatureChip(label: 'Screen Time', icon: Icons.access_time_rounded, color: Color(0xFF1565C0)),
-              _FeatureChip(label: 'AI Insights', icon: Icons.psychology_rounded, color: Color(0xFFBF360C)),
+              _FeatureChip(label: 'DNS Filtering', icon: Icons.dns_rounded, color: ShieldTheme.primary),
+              _FeatureChip(label: 'Screen Time', icon: Icons.access_time_rounded, color: ShieldTheme.warning),
+              _FeatureChip(label: 'AI Insights', icon: Icons.psychology_rounded, color: ShieldTheme.success),
             ],
           ),
         ],
@@ -345,7 +345,7 @@ class _ConnectDevicePage extends StatelessWidget {
         children: [
           _IconCircle(
             icon: Icons.smartphone_rounded,
-            color: const Color(0xFF00695C),
+            color: ShieldTheme.success,
             size: 72,
           ),
           const SizedBox(height: 32),
@@ -372,20 +372,20 @@ class _ConnectDevicePage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF00695C).withOpacity(0.06),
+              color: ShieldTheme.success.withOpacity(0.06),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF00695C).withOpacity(0.2)),
+              border: Border.all(color: ShieldTheme.success.withOpacity(0.2)),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF00695C), size: 28),
+                Icon(Icons.qr_code_scanner_rounded, color: ShieldTheme.success, size: 28),
                 SizedBox(width: 14),
                 Flexible(
                   child: Text(
                     'A QR code will be generated after you add your first child',
                     style: TextStyle(
-                      color: Color(0xFF00695C),
+                      color: ShieldTheme.success,
                       fontSize: 13,
                       height: 1.5,
                       fontWeight: FontWeight.w500,

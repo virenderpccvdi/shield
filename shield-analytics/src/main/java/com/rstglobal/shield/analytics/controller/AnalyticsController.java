@@ -1,7 +1,11 @@
 package com.rstglobal.shield.analytics.controller;
 
+import com.rstglobal.shield.analytics.dto.response.AppUsageEntry;
 import com.rstglobal.shield.analytics.dto.response.CategoryBreakdown;
+import com.rstglobal.shield.analytics.dto.response.CustomersSummaryResponse;
 import com.rstglobal.shield.analytics.dto.response.DailyUsagePoint;
+import com.rstglobal.shield.analytics.dto.response.HourlyUsagePoint;
+import com.rstglobal.shield.analytics.dto.response.TopAppEntry;
 import com.rstglobal.shield.analytics.dto.response.TopDomainEntry;
 import com.rstglobal.shield.analytics.dto.response.UsageStatsResponse;
 import com.rstglobal.shield.analytics.entity.DnsQueryLog;
@@ -154,6 +158,40 @@ public class AnalyticsController {
         int safeDays = Math.min(Math.max(days, 1), 365);
         List<DailyUsagePoint> breakdown = analyticsService.getPlatformDailyBreakdown(safeDays);
         return ResponseEntity.ok(breakdown);
+    }
+
+    /**
+     * GET /api/v1/analytics/{profileId}/top-apps?period=week
+     * Returns top apps by query count for known app domains (last 7 days if no period param).
+     * Apps are aggregated across all related sub-domains (e.g. ytimg.com counts toward YouTube).
+     */
+    @GetMapping("/{profileId}/top-apps")
+    public ResponseEntity<List<TopAppEntry>> getTopApps(
+            @PathVariable UUID profileId,
+            @RequestParam(defaultValue = "week") String period,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+
+        validateAccess(profileId, userId, userRole);
+        List<TopAppEntry> apps = analyticsService.getTopApps(profileId, period);
+        return ResponseEntity.ok(apps);
+    }
+
+    /**
+     * GET /api/v1/analytics/profiles/{profileId}/app-usage?period=day
+     * Returns an app-level usage breakdown for a child profile (CS-06).
+     * period: day | week | month
+     */
+    @GetMapping("/profiles/{profileId}/app-usage")
+    public ResponseEntity<List<AppUsageEntry>> getAppUsageReport(
+            @PathVariable UUID profileId,
+            @RequestParam(defaultValue = "week") String period,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+
+        validateAccess(profileId, userId, userRole);
+        List<AppUsageEntry> report = analyticsService.getAppUsageReport(profileId, period);
+        return ResponseEntity.ok(report);
     }
 
     // ── PDF Report ─────────────────────────────────────────────────────────────
@@ -367,6 +405,42 @@ public class AnalyticsController {
             @RequestHeader(value = "X-Tenant-Id", required = false) String headerTenantId) {
         requireAdminOrMatchingTenant(userRole, headerTenantId, tenantId);
         return ResponseEntity.ok(socialMonitoringService.getUnreadAlertsForTenant(tenantId));
+    }
+
+    /** GET /api/v1/analytics/tenant/{tenantId}/top-domains?period=week&limit=10 */
+    @GetMapping("/tenant/{tenantId}/top-domains")
+    public ResponseEntity<List<TopDomainEntry>> getTenantTopBlockedDomains(
+            @PathVariable UUID tenantId,
+            @RequestParam(defaultValue = "week") String period,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String headerTenantId) {
+        requireAdminOrMatchingTenant(userRole, headerTenantId, tenantId);
+        int safeLimit = Math.min(Math.max(limit, 1), 100);
+        return ResponseEntity.ok(analyticsService.getTenantTopBlockedDomains(tenantId, period, safeLimit));
+    }
+
+    /** GET /api/v1/analytics/platform/customers-summary (GLOBAL_ADMIN only) */
+    @GetMapping("/platform/customers-summary")
+    public ResponseEntity<CustomersSummaryResponse> getCustomersSummary(
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        if (!"GLOBAL_ADMIN".equalsIgnoreCase(userRole)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "GLOBAL_ADMIN role required");
+        }
+        return ResponseEntity.ok(analyticsService.getCustomersSummary());
+    }
+
+    /** GET /api/v1/analytics/tenant/{tenantId}/hourly?date=YYYY-MM-DD */
+    @GetMapping("/tenant/{tenantId}/hourly")
+    public ResponseEntity<List<HourlyUsagePoint>> getTenantHourly(
+            @PathVariable UUID tenantId,
+            @RequestParam(required = false) String date,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String headerTenantId) {
+        requireAdminOrMatchingTenant(userRole, headerTenantId, tenantId);
+        String targetDate = (date != null && !date.isBlank()) ? date
+                : java.time.LocalDate.now().toString();
+        return ResponseEntity.ok(analyticsService.getTenantHourlyBreakdown(tenantId, targetDate));
     }
 
     private void requireAdmin(String role) {

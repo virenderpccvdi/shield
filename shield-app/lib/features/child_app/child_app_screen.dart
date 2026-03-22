@@ -13,9 +13,18 @@ import '../../core/api_client.dart';
 import '../../core/auth_state.dart';
 import '../../core/app_lock_service.dart';
 import '../../core/app_blocking_service.dart';
+import '../../core/battery_service.dart';
 import '../../core/dns_vpn_service.dart';
 import '../../core/shield_widgets.dart';
+import '../../core/shake_detector_service.dart';
+import '../../app/theme.dart';
+import 'checkin_button.dart';
+import 'home_shortcut_widget.dart';
 import 'pin_verify_dialog.dart';
+import 'screen_time_budget_widget.dart';
+import 'screen_time_request_screen.dart';
+import 'speed_dial_screen.dart';
+import 'ai_chat_screen.dart' show AiChatScreen;
 
 final childUsageSummaryProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, profileId) async {
   final client = ref.read(dioProvider);
@@ -101,6 +110,8 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
   Timer? _heartbeatTimer;
   Timer? _locationTimer;
   Timer? _appsTimer;
+  final ShakeDetectorService _shakeDetector = ShakeDetectorService();
+  final BatteryService _batteryService = BatteryService();
 
   @override
   void initState() {
@@ -117,6 +128,11 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
     _syncInstalledApps();
     _appsTimer = Timer.periodic(const Duration(minutes: 30), (_) => _syncInstalledApps());
     _startAppBlocking();
+    // CS-02: Panic shake gesture — start listening for rapid shakes
+    _shakeDetector.setOnShakeSos(_sendShakeSos);
+    _shakeDetector.start();
+    // CS-04: Start battery alert reporting
+    _startBatteryService();
   }
 
   @override
@@ -126,9 +142,19 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
     _locationTimer?.cancel();
     _appsTimer?.cancel();
     _refreshTimer?.cancel();
+    _shakeDetector.stop();
+    _batteryService.stop();
     // Note: VPN service is intentionally NOT stopped here — it should keep running
     // even if the app goes to background so filtering stays active.
     super.dispose();
+  }
+
+  /// CS-04: Start the battery level reporting service.
+  void _startBatteryService() {
+    final profileId = ref.read(authProvider).childProfileId ?? '';
+    if (profileId.isEmpty) return;
+    final dio = ref.read(dioProvider);
+    _batteryService.start(dio: dio, profileId: profileId);
   }
 
   Future<void> _loadInitialState() async {
@@ -360,17 +386,17 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
-          title: const Row(children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
-            SizedBox(width: 8),
-            Text('Send SOS Alert?', style: TextStyle(fontWeight: FontWeight.w800)),
+          title: Row(children: [
+            Icon(Icons.warning_amber_rounded, color: ShieldTheme.danger, size: 28),
+            const SizedBox(width: 8),
+            const Text('Send SOS Alert?', style: TextStyle(fontWeight: FontWeight.w800)),
           ]),
           content: const Text('This will immediately alert your parents with your current location. Only use in a real emergency.'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              style: FilledButton.styleFrom(backgroundColor: ShieldTheme.danger),
               child: const Text('Yes, Send SOS'),
             ),
           ],
@@ -394,6 +420,38 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
       setState(() { _sosResult = '✓ SOS sent! Your family has been alerted.'; });
     } catch (e) {
       setState(() { _sosResult = 'Failed to send SOS. Please try again.'; });
+    } finally {
+      if (mounted) setState(() => _sosSending = false);
+    }
+  }
+
+  /// CS-02: Triggered automatically when the shake gesture is detected.
+  /// Posts an SOS with triggerMethod=SHAKE and shows a brief snackbar.
+  Future<void> _sendShakeSos() async {
+    if (_sosSending) return; // already in progress
+    setState(() { _sosSending = true; _sosResult = null; });
+    try {
+      final position = await _getCurrentPosition().catchError((_) => null);
+      final client = ref.read(dioProvider);
+      final profileId = ref.read(authProvider).childProfileId;
+      await client.post('/location/child/panic', data: {
+        'profileId': profileId,
+        'latitude': position?.latitude ?? 0.0,
+        'longitude': position?.longitude ?? 0.0,
+        'message': 'Child SOS — shake gesture triggered',
+      });
+      if (mounted) {
+        setState(() => _sosResult = '\u2713 SOS sent! Your family has been alerted.');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('SOS sent via shake gesture!'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 4),
+        ));
+      }
+    } catch (_) {
+      if (mounted) setState(() => _sosResult = 'SOS failed. Please use the button.');
     } finally {
       if (mounted) setState(() => _sosSending = false);
     }
@@ -428,9 +486,12 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                 _checkedInAt = null;
                 _checkingIn = false;
               });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Checked out successfully'), backgroundColor: Colors.orange),
-              );
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: const Text('Checked out successfully'),
+                backgroundColor: ShieldTheme.warning,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ));
             }
           } catch (_) {
             if (mounted) setState(() => _checkingIn = false);
@@ -445,9 +506,12 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
         if (position == null) {
           if (mounted) {
             setState(() => _checkingIn = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Could not get location. Please enable location access.'), backgroundColor: Colors.orange),
-            );
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: const Text('Could not get location. Please enable location access.'),
+              backgroundColor: ShieldTheme.warning,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ));
           }
           return;
         }
@@ -468,16 +532,22 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
             _checkedInAt = now;
             _checkingIn = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('✓ Checked in! Parent notified.'), backgroundColor: Colors.green),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('Checked in! Parent notified.'),
+            backgroundColor: ShieldTheme.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
         }
       } catch (e) {
         if (mounted) {
           setState(() => _checkingIn = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Check-in failed: $e'), backgroundColor: Colors.red),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Check-in failed: $e'),
+            backgroundColor: ShieldTheme.danger,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
         }
       }
     }
@@ -560,7 +630,7 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: _isCheckedIn ? Colors.green.shade700 : Colors.white24,
+                              color: _isCheckedIn ? ShieldTheme.success : Colors.white24,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(_isCheckedIn ? '● In' : '○ Out',
@@ -576,7 +646,7 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 // Deep blue always — white text is always readable on this header
-                                colors: [Color(0xFF1565C0), Color(0xFF0D47A1), Color(0xFF1A237E)],
+                                colors: [ShieldTheme.primary, ShieldTheme.primaryDark, Color(0xFF1A237E)],
                               ),
                             ),
                           ),
@@ -614,6 +684,10 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                           loading: _checkingIn,
                           onTap: _checkingIn ? null : _handleCheckIn,
                         ),
+                        const SizedBox(height: 12),
+
+                        // ── FC-03: "I'm Here" one-tap check-in ───────────────
+                        const CheckInButton(),
                         const SizedBox(height: 16),
 
                         // ── Quick Stats Row ──────────────────────────────────
@@ -630,6 +704,15 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                         ),
                         const SizedBox(height: 16),
 
+                        // ── FC-02: Request Screen Time ───────────────────────
+                        _RequestTimeCard(onTap: () => showScreenTimeRequestSheet(context)),
+                        const SizedBox(height: 16),
+
+                        // ── CS-11: Daily Screen Time Budget ──────────────────
+                        if (profileId.isNotEmpty)
+                          ScreenTimeBudgetWidget(profileId: profileId),
+                        if (profileId.isNotEmpty) const SizedBox(height: 16),
+
                         // ── Tasks ────────────────────────────────────────────
                         _TasksCard(tasksAsync: tasks, profileId: profileId),
                         const SizedBox(height: 16),
@@ -640,6 +723,22 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
 
                         // ── Safe Zones ───────────────────────────────────────
                         _GeofenceCard(profileId: profileId),
+                        const SizedBox(height: 16),
+
+                        // ── CS-03: Speed Dial / Emergency Contacts ─────────────
+                        _SpeedDialCard(profileId: profileId),
+                        const SizedBox(height: 16),
+
+                        // ── CS-10: Quick Panic Button ─────────────────────────
+                        const PanicButtonWidget(),
+                        const SizedBox(height: 16),
+
+                        // ── Achievements ──────────────────────────────────────
+                        const _AchievementsCard(),
+                        const SizedBox(height: 16),
+
+                        // ── Learning Buddy (AI Chat) ──────────────────────────
+                        const _LearningBuddyCard(),
                         const SizedBox(height: 80),
                       ]),
                     ),
@@ -667,7 +766,7 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                 Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
                 const ListTile(title: Text('Parent Options', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18))),
                 ListTile(
-                  leading: const CircleAvatar(backgroundColor: Color(0xFFFFEBEE), child: Icon(Icons.exit_to_app, color: Colors.red)),
+                  leading: CircleAvatar(backgroundColor: ShieldTheme.danger.withOpacity(0.1), child: Icon(Icons.exit_to_app, color: ShieldTheme.danger)),
                   title: const Text('Exit Child Mode', style: TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: const Text('Remove parental controls from this device'),
                   onTap: () => Navigator.pop(context, 'exit'),
@@ -704,7 +803,7 @@ class _ChildLoadingSkeleton extends StatelessWidget {
           expandedHeight: 140,
           pinned: true,
           automaticallyImplyLeading: false,
-          backgroundColor: const Color(0xFF1565C0),
+          backgroundColor: ShieldTheme.primary,
         ),
         SliverPadding(
           padding: const EdgeInsets.all(16),
@@ -729,6 +828,56 @@ class _ChildLoadingSkeleton extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// FC-02: Compact card that opens the screen-time request bottom sheet.
+class _RequestTimeCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _RequestTimeCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.timer_outlined, color: Color(0xFF2E7D32), size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Request More Screen Time',
+                    style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text('Ask your parent for extra time',
+                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -765,10 +914,10 @@ class _SosButton extends StatelessWidget {
                 height: 130,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.red.shade600,
+                  color: ShieldTheme.danger,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.red.withOpacity(0.3 + controller.value * 0.3),
+                      color: ShieldTheme.danger.withOpacity(0.3 + controller.value * 0.3),
                       blurRadius: 20 + controller.value * 20,
                       spreadRadius: 2 + controller.value * 6,
                     ),
@@ -794,13 +943,13 @@ class _SosButton extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: result!.contains('✓') ? Colors.green.shade50 : Colors.red.shade50,
+                color: result!.contains('✓') ? ShieldTheme.success.withOpacity(0.08) : ShieldTheme.danger.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(result!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: result!.contains('✓') ? Colors.green.shade700 : Colors.red.shade700,
+                  color: result!.contains('✓') ? ShieldTheme.success : ShieldTheme.danger,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
@@ -825,18 +974,13 @@ class _CheckInCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isCheckedIn
-              ? [const Color(0xFF1B5E20), const Color(0xFF2E7D32)]   // green — checked in
-              : [const Color(0xFF1565C0), const Color(0xFF0D47A1)],  // blue  — not checked in
-          // Always use deep saturated colours — white text must be readable on this card
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: isCheckedIn
+            ? ShieldTheme.safeGradient    // green — checked in
+            : ShieldTheme.primaryGradient, // blue — not checked in
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: (isCheckedIn ? Colors.green : Colors.blue).withOpacity(0.25),
+            color: (isCheckedIn ? ShieldTheme.success : ShieldTheme.primary).withOpacity(0.25),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -886,7 +1030,7 @@ class _CheckInCard extends StatelessWidget {
               onPressed: onTap,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: isCheckedIn ? Colors.green.shade700 : const Color(0xFF1565C0),
+                foregroundColor: isCheckedIn ? ShieldTheme.success : ShieldTheme.primary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 elevation: 0,
@@ -946,9 +1090,9 @@ class _StatsRow extends StatelessWidget {
           Row(children: [
             Expanded(child: _StatTile(icon: Icons.dns_rounded, label: 'Requests', value: '$queries', color: colorScheme.primary)),
             const SizedBox(width: 10),
-            Expanded(child: _StatTile(icon: Icons.block_rounded, label: 'Blocked', value: '$blockPct%', color: Colors.red.shade400)),
+            Expanded(child: _StatTile(icon: Icons.block_rounded, label: 'Blocked', value: '$blockPct%', color: ShieldTheme.dangerLight)),
             const SizedBox(width: 10),
-            Expanded(child: _StatTile(icon: Icons.timer_rounded, label: 'Screen', value: screenMins > 0 ? '${screenMins}m' : '--', color: Colors.orange.shade600)),
+            Expanded(child: _StatTile(icon: Icons.timer_rounded, label: 'Screen', value: screenMins > 0 ? '${screenMins}m' : '--', color: ShieldTheme.warning)),
           ]),
         ],
       ),
@@ -1016,27 +1160,25 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
       await client.patch('/rewards/tasks/$id/complete');
       final pts = task['points'] as int? ?? 0;
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Task completed! +$pts points 🎉'),
-            backgroundColor: Colors.green.shade700,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Task completed! +$pts points'),
+          backgroundColor: ShieldTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 2),
+        ));
         ref.invalidate(childTasksProvider(widget.profileId));
       }
     } catch (e) {
       // Revert optimistic update on failure
       if (mounted) {
         setState(() => _optimistic.remove(id));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Could not complete task. Please try again.'),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Could not complete task. Please try again.'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } finally {
       if (mounted) setState(() => _completing.remove(id));
@@ -1066,8 +1208,8 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.amber.shade50, borderRadius: BorderRadius.circular(10)),
-                  child: Icon(Icons.emoji_events_rounded, color: Colors.amber.shade700, size: 20),
+                  decoration: BoxDecoration(color: ShieldTheme.warning.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.emoji_events_rounded, color: ShieldTheme.warning, size: 20),
                 ),
                 const SizedBox(width: 10),
                 Expanded(child: Text('My Tasks', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Theme.of(context).colorScheme.onSurface))),
@@ -1079,13 +1221,13 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: done == total ? Colors.green.shade50 : Colors.blue.shade50,
+                        color: done == total ? ShieldTheme.success.withOpacity(0.08) : ShieldTheme.primary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: done == total ? Colors.green.shade200 : Colors.blue.shade100),
+                        border: Border.all(color: done == total ? ShieldTheme.success.withOpacity(0.3) : ShieldTheme.primary.withOpacity(0.2)),
                       ),
                       child: Text('$done/$total done',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
-                              color: done == total ? Colors.green.shade700 : Colors.blue.shade700)),
+                              color: done == total ? ShieldTheme.success : ShieldTheme.primary)),
                     );
                   },
                   orElse: () => const SizedBox.shrink(),
@@ -1123,7 +1265,7 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [Colors.amber.shade400, Colors.orange.shade400]),
+                          gradient: LinearGradient(colors: [ShieldTheme.warning, Color(0xFFE65100)]),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(children: [
@@ -1150,26 +1292,26 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
                           margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: done ? Colors.green.shade50 : Theme.of(context).colorScheme.surfaceContainerHighest,
+                            color: done ? ShieldTheme.success.withOpacity(0.07) : Theme.of(context).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                                color: done ? Colors.green.shade200 : Colors.grey.shade200,
+                                color: done ? ShieldTheme.success.withOpacity(0.3) : Colors.grey.shade200,
                                 width: done ? 1.5 : 1),
                           ),
                           child: Row(children: [
                             Container(
                               width: 28, height: 28,
                               decoration: BoxDecoration(
-                                color: done ? Colors.green.shade100 : Colors.grey.shade100,
+                                color: done ? ShieldTheme.success.withOpacity(0.15) : Colors.grey.shade100,
                                 shape: BoxShape.circle,
                               ),
                               child: isCompleting
                                   ? Padding(
                                       padding: const EdgeInsets.all(5),
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.green.shade600),
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: ShieldTheme.successLight),
                                     )
                                   : Icon(done ? Icons.check_rounded : Icons.circle_outlined,
-                                        color: done ? Colors.green.shade700 : Colors.grey.shade400, size: 18),
+                                        color: done ? ShieldTheme.success : Colors.grey.shade400, size: 18),
                             ),
                             const SizedBox(width: 12),
                             Expanded(child: Text(
@@ -1185,21 +1327,21 @@ class _TasksCardState extends ConsumerState<_TasksCard> {
                               Padding(
                                 padding: const EdgeInsets.only(right: 6),
                                 child: Text('Tap to complete',
-                                  style: TextStyle(fontSize: 10, color: Colors.blue.shade400, fontWeight: FontWeight.w500)),
+                                  style: TextStyle(fontSize: 10, color: ShieldTheme.primaryLight, fontWeight: FontWeight.w500)),
                               ),
                             if (pts > 0)
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: done ? Colors.green.shade100 : Colors.amber.shade100,
+                                  color: done ? ShieldTheme.success.withOpacity(0.12) : ShieldTheme.warning.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                                   Icon(Icons.star_rounded, size: 12,
-                                      color: done ? Colors.green.shade600 : Colors.amber.shade700),
+                                      color: done ? ShieldTheme.successLight : ShieldTheme.warning),
                                   const SizedBox(width: 3),
                                   Text('$pts', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800,
-                                      color: done ? Colors.green.shade700 : Colors.amber.shade800)),
+                                      color: done ? ShieldTheme.success : ShieldTheme.warning)),
                                 ]),
                               ),
                           ]),
@@ -1232,7 +1374,7 @@ class _BatteryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = level < 20 ? Colors.red.shade300 : level < 50 ? Colors.orange.shade300 : Colors.green.shade300;
+    final color = level < 20 ? ShieldTheme.dangerLight : level < 50 ? ShieldTheme.warning : ShieldTheme.successLight;
     final icon = level < 20 ? Icons.battery_alert : level < 50 ? Icons.battery_3_bar : Icons.battery_full;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1391,17 +1533,17 @@ class _GeofenceCard extends ConsumerWidget {
                     avatar: Icon(
                       isRestricted ? Icons.block_rounded : Icons.home_rounded,
                       size: 16,
-                      color: isRestricted ? Colors.red.shade700 : Colors.green.shade700,
+                      color: isRestricted ? ShieldTheme.danger : ShieldTheme.success,
                     ),
                     label: Text(name,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isRestricted ? Colors.red.shade800 : Colors.green.shade800,
+                          color: isRestricted ? ShieldTheme.danger : ShieldTheme.success,
                         )),
-                    backgroundColor: isRestricted ? Colors.red.shade50 : Colors.green.shade50,
+                    backgroundColor: isRestricted ? ShieldTheme.danger.withOpacity(0.07) : ShieldTheme.success.withOpacity(0.07),
                     side: BorderSide(
-                      color: isRestricted ? Colors.red.shade200 : Colors.green.shade200,
+                      color: isRestricted ? ShieldTheme.danger.withOpacity(0.3) : ShieldTheme.success.withOpacity(0.3),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                   );
@@ -1413,6 +1555,222 @@ class _GeofenceCard extends ConsumerWidget {
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// CS-03: Speed Dial card — shows a quick-access button to emergency contacts.
+class _SpeedDialCard extends StatelessWidget {
+  final String profileId;
+  const _SpeedDialCard({required this.profileId});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFC62828).withOpacity(0.10),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.contact_emergency, color: Color(0xFFC62828), size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Emergency Contacts',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: colorScheme.onSurface)),
+                const SizedBox(height: 2),
+                Text('Tap to call a trusted person',
+                    style: TextStyle(fontSize: 11, color: colorScheme.onSurface.withOpacity(0.55))),
+              ],
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => SpeedDialScreen(profileId: profileId)),
+            ),
+            icon: const Icon(Icons.phone, size: 16),
+            label: const Text('Contacts', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Achievements Card ─────────────────────────────────────────────────────────
+
+class _AchievementsCard extends StatelessWidget {
+  const _AchievementsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/achievements'),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF9A825), Color(0xFFF57F17)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFF9A825).withAlpha(70),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(30),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.emoji_events_rounded, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'My Achievements',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'View your badges and track your progress!',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12.5,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Learning Buddy Card ───────────────────────────────────────────────────────
+
+class _LearningBuddyCard extends StatelessWidget {
+  const _LearningBuddyCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/chat'),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1565C0).withAlpha(60),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(25),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Learning Buddy',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Ask me anything — homework, science, math & more!',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12.5,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Chat',
+                style: TextStyle(
+                  color: Color(0xFF1565C0),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

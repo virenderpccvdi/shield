@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/api_client.dart';
 import '../../core/badge_service.dart';
+import '../../app/theme.dart';
+import '../../core/shield_widgets.dart';
 
 final alertsProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
   try {
@@ -122,13 +124,13 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> with SingleTickerPr
       _loadSosEvents();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('SOS acknowledged'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('SOS acknowledged'), backgroundColor: ShieldTheme.success, behavior: SnackBarBehavior.floating),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Failed: $e'), backgroundColor: ShieldTheme.danger, behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -140,13 +142,13 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> with SingleTickerPr
       _loadSosEvents();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('SOS resolved'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('SOS resolved'), backgroundColor: ShieldTheme.success, behavior: SnackBarBehavior.floating),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Failed: $e'), backgroundColor: ShieldTheme.danger, behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -184,7 +186,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> with SingleTickerPr
                     const SizedBox(width: 6),
                     Container(
                       width: 18, height: 18,
-                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                      decoration: const BoxDecoration(color: ShieldTheme.danger, shape: BoxShape.circle),
                       child: Center(
                         child: Text(
                           activeSosCount > 9 ? '9+' : '$activeSosCount',
@@ -218,13 +220,10 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> with SingleTickerPr
                   data: (alerts) {
                     BadgeService.setCount(alerts.length);
                     if (alerts.isEmpty) {
-                      return const Center(
-                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Icon(Icons.notifications_none, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text('No new alerts', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey)),
-                          Text('You\'re all caught up!', style: TextStyle(color: Colors.grey)),
-                        ]),
+                      return const ShieldEmptyState(
+                        icon: Icons.notifications_none,
+                        title: 'No new alerts',
+                        subtitle: 'You\'re all caught up!',
                       );
                     }
                     return RefreshIndicator(
@@ -236,20 +235,33 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> with SingleTickerPr
                         itemCount: alerts.length,
                         itemBuilder: (_, i) {
                           final a = alerts[i] as Map<String, dynamic>;
-                          final isHigh = a['severity'] == 'HIGH' || a['type'] == 'PANIC_BUTTON';
+                          final severity = a['severity'] as String? ?? '';
+                          final isCritical = severity == 'CRITICAL' || a['type'] == 'PANIC_BUTTON';
+                          final isHigh = severity == 'HIGH';
+                          final isMedium = severity == 'MEDIUM';
+                          final Color alertColor;
+                          if (isCritical || isHigh) {
+                            alertColor = ShieldTheme.danger;
+                          } else if (isMedium) {
+                            alertColor = ShieldTheme.warning;
+                          } else {
+                            alertColor = ShieldTheme.textSecondary;
+                          }
                           return Card(
                             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             child: ListTile(
                               leading: CircleAvatar(
-                                backgroundColor: isHigh ? Colors.red.shade100 : Colors.orange.shade100,
-                                child: Icon(isHigh ? Icons.warning : Icons.info_outline,
-                                    color: isHigh ? Colors.red : Colors.orange),
+                                backgroundColor: alertColor.withOpacity(0.12),
+                                child: Icon(
+                                  (isCritical || isHigh) ? Icons.warning_amber_rounded : Icons.info_outline,
+                                  color: alertColor,
+                                ),
                               ),
                               title: Text(a['title'] ?? a['type'] ?? 'Alert',
                                   style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                               subtitle: Text(a['message'] ?? '', style: const TextStyle(fontSize: 12)),
                               trailing: Text(_timeAgo(a['createdAt']),
-                                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                  style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
                             ),
                           );
                         },
@@ -328,7 +340,7 @@ class _SosActiveBannerState extends State<_SosActiveBanner> with SingleTickerPro
         opacity: _opacity,
         child: Container(
           width: double.infinity,
-          color: Colors.red.shade700,
+          color: ShieldTheme.danger,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(children: [
             const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
@@ -387,7 +399,16 @@ class _SosPanicTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return const Center(child: CircularProgressIndicator());
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(children: [
+          ShieldCardSkeleton(lines: 4),
+          SizedBox(height: 12),
+          ShieldCardSkeleton(lines: 3),
+        ]),
+      );
+    }
 
     if (events.isEmpty) {
       return RefreshIndicator(
@@ -396,13 +417,10 @@ class _SosPanicTab extends StatelessWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           child: SizedBox(
             height: 400,
-            child: const Center(
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.check_circle, size: 64, color: Colors.green),
-                SizedBox(height: 16),
-                Text('No SOS events', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey)),
-                Text('Everyone is safe.', style: TextStyle(color: Colors.grey)),
-              ]),
+            child: const ShieldEmptyState(
+              icon: Icons.health_and_safety_rounded,
+              title: 'No SOS alerts',
+              subtitle: 'Everyone is safe.',
             ),
           ),
         ),
@@ -449,10 +467,10 @@ class _SosEventCard extends StatelessWidget {
 
   Color get _statusColor {
     switch (event.status) {
-      case 'ACTIVE': return Colors.red.shade700;
-      case 'ACKNOWLEDGED': return Colors.orange.shade700;
-      case 'RESOLVED': return Colors.green.shade700;
-      default: return Colors.grey.shade700;
+      case 'ACTIVE': return ShieldTheme.danger;
+      case 'ACKNOWLEDGED': return ShieldTheme.warning;
+      case 'RESOLVED': return ShieldTheme.success;
+      default: return ShieldTheme.textSecondary;
     }
   }
 
@@ -462,12 +480,12 @@ class _SosEventCard extends StatelessWidget {
         && (event.latitude! != 0.0 || event.longitude! != 0.0);
 
     return Card(
-      color: event.isActive ? Colors.red.shade50 : Colors.white,
+      color: event.isActive ? ShieldTheme.danger.withOpacity(0.04) : ShieldTheme.cardBg,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
-          color: event.isActive ? Colors.red.shade300 : Colors.grey.shade200,
+          color: event.isActive ? ShieldTheme.danger.withOpacity(0.35) : ShieldTheme.divider,
           width: event.isActive ? 1.5 : 1,
         ),
       ),
@@ -530,11 +548,11 @@ class _SosEventCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(14),
               child: Row(children: [
-                Icon(Icons.location_off, color: Colors.grey.shade500, size: 18),
+                const Icon(Icons.location_off, color: ShieldTheme.textSecondary, size: 18),
                 const SizedBox(width: 8),
                 Text(
                   event.message.isNotEmpty ? event.message : 'Location unavailable',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  style: const TextStyle(color: ShieldTheme.textSecondary, fontSize: 13),
                 ),
               ]),
             ),
@@ -549,7 +567,7 @@ class _SosEventCard extends StatelessWidget {
                       onPressed: event.id.isEmpty ? null : () => onAcknowledge(event.id),
                       icon: const Icon(Icons.check, size: 18),
                       label: const Text('Acknowledge'),
-                      style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade700),
+                      style: FilledButton.styleFrom(backgroundColor: ShieldTheme.warning),
                     ),
                   ),
                 if (event.isActive) const SizedBox(width: 8),
@@ -558,7 +576,7 @@ class _SosEventCard extends StatelessWidget {
                     onPressed: event.id.isEmpty ? null : () => onResolve(event.id),
                     icon: const Icon(Icons.check_circle, size: 18),
                     label: const Text('Resolve'),
-                    style: FilledButton.styleFrom(backgroundColor: Colors.green.shade700),
+                    style: FilledButton.styleFrom(backgroundColor: ShieldTheme.success),
                   ),
                 ),
               ]),
@@ -670,16 +688,22 @@ class _SpoofingAlertsViewState extends ConsumerState<_SpoofingAlertsView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(children: [
+          ShieldCardSkeleton(lines: 4),
+          SizedBox(height: 12),
+          ShieldCardSkeleton(lines: 3),
+        ]),
+      );
+    }
 
     if (_alerts.isEmpty) {
-      return const Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.gps_fixed, size: 64, color: Colors.green),
-          SizedBox(height: 16),
-          Text('No spoofing detected', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey)),
-          Text('All location signals look normal.', style: TextStyle(color: Colors.grey)),
-        ]),
+      return const ShieldEmptyState(
+        icon: Icons.gps_fixed,
+        title: 'No location spoofing detected',
+        subtitle: 'All location signals look normal.',
       );
     }
 
@@ -756,7 +780,7 @@ class _SpoofingAlertCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.orange.shade200, width: 1),
+        side: BorderSide(color: ShieldTheme.warning.withOpacity(0.3), width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -764,8 +788,8 @@ class _SpoofingAlertCard extends StatelessWidget {
           Row(children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: Colors.orange.shade100,
-              child: const Icon(Icons.gps_off, color: Colors.orange, size: 20),
+              backgroundColor: ShieldTheme.warning.withOpacity(0.12),
+              child: const Icon(Icons.gps_off, color: ShieldTheme.warning, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -773,22 +797,22 @@ class _SpoofingAlertCard extends StatelessWidget {
                 Text(alert.childName,
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 Text(_typeLabel,
-                    style: TextStyle(color: Colors.orange.shade800, fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: const TextStyle(color: ShieldTheme.warning, fontSize: 12, fontWeight: FontWeight.w600)),
               ]),
             ),
             Text(_timeAgo(alert.detectedAt),
-                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
           ]),
           const SizedBox(height: 10),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.orange.shade50,
+              color: ShieldTheme.warning.withOpacity(0.08),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(_typeDescription,
-                style: TextStyle(fontSize: 12, color: Colors.orange.shade900)),
+                style: const TextStyle(fontSize: 12, color: ShieldTheme.warning)),
           ),
         ]),
       ),

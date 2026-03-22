@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Data
@@ -20,4 +21,7 @@ public class GeofenceResponse {
     private Boolean isActive;
     private Boolean alertOnEnter;
     private Boolean alertOnExit;
+    private Boolean isSchool;
+    private LocalTime schoolStart;
+    private LocalTime schoolEnd;
 }

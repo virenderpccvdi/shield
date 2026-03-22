@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 import '../../app/theme.dart';
+import '../../core/shield_widgets.dart';
 
 // ── Model ──────────────────────────────────────────────────────────────────
 
@@ -169,10 +170,23 @@ class _NotificationHistoryScreenState extends ConsumerState<NotificationHistoryS
         ],
       ),
       body: histAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]),
+        ),
         error: (e, _) => _ErrorState(onRetry: () => ref.invalidate(notificationHistoryProvider)),
         data: (items) {
-          if (items.isEmpty) return const _EmptyState();
+          if (items.isEmpty) return const ShieldEmptyState(
+            icon: Icons.notifications_none,
+            title: 'No notifications',
+            subtitle: 'You\'re all caught up!',
+          );
           final grouped = _groupByDate(items);
           return RefreshIndicator(
             onRefresh: () async {
@@ -371,7 +385,7 @@ class _NotificationTile extends StatelessWidget {
       case 'GEOFENCE_BREACH':
       case 'GEOFENCE_ENTRY':
       case 'GEOFENCE_EXIT':
-        return (Icons.location_on_rounded, const Color(0xFFF57C00));
+        return (Icons.location_on_rounded, ShieldTheme.warning);
       case 'BLOCKED':
       case 'DNS_BLOCK':
       case 'CONTENT_BLOCKED':
@@ -379,17 +393,17 @@ class _NotificationTile extends StatelessWidget {
       case 'AI_ANOMALY':
       case 'ANOMALY':
       case 'AI_INSIGHT':
-        return (Icons.psychology_rounded, const Color(0xFF1565C0));
+        return (Icons.psychology_rounded, ShieldTheme.primary);
       case 'SCHEDULE':
       case 'SCHEDULE_START':
       case 'SCHEDULE_END':
         return (Icons.schedule_rounded, ShieldTheme.successLight);
       case 'TIME_LIMIT':
       case 'TIME_BUDGET':
-        return (Icons.hourglass_bottom_rounded, const Color(0xFFBF360C));
+        return (Icons.hourglass_bottom_rounded, ShieldTheme.dangerLight);
       case 'REWARD':
       case 'REWARD_EARNED':
-        return (Icons.star_rounded, const Color(0xFFFFA000));
+        return (Icons.star_rounded, ShieldTheme.warning);
       case 'DEVICE':
       case 'DEVICE_OFFLINE':
       case 'DEVICE_ONLINE':

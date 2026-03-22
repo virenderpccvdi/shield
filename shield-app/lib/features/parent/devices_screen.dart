@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/shield_widgets.dart';
+import '../../app/theme.dart';
 
 class DevicesScreen extends ConsumerStatefulWidget {
   final String profileId;
@@ -93,13 +94,13 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
         _load();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Device added'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('Device added'), backgroundColor: ShieldTheme.success, behavior: SnackBarBehavior.floating),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+            SnackBar(content: Text('Failed: $e'), backgroundColor: ShieldTheme.danger, behavior: SnackBarBehavior.floating),
           );
         }
       }
@@ -116,7 +117,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: ShieldTheme.danger),
             child: const Text('Remove'),
           ),
         ],
@@ -131,7 +132,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+            SnackBar(content: Text('Failed: $e'), backgroundColor: ShieldTheme.danger, behavior: SnackBarBehavior.floating),
           );
         }
       }
@@ -155,7 +156,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
         onPressed: _addDevice,
         icon: const Icon(Icons.add),
         label: const Text('Add Device'),
-        backgroundColor: const Color(0xFF1565C0),
+        backgroundColor: ShieldTheme.primary,
         foregroundColor: Colors.white,
       ),
       body: _loading
@@ -169,21 +170,13 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
         : RefreshIndicator(
             onRefresh: () async => _load(),
             child: _devices.isEmpty
-              ? Center(child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.devices, size: 64, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    const Text('No devices registered', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
-                    const Text('Add a device to start monitoring', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                    const SizedBox(height: 24),
-                    FilledButton.icon(
-                      onPressed: () => context.push('/child-setup'),
-                      icon: const Icon(Icons.phonelink_setup_rounded),
-                      label: const Text('Set Up Child Device'),
-                    ),
-                  ],
-                ))
+              ? ShieldEmptyState(
+                  icon: Icons.devices,
+                  title: 'No devices linked',
+                  subtitle: 'Add your child\'s device to get started',
+                  actionLabel: 'Set Up Child Device',
+                  onAction: () => context.push('/child-setup'),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _devices.length,
@@ -197,9 +190,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                         child: Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: online ? Colors.green.shade50 : Colors.grey.shade100,
+                              backgroundColor: online ? ShieldTheme.success.withOpacity(0.1) : ShieldTheme.surface,
                               child: Icon(_deviceIcon(d['deviceType'] as String?),
-                                color: online ? Colors.green : Colors.grey),
+                                color: online ? ShieldTheme.success : ShieldTheme.textSecondary),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -213,7 +206,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                                     Container(
                                       width: 8, height: 8,
                                       decoration: BoxDecoration(
-                                        color: online ? Colors.green : Colors.grey,
+                                        color: online ? ShieldTheme.success : ShieldTheme.textSecondary,
                                         shape: BoxShape.circle,
                                       ),
                                     ),
@@ -224,7 +217,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                                           : (d['lastSeenAt'] != null
                                               ? 'Last seen ${_formatTime(d['lastSeenAt'] as String)}'
                                               : 'Offline'),
-                                      style: TextStyle(fontSize: 12, color: online ? Colors.green : Colors.grey),
+                                      style: TextStyle(fontSize: 12, color: online ? ShieldTheme.success : ShieldTheme.textSecondary),
                                     ),
                                   ]),
                                   if (d['batteryPct'] != null || d['speedKmh'] != null) ...[
@@ -232,19 +225,19 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                                     Row(children: [
                                       if (d['batteryPct'] != null) ...[
                                         Icon(Icons.battery_full, size: 14,
-                                          color: (d['batteryPct'] as num).toInt() < 20 ? Colors.red
-                                              : (d['batteryPct'] as num).toInt() < 50 ? Colors.orange
-                                              : Colors.green),
+                                          color: (d['batteryPct'] as num).toInt() < 20 ? ShieldTheme.danger
+                                              : (d['batteryPct'] as num).toInt() < 50 ? ShieldTheme.warning
+                                              : ShieldTheme.success),
                                         const SizedBox(width: 2),
                                         Text('${(d['batteryPct'] as num).toInt()}%',
-                                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                          style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
                                         const SizedBox(width: 8),
                                       ],
                                       if (d['speedKmh'] != null && (d['speedKmh'] as num) > 0) ...[
-                                        Icon(Icons.speed, size: 14, color: Colors.grey.shade500),
+                                        const Icon(Icons.speed, size: 14, color: ShieldTheme.textSecondary),
                                         const SizedBox(width: 2),
                                         Text('${(d['speedKmh'] as num).toStringAsFixed(1)} km/h',
-                                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                          style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
                                       ],
                                     ]),
                                   ],
@@ -254,11 +247,11 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                             if (d['dnsClientId'] != null)
                               Tooltip(
                                 message: 'DNS Client: ${d['dnsClientId']}',
-                                child: const Icon(Icons.dns, size: 18, color: Colors.grey),
+                                child: const Icon(Icons.dns, size: 18, color: ShieldTheme.textSecondary),
                               ),
                             const SizedBox(width: 4),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                              icon: const Icon(Icons.delete_outline, color: ShieldTheme.danger, size: 20),
                               onPressed: () => _deleteDevice(d['id'].toString()),
                             ),
                           ],

@@ -4,7 +4,9 @@ import com.rstglobal.shield.common.dto.ApiResponse;
 import com.rstglobal.shield.common.dto.PagedResponse;
 import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.tenant.dto.request.CreateTenantRequest;
+import com.rstglobal.shield.tenant.dto.request.UpdateBrandingRequest;
 import com.rstglobal.shield.tenant.dto.request.UpdateTenantRequest;
+import com.rstglobal.shield.tenant.dto.response.BrandingResponse;
 import com.rstglobal.shield.tenant.dto.response.TenantResponse;
 import com.rstglobal.shield.tenant.entity.Tenant;
 import com.rstglobal.shield.tenant.repository.TenantRepository;
@@ -205,6 +207,48 @@ public class TenantController {
             log.warn("Quota count query failed: {}", e.getMessage());
             return 0;
         }
+    }
+
+    // ── Branding endpoints ────────────────────────────────────────────────────
+
+    /**
+     * GET /api/v1/tenants/{tenantId}/branding
+     * Accessible by GLOBAL_ADMIN or ISP_ADMIN (own tenant).
+     */
+    @GetMapping("/{tenantId}/branding")
+    @Operation(summary = "Get tenant white-label branding settings")
+    public ApiResponse<BrandingResponse> getBranding(
+            @RequestHeader(value = "X-User-Role",  required = false) String role,
+            @RequestHeader(value = "X-Tenant-Id",  required = false) UUID callerTenantId,
+            @PathVariable UUID tenantId) {
+        requireGlobalAdminOrSelf(role, callerTenantId, tenantId);
+        return ApiResponse.ok(tenantService.getBranding(tenantId));
+    }
+
+    /**
+     * PUT /api/v1/tenants/{tenantId}/branding
+     * ISP_ADMIN can update their own tenant's branding.
+     */
+    @PutMapping("/{tenantId}/branding")
+    @Operation(summary = "Update tenant white-label branding settings")
+    public ApiResponse<BrandingResponse> updateBranding(
+            @RequestHeader(value = "X-User-Role",  required = false) String role,
+            @RequestHeader(value = "X-Tenant-Id",  required = false) UUID callerTenantId,
+            @PathVariable UUID tenantId,
+            @Valid @RequestBody UpdateBrandingRequest req) {
+        requireGlobalAdminOrSelf(role, callerTenantId, tenantId);
+        return ApiResponse.ok(tenantService.updateBranding(tenantId, req));
+    }
+
+    /**
+     * GET /internal/tenants/{tenantId}/branding
+     * Internal endpoint — no auth headers required.
+     * Called by shield-notification and other services.
+     */
+    @GetMapping("/internal/{tenantId}/branding")
+    @Operation(summary = "Internal: get branding (no auth required)")
+    public ApiResponse<BrandingResponse> getBrandingInternal(@PathVariable UUID tenantId) {
+        return ApiResponse.ok(tenantService.getBranding(tenantId));
     }
 
     @PostMapping("/{id}/sync-features")

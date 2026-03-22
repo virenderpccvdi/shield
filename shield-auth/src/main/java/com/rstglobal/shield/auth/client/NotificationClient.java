@@ -87,6 +87,43 @@ public class NotificationClient {
         }
     }
 
+    /**
+     * Sends a self-service password-reset OTP email (from "Forgot Password" flow).
+     * The OTP is embedded in a signed Base64 token: userId:otp.
+     */
+    @Async
+    public void sendPasswordResetOtpEmail(UUID userId, String email, String name, String otp) {
+        try {
+            String rawToken   = userId + ":" + otp;
+            String resetToken = Base64.getEncoder().encodeToString(rawToken.getBytes());
+            String resetUrl   = APP_DOMAIN + "/app/reset-password?token=" + resetToken;
+
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("name",         name != null ? name : email);
+            variables.put("email",        email);
+            variables.put("otp",          otp);
+            variables.put("resetUrl",     resetUrl);
+            variables.put("supportEmail", SUPPORT_EMAIL);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("to",           email);
+            payload.put("subject",      "Shield — Your Password Reset Code");
+            payload.put("templateName", "password-reset-otp");
+            payload.put("variables",    variables);
+
+            restClient.post()
+                    .uri(notificationBaseUrl + "/internal/notifications/email")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Password-reset OTP email dispatched for userId={}", userId);
+        } catch (Exception e) {
+            log.warn("Failed to send password-reset OTP email to {}: {}", email, e.getMessage());
+        }
+    }
+
     /** Sends a password-reset email from an admin reset action, containing the new plaintext password. */
     @Async
     public void sendAdminPasswordResetEmail(String email, String name, String newPassword) {

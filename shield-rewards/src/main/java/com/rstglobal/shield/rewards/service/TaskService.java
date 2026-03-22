@@ -8,12 +8,16 @@ import com.rstglobal.shield.rewards.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,9 +28,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TaskService {
 
+    private static final String NOTIFICATION_SERVICE = "SHIELD-NOTIFICATION";
+
     private final TaskRepository taskRepository;
     private final RewardBankService rewardBankService;
     private final AchievementService achievementService;
+    private final DiscoveryClient discoveryClient;
 
     @Value("${shield.notification.base-url:http://localhost:8286}")
     private String notifBaseUrl;
@@ -77,6 +84,12 @@ public class TaskService {
                 Map.of("type", "TASK_APPROVED", "taskId", task.getId().toString()));
     }
 
+    @Async
+    protected void sendPushAsync(UUID userId, String title, String body, Map<String, String> data) {
+        if (userId == null) return;
+        sendPush(userId, title, body, data);
+    }
+
     private void sendPush(UUID profileId, String title, String body, Map<String, String> data) {
         try {
             // userId for child devices = profileId (child JWT uses profileId as subject)
@@ -123,6 +136,14 @@ public class TaskService {
         task.setSubmittedAt(OffsetDateTime.now());
         task = taskRepository.save(task);
         log.info("Task {} submitted by profile {}", taskId, profileId);
+        // Notify parent so they can review and approve
+        final Task submitted = task;
+        sendPushAsync(submitted.getCreatedBy(),
+                "✅ Task Submitted for Review",
+                submitted.getTitle() + " — tap to review",
+                Map.of("type", "TASK_SUBMITTED",
+                       "taskId", submitted.getId().toString(),
+                       "profileId", submitted.getProfileId().toString()));
         return toResponse(task);
     }
 
@@ -163,6 +184,12 @@ public class TaskService {
             task.setStatus("REJECTED");
             task.setRejectionNote(req.getRejectionNote());
             log.info("Task {} rejected by {}", taskId, approverId);
+            final Task rejectedTask = task;
+            final String note = req.getRejectionNote();
+            sendPushAsync(rejectedTask.getProfileId(),
+                    "❌ Task Not Approved",
+                    rejectedTask.getTitle() + (note != null && !note.isBlank() ? " — " + note : ""),
+                    Map.of("type", "TASK_REJECTED", "taskId", rejectedTask.getId().toString()));
         }
 
         task = taskRepository.save(task);
@@ -182,6 +209,11 @@ public class TaskService {
         task.setRejectionNote(note);
         task = taskRepository.save(task);
         log.info("Task {} rejected by {}", taskId, approverId);
+        final Task rejected = task;
+        sendPushAsync(rejected.getProfileId(),
+                "❌ Task Not Approved",
+                rejected.getTitle() + (note != null && !note.isBlank() ? " — " + note : ""),
+                Map.of("type", "TASK_REJECTED", "taskId", rejected.getId().toString()));
         return toResponse(task);
     }
 
@@ -190,6 +222,103 @@ public class TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found: " + id));
         return toResponse(task);
+    }
+
+    /**
+     * FC-08: Child self-completes a task — auto-award points without parent approval.
+     * Task must be in PENDING status and belong to the calling profileId.
+     * Marks the task COMPLETED, credits the reward bank immediately, updates streak,
+     * checks achievement milestones, and fires an async push to the child's device.
+     */
+    @Transactional
+    public TaskResponse completeTask(UUID taskId, UUID profileId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found: " + taskId));
+
+        if (!task.getProfileId().equals(profileId)) {
+            throw new IllegalArgumentException("Task does not belong to profile: " + profileId);
+        }
+        if (!"PENDING".equals(task.getStatus())) {
+            throw new IllegalStateException(
+                    "Task cannot be auto-completed from status: " + task.getStatus());
+        }
+
+        task.setStatus("COMPLETED");
+        task.setSubmittedAt(OffsetDateTime.now());
+        task.setApprovedAt(OffsetDateTime.now());
+        task = taskRepository.save(task);
+        log.info("Task {} auto-completed by profile {}, awarding {} points and {} minutes",
+                taskId, profileId, task.getRewardPoints(), task.getRewardMinutes());
+
+        // Credit reward bank immediately (no parent approval required)
+        rewardBankService.creditReward(
+                task.getProfileId(),
+                task.getRewardPoints(),
+                task.getRewardMinutes(),
+                task.getId(),
+                task.getTenantId()
+        );
+
+        // Update streak and check milestones
+        rewardBankService.updateStreak(task.getProfileId());
+        achievementService.checkAndAwardAchievements(task.getProfileId());
+
+        // Async: notify the child device
+        final Task completed = task;
+        sendTaskCompletedPush(completed);
+
+        return toResponse(task);
+    }
+
+    /**
+     * Fire-and-forget: push reward notification to child when auto-complete succeeds.
+     * Uses Eureka to resolve shield-notification URL dynamically.
+     */
+    @Async
+    protected void sendTaskCompletedPush(Task task) {
+        try {
+            String baseUrl = resolveNotificationUrl();
+            if (baseUrl == null) {
+                log.warn("No SHIELD-NOTIFICATION instance found — skipping task reward push for profile {}",
+                        task.getProfileId());
+                return;
+            }
+
+            int points = task.getRewardPoints();
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("userId", null);
+            payload.put("topic", "profile-" + task.getProfileId());
+            payload.put("title", "\u2b50 Task Complete!");
+            payload.put("body", "You earned " + points + " points for completing '"
+                    + task.getTitle() + "'!");
+            payload.put("priority", "HIGH");
+            payload.put("data", Map.of(
+                    "type", "TASK_REWARD",
+                    "points", String.valueOf(points),
+                    "taskId", task.getId().toString()
+            ));
+
+            restClient.post()
+                    .uri(baseUrl + "/internal/notifications/push")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Task reward push sent: profileId={} points={} task='{}'",
+                    task.getProfileId(), points, task.getTitle());
+        } catch (Exception e) {
+            log.warn("Task reward push notification failed for profile {}: {}",
+                    task.getProfileId(), e.getMessage());
+        }
+    }
+
+    private String resolveNotificationUrl() {
+        List<ServiceInstance> instances = discoveryClient.getInstances(NOTIFICATION_SERVICE);
+        if (instances.isEmpty()) {
+            return null;
+        }
+        return instances.get(0).getUri().toString();
     }
 
     private TaskResponse toResponse(Task task) {

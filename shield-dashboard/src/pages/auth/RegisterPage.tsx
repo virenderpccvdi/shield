@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Box, TextField, Button, Typography, Alert, CircularProgress,
   InputAdornment, IconButton, Divider, Snackbar,
@@ -20,6 +20,8 @@ const FEATURES = [
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,7 +37,7 @@ export default function RegisterPage() {
     try {
       await api.post('/auth/register', { name, email, password });
       setSuccessOpen(true);
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => navigate(redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : '/login'), 2000);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setError(e.response?.data?.message || 'Registration failed. Please try again.');

@@ -19,7 +19,7 @@ export default function StatCard({ title, value, unit, icon, gradient, trend, de
     <Card sx={{
       '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
       animation: `fadeInUp 0.5s ease ${delay}s both`,
-      background: gradient || '#fff',
+      background: gradient || undefined,
       color: isGradient ? '#fff' : 'inherit',
       border: isGradient ? 'none' : undefined,
       position: 'relative',
@@ -46,11 +46,11 @@ export default function StatCard({ title, value, unit, icon, gradient, trend, de
         {trend !== undefined && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
             {trend >= 0 ? (
-              <TrendingUpIcon sx={{ fontSize: 16, color: isGradient ? 'rgba(255,255,255,0.9)' : '#43A047' }} />
+              <TrendingUpIcon sx={{ fontSize: 16, color: isGradient ? 'rgba(255,255,255,0.9)' : 'success.main' }} />
             ) : (
-              <TrendingDownIcon sx={{ fontSize: 16, color: isGradient ? 'rgba(255,255,255,0.9)' : '#E53935' }} />
+              <TrendingDownIcon sx={{ fontSize: 16, color: isGradient ? 'rgba(255,255,255,0.9)' : 'error.main' }} />
             )}
-            <Typography variant="caption" sx={{ fontWeight: 600, color: isGradient ? 'rgba(255,255,255,0.9)' : (trend >= 0 ? '#43A047' : '#E53935') }}>
+            <Typography variant="caption" sx={{ fontWeight: 600, color: isGradient ? 'rgba(255,255,255,0.9)' : (trend >= 0 ? 'success.main' : 'error.main') }}>
               {Math.abs(trend).toFixed(1)}%
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.6 }}>vs last week</Typography>

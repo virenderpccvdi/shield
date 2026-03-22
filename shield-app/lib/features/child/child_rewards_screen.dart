@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_state.dart';
+import '../../app/theme.dart';
+import '../../core/shield_widgets.dart';
 
 class ChildRewardsScreen extends ConsumerStatefulWidget {
   const ChildRewardsScreen({super.key});
@@ -78,13 +80,12 @@ class _ChildRewardsScreenState extends ConsumerState<ChildRewardsScreen>
     final pointCost = (minutes ~/ 5) * 10;
     if (currentPoints < pointCost) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Need $pointCost points — you have $currentPoints'),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Need $pointCost points — you have $currentPoints'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
       return;
     }
@@ -93,10 +94,10 @@ class _ChildRewardsScreenState extends ConsumerState<ChildRewardsScreen>
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(children: [
-          Icon(Icons.redeem_rounded, color: Color(0xFF1565C0)),
-          SizedBox(width: 8),
-          Text('Redeem Reward', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: Row(children: [
+          Icon(Icons.redeem_rounded, color: ShieldTheme.primary),
+          const SizedBox(width: 8),
+          const Text('Redeem Reward', style: TextStyle(fontWeight: FontWeight.w800)),
         ]),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -108,15 +109,15 @@ class _ChildRewardsScreenState extends ConsumerState<ChildRewardsScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFE3F2FD),
+                color: ShieldTheme.primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(children: [
-                const Icon(Icons.stars_rounded, color: Color(0xFF1565C0), size: 20),
+                Icon(Icons.stars_rounded, color: ShieldTheme.primary, size: 20),
                 const SizedBox(width: 8),
                 Text('Cost: $pointCost points',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, color: Color(0xFF1565C0))),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, color: ShieldTheme.primary)),
                 const Spacer(),
                 Text('Balance: $currentPoints pts',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
@@ -131,7 +132,7 @@ class _ChildRewardsScreenState extends ConsumerState<ChildRewardsScreen>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1565C0)),
+            style: FilledButton.styleFrom(backgroundColor: ShieldTheme.primary),
             child: const Text('Redeem'),
           ),
         ],
@@ -158,23 +159,22 @@ class _ChildRewardsScreenState extends ConsumerState<ChildRewardsScreen>
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(children: [
-              const Icon(Icons.celebration_rounded, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Redeemed! $minutes minutes of screen time added',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Row(children: [
+            const Icon(Icons.celebration_rounded, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Redeemed! $minutes minutes of screen time added',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-            ]),
-            backgroundColor: Colors.green.shade700,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+            ),
+          ]),
+          backgroundColor: ShieldTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ));
         _loadAll();
       }
     } catch (e) {
@@ -187,13 +187,12 @@ class _ChildRewardsScreenState extends ConsumerState<ChildRewardsScreen>
             'minutesBalance': currentMins,
           };
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Redemption failed. Please try again.'),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Redemption failed. Please try again.'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
   }
@@ -201,14 +200,14 @@ class _ChildRewardsScreenState extends ConsumerState<ChildRewardsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE3F2FD),
+      backgroundColor: ShieldTheme.primary.withOpacity(0.06),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
             expandedHeight: 200,
             floating: false,
             pinned: true,
-            backgroundColor: const Color(0xFF1565C0),
+            backgroundColor: ShieldTheme.primary,
             foregroundColor: Colors.white,
             title: const Text('My Rewards', style: TextStyle(fontWeight: FontWeight.w700)),
             flexibleSpace: FlexibleSpaceBar(
@@ -261,7 +260,7 @@ class _BankHeader extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1565C0), Color(0xFF0D47A1), Color(0xFF1A237E)],
+          colors: [ShieldTheme.primary, ShieldTheme.primaryDark, Color(0xFF1A237E)],
         ),
       ),
       child: SafeArea(
@@ -383,7 +382,7 @@ class _RedeemTab extends StatelessWidget {
         icon: Icons.phone_android_rounded,
         pointCost: 10,
         minutes: 5,
-        color: const Color(0xFF1565C0),
+        color: ShieldTheme.primary,
       ),
       _RewardItem(
         name: '15 min Screen Time',
@@ -391,7 +390,7 @@ class _RedeemTab extends StatelessWidget {
         icon: Icons.timer_rounded,
         pointCost: 30,
         minutes: 15,
-        color: const Color(0xFF0288D1),
+        color: ShieldTheme.primaryLight,
       ),
       _RewardItem(
         name: '30 min Screen Time',
@@ -399,7 +398,7 @@ class _RedeemTab extends StatelessWidget {
         icon: Icons.videogame_asset_rounded,
         pointCost: 60,
         minutes: 30,
-        color: Colors.blue.shade600,
+        color: ShieldTheme.primaryLight,
       ),
       _RewardItem(
         name: '1 Hour Screen Time',
@@ -407,7 +406,7 @@ class _RedeemTab extends StatelessWidget {
         icon: Icons.sports_esports_rounded,
         pointCost: 120,
         minutes: 60,
-        color: Colors.blue.shade800,
+        color: ShieldTheme.primaryDark,
       ),
       _RewardItem(
         name: '2 Hours Screen Time',
@@ -415,7 +414,7 @@ class _RedeemTab extends StatelessWidget {
         icon: Icons.emoji_events_rounded,
         pointCost: 240,
         minutes: 120,
-        color: Colors.orange.shade700,
+        color: ShieldTheme.warning,
       ),
     ];
 
@@ -428,19 +427,19 @@ class _RedeemTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.amber.shade50,
+              color: ShieldTheme.warning.withOpacity(0.08),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.amber.shade200),
+              border: Border.all(color: ShieldTheme.warning.withOpacity(0.3)),
             ),
             child: Row(children: [
-              Icon(Icons.info_outline_rounded, color: Colors.amber.shade700, size: 20),
+              Icon(Icons.info_outline_rounded, color: ShieldTheme.warning, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Earn points by completing tasks. Each 10 points = 5 minutes of screen time.',
                   style: TextStyle(
                       fontSize: 13,
-                      color: Colors.amber.shade800,
+                      color: ShieldTheme.warning,
                       fontWeight: FontWeight.w500),
                 ),
               ),
@@ -537,7 +536,7 @@ class _RewardCard extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                           color: canAfford
-                              ? const Color(0xFF1A1A2E)
+                              ? ShieldTheme.textPrimary
                               : Colors.grey.shade500)),
                   const SizedBox(height: 3),
                   Text(reward.description,
@@ -550,7 +549,7 @@ class _RewardCard extends StatelessWidget {
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: canAfford
-                            ? Colors.amber.shade100
+                            ? ShieldTheme.warning.withOpacity(0.12)
                             : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -560,7 +559,7 @@ class _RewardCard extends StatelessWidget {
                             Icon(Icons.stars_rounded,
                                 size: 13,
                                 color: canAfford
-                                    ? Colors.amber.shade700
+                                    ? ShieldTheme.warning
                                     : Colors.grey.shade400),
                             const SizedBox(width: 3),
                             Text('${reward.pointCost} pts',
@@ -568,7 +567,7 @@ class _RewardCard extends StatelessWidget {
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: canAfford
-                                        ? Colors.amber.shade800
+                                        ? ShieldTheme.warning
                                         : Colors.grey.shade500)),
                           ]),
                     ),
@@ -577,7 +576,7 @@ class _RewardCard extends StatelessWidget {
                       Text(
                           'Need ${reward.pointCost - currentPoints} more pts',
                           style: TextStyle(
-                              fontSize: 11, color: Colors.red.shade300)),
+                              fontSize: 11, color: ShieldTheme.dangerLight)),
                     ],
                   ]),
                 ],
@@ -617,30 +616,23 @@ class _HistoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Center(child: CircularProgressIndicator());
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          ShieldCardSkeleton(lines: 2),
+          SizedBox(height: 10),
+          ShieldCardSkeleton(lines: 2),
+          SizedBox(height: 10),
+          ShieldCardSkeleton(lines: 2),
+        ],
+      );
     }
 
     if (transactions.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.history_rounded, size: 64, color: Colors.grey.shade300),
-              const SizedBox(height: 16),
-              Text('No history yet',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: Colors.grey.shade500)),
-              const SizedBox(height: 8),
-              Text('Complete tasks to start earning points!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
-            ],
-          ),
-        ),
+      return ShieldEmptyState(
+        icon: Icons.history_rounded,
+        title: 'No history yet',
+        subtitle: 'Complete tasks to start earning points!',
       );
     }
 
@@ -677,16 +669,16 @@ class _TransactionTile extends StatelessWidget {
             : Icons.remove_circle_rounded;
 
     final iconColor = isRedeem
-        ? Colors.blue.shade400
+        ? ShieldTheme.primaryLight
         : isCredit
-            ? Colors.green.shade600
-            : Colors.red.shade400;
+            ? ShieldTheme.success
+            : ShieldTheme.dangerLight;
 
     final bgColor = isRedeem
-        ? Colors.blue.shade50
+        ? ShieldTheme.primary.withOpacity(0.08)
         : isCredit
-            ? Colors.green.shade50
-            : Colors.red.shade50;
+            ? ShieldTheme.success.withOpacity(0.08)
+            : ShieldTheme.danger.withOpacity(0.08);
 
     final pointsText = points != 0
         ? '${isCredit ? '+' : ''}$points pts'
@@ -694,7 +686,7 @@ class _TransactionTile extends StatelessWidget {
             ? '${isRedeem ? '-' : '+'}${minutes}m'
             : '';
 
-    final pointsColor = isCredit ? Colors.green.shade700 : Colors.red.shade600;
+    final pointsColor = isCredit ? ShieldTheme.success : ShieldTheme.danger;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),

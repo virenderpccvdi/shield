@@ -76,4 +76,27 @@ public class Tenant extends BaseEntity {
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    // ── White-label branding fields ──────────────────────────────────────────
+
+    /** ISP brand name shown in customer-facing UI (e.g. "Acme Broadband"). */
+    @Column(name = "brand_name", length = 200)
+    private String brandName;
+
+    /** ISP brand primary color (hex) for customer-facing UI. */
+    @Column(name = "brand_color", length = 20)
+    @Builder.Default
+    private String brandColor = "#00897B";
+
+    /** ISP brand logo URL for customer-facing UI. */
+    @Column(name = "brand_logo_url", length = 500)
+    private String brandLogoUrl;
+
+    /** ISP customer support email shown to end-users. */
+    @Column(name = "support_email", length = 255)
+    private String supportEmail;
+
+    /** ISP customer support phone shown to end-users. */
+    @Column(name = "support_phone", length = 50)
+    private String supportPhone;
 }

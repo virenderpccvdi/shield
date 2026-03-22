@@ -26,4 +26,10 @@ public class TenantResponse {
     private Instant subscriptionEndsAt;
     private Instant createdAt;
     private Instant updatedAt;
+    // White-label branding
+    private String  brandName;
+    private String  brandColor;
+    private String  brandLogoUrl;
+    private String  supportEmail;
+    private String  supportPhone;
 }

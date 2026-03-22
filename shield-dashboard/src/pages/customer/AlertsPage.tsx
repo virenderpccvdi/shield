@@ -111,16 +111,18 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
   Other:    <NotificationsActiveIcon sx={{ fontSize: 15 }} />,
 };
 
+// Hex values required — used in CSS string interpolation for alpha tinting
 const TYPE_GROUP_COLOR: Record<string, string> = {
   SOS: '#E53935', Geofence: '#FB8C00', Content: '#1565C0',
   Budget: '#7B1FA2', Battery: '#2E7D32', Other: '#546E7A',
 };
 
+// border/glow values are hex — used in CSS borderLeft string and boxShadow
 const SEVERITY_STYLES: Record<string, { border: string; bg: string; glow: string }> = {
-  CRITICAL: { border: '#E53935', bg: '#FFF5F5', glow: '0 0 12px rgba(229,57,53,0.2)' },
-  HIGH:     { border: '#FB8C00', bg: '#FFF8F0', glow: '0 0 8px rgba(251,140,0,0.12)' },
-  MEDIUM:   { border: '#FFC107', bg: '#FFFDF5', glow: 'none' },
-  LOW:      { border: '#43A047', bg: '#FAFFF5', glow: 'none' },
+  CRITICAL: { border: '#E53935', bg: 'rgba(229,57,53,0.04)', glow: '0 0 12px rgba(229,57,53,0.2)' },
+  HIGH:     { border: '#FB8C00', bg: 'rgba(251,140,0,0.04)', glow: '0 0 8px rgba(251,140,0,0.12)' },
+  MEDIUM:   { border: '#FFC107', bg: 'rgba(251,193,7,0.03)', glow: 'none' },
+  LOW:      { border: '#E0E0E0', bg: 'transparent', glow: 'none' },
 };
 const SEVERITY_CHIP_COLOR: Record<string, 'error' | 'warning' | 'success' | 'default'> = {
   CRITICAL: 'error', HIGH: 'warning', MEDIUM: 'warning', LOW: 'success',
@@ -168,10 +170,10 @@ function SosPanelSection({ children, profileMap }: {
   return (
     <Box sx={{ mb: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
-        <Typography variant="h6" fontWeight={700} sx={{ color: '#C62828', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Typography variant="h6" fontWeight={700} sx={{ color: 'error.dark', display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <WarningAmberIcon sx={{ fontSize: 22 }} /> SOS Emergency Alerts
         </Typography>
-        {isLoading && <CircularProgress size={16} sx={{ color: '#E53935' }} />}
+        {isLoading && <CircularProgress size={16} sx={{ color: 'error.main' }} />}
         {activeSos.length > 0 && (
           <Chip label={`${activeSos.length} ACTIVE`} color="error" size="small" sx={{
             fontWeight: 700, fontSize: 11,
@@ -185,8 +187,8 @@ function SosPanelSection({ children, profileMap }: {
               onClick={() => setSosTab(t)}
               sx={{ borderRadius: 2, fontWeight: 600, fontSize: 12, minWidth: 80, textTransform: 'none',
                 ...(t === 'active'
-                  ? { bgcolor: sosTab === 'active' ? '#C62828' : 'transparent', borderColor: '#C62828', color: sosTab === 'active' ? '#fff' : '#C62828', '&:hover': { bgcolor: '#B71C1C', color: '#fff' } }
-                  : { bgcolor: sosTab === 'history' ? '#1565C0' : 'transparent', borderColor: '#1565C0', color: sosTab === 'history' ? '#fff' : '#1565C0', '&:hover': { bgcolor: '#0D47A1', color: '#fff' } }
+                  ? { bgcolor: sosTab === 'active' ? 'error.dark' : 'transparent', borderColor: 'error.dark', color: sosTab === 'active' ? '#fff' : 'error.dark', '&:hover': { bgcolor: 'error.dark', color: '#fff' } }
+                  : { bgcolor: sosTab === 'history' ? 'primary.main' : 'transparent', borderColor: 'primary.main', color: sosTab === 'history' ? '#fff' : 'primary.main', '&:hover': { bgcolor: 'primary.dark', color: '#fff' } }
                 ),
               }}>
               {t === 'active' ? `Active${activeSos.length > 0 ? ` (${activeSos.length})` : ''}` : `History (${historySos.length})`}
@@ -216,7 +218,7 @@ function SosPanelSection({ children, profileMap }: {
 
       {sosTab === 'active' && activeSos.map(sos => (
         <Card key={sos.id} sx={{
-          mb: 2, border: '2.5px solid #E53935', bgcolor: '#FFF5F5', borderRadius: 3,
+          mb: 2, border: '2.5px solid', borderColor: 'error.main', bgcolor: 'rgba(229,57,53,0.04)', borderRadius: 3,
           '@keyframes sosPulse': {
             '0%,100%': { borderColor: '#E53935', boxShadow: '0 0 0 0 rgba(229,57,53,0.35)' },
             '50%': { borderColor: '#B71C1C', boxShadow: '0 0 0 10px rgba(229,57,53,0)' },
@@ -228,19 +230,19 @@ function SosPanelSection({ children, profileMap }: {
               <Typography sx={{ fontSize: 40, lineHeight: 1, mt: 0.5 }}>🚨</Typography>
               <Box sx={{ flex: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                  <Typography variant="h6" fontWeight={800} sx={{ color: '#B71C1C' }}>{sos.childName}</Typography>
+                  <Typography variant="h6" fontWeight={800} sx={{ color: 'error.dark' }}>{sos.childName}</Typography>
                   <Chip label="SOS — Needs Help!" color="error" size="small" sx={{ fontWeight: 700 }} />
                 </Box>
-                <Typography variant="body2" sx={{ color: '#C62828', mb: 0.5, fontWeight: 500 }}>
+                <Typography variant="body2" sx={{ color: 'error.dark', mb: 0.5, fontWeight: 500 }}>
                   Triggered {timeAgo(sos.triggeredAt)}{sos.triggeredAt && ` (${new Date(sos.triggeredAt).toLocaleString()})`}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
-                  <LocationOnIcon sx={{ fontSize: 16, color: '#E53935' }} />
+                  <LocationOnIcon sx={{ fontSize: 16, color: 'error.main' }} />
                   {sos.latitude && sos.longitude ? (
                     <Typography variant="body2" component="a"
                       href={`https://maps.google.com/?q=${sos.latitude},${sos.longitude}`}
                       target="_blank" rel="noopener noreferrer"
-                      sx={{ color: '#1565C0', textDecoration: 'underline' }}>
+                      sx={{ color: 'primary.main', textDecoration: 'underline' }}>
                       {sos.latitude.toFixed(5)}, {sos.longitude.toFixed(5)} — View on Map
                     </Typography>
                   ) : (
@@ -277,8 +279,8 @@ function SosPanelSection({ children, profileMap }: {
             {historySos.map(sos => (
               <Box key={sos.id} sx={{
                 display: 'flex', alignItems: 'flex-start', gap: 2,
-                p: 2, borderRadius: 2, border: '1px solid #E8EDF2',
-                bgcolor: sos.status === 'RESOLVED' ? '#F1F8F1' : '#FFF8F0',
+                p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider',
+                bgcolor: sos.status === 'RESOLVED' ? 'rgba(67,160,71,0.06)' : 'rgba(251,140,0,0.06)',
               }}>
                 <Box sx={{ fontSize: 22, mt: 0.25 }}>{sos.status === 'RESOLVED' ? '✅' : '👁️'}</Box>
                 <Box sx={{ flex: 1 }}>
@@ -297,7 +299,7 @@ function SosPanelSection({ children, profileMap }: {
                     <Typography variant="caption" component="a"
                       href={`https://maps.google.com/?q=${sos.latitude},${sos.longitude}`}
                       target="_blank" rel="noopener noreferrer"
-                      sx={{ color: '#1565C0', textDecoration: 'underline', display: 'block', mt: 0.5 }}>
+                      sx={{ color: 'primary.main', textDecoration: 'underline', display: 'block', mt: 0.5 }}>
                       📍 {sos.latitude.toFixed(5)}, {sos.longitude.toFixed(5)} — View on Map
                     </Typography>
                   )}
@@ -406,15 +408,15 @@ export default function AlertsPage() {
         icon={<NotificationsActiveIcon />}
         title="Alert Centre"
         subtitle={`${allAlerts.length} total · ${unreadCount} unread`}
-        iconColor="#E53935"
+        iconColor="error.main"
         action={
           <Stack direction="row" spacing={1.5} alignItems="center">
-            {isLoading && <CircularProgress size={16} sx={{ color: '#E53935' }} />}
+            {isLoading && <CircularProgress size={16} sx={{ color: 'error.main' }} />}
             {unreadCount > 0 && (
               <Button variant="outlined" size="small" startIcon={<DoneAllIcon />}
                 onClick={() => markAllReadMutation.mutate()}
                 disabled={markAllReadMutation.isPending}
-                sx={{ borderRadius: 2, borderColor: '#E5393530', color: '#E53935', textTransform: 'none' }}>
+                sx={{ borderRadius: 2, borderColor: 'rgba(229,57,53,0.19)', color: 'error.main', textTransform: 'none' }}>
                 Mark all read ({unreadCount})
               </Button>
             )}
@@ -431,7 +433,7 @@ export default function AlertsPage() {
       <AnimatedPage delay={0.1}>
         <Card>
           {/* Tabs + search */}
-          <Box sx={{ px: 2, pt: 1.5, pb: 0, borderBottom: '1px solid #F1F5F9' }}>
+          <Box sx={{ px: 2, pt: 1.5, pb: 0, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} sx={{ mb: 1 }}>
               <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{
                 minHeight: 36,
@@ -503,13 +505,14 @@ export default function AlertsPage() {
                   <Box key={alert.id} sx={{
                     display: 'flex', alignItems: 'flex-start', gap: 2,
                     px: 2.5, py: 1.75,
-                    borderBottom: i < filtered.length - 1 ? '1px solid #F1F5F9' : 'none',
+                    borderBottom: i < filtered.length - 1 ? '1px solid' : 'none',
+                    borderColor: 'divider',
                     borderLeft: `4px solid ${alert.read ? '#E8EDF2' : style.border}`,
                     bgcolor: alert.read ? 'transparent' : style.bg,
                     boxShadow: !alert.read ? style.glow : 'none',
                     cursor: alert.profileId ? 'pointer' : 'default',
                     transition: 'all 0.18s ease',
-                    '&:hover': { bgcolor: '#FAFBFC' },
+                    '&:hover': { bgcolor: 'action.hover' },
                     '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(6px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
                     animation: `fadeInUp 0.3s ease ${Math.min(i * 0.04, 0.4)}s both`,
                   }}
@@ -547,7 +550,7 @@ export default function AlertsPage() {
                             sx={{ height: 20, fontSize: 10, fontWeight: 700 }} />
                         )}
                         {profileName && (
-                          <Typography variant="caption" fontWeight={600} sx={{ color: '#1565C0' }}>
+                          <Typography variant="caption" fontWeight={600} sx={{ color: 'primary.main' }}>
                             {profileName}
                           </Typography>
                         )}
@@ -573,7 +576,7 @@ export default function AlertsPage() {
                         <Tooltip title="Mark as read">
                           <IconButton size="small"
                             onClick={e => { e.stopPropagation(); markReadMutation.mutate(alert.id); }}
-                            sx={{ bgcolor: '#F1F5F9', '&:hover': { bgcolor: '#E8EDF2' } }}>
+                            sx={{ bgcolor: 'action.hover', '&:hover': { bgcolor: 'action.selected' } }}>
                             <CheckIcon sx={{ fontSize: 14 }} />
                           </IconButton>
                         </Tooltip>

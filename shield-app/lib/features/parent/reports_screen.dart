@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 import '../../core/shield_widgets.dart';
+import '../../app/theme.dart';
 
 // Top-level function required by compute() — must not be a closure or method
 Future<void> _writeFileIsolate(Map<String, dynamic> args) async {
@@ -104,13 +105,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF downloaded successfully'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('PDF downloaded successfully'), backgroundColor: ShieldTheme.success, behavior: SnackBarBehavior.floating),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to download PDF: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Failed to download PDF: $e'), backgroundColor: ShieldTheme.danger, behavior: SnackBarBehavior.floating),
         );
       }
     } finally {
@@ -228,11 +229,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                     children: [
                   // Stats cards
                   Row(children: [
-                    _StatCard(label: 'Queries', value: '${_stats['totalQueries'] ?? 0}', icon: Icons.dns, color: const Color(0xFF1565C0)),
+                    _StatCard(label: 'Queries', value: '${_stats['totalQueries'] ?? 0}', icon: Icons.dns, color: ShieldTheme.primary),
                     const SizedBox(width: 8),
-                    _StatCard(label: 'Blocked', value: '${_stats['blockedQueries'] ?? 0}', icon: Icons.block, color: Colors.red),
+                    _StatCard(label: 'Blocked', value: '${_stats['blockedQueries'] ?? 0}', icon: Icons.block, color: ShieldTheme.danger),
                     const SizedBox(width: 8),
-                    _StatCard(label: 'Screen Time', value: _fmtMin(_stats['screenTimeMinutes'] as int? ?? 0), icon: Icons.phone_android, color: Colors.orange),
+                    _StatCard(label: 'Screen Time', value: _fmtMin(_stats['screenTimeMinutes'] as int? ?? 0), icon: Icons.phone_android, color: ShieldTheme.warning),
                   ]),
                   const SizedBox(height: 24),
 
@@ -242,17 +243,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                   SizedBox(
                     height: 200,
                     child: _daily.isEmpty
-                      ? const Center(child: Text('No daily data', style: TextStyle(color: Colors.grey)))
+                      ? const Center(child: Text('No daily data', style: const TextStyle(color: ShieldTheme.textSecondary)))
                       : LineChart(
                           LineChartData(
                             gridData: const FlGridData(show: true, drawVerticalLine: false),
                             titlesData: FlTitlesData(
-                              leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (v, _) => Text('${v.toInt()}', style: const TextStyle(fontSize: 10, color: Colors.grey)))),
+                              leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (v, _) => Text('${v.toInt()}', style: const TextStyle(fontSize: 10, color: ShieldTheme.textSecondary)))),
                               bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
                                 final idx = v.toInt();
                                 if (idx < 0 || idx >= _daily.length) return const SizedBox.shrink();
                                 final date = _daily[idx]['date'] as String? ?? '';
-                                return Padding(padding: const EdgeInsets.only(top: 4), child: Text(date.length >= 5 ? date.substring(5) : date, style: const TextStyle(fontSize: 9, color: Colors.grey)));
+                                return Padding(padding: const EdgeInsets.only(top: 4), child: Text(date.length >= 5 ? date.substring(5) : date, style: const TextStyle(fontSize: 9, color: ShieldTheme.textSecondary)));
                               })),
                               topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                               rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -262,10 +263,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                               LineChartBarData(
                                 spots: _daily.asMap().entries.map((e) => FlSpot(e.key.toDouble(), (e.value['queries'] as num? ?? 0).toDouble())).toList(),
                                 isCurved: true,
-                                color: const Color(0xFF1565C0),
+                                color: ShieldTheme.primary,
                                 barWidth: 2,
                                 dotData: const FlDotData(show: false),
-                                belowBarData: BarAreaData(show: true, color: const Color(0xFF1565C0).withAlpha(30)),
+                                belowBarData: BarAreaData(show: true, color: ShieldTheme.primary.withOpacity(0.10)),
                               ),
                             ],
                           ),
@@ -277,7 +278,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                   const Text('Top Domains', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                   const SizedBox(height: 8),
                   if (_topDomains.isEmpty)
-                    const Center(child: Padding(padding: EdgeInsets.all(16), child: Text('No domain data', style: TextStyle(color: Colors.grey))))
+                    const Center(child: Padding(padding: EdgeInsets.all(16), child: Text('No domain data', style: const TextStyle(color: ShieldTheme.textSecondary))))
                   else
                     ...List.generate(
                       _topDomains.length > 10 ? 10 : _topDomains.length,
@@ -288,7 +289,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 6),
                           child: Row(children: [
-                            SizedBox(width: 24, child: Text('${i + 1}', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade500, fontSize: 13))),
+                            SizedBox(width: 24, child: Text('${i + 1}', style: const TextStyle(fontWeight: FontWeight.w700, color: ShieldTheme.textSecondary, fontSize: 13))),
                             Expanded(
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text(d['domain'] as String? ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
@@ -298,14 +299,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                                   child: LinearProgressIndicator(
                                     value: maxCount > 0 ? count / maxCount : 0,
                                     minHeight: 4,
-                                    backgroundColor: Colors.grey.shade200,
-                                    color: (d['blocked'] == true) ? Colors.red : const Color(0xFF1565C0),
+                                    backgroundColor: ShieldTheme.divider,
+                                    color: (d['blocked'] == true) ? ShieldTheme.danger : ShieldTheme.primary,
                                   ),
                                 ),
                               ]),
                             ),
                             const SizedBox(width: 8),
-                            Text('$count', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                            Text('$count', style: const TextStyle(fontSize: 12, color: ShieldTheme.textSecondary, fontWeight: FontWeight.w600)),
                           ]),
                         );
                       },
@@ -316,7 +317,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                   const Text('Categories', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                   const SizedBox(height: 12),
                   if (_categories.isEmpty)
-                    const Center(child: Padding(padding: EdgeInsets.all(16), child: Text('No category data', style: TextStyle(color: Colors.grey))))
+                    const Center(child: Padding(padding: EdgeInsets.all(16), child: Text('No category data', style: const TextStyle(color: ShieldTheme.textSecondary))))
                   else
                     SizedBox(
                       height: 200,
@@ -362,14 +363,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.phone_android, size: 48, color: Colors.grey),
+                            Icon(Icons.phone_android, size: 48, color: ShieldTheme.textSecondary),
                             SizedBox(height: 12),
                             Text('No app usage data yet',
-                              style: TextStyle(color: Colors.grey, fontSize: 15),
+                              style: TextStyle(color: ShieldTheme.textSecondary, fontSize: 15),
                               textAlign: TextAlign.center),
                             SizedBox(height: 8),
                             Text('App usage appears once the child uses the Shield app on their device.',
-                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                              style: TextStyle(color: ShieldTheme.textSecondary, fontSize: 12),
                               textAlign: TextAlign.center),
                           ],
                         ),
@@ -409,8 +410,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                                           child: LinearProgressIndicator(
                                             value: ratio,
                                             minHeight: 8,
-                                            backgroundColor: Colors.grey.shade200,
-                                            color: const Color(0xFF1565C0),
+                                            backgroundColor: ShieldTheme.divider,
+                                            color: ShieldTheme.primary,
                                           ),
                                         ),
                                       ),
@@ -419,10 +420,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                                         width: 48,
                                         child: Text(
                                           _fmtMin(mins.toInt()),
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.grey.shade700,
+                                            color: ShieldTheme.textSecondary,
                                           ),
                                           textAlign: TextAlign.right,
                                         ),
@@ -434,7 +435,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                                       padding: const EdgeInsets.only(left: 130, top: 2),
                                       child: Text(
                                         '$blocked blocked attempts',
-                                        style: TextStyle(fontSize: 10, color: Colors.red.shade400),
+                                        style: const TextStyle(fontSize: 10, color: ShieldTheme.dangerLight),
                                       ),
                                     ),
                                 ],
@@ -477,7 +478,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                   : _history.isEmpty
                     ? const Center(child: Text('No browsing history yet.\nHistory appears once the child uses the internet.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey)))
+                        style: const TextStyle(color: ShieldTheme.textSecondary)))
                     : NotificationListener<ScrollNotification>(
                         onNotification: (n) {
                           if (n is ScrollEndNotification && n.metrics.extentAfter < 200) {
@@ -503,14 +504,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                               dense: true,
                               leading: Icon(
                                 blocked ? Icons.block : Icons.language,
-                                color: blocked ? Colors.red : Colors.green,
+                                color: blocked ? ShieldTheme.danger : ShieldTheme.success,
                                 size: 20,
                               ),
                               title: Text(domain,
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: blocked ? Colors.red.shade700 : null,
+                                  color: blocked ? ShieldTheme.danger : null,
                                 )),
                               subtitle: Text(
                                 '${category.isNotEmpty ? "$category · " : ""}${_fmtTime(time)}',
@@ -518,7 +519,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                               trailing: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: blocked ? Colors.red.shade50 : Colors.green.shade50,
+                                  color: blocked ? ShieldTheme.danger.withOpacity(0.08) : ShieldTheme.success.withOpacity(0.08),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -526,7 +527,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
-                                    color: blocked ? Colors.red.shade700 : Colors.green.shade700,
+                                    color: blocked ? ShieldTheme.danger : ShieldTheme.success,
                                   )),
                               ),
                             );
@@ -546,7 +547,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     return FilterChip(
       label: Text(label, style: const TextStyle(fontSize: 12)),
       selected: selected,
-      selectedColor: value == 'BLOCKED' ? Colors.red.shade100 : value == 'ALLOWED' ? Colors.green.shade100 : Colors.blue.shade100,
+      selectedColor: value == 'BLOCKED' ? ShieldTheme.danger.withOpacity(0.12) : value == 'ALLOWED' ? ShieldTheme.success.withOpacity(0.12) : ShieldTheme.primary.withOpacity(0.12),
       onSelected: (_) {
         setState(() => _historyActionFilter = value);
         _loadHistory(reset: true);
@@ -589,7 +590,7 @@ class _StatCard extends StatelessWidget {
             Icon(icon, color: color, size: 24),
             const SizedBox(height: 4),
             Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
-            Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey), textAlign: TextAlign.center),
+            Text(label, style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary), textAlign: TextAlign.center),
           ]),
         ),
       ),

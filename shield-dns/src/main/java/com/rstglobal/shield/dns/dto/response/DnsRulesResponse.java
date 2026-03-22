@@ -20,4 +20,8 @@ public class DnsRulesResponse {
     private Boolean youtubeRestricted;
     private Boolean adsBlocked;
     private Map<String, Integer> timeBudgets;
+    /** PC-05: YouTube Restricted Mode via DNS CNAME rewrite */
+    private boolean youtubeSafeMode;
+    /** PC-06: Safe Search via DNS CNAME rewrite for Google/Bing/DuckDuckGo */
+    private boolean safeSearch;
 }

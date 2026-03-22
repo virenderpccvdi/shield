@@ -3,7 +3,9 @@ package com.rstglobal.shield.tenant.service;
 import com.rstglobal.shield.common.dto.PagedResponse;
 import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.tenant.dto.request.CreateTenantRequest;
+import com.rstglobal.shield.tenant.dto.request.UpdateBrandingRequest;
 import com.rstglobal.shield.tenant.dto.request.UpdateTenantRequest;
+import com.rstglobal.shield.tenant.dto.response.BrandingResponse;
 import com.rstglobal.shield.tenant.dto.response.TenantResponse;
 import com.rstglobal.shield.tenant.entity.Tenant;
 import com.rstglobal.shield.tenant.entity.TenantPlan;
@@ -178,6 +180,37 @@ public class TenantService {
         return toResponse(tenantRepository.save(tenant));
     }
 
+    // ── Branding ─────────────────────────────────────────────────────────────
+
+    public BrandingResponse getBranding(UUID tenantId) {
+        Tenant t = findOrThrow(tenantId);
+        return toBrandingResponse(t);
+    }
+
+    @Transactional
+    public BrandingResponse updateBranding(UUID tenantId, UpdateBrandingRequest req) {
+        Tenant t = findOrThrow(tenantId);
+        if (req.getBrandName()    != null) t.setBrandName(req.getBrandName());
+        if (req.getBrandColor()   != null) t.setBrandColor(req.getBrandColor());
+        if (req.getBrandLogoUrl() != null) t.setBrandLogoUrl(req.getBrandLogoUrl());
+        if (req.getSupportEmail() != null) t.setSupportEmail(req.getSupportEmail());
+        if (req.getSupportPhone() != null) t.setSupportPhone(req.getSupportPhone());
+        tenantRepository.save(t);
+        log.info("Updated branding for tenant {}", tenantId);
+        return toBrandingResponse(t);
+    }
+
+    private BrandingResponse toBrandingResponse(Tenant t) {
+        return BrandingResponse.builder()
+                .tenantId(t.getId())
+                .brandName(t.getBrandName() != null ? t.getBrandName() : t.getName())
+                .brandColor(t.getBrandColor() != null ? t.getBrandColor() : "#00897B")
+                .brandLogoUrl(t.getBrandLogoUrl() != null ? t.getBrandLogoUrl() : t.getLogoUrl())
+                .supportEmail(t.getSupportEmail() != null ? t.getSupportEmail() : t.getContactEmail())
+                .supportPhone(t.getSupportPhone() != null ? t.getSupportPhone() : t.getContactPhone())
+                .build();
+    }
+
     // ── Delete (soft) ─────────────────────────────────────────────────────────
 
     @Transactional
@@ -214,6 +247,11 @@ public class TenantService {
                 .subscriptionEndsAt(t.getSubscriptionEndsAt())
                 .createdAt(t.getCreatedAt())
                 .updatedAt(t.getUpdatedAt())
+                .brandName(t.getBrandName())
+                .brandColor(t.getBrandColor())
+                .brandLogoUrl(t.getBrandLogoUrl())
+                .supportEmail(t.getSupportEmail())
+                .supportPhone(t.getSupportPhone())
                 .build();
     }
 }

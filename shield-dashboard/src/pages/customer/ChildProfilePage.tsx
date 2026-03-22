@@ -26,6 +26,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
+import LiveCheckinButton from '../../components/LiveCheckinButton';
 
 interface ChildProfile {
   id: string; customerId: string; name: string;
@@ -582,7 +583,10 @@ export default function ChildProfilePage() {
                 {getInitials(profile.name)}
               </Avatar>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="h5" fontWeight={700}>{profile.name}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                  <Typography variant="h5" fontWeight={700}>{profile.name}</Typography>
+                  <LiveCheckinButton profileId={profile.id} profileName={profile.name} />
+                </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                   <Chip size="small" label={profile.ageGroup} sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#E3F2FD', color: '#1565C0' }} />
                   <Chip size="small" label={profile.filterLevel} sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: fc.bg, color: fc.text }} />

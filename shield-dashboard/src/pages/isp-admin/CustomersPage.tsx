@@ -1,4 +1,5 @@
 import { Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody, TablePagination, Chip, TextField, InputAdornment, Avatar, Button, Stack, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import PeopleIcon from '@mui/icons-material/People';
@@ -54,12 +55,13 @@ const statusConfig: Record<string, { color: 'success' | 'error' | 'warning' | 'd
 
 const planColors: Record<string, { bg: string; text: string }> = {
   FREE: { bg: '#F5F5F5', text: '#757575' },
-  BASIC: { bg: '#E3F2FD', text: '#1565C0' },
+  BASIC: { bg: '#E3F2FD', text: 'primary.main' },
   PREMIUM: { bg: '#F3E5F5', text: '#7B1FA2' },
-  ENTERPRISE: { bg: '#FFF8E1', text: '#F57F17' },
+  ENTERPRISE: { bg: '#FFF8E1', text: 'warning.dark' },
 };
 
 export default function CustomersPage() {
+  const theme = useTheme();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -153,7 +155,7 @@ export default function CustomersPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               InputProps={{
-                startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#9E9E9E' }} /></InputAdornment>,
+                startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} /></InputAdornment>,
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -165,7 +167,7 @@ export default function CustomersPage() {
               }}
             />
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
-              sx={{ bgcolor: '#00897B', whiteSpace: 'nowrap', '&:hover': { bgcolor: '#00796B' } }}>
+              sx={{ whiteSpace: 'nowrap' }}>
               Add Customer
             </Button>
           </Stack>
@@ -208,7 +210,7 @@ export default function CustomersPage() {
                     >
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Avatar sx={{ width: 34, height: 34, fontSize: 13, fontWeight: 700, bgcolor: '#00897B' }}>
+                          <Avatar sx={{ width: 34, height: 34, fontSize: 13, fontWeight: 700, bgcolor: 'secondary.main' }}>
                             {getInitials(c.name)}
                           </Avatar>
                           <Box sx={{ minWidth: 0 }}>
@@ -224,7 +226,7 @@ export default function CustomersPage() {
                         ); })()}
                       </TableCell>
                       <TableCell>
-                        <Chip size="small" label={c.profileCount ?? c.profiles ?? 0} sx={{ height: 22, minWidth: 28, bgcolor: '#E3F2FD', color: '#1565C0', fontWeight: 600 }} />
+                        <Chip size="small" label={c.profileCount ?? c.profiles ?? 0} sx={{ height: 22, minWidth: 28, bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main', fontWeight: 600 }} />
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -238,20 +240,20 @@ export default function CustomersPage() {
                       <TableCell onClick={e => e.stopPropagation()}>
                         <Stack direction="row" spacing={0.5}>
                           <Tooltip title="View Details">
-                            <IconButton size="small" onClick={() => navigate(`/isp/customers/${c.id}`)} sx={{ color: '#1565C0', '&:hover': { bgcolor: '#E3F2FD' } }}>
+                            <IconButton size="small" onClick={() => navigate(`/isp/customers/${c.id}`)} sx={{ color: 'primary.main', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) } }}>
                               <OpenInNewIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title={(c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? 'Suspend' : 'Activate'}>
                             <IconButton size="small" onClick={e => handleToggleSuspend(c, e)}
-                              sx={{ color: (c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? '#F57F17' : '#1B5E20',
-                                '&:hover': { bgcolor: (c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? '#FFF8E1' : '#E8F5E9' } }}>
+                              sx={{ color: (c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? 'warning.main' : 'success.dark',
+                                '&:hover': { bgcolor: (c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? alpha(theme.palette.warning.main, 0.08) : alpha(theme.palette.success.main, 0.08) } }}>
                               {(c.subscriptionStatus ?? c.status ?? 'ACTIVE') === 'ACTIVE' ? <PauseCircleIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Delete Customer">
                             <IconButton size="small" onClick={e => { e.stopPropagation(); setDeleteTarget(c); }}
-                              sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFEBEE' } }}>
+                              sx={{ color: 'error.main', '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) } }}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -289,7 +291,7 @@ export default function CustomersPage() {
 
       {/* Delete Confirm */}
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle fontWeight={700} sx={{ color: '#B71C1C' }}>Delete Customer?</DialogTitle>
+        <DialogTitle fontWeight={700} sx={{ color: 'error.dark' }}>Delete Customer?</DialogTitle>
         <DialogContent>
           <Typography>This will permanently delete the customer and all their profiles and data. This cannot be undone.</Typography>
         </DialogContent>

@@ -2,6 +2,10 @@
 -- Note: idx_audit_user, idx_audit_action, idx_audit_created already exist from V5
 -- Note: idx_leads_status, idx_leads_created already exist from V10
 
+-- Add tenant_id to audit_logs if missing (backfill for multi-tenant audit scoping)
+ALTER TABLE admin.audit_logs
+  ADD COLUMN IF NOT EXISTS tenant_id UUID;
+
 -- Composite index for audit_logs by tenant + created (high-volume table — tenant-scoped queries)
 CREATE INDEX IF NOT EXISTS idx_audit_logs_tenant_created
   ON admin.audit_logs(tenant_id, created_at DESC);

@@ -111,6 +111,42 @@ public class RewardBankService {
         return toResponse(bank);
     }
 
+    /**
+     * FC-08: Generic point award without a linked taskId.
+     * Used by the internal award endpoint called from other microservices.
+     */
+    @Transactional
+    public RewardBankResponse awardPoints(UUID profileId, int points, String reason, String type) {
+        RewardBank bank = rewardBankRepository.findByProfileId(profileId)
+                .orElseGet(() -> {
+                    RewardBank newBank = RewardBank.builder()
+                            .profileId(profileId)
+                            .pointsBalance(0)
+                            .minutesBalance(0)
+                            .totalEarnedPoints(0)
+                            .totalEarnedMinutes(0)
+                            .streakDays(0)
+                            .build();
+                    return rewardBankRepository.save(newBank);
+                });
+
+        bank.setPointsBalance(bank.getPointsBalance() + points);
+        bank.setTotalEarnedPoints(bank.getTotalEarnedPoints() + points);
+        bank = rewardBankRepository.save(bank);
+
+        RewardTransaction tx = RewardTransaction.builder()
+                .profileId(profileId)
+                .transactionType(type != null ? type : "EARN")
+                .points(points)
+                .minutes(0)
+                .description(reason != null ? reason : "Points awarded")
+                .build();
+        transactionRepository.save(tx);
+
+        log.info("Awarded {} points to profile {} — reason: {}", points, profileId, reason);
+        return toResponse(bank);
+    }
+
     @Transactional
     public void updateStreak(UUID profileId) {
         rewardBankRepository.findByProfileId(profileId).ifPresent(bank -> {

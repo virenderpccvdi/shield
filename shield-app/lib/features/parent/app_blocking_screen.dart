@@ -74,9 +74,12 @@ class _AppBlockingScreenState extends ConsumerState<AppBlockingScreen> {
         if (idx >= 0) _apps[idx] = {..._apps[idx], 'blocked': !nowBlocked};
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to update: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
   }
@@ -97,9 +100,12 @@ class _AppBlockingScreenState extends ConsumerState<AppBlockingScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
   }
@@ -165,7 +171,7 @@ class _AppBlockingScreenState extends ConsumerState<AppBlockingScreen> {
               child: Chip(
                 label: Text('$blockedCount blocked',
                     style: const TextStyle(color: Colors.white, fontSize: 12)),
-                backgroundColor: Colors.red.shade700,
+                backgroundColor: ShieldTheme.danger,
                 padding: EdgeInsets.zero,
               ),
             ),
@@ -210,7 +216,7 @@ class _AppBlockingScreenState extends ConsumerState<AppBlockingScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const Icon(Icons.error_outline, size: 48, color: ShieldTheme.danger),
                       const SizedBox(height: 12),
                       Text(_error!, textAlign: TextAlign.center),
                       const SizedBox(height: 16),
@@ -219,20 +225,12 @@ class _AppBlockingScreenState extends ConsumerState<AppBlockingScreen> {
                   ),
                 )
               : _apps.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.phone_android, size: 64, color: Colors.grey.shade400),
-                          const SizedBox(height: 12),
-                          const Text('No apps detected yet.',
-                              style: TextStyle(color: Colors.grey, fontSize: 16)),
-                          const SizedBox(height: 8),
-                          const Text('Apps appear after the child opens the Shield app.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey, fontSize: 13)),
-                        ],
-                      ),
+                  ? ShieldEmptyState(
+                      icon: Icons.phone_android,
+                      title: 'No apps detected yet',
+                      subtitle: 'Apps appear after the child opens the Shield app.',
+                      actionLabel: 'Refresh',
+                      onAction: _loadApps,
                     )
                   : Column(
                       children: [
@@ -242,13 +240,13 @@ class _AppBlockingScreenState extends ConsumerState<AppBlockingScreen> {
                           child: Row(
                             children: [
                               Text('${filtered.length} apps',
-                                  style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                                  style: const TextStyle(color: ShieldTheme.textSecondary, fontSize: 13)),
                               const Spacer(),
                               FilterChip(
                                 label: const Text('Blocked only'),
                                 selected: _showBlockedOnly,
                                 onSelected: (v) => setState(() => _showBlockedOnly = v),
-                                selectedColor: Colors.red.shade100,
+                                selectedColor: ShieldTheme.danger.withOpacity(0.12),
                               ),
                             ],
                           ),
@@ -287,10 +285,12 @@ class _AppTile extends StatelessWidget {
 
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: blocked ? Colors.red.shade100 : Colors.blue.shade50,
+        backgroundColor: blocked
+            ? ShieldTheme.danger.withOpacity(0.12)
+            : ShieldTheme.primary.withOpacity(0.08),
         child: Icon(
           blocked ? Icons.block : Icons.apps,
-          color: blocked ? Colors.red : Colors.blueGrey,
+          color: blocked ? ShieldTheme.danger : ShieldTheme.primary,
           size: 22,
         ),
       ),
@@ -299,30 +299,30 @@ class _AppTile extends StatelessWidget {
         style: TextStyle(
           fontWeight: FontWeight.w600,
           decoration: blocked ? TextDecoration.lineThrough : null,
-          color: blocked ? Colors.red.shade700 : null,
+          color: blocked ? ShieldTheme.danger : null,
         ),
       ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(pkg, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          Text(pkg, style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
           Row(
             children: [
               if (usageMin > 0) ...[
-                Icon(Icons.access_time, size: 11, color: Colors.orange.shade700),
+                const Icon(Icons.access_time, size: 11, color: ShieldTheme.warning),
                 const SizedBox(width: 2),
                 Text('${_fmt(usageMin)} today',
-                    style: TextStyle(fontSize: 11, color: Colors.orange.shade700)),
+                    style: const TextStyle(fontSize: 11, color: ShieldTheme.warning)),
                 const SizedBox(width: 8),
               ],
               if (timeLimitMin > 0) ...[
-                const Icon(Icons.timer, size: 11, color: Colors.blueGrey),
+                const Icon(Icons.timer, size: 11, color: ShieldTheme.textSecondary),
                 const SizedBox(width: 2),
                 Text('limit: ${_fmt(timeLimitMin)}',
-                    style: const TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                    style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
               ],
               if (isSystem)
-                const Text(' • system', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                const Text(' • system', style: TextStyle(fontSize: 10, color: ShieldTheme.textSecondary)),
             ],
           ),
         ],
@@ -333,14 +333,14 @@ class _AppTile extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.timer_outlined,
                 size: 20,
-                color: timeLimitMin > 0 ? Colors.blue : Colors.grey.shade400),
+                color: timeLimitMin > 0 ? ShieldTheme.primary : ShieldTheme.divider),
             tooltip: 'Set time limit',
             onPressed: onTimeLimit,
           ),
           Switch(
             value: blocked,
             onChanged: (_) => onToggle(),
-            activeColor: Colors.red,
+            activeColor: ShieldTheme.danger,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],

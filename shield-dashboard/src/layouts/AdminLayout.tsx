@@ -27,6 +27,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import PhonelinkSetupIcon from '@mui/icons-material/PhonelinkSetup';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PublicIcon from '@mui/icons-material/Public';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -41,10 +42,6 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 const DRAWER_EXPANDED = 240;
 const DRAWER_COLLAPSED = 56;
 
-const BG = '#0F172A';
-const BG_HOVER = 'rgba(255,255,255,0.06)';
-const BG_SELECTED = '#1E3A5F';
-const ACCENT = '#90CAF9';
 
 const sections = [
   {
@@ -83,6 +80,7 @@ const sections = [
       { label: 'Audit Log', icon: <HistoryIcon />, path: '/admin/audit-logs' },
       { label: 'CRM Leads', icon: <ContactMailIcon />, path: '/admin/leads' },
       { label: 'Visitors', icon: <PublicIcon />, path: '/admin/visitors' },
+      { label: 'Platform Admin', icon: <AdminPanelSettingsIcon />, path: '/admin/platform' },
       { label: 'Settings', icon: <SettingsIcon />, path: '/admin/settings' },
     ],
   },
@@ -106,7 +104,7 @@ export default function AdminLayout() {
 
   const drawer = (
     <Box sx={{
-      height: '100%', bgcolor: BG, color: 'white',
+      height: '100%', bgcolor: 'background.paper', color: 'text.primary',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
       transition: 'width 0.25s ease',
@@ -119,37 +117,39 @@ export default function AdminLayout() {
         alignItems: 'center',
         gap: collapsed && !isMobile ? 0 : 1.5,
         minHeight: 64,
-        background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+        bgcolor: 'background.paper',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
       }}>
-        <ShieldIcon sx={{ color: ACCENT, fontSize: 26, flexShrink: 0 }} />
+        <ShieldIcon sx={{ color: 'primary.main', fontSize: 26, flexShrink: 0 }} />
         {(!collapsed || isMobile) && (
           <Box>
-            <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 800, lineHeight: 1.1, letterSpacing: -0.3 }}>
+            <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 800, lineHeight: 1.1, letterSpacing: -0.3 }}>
               Shield
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase' }}>
               Global Admin
             </Typography>
           </Box>
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+      <Divider />
 
       {/* Scrollable nav */}
       <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', py: 1,
         '&::-webkit-scrollbar': { width: 4 },
-        '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 },
+        '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 },
       }}>
         <List disablePadding sx={{ px: collapsed && !isMobile ? 0.5 : 1 }}>
           {sections.map((section, si) => (
             <Box key={section.title}>
-              {si > 0 && <Box sx={{ my: 1, mx: 1 }}><Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} /></Box>}
+              {si > 0 && <Box sx={{ my: 1, mx: 1 }}><Divider /></Box>}
               {(!collapsed || isMobile) && (
                 <Typography variant="overline" sx={{
                   px: 2, py: 0.5, display: 'block',
-                  color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700,
+                  color: 'text.disabled', fontSize: 10, fontWeight: 700,
                   letterSpacing: 1.5,
                 }}>
                   {section.title}
@@ -168,7 +168,7 @@ export default function AdminLayout() {
                       minHeight: 40,
                       px: collapsed && !isMobile ? 1 : 1.5,
                       justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
-                      color: active ? ACCENT : 'rgba(255,255,255,0.6)',
+                      color: active ? 'primary.main' : 'text.secondary',
                       position: 'relative',
                       overflow: 'hidden',
                       transition: 'all 0.18s ease',
@@ -176,17 +176,17 @@ export default function AdminLayout() {
                         content: '""',
                         position: 'absolute', left: 0, top: '20%',
                         width: 3, height: active ? '60%' : 0,
-                        bgcolor: ACCENT, borderRadius: '0 3px 3px 0',
+                        bgcolor: 'primary.main', borderRadius: '0 3px 3px 0',
                         transition: 'height 0.2s ease',
                       },
                       '&.Mui-selected': {
-                        bgcolor: BG_SELECTED,
-                        color: ACCENT,
-                        '& .MuiListItemIcon-root': { color: ACCENT },
+                        bgcolor: 'primary.main',
+                        color: 'primary.contrastText',
+                        '& .MuiListItemIcon-root': { color: 'primary.contrastText' },
                       },
-                      '&.Mui-selected:hover': { bgcolor: BG_SELECTED },
+                      '&.Mui-selected:hover': { bgcolor: 'primary.dark' },
                       '&:hover': {
-                        bgcolor: BG_HOVER,
+                        bgcolor: 'action.hover',
                         '& .MuiListItemIcon-root': { transform: 'scale(1.15)' },
                       },
                       '& .MuiListItemIcon-root': { transition: 'transform 0.18s ease' },
@@ -222,7 +222,7 @@ export default function AdminLayout() {
         </List>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+      <Divider />
 
       {/* User section */}
       <Box sx={{
@@ -236,7 +236,7 @@ export default function AdminLayout() {
         {collapsed && !isMobile ? (
           <Tooltip title={`${user?.name ?? ''} — Sign out`} placement="right" arrow>
             <Avatar
-              sx={{ width: 32, height: 32, bgcolor: ACCENT, color: BG, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              sx={{ width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
               onClick={() => { logout(); navigate('/login'); }}
             >
               {user?.name?.charAt(0)?.toUpperCase() ?? 'A'}
@@ -244,19 +244,19 @@ export default function AdminLayout() {
           </Tooltip>
         ) : (
           <>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: ACCENT, color: BG, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
               {user?.name?.charAt(0)?.toUpperCase() ?? 'A'}
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" sx={{ color: 'white', fontWeight: 600, fontSize: 12.5, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600, fontSize: 12.5, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.name ?? 'Admin'}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
                 {user?.email ?? ''}
               </Typography>
             </Box>
             <Tooltip title="Sign out">
-              <IconButton size="small" onClick={() => { logout(); navigate('/login'); }} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#EF5350' } }}>
+              <IconButton size="small" onClick={() => { logout(); navigate('/login'); }} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
                 <LogoutIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -267,13 +267,13 @@ export default function AdminLayout() {
       {/* Collapse toggle — only on desktop */}
       {!isMobile && (
         <>
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+          <Divider />
           <Box sx={{ display: 'flex', justifyContent: collapsed ? 'center' : 'flex-end', px: 1, py: 0.75 }}>
             <Tooltip title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} placement="right">
               <IconButton
                 size="small"
                 onClick={() => setCollapsed(c => !c)}
-                sx={{ color: 'rgba(255,255,255,0.35)', '&:hover': { color: ACCENT, bgcolor: BG_HOVER } }}
+                sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main', bgcolor: 'action.hover' } }}
               >
                 {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
               </IconButton>
@@ -288,7 +288,7 @@ export default function AdminLayout() {
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <a href="#main-content" style={{
         position: 'absolute', left: '-9999px', zIndex: 9999,
-        padding: '8px 16px', background: '#0F172A', color: '#fff',
+        padding: '8px 16px', background: 'var(--mui-palette-background-paper, #0F172A)', color: 'var(--mui-palette-text-primary, #fff)',
         textDecoration: 'none', fontSize: 14,
       }}
         onFocus={(e) => { e.currentTarget.style.left = '8px'; e.currentTarget.style.top = '8px'; }}
@@ -341,7 +341,7 @@ export default function AdminLayout() {
               {themeMode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
             </IconButton>
             <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} aria-label="User menu">
-              <Avatar sx={{ width: 34, height: 34, bgcolor: '#1A237E', fontSize: 14, fontWeight: 700 }}>
+              <Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: 14, fontWeight: 700 }}>
                 {user?.name?.charAt(0)?.toUpperCase()}
               </Avatar>
             </IconButton>

@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -170,9 +172,39 @@ public class GeofenceBreachDetector {
                 return;
             }
 
-            String direction = "ENTER".equals(eventType) ? "entered" : "left";
-            String title = "Geofence Alert: " + geofence.getName();
-            String body = "Your child has " + direction + " the zone \"" + geofence.getName() + "\".";
+            // CS-07: school-zone aware title/body
+            String title;
+            String body;
+            String notificationType = "GEOFENCE_BREACH";
+
+            if (Boolean.TRUE.equals(geofence.getIsSchool())) {
+                // School zone — use dedicated school arrival/departure messaging
+                if ("ENTER".equals(eventType)) {
+                    String timeStr = LocalTime.now(ZoneId.systemDefault()).toString().substring(0, 5);
+                    title = "School Arrival";
+                    body  = "Your child arrived at " + geofence.getName() + " at " + timeStr + ".";
+                    notificationType = "SCHOOL_ARRIVAL";
+                } else {
+                    // EXIT — check whether we are within school hours
+                    LocalTime now = LocalTime.now(ZoneId.systemDefault());
+                    boolean duringSchoolHours = isDuringSchoolHours(geofence, now);
+                    String timeStr = now.toString().substring(0, 5);
+                    if (duringSchoolHours) {
+                        title = "School Departure Alert";
+                        body  = "\u26a0\ufe0f Your child left " + geofence.getName()
+                                + " during school hours at " + timeStr + ".";
+                        notificationType = "SCHOOL_EARLY_EXIT";
+                    } else {
+                        title = "Left School";
+                        body  = "Your child has left " + geofence.getName() + " at " + timeStr + ".";
+                        notificationType = "SCHOOL_DEPARTURE";
+                    }
+                }
+            } else {
+                String direction = "ENTER".equals(eventType) ? "entered" : "left";
+                title = "Geofence Alert: " + geofence.getName();
+                body  = "Your child has " + direction + " the zone \"" + geofence.getName() + "\".";
+            }
 
             UUID tenantId = point.getTenantId() != null
                     ? point.getTenantId()
@@ -182,7 +214,7 @@ public class GeofenceBreachDetector {
             }
 
             Map<String, Object> payload = new java.util.HashMap<>();
-            payload.put("type", "GEOFENCE_BREACH");
+            payload.put("type", notificationType);
             payload.put("title", title);
             payload.put("body", body);
             payload.put("profileId", point.getProfileId().toString());
@@ -259,5 +291,15 @@ public class GeofenceBreachDetector {
 
     private String redisKey(UUID profileId, UUID geofenceId) {
         return REDIS_KEY_PREFIX + profileId + ":" + geofenceId + ":inside";
+    }
+
+    /**
+     * CS-07: Returns true when {@code now} falls within the school's configured hours.
+     * If either schoolStart or schoolEnd is null, defaults to 08:00–15:00.
+     */
+    private boolean isDuringSchoolHours(Geofence geofence, LocalTime now) {
+        LocalTime start = geofence.getSchoolStart() != null ? geofence.getSchoolStart() : LocalTime.of(8, 0);
+        LocalTime end   = geofence.getSchoolEnd()   != null ? geofence.getSchoolEnd()   : LocalTime.of(15, 0);
+        return !now.isBefore(start) && now.isBefore(end);
     }
 }

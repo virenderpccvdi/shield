@@ -77,6 +77,64 @@ public class DnsRules {
     @Column(name = "daily_budget_minutes")
     private Integer dailyBudgetMinutes;
 
+    // ── PC-05: YouTube Safe Mode (DNS CNAME rewrite) ─────────────────────────
+
+    /**
+     * When true, youtube.com / www.youtube.com / m.youtube.com are rewritten
+     * via AdGuard DNS CNAME to restrict.youtube.com (YouTube Restricted Mode).
+     * This is a DNS-level enforcement, stronger than the per-client safe-search flag.
+     */
+    @Column(name = "youtube_safe_mode", nullable = false)
+    @Builder.Default
+    private boolean youtubeSafeMode = false;
+
+    // ── PC-06: Safe Search Enforcer (DNS CNAME rewrite) ──────────────────────
+
+    /**
+     * When true, major search engines are redirected to their safe-search endpoints
+     * via AdGuard DNS CNAME rewrites:
+     *   google.com / www.google.com → forcesafesearch.google.com
+     *   www.bing.com → strict.bing.com
+     *   duckduckgo.com → safe.duckduckgo.com
+     */
+    @Column(name = "safe_search", nullable = false)
+    @Builder.Default
+    private boolean safeSearch = false;
+
+    // ── Bedtime Lock ──────────────────────────────────────────────────────────
+
+    /** PC-01 — Whether the bedtime internet lock is configured for this profile. */
+    @Column(name = "bedtime_enabled", nullable = false)
+    @Builder.Default
+    private boolean bedtimeEnabled = false;
+
+    /** Time at which bedtime lock activates (e.g. 21:00). */
+    @Column(name = "bedtime_start")
+    private java.time.LocalTime bedtimeStart;
+
+    /** Time at which bedtime lock deactivates (e.g. 07:00). */
+    @Column(name = "bedtime_end")
+    private java.time.LocalTime bedtimeEnd;
+
+    // ── Homework Mode ─────────────────────────────────────────────────────────
+
+    /** Whether homework mode is currently active for this profile. */
+    @Column(name = "homework_mode_active", nullable = false)
+    @Builder.Default
+    private Boolean homeworkModeActive = false;
+
+    /** Timestamp when homework mode automatically expires. Null when inactive. */
+    @Column(name = "homework_mode_ends_at")
+    private OffsetDateTime homeworkModeEndsAt;
+
+    /**
+     * JSON snapshot of the custom_blocklist at the time homework mode was activated.
+     * Stored as a raw JSON string so it can be restored on deactivation without
+     * triggering JSONB column mapping issues.
+     */
+    @Column(name = "homework_mode_snapshot", columnDefinition = "jsonb")
+    private String homeworkModeSnapshot;
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;

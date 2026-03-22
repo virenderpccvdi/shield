@@ -1,5 +1,5 @@
 import { Box, Typography, alpha } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, type Theme } from '@mui/material/styles';
 import type { ReactNode } from 'react';
 
 interface PageHeaderProps {
@@ -12,18 +12,31 @@ interface PageHeaderProps {
   hero?: boolean;
 }
 
-export default function PageHeader({ icon, title, subtitle, action, iconColor = '#1565C0', hero = false }: PageHeaderProps) {
+/** Resolve an MUI palette token like 'primary.main' to a real CSS colour string. */
+function resolveColor(color: string, theme: Theme): string {
+  const parts = color.split('.');
+  if (parts.length >= 2) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let val: any = theme.palette;
+    for (const p of parts) { val = val?.[p]; }
+    if (typeof val === 'string') return val;
+  }
+  return color;
+}
+
+export default function PageHeader({ icon, title, subtitle, action, iconColor, hero = false }: PageHeaderProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const resolvedColor = resolveColor(iconColor ?? theme.palette.primary.main, theme);
 
   if (hero) {
     return (
       <Box sx={{
         mx: -3, mt: -3, mb: 3, px: 3, py: 3,
         background: isDark
-          ? `linear-gradient(135deg, ${alpha(iconColor, 0.25)} 0%, ${alpha(iconColor, 0.1)} 100%)`
-          : `linear-gradient(135deg, ${alpha(iconColor, 0.12)} 0%, ${alpha(iconColor, 0.04)} 100%)`,
-        borderBottom: `1px solid ${alpha(iconColor, 0.15)}`,
+          ? `linear-gradient(135deg, ${alpha(resolvedColor, 0.25)} 0%, ${alpha(resolvedColor, 0.1)} 100%)`
+          : `linear-gradient(135deg, ${alpha(resolvedColor, 0.12)} 0%, ${alpha(resolvedColor, 0.04)} 100%)`,
+        borderBottom: `1px solid ${alpha(resolvedColor, 0.15)}`,
         '@keyframes slideInLeft': { from: { opacity: 0, transform: 'translateX(-20px)' }, to: { opacity: 1, transform: 'translateX(0)' } },
         animation: 'slideInLeft 0.4s ease both',
       }}>
@@ -31,10 +44,10 @@ export default function PageHeader({ icon, title, subtitle, action, iconColor = 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{
               width: 52, height: 52, borderRadius: '14px',
-              background: `linear-gradient(135deg, ${iconColor} 0%, ${alpha(iconColor, 0.7)} 100%)`,
-              boxShadow: `0 4px 20px ${alpha(iconColor, 0.4)}`,
+              background: `linear-gradient(135deg, ${resolvedColor} 0%, ${alpha(resolvedColor, 0.7)} 100%)`,
+              boxShadow: `0 4px 20px ${alpha(resolvedColor, 0.4)}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff',
+              color: 'primary.contrastText',
             }}>
               {icon}
             </Box>
@@ -58,9 +71,9 @@ export default function PageHeader({ icon, title, subtitle, action, iconColor = 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Box sx={{
           width: 44, height: 44, borderRadius: '12px',
-          background: alpha(iconColor, 0.1),
+          background: alpha(resolvedColor, 0.1),
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: iconColor,
+          color: resolvedColor,
         }}>
           {icon}
         </Box>

@@ -43,7 +43,9 @@ interface RecentAlert {
 interface DailyPoint { date: string; totalQueries: number; totalBlocks: number; }
 interface CategoryBreakdown { category: string; blocked: number; allowed: number; }
 
+// Hex values required — used in CSS gradient string interpolation for child profile accent colors
 const GRADIENT_ACCENTS = ['#1565C0', '#43A047', '#7B1FA2', '#FB8C00', '#E53935', '#00897B'];
+// Hex values required — used in CSS string interpolation for filter level badge bgcolor
 const FILTER_COLOR: Record<string, string> = {
   STRICT: '#C62828', MODERATE: '#F57F17', RELAXED: '#2E7D32', CUSTOM: '#1565C0',
 };
@@ -276,7 +278,7 @@ export default function CustomerDashboardPage() {
       {/* Greeting Banner */}
       <Box sx={{
         mb: 3, p: { xs: 2.5, sm: 3 }, borderRadius: 3,
-        background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 60%, #1B5E20 100%)',
+        background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 60%, #1B5E20 100%)',  // primary brand gradient — intentional
         position: 'relative', overflow: 'hidden',
       }}>
         {/* decorative blobs */}
@@ -337,7 +339,7 @@ export default function CustomerDashboardPage() {
             size="large"
             startIcon={<PersonAddIcon />}
             onClick={() => navigate('/profiles/new')}
-            sx={{ background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)', borderRadius: 2 }}
+            sx={{ bgcolor: 'primary.main', borderRadius: 2 }}
           >
             Add First Child
           </Button>
@@ -352,11 +354,11 @@ export default function CustomerDashboardPage() {
       {/* Top stats row */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard label="Children" value={children.length} color="#1565C0" bg="#E3F2FD"
+          <StatCard label="Children" value={children.length} color="#1565C0" bg="rgba(21,101,192,0.08)"
             icon={<FamilyRestroomIcon fontSize="small" />} subtitle={`${onlineCount} online now`} />
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard label="Blocks Today" value={totalBlocks} color="#E65100" bg="#FFF3E0"
+          <StatCard label="Blocks Today" value={totalBlocks} color="#E65100" bg="rgba(251,140,0,0.08)"
             icon={<BlockIcon fontSize="small" />} subtitle="across all children" />
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
@@ -364,7 +366,7 @@ export default function CustomerDashboardPage() {
             icon={<DnsIcon fontSize="small" />} subtitle={`${blockRate7d}% block rate`} />
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard label="Active Alerts" value={alerts.length} color="#7B1FA2" bg="#F3E5F5"
+          <StatCard label="Active Alerts" value={alerts.length} color="#7B1FA2" bg="rgba(123,31,162,0.08)"
             icon={<WarningAmberIcon fontSize="small" />} subtitle={pausedCount > 0 ? `${pausedCount} paused` : 'all running'} />
         </Grid>
       </Grid>
@@ -378,11 +380,11 @@ export default function CustomerDashboardPage() {
             icon={<FamilyRestroomIcon />}
             title="Family"
             subtitle={`${children.length} profile${children.length !== 1 ? 's' : ''}`}
-            iconColor="#1565C0"
+            iconColor="primary.main"
             action={
               <Button variant="contained" startIcon={<AddIcon />}
                 onClick={() => navigate('/profiles/new')}
-                sx={{ background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)', borderRadius: 2, fontSize: 13 }}>
+                sx={{ bgcolor: 'primary.main', borderRadius: 2, fontSize: 13 }}>
                 Add Child
               </Button>
             }
@@ -422,7 +424,7 @@ export default function CustomerDashboardPage() {
                                 <Box sx={{
                                   position: 'absolute', bottom: 0, right: 0,
                                   width: 12, height: 12, borderRadius: '50%',
-                                  bgcolor: '#43A047', border: '2px solid white',
+                                  bgcolor: 'success.main', border: '2px solid white',
                                   '@keyframes pulse': {
                                     '0%': { boxShadow: '0 0 0 0 rgba(67,160,71,0.5)' },
                                     '70%': { boxShadow: '0 0 0 5px rgba(67,160,71,0)' },
@@ -460,7 +462,7 @@ export default function CustomerDashboardPage() {
 
                         {/* Activity */}
                         {child.currentActivity && (
-                          <Box sx={{ mb: 1, px: 1, py: 0.5, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderRadius: 1 }}>
+                          <Box sx={{ mb: 1, px: 1, py: 0.5, bgcolor: 'background.default', borderRadius: 1 }}>
                             <Typography variant="caption" color="text.secondary">
                               Active: <strong>{child.currentActivity}</strong>
                             </Typography>
@@ -470,7 +472,7 @@ export default function CustomerDashboardPage() {
                         {/* Stats row */}
                         <Grid container spacing={1} sx={{ mb: 1.5 }}>
                           <Grid size={4}>
-                            <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: child.blocksToday > 0 ? '#FFF3F0' : '#F6FFF6' }}>
+                            <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: child.blocksToday > 0 ? 'rgba(229,57,53,0.06)' : 'rgba(67,160,71,0.06)' }}>
                               <Typography fontSize={16} fontWeight={800} color={child.blocksToday > 0 ? 'error.main' : 'success.main'}>
                                 {child.blocksToday}
                               </Typography>
@@ -478,16 +480,16 @@ export default function CustomerDashboardPage() {
                             </Box>
                           </Grid>
                           <Grid size={4}>
-                            <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: '#F8FAFC' }}>
-                              <Typography fontSize={16} fontWeight={800} color="#1565C0">
+                            <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: 'background.default' }}>
+                              <Typography fontSize={16} fontWeight={800} color="primary.main">
                                 {stats?.totalQueries ?? '—'}
                               </Typography>
                               <Typography fontSize={9} color="text.secondary">queries today</Typography>
                             </Box>
                           </Grid>
                           <Grid size={4}>
-                            <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: '#F8FAFC' }}>
-                              <Typography fontSize={16} fontWeight={800} color={childBlockRate > 20 ? '#E65100' : '#00897B'}>
+                            <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: 'background.default' }}>
+                              <Typography fontSize={16} fontWeight={800} color={childBlockRate > 20 ? 'warning.dark' : '#00897B'}>
                                 {childBlockRate}%
                               </Typography>
                               <Typography fontSize={9} color="text.secondary">block rate</Typography>
@@ -503,9 +505,9 @@ export default function CustomerDashboardPage() {
                               value={Math.min(childBlockRate, 100)}
                               sx={{
                                 height: 4, borderRadius: 2,
-                                bgcolor: '#E8F5E9',
+                                bgcolor: 'rgba(67,160,71,0.08)',
                                 '& .MuiLinearProgress-bar': {
-                                  bgcolor: childBlockRate > 30 ? '#E53935' : childBlockRate > 15 ? '#FB8C00' : '#43A047',
+                                  bgcolor: childBlockRate > 30 ? 'error.main' : childBlockRate > 15 ? 'warning.main' : 'success.main',
                                   borderRadius: 2,
                                 },
                               }}
@@ -516,9 +518,9 @@ export default function CustomerDashboardPage() {
                         <Divider sx={{ mb: 1 }} />
                         <Stack direction="row" spacing={0.5}>
                           {[
-                            { label: 'Rules', path: `/profiles/${child.id}/rules`, color: '#1565C0' },
-                            { label: 'Schedule', path: `/profiles/${child.id}/schedules`, color: '#E65100' },
-                            { label: 'Activity', path: `/profiles/${child.id}/activity`, color: '#2E7D32' },
+                            { label: 'Rules', path: `/profiles/${child.id}/rules`, color: 'primary.main' },
+                            { label: 'Schedule', path: `/profiles/${child.id}/schedules`, color: 'warning.dark' },
+                            { label: 'Activity', path: `/profiles/${child.id}/activity`, color: 'success.dark' },
                             { label: 'Details →', path: `/profiles/${child.id}`, color: '#7B1FA2' },
                           ].map(btn => (
                             <Button key={btn.label} size="small" variant="text"
@@ -541,11 +543,11 @@ export default function CustomerDashboardPage() {
                 <Card onClick={() => navigate('/profiles/new')} sx={{
                   border: '2px dashed #CBD5E1', bgcolor: 'transparent', cursor: 'pointer',
                   transition: 'all 0.25s ease', minHeight: 180,
-                  '&:hover': { borderColor: '#1565C0', bgcolor: '#F5F9FF', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(21,101,192,0.12)' },
+                  '&:hover': { borderColor: 'primary.main', bgcolor: 'background.default', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(21,101,192,0.12)' },
                 }}>
                   <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5, py: 4 }}>
-                    <Box sx={{ width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg, #E3F2FD, #BBDEFB)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <AddIcon sx={{ fontSize: 24, color: '#1565C0' }} />
+                    <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: 'rgba(21,101,192,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <AddIcon sx={{ fontSize: 24, color: 'primary.main' }} />
                     </Box>
                     <Typography fontWeight={600} color="primary" fontSize={14}>Add Child Profile</Typography>
                     <Typography variant="body2" textAlign="center" color="text.secondary" fontSize={12}>
@@ -569,7 +571,7 @@ export default function CustomerDashboardPage() {
                         {totalQueries7d.toLocaleString()} total queries · {totalBlocks7d.toLocaleString()} blocked ({blockRate7d}%)
                       </Typography>
                     </Box>
-                    <TrendingUpIcon sx={{ color: '#1565C0', opacity: 0.6 }} />
+                    <TrendingUpIcon sx={{ color: 'primary.main', opacity: 0.6 }} />
                   </Stack>
                   <ResponsiveContainer width="100%" height={160}>
                     <BarChart data={chartData} barSize={18} barGap={2}>
@@ -605,13 +607,13 @@ export default function CustomerDashboardPage() {
                   <Card>
                     <CardContent>
                       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-                        <BlockIcon sx={{ fontSize: 16, color: '#E53935' }} />
+                        <BlockIcon sx={{ fontSize: 16, color: 'error.main' }} />
                         <Typography fontWeight={700} fontSize={13}>Top Blocked Domains</Typography>
                       </Stack>
                       {(topBlocked ?? []).map((d, i) => (
                         <Box key={d.domain} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.6, borderBottom: i < (topBlocked?.length ?? 0) - 1 ? '1px solid #F1F5F9' : 'none' }}>
                           <Typography fontSize={12} fontWeight={500} noWrap sx={{ flex: 1, mr: 1 }}>{d.domain}</Typography>
-                          <Chip size="small" label={d.count} sx={{ height: 18, fontSize: 10, bgcolor: '#FFEBEE', color: '#C62828', fontWeight: 700 }} />
+                          <Chip size="small" label={d.count} sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(229,57,53,0.08)', color: 'error.main', fontWeight: 700 }} />
                         </Box>
                       ))}
                     </CardContent>
@@ -642,7 +644,7 @@ export default function CustomerDashboardPage() {
                               <Typography fontSize={11} color="text.secondary">{cat.blocked} blocked</Typography>
                             </Box>
                             <LinearProgress variant="determinate" value={pct}
-                              sx={{ height: 5, borderRadius: 3, bgcolor: '#F3E5F5',
+                              sx={{ height: 5, borderRadius: 3, bgcolor: 'rgba(123,31,162,0.08)',
                                 '& .MuiLinearProgress-bar': { bgcolor: '#7B1FA2', borderRadius: 3 } }} />
                           </Box>
                         );
@@ -664,7 +666,7 @@ export default function CustomerDashboardPage() {
               <Card>
                 <CardContent>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-                    <ShieldIcon sx={{ fontSize: 18, color: '#1565C0' }} />
+                    <ShieldIcon sx={{ fontSize: 18, color: 'primary.main' }} />
                     <Typography fontWeight={700} fontSize={13}>Protection Status</Typography>
                   </Stack>
                   {[
@@ -674,11 +676,11 @@ export default function CustomerDashboardPage() {
                     { label: 'Paused Profiles', ok: pausedCount === 0, desc: pausedCount > 0 ? `${pausedCount} profile${pausedCount !== 1 ? 's' : ''} paused` : 'None paused', warn: pausedCount > 0 },
                   ].map(item => (
                     <Stack key={item.label} direction="row" spacing={1} alignItems="center" sx={{ py: 0.75,
-                      borderBottom: '1px solid #F1F5F9', '&:last-child': { borderBottom: 'none' } }}>
-                      {item.ok && !item.warn ? <CheckCircleIcon sx={{ fontSize: 15, color: '#43A047' }} />
-                        : item.warn ? <WarningAmberIcon sx={{ fontSize: 15, color: '#FB8C00' }} />
-                        : item.neutral ? <CheckCircleIcon sx={{ fontSize: 15, color: '#78909C' }} />
-                        : <BlockIcon sx={{ fontSize: 15, color: '#E53935' }} />}
+                      borderBottom: '1px solid', borderColor: 'divider', '&:last-child': { borderBottom: 'none' } }}>
+                      {item.ok && !item.warn ? <CheckCircleIcon sx={{ fontSize: 15, color: 'success.main' }} />
+                        : item.warn ? <WarningAmberIcon sx={{ fontSize: 15, color: 'warning.main' }} />
+                        : item.neutral ? <CheckCircleIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
+                        : <BlockIcon sx={{ fontSize: 15, color: 'error.main' }} />}
                       <Box>
                         <Typography fontSize={12} fontWeight={600}>{item.label}</Typography>
                         <Typography fontSize={10} color="text.secondary">{item.desc}</Typography>
@@ -696,9 +698,9 @@ export default function CustomerDashboardPage() {
                   <Typography fontWeight={700} fontSize={13} sx={{ mb: 1.5 }}>Quick Actions</Typography>
                   <Grid container spacing={1}>
                     {[
-                      { label: 'Time Limits', icon: <AccessTimeIcon sx={{ fontSize: 16 }} />, path: '/time-limits', color: '#E65100', bg: '#FFF3E0' },
+                      { label: 'Time Limits', icon: <AccessTimeIcon sx={{ fontSize: 16 }} />, path: '/time-limits', color: '#E65100', bg: 'rgba(251,140,0,0.08)' },
                       { label: 'AI Insights', icon: <PsychologyIcon sx={{ fontSize: 16 }} />, path: '/ai-insights', color: '#6A1B9A', bg: '#F3E5F5' },
-                      { label: 'Alerts', icon: <WarningAmberIcon sx={{ fontSize: 16 }} />, path: '/alerts', color: '#C62828', bg: '#FFEBEE' },
+                      { label: 'Alerts', icon: <WarningAmberIcon sx={{ fontSize: 16 }} />, path: '/alerts', color: '#C62828', bg: 'rgba(229,57,53,0.08)' },
                       { label: 'Location', icon: <LocationOnIcon sx={{ fontSize: 16 }} />, path: '/map', color: '#00695C', bg: '#E0F2F1' },
                     ].map(action => (
                       <Grid key={action.label} size={6}>
@@ -736,9 +738,9 @@ export default function CustomerDashboardPage() {
                             cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, borderRadius: 1 }}>
                           <ListItemIcon sx={{ minWidth: 28 }}>
                             {a.type === 'LOCATION' ? <LocationOnIcon sx={{ fontSize: 14, color: '#00695C' }} />
-                              : a.type === 'BATTERY' ? <BatteryAlertIcon sx={{ fontSize: 14, color: '#F57F17' }} />
-                              : a.severity === 'HIGH' ? <WarningAmberIcon sx={{ fontSize: 14, color: '#E53935' }} />
-                              : <ShieldIcon sx={{ fontSize: 14, color: '#1565C0' }} />}
+                              : a.type === 'BATTERY' ? <BatteryAlertIcon sx={{ fontSize: 14, color: 'warning.main' }} />
+                              : a.severity === 'HIGH' ? <WarningAmberIcon sx={{ fontSize: 14, color: 'error.main' }} />
+                              : <ShieldIcon sx={{ fontSize: 14, color: 'primary.main' }} />}
                           </ListItemIcon>
                           <ListItemText
                             primary={<Typography fontSize={11} fontWeight={a.read ? 400 : 600} noWrap>{a.message ?? 'Alert'}</Typography>}
@@ -754,7 +756,7 @@ export default function CustomerDashboardPage() {
 
             {/* Subscription info */}
             <AnimatedPage delay={0.25}>
-              <Card sx={{ bgcolor: 'linear-gradient(135deg, #1565C0, #0D47A1)', background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)' }}>
+              <Card sx={{ background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)' }}>  {/* primary brand gradient — intentional */}
                 <CardContent>
                   <Stack direction="row" alignItems="center" justifyContent="space-between">
                     <Box>

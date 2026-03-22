@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_state.dart';
+import '../../app/theme.dart';
+import '../../core/shield_widgets.dart';
 
 class ChildTasksScreen extends ConsumerStatefulWidget {
   const ChildTasksScreen({super.key});
@@ -91,18 +93,21 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
       );
       _load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Task submitted for parent approval!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Task submitted for parent approval!'),
+          backgroundColor: ShieldTheme.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
   }
@@ -124,7 +129,16 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
         title: const Text('My Tasks', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: _loading
-        ? const Center(child: CircularProgressIndicator())
+        ? ListView(
+            padding: const EdgeInsets.all(16),
+            children: const [
+              ShieldCardSkeleton(lines: 3),
+              SizedBox(height: 12),
+              ShieldCardSkeleton(lines: 3),
+              SizedBox(height: 12),
+              ShieldCardSkeleton(lines: 3),
+            ],
+          )
         : Column(
           children: [
             // Subtle refresh indicator — keeps list visible while refreshing in background
@@ -136,11 +150,11 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
               children: [
                 // Points earned card
                 Card(
-                  color: Colors.amber.shade50,
+                  color: ShieldTheme.warning.withOpacity(0.08),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(children: [
-                      const Icon(Icons.emoji_events, color: Colors.amber, size: 40),
+                      Icon(Icons.emoji_events, color: ShieldTheme.warning, size: 40),
                       const SizedBox(width: 12),
                       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('Hi ${auth.name?.split(' ').first ?? 'there'}!',
@@ -150,8 +164,8 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
                       ]),
                       const Spacer(),
                       Text('$_totalPoints',
-                        style: const TextStyle(
-                          fontSize: 32, fontWeight: FontWeight.w800, color: Colors.amber,
+                        style: TextStyle(
+                          fontSize: 32, fontWeight: FontWeight.w800, color: ShieldTheme.warning,
                         )),
                     ]),
                   ),
@@ -182,7 +196,7 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.amber.shade100,
+                                  color: ShieldTheme.warning.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Text('+$points pts',
@@ -214,21 +228,21 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
                 // Submitted (waiting approval)
                 if (submittedTasks.isNotEmpty) ...[
                   Text('Waiting for Approval (${submittedTasks.length})',
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16,
-                      color: Colors.orange)),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16,
+                      color: ShieldTheme.warning)),
                   const SizedBox(height: 8),
                   ...submittedTasks.map((task) {
                     final points = task['rewardPoints'] as int? ?? 0;
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
-                      color: Colors.orange.shade50,
+                      color: ShieldTheme.warning.withOpacity(0.07),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(children: [
-                              const Icon(Icons.hourglass_top, color: Colors.orange),
+                              Icon(Icons.hourglass_top, color: ShieldTheme.warning),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(task['title'] ?? '',
@@ -237,18 +251,18 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.amber.shade100,
+                                  color: ShieldTheme.warning.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Text('+$points pts',
                                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                               ),
                             ]),
-                            const Padding(
-                              padding: EdgeInsets.only(left: 32, top: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 32, top: 8),
                               child: Text('Waiting for parent approval...',
                                 style: TextStyle(
-                                  color: Colors.orange, fontSize: 13, fontStyle: FontStyle.italic)),
+                                  color: ShieldTheme.warning, fontSize: 13, fontStyle: FontStyle.italic)),
                             ),
                           ],
                         ),
@@ -267,26 +281,32 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
                     final points = task['rewardPoints'] as int? ?? 0;
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
-                      color: Colors.green.shade50,
+                      color: ShieldTheme.success.withOpacity(0.07),
                       child: ListTile(
-                        leading: const Icon(Icons.check_circle, color: Colors.green),
+                        leading: Icon(Icons.check_circle, color: ShieldTheme.success),
                         title: Text(task['title'] ?? '',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             decoration: TextDecoration.lineThrough,
                           )),
                         trailing: Text('+$points pts',
-                          style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.green)),
+                          style: TextStyle(fontWeight: FontWeight.w700, color: ShieldTheme.success)),
                       ),
                     );
                   }),
                 ],
 
                 if (_errorMessage != null)
-                  Center(child: Padding(
-                    padding: const EdgeInsets.all(32),
+                  Container(
+                    margin: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: ShieldTheme.danger.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: ShieldTheme.danger.withOpacity(0.3)),
+                    ),
                     child: Column(children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      Icon(Icons.error_outline, size: 48, color: ShieldTheme.danger),
                       const SizedBox(height: 12),
                       const Text('Could not load tasks',
                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
@@ -296,19 +316,13 @@ class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen>
                       const SizedBox(height: 16),
                       FilledButton.tonal(onPressed: () => _load(), child: const Text('Retry')),
                     ]),
-                  ))
+                  )
                 else if (_tasks.isEmpty)
-                  const Center(child: Padding(
-                    padding: EdgeInsets.all(48),
-                    child: Column(children: [
-                      Icon(Icons.task_alt, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('No tasks yet',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey, fontSize: 16)),
-                      Text('Your parent will assign tasks for you to earn rewards!',
-                        textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-                    ]),
-                  )),
+                  ShieldEmptyState(
+                    icon: Icons.task_alt,
+                    title: 'No tasks yet',
+                    subtitle: "Your parent hasn't assigned any tasks",
+                  ),
               ],
             ),
           )),

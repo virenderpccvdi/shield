@@ -21,6 +21,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import LoadingPage from '../../components/LoadingPage';
+import { alpha, useTheme } from '@mui/material/styles';
 
 const STATUS_CONFIG: Record<string, { color: 'success' | 'error' | 'warning' | 'default'; label: string; icon: React.ReactNode }> = {
   PAID:     { color: 'success', label: 'Paid',     icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
@@ -42,6 +43,7 @@ function exportCSV(invoices: any[]) {
 }
 
 export default function InvoicesPage() {
+  const theme = useTheme();
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
   const [search, setSearch] = useState('');
@@ -92,10 +94,10 @@ export default function InvoicesPage() {
   const hasFilters = !!(search || statusFilter || planFilter);
 
   const STAT_CARDS = [
-    { label: 'Total Invoices',  value: total,                              icon: <ReceiptLongIcon />,    color: '#1565C0', bg: '#E3F2FD' },
-    { label: 'Total Revenue',   value: `₹${stats.revenue.toLocaleString()}`, icon: <TrendingUpIcon />,     color: '#2E7D32', bg: '#E8F5E9' },
-    { label: 'Paid',            value: stats.paid,                         icon: <CheckCircleIcon />,    color: '#2E7D32', bg: '#E8F5E9' },
-    { label: 'Pending / Failed',value: `${stats.pending} / ${stats.failed}`, icon: <HourglassEmptyIcon />, color: '#F57F17', bg: '#FFF8E1' },
+    { label: 'Total Invoices',  value: total,                              icon: <ReceiptLongIcon />,    color: theme.palette.primary.main,  bg: alpha(theme.palette.primary.main, 0.08) },
+    { label: 'Total Revenue',   value: `₹${stats.revenue.toLocaleString()}`, icon: <TrendingUpIcon />,     color: theme.palette.success.main,  bg: alpha(theme.palette.success.main, 0.08) },
+    { label: 'Paid',            value: stats.paid,                         icon: <CheckCircleIcon />,    color: theme.palette.success.main,  bg: alpha(theme.palette.success.main, 0.08) },
+    { label: 'Pending / Failed',value: `${stats.pending} / ${stats.failed}`, icon: <HourglassEmptyIcon />, color: theme.palette.warning.main, bg: alpha(theme.palette.warning.main, 0.08) },
   ];
 
   return (
@@ -104,7 +106,7 @@ export default function InvoicesPage() {
         icon={<ReceiptLongIcon />}
         title="Invoices"
         subtitle={`${total} invoice${total !== 1 ? 's' : ''} across the platform`}
-        iconColor="#F57F17"
+        iconColor={theme.palette.warning.main}
         action={
           <Stack direction="row" spacing={1}>
             <Button variant="outlined" size="small" startIcon={<DownloadIcon />}
@@ -116,7 +118,7 @@ export default function InvoicesPage() {
               startIcon={generateBatchMutation.isPending ? <CircularProgress size={14} color="inherit" /> : <AutorenewIcon />}
               onClick={() => generateBatchMutation.mutate()}
               disabled={generateBatchMutation.isPending}
-              sx={{ borderRadius: 2, bgcolor: '#F57F17', '&:hover': { bgcolor: '#E65100' } }}>
+              sx={{ borderRadius: 2, bgcolor: 'warning.main', '&:hover': { bgcolor: 'warning.dark' } }}>
               {generateBatchMutation.isPending ? 'Generating...' : 'Generate Monthly'}
             </Button>
           </Stack>
@@ -179,7 +181,7 @@ export default function InvoicesPage() {
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
-            <ReceiptLongIcon sx={{ fontSize: 48, color: '#BDBDBD', mb: 1 }} />
+            <ReceiptLongIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
             <Typography color="text.secondary">{hasFilters ? 'No invoices match your filters' : 'No invoices found'}</Typography>
             {hasFilters && <Button size="small" onClick={() => { setSearch(''); setStatusFilter(''); setPlanFilter(''); }} sx={{ mt: 1 }}>Clear filters</Button>}
           </CardContent>
@@ -190,9 +192,9 @@ export default function InvoicesPage() {
             <Paper elevation={0}>
               <Table>
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow sx={{ bgcolor: 'background.default' }}>
                     {['Date', 'Invoice #', 'Email', 'Plan', 'Amount', 'Status', 'PDF'].map(h => (
-                      <TableCell key={h} sx={{ fontWeight: 700, color: '#64748B', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                      <TableCell key={h} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
@@ -201,14 +203,14 @@ export default function InvoicesPage() {
                     const sc = STATUS_CONFIG[inv.status] || STATUS_CONFIG.PENDING;
                     return (
                       <TableRow key={inv.id} sx={{
-                        '&:hover': { bgcolor: '#F5F9FF' },
+                        '&:hover': { bgcolor: 'background.default' },
                         animation: `fadeInUp 0.25s ease ${idx * 0.02}s both`,
                       }}>
                         <TableCell>
                           <Typography variant="body2">{new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="caption" sx={{ fontFamily: 'monospace', bgcolor: '#F8FAFC', px: 0.75, py: 0.25, borderRadius: 1, border: '1px solid #E0E0E0', fontSize: 11 }}>
+                          <Typography variant="caption" sx={{ fontFamily: 'monospace', bgcolor: 'background.default', px: 0.75, py: 0.25, borderRadius: 1, border: '1px solid', borderColor: 'divider', fontSize: 11 }}>
                             {inv.id?.slice(0, 8)?.toUpperCase() || '—'}
                           </Typography>
                         </TableCell>
@@ -216,14 +218,14 @@ export default function InvoicesPage() {
                           <Box>
                             {inv.userName && <Typography variant="body2" fontWeight={600}>{inv.userName}</Typography>}
                             <Typography variant="body2" color={inv.userName ? 'text.secondary' : 'text.primary'} sx={{ fontFamily: 'monospace', fontSize: 12 }}>{inv.userEmail}</Typography>
-                            {inv.tenantName && <Typography variant="caption" sx={{ bgcolor: '#F3E5F5', color: '#7B1FA2', px: 0.75, py: 0.1, borderRadius: 0.5, fontSize: 10, fontWeight: 600 }}>{inv.tenantName}</Typography>}
+                            {inv.tenantName && <Typography variant="caption" sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.12), color: 'secondary.main', px: 0.75, py: 0.1, borderRadius: 0.5, fontSize: 10, fontWeight: 600 }}>{inv.tenantName}</Typography>}
                           </Box>
                         </TableCell>
                         <TableCell>
                           <Chip size="small" label={inv.planName} sx={{ fontWeight: 600, fontSize: 11 }} />
                         </TableCell>
                         <TableCell>
-                          <Typography fontWeight={700} color="#2E7D32">₹{(inv.amount || 0).toLocaleString()}</Typography>
+                          <Typography fontWeight={700} color="success.dark">₹{(inv.amount || 0).toLocaleString()}</Typography>
                         </TableCell>
                         <TableCell>
                           <Chip

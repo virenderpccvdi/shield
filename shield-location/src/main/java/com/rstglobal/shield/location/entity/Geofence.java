@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -55,6 +56,19 @@ public class Geofence {
     @Column(name = "alert_on_exit")
     @Builder.Default
     private Boolean alertOnExit = true;
+
+    /** CS-07: marks this geofence as the child's school zone */
+    @Column(name = "is_school")
+    @Builder.Default
+    private Boolean isSchool = false;
+
+    /** CS-07: start of school hours — exits before this time during school hours trigger an alert */
+    @Column(name = "school_start")
+    private LocalTime schoolStart;
+
+    /** CS-07: end of school hours — exits after this time are treated as normal departures */
+    @Column(name = "school_end")
+    private LocalTime schoolEnd;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

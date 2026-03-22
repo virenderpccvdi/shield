@@ -197,4 +197,207 @@ public interface DnsQueryLogRepository extends JpaRepository<DnsQueryLog, UUID> 
               AND profile_id IS NOT NULL
             """, nativeQuery = true)
     List<Object[]> findActiveProfilesSince(@Param("since") Instant since);
+
+    // ── Tenant top blocked domains ────────────────────────────────────────────
+
+    @Query(value = """
+            SELECT domain, category, COUNT(*) AS query_count
+            FROM analytics.dns_query_logs
+            WHERE tenant_id = :tenantId
+              AND action = 'BLOCKED'
+              AND queried_at BETWEEN :from AND :to
+            GROUP BY domain, category
+            ORDER BY query_count DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Object[]> findTenantTopBlockedDomains(@Param("tenantId") UUID tenantId,
+                                                @Param("from") Instant from,
+                                                @Param("to") Instant to,
+                                                @Param("limit") int limit);
+
+    // ── Platform customers summary ────────────────────────────────────────────
+
+    @Query(value = """
+            SELECT
+              COUNT(DISTINCT user_id) AS total_customers,
+              COUNT(DISTINCT CASE WHEN last_query_time > :sevenDaysAgo THEN user_id END) AS active_customers
+            FROM (
+              SELECT profile_id AS user_id, MAX(queried_at) AS last_query_time
+              FROM analytics.dns_query_logs
+              WHERE tenant_id IS NOT NULL
+              GROUP BY profile_id
+            ) sub
+            """, nativeQuery = true)
+    Object[] findCustomersSummary(@Param("sevenDaysAgo") Instant sevenDaysAgo);
+
+    @Query(value = """
+            SELECT COUNT(DISTINCT profile_id)
+            FROM analytics.dns_query_logs
+            WHERE queried_at >= :monthStart
+              AND tenant_id IS NOT NULL
+            """, nativeQuery = true)
+    long countNewProfilesSince(@Param("monthStart") Instant monthStart);
+
+    @Query(value = """
+            SELECT COUNT(DISTINCT profile_id)
+            FROM analytics.dns_query_logs
+            WHERE profile_id IS NOT NULL
+            """, nativeQuery = true)
+    long countDistinctProfiles();
+
+    // ── Hourly breakdown ──────────────────────────────────────────────────────
+
+    @Query(value = """
+            SELECT EXTRACT(HOUR FROM queried_at)::INT AS hour, COUNT(*) AS count
+            FROM analytics.dns_query_logs
+            WHERE profile_id = :profileId
+              AND queried_at::date = CAST(:date AS date)
+            GROUP BY 1
+            ORDER BY 1
+            """, nativeQuery = true)
+    List<Object[]> findHourlyBreakdownByProfileId(@Param("profileId") UUID profileId,
+                                                   @Param("date") String date);
+
+    @Query(value = """
+            SELECT EXTRACT(HOUR FROM queried_at)::INT AS hour, COUNT(*) AS count
+            FROM analytics.dns_query_logs
+            WHERE tenant_id = :tenantId
+              AND queried_at::date = CAST(:date AS date)
+            GROUP BY 1
+            ORDER BY 1
+            """, nativeQuery = true)
+    List<Object[]> findTenantHourlyBreakdown(@Param("tenantId") UUID tenantId,
+                                              @Param("date") String date);
+
+    // ── IS-05: Export queries ─────────────────────────────────────────────────
+
+    /**
+     * Per-profile customer summary for a tenant:
+     * profile_id, total_queries, blocked_queries, last_seen.
+     * Used by ExportService.exportCustomerSummary().
+     */
+    @Query(value = """
+            SELECT
+                profile_id,
+                COUNT(*) AS total_queries,
+                SUM(CASE WHEN action = 'BLOCKED' THEN 1 ELSE 0 END) AS blocked_queries,
+                MAX(queried_at) AS last_seen
+            FROM analytics.dns_query_logs
+            WHERE tenant_id = :tenantId
+              AND profile_id IS NOT NULL
+            GROUP BY profile_id
+            ORDER BY total_queries DESC
+            """, nativeQuery = true)
+    List<Object[]> findCustomerSummaryByTenant(@Param("tenantId") UUID tenantId);
+
+    /**
+     * Returns top domains for a profile within a time window, regardless of action.
+     * Used for enriched top-domains (all actions).
+     */
+    @Query(value = """
+            SELECT domain, COUNT(*) AS query_count, action, category
+            FROM analytics.dns_query_logs
+            WHERE profile_id = :profileId
+              AND queried_at BETWEEN :from AND :to
+            GROUP BY domain, action, category
+            ORDER BY query_count DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Object[]> findTopDomainsByProfileId(
+            @Param("profileId") UUID profileId,
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("limit") int limit);
+
+    /**
+     * Returns domain-level aggregates for app-usage report:
+     * domain, total queries, blocked queries.
+     * Fetches the top 500 distinct domains for later in-memory app grouping.
+     */
+    @Query(value = """
+            SELECT
+                domain,
+                COUNT(*) AS total_count,
+                SUM(CASE WHEN action = 'BLOCKED' THEN 1 ELSE 0 END) AS blocked_count
+            FROM analytics.dns_query_logs
+            WHERE profile_id = :profileId
+              AND queried_at BETWEEN :from AND :to
+            GROUP BY domain
+            ORDER BY total_count DESC
+            LIMIT 500
+            """, nativeQuery = true)
+    List<Object[]> findDomainAggregatesForProfile(
+            @Param("profileId") UUID profileId,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    // ── IS-06: Tenant Usage Dashboard queries ─────────────────────────────────
+
+    /**
+     * Hourly breakdown for a tenant over the last 24 hours.
+     * Returns: hour (INT), total_queries (LONG), blocked_queries (LONG).
+     * Rows only for hours that have data; caller fills gaps for all 24 hours.
+     */
+    @Query(value = """
+            SELECT
+                EXTRACT(HOUR FROM queried_at)::INT AS hour,
+                COUNT(*) AS total_queries,
+                SUM(CASE WHEN action = 'BLOCKED' THEN 1 ELSE 0 END) AS blocked_queries
+            FROM analytics.dns_query_logs
+            WHERE tenant_id = :tenantId
+              AND queried_at >= :from
+            GROUP BY 1
+            ORDER BY 1
+            """, nativeQuery = true)
+    List<Object[]> findHourlyBreakdown(
+            @Param("tenantId") UUID tenantId,
+            @Param("from") Instant from);
+
+    /**
+     * Count of distinct profiles that issued at least one query after the given threshold.
+     * Returns a single Long value.
+     */
+    @Query(value = """
+            SELECT COUNT(DISTINCT profile_id)
+            FROM analytics.dns_query_logs
+            WHERE tenant_id = :tenantId
+              AND queried_at >= :after
+              AND profile_id IS NOT NULL
+            """, nativeQuery = true)
+    long findActiveProfileCount(
+            @Param("tenantId") UUID tenantId,
+            @Param("after") Instant after);
+
+    /**
+     * Total distinct profiles ever recorded for a tenant.
+     */
+    @Query(value = """
+            SELECT COUNT(DISTINCT profile_id)
+            FROM analytics.dns_query_logs
+            WHERE tenant_id = :tenantId
+              AND profile_id IS NOT NULL
+            """, nativeQuery = true)
+    long findTotalProfileCount(@Param("tenantId") UUID tenantId);
+
+    /**
+     * Per-profile activity summary for a tenant since todayStart.
+     * Returns: profile_id (UUID string), queries_today (LONG), blocked_today (LONG), last_seen (Instant).
+     * Sorted by queries_today DESC.
+     */
+    @Query(value = """
+            SELECT
+                profile_id,
+                COUNT(*) AS queries_today,
+                SUM(CASE WHEN action = 'BLOCKED' THEN 1 ELSE 0 END) AS blocked_today,
+                MAX(queried_at) AS last_seen
+            FROM analytics.dns_query_logs
+            WHERE tenant_id = :tenantId
+              AND queried_at >= :todayStart
+              AND profile_id IS NOT NULL
+            GROUP BY profile_id
+            ORDER BY queries_today DESC
+            """, nativeQuery = true)
+    List<Object[]> findCustomerActivityByTenant(
+            @Param("tenantId") UUID tenantId,
+            @Param("todayStart") Instant todayStart);
 }

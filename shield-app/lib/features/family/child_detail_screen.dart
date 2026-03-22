@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../core/api_client.dart';
 import '../../app/theme.dart';
+import '../../core/shield_widgets.dart';
 import '../parent/quick_control_sheet.dart';
 
 // Provider for spoofing check — returns true if spoofing detected within 24h
@@ -56,7 +57,19 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) return Scaffold(
+      appBar: AppBar(title: const Text('Loading…')),
+      body: const Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(children: [
+          ShieldCardSkeleton(lines: 2),
+          SizedBox(height: 12),
+          ShieldCardSkeleton(lines: 3),
+          SizedBox(height: 12),
+          ShieldCardSkeleton(lines: 4),
+        ]),
+      ),
+    );
     final name = _profile?['name'] ?? 'Child';
     final spoofingAsync = ref.watch(spoofingBannerProvider(widget.profileId));
 
@@ -86,22 +99,22 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       width: double.infinity,
-                      color: Colors.amber.shade100,
+                      color: ShieldTheme.warning.withOpacity(0.1),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(children: [
-                            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                            const Icon(Icons.warning_amber_rounded, color: ShieldTheme.warning, size: 18),
                             const SizedBox(width: 8),
                             const Expanded(
                               child: Text(
                                 'Possible GPS spoofing detected',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.orange),
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: ShieldTheme.warning),
                               ),
                             ),
                             Icon(_showSpoofingDetails ? Icons.expand_less : Icons.expand_more,
-                                color: Colors.orange, size: 18),
+                                color: ShieldTheme.warning, size: 18),
                           ]),
                           if (_showSpoofingDetails) ...[
                             const SizedBox(height: 6),
@@ -109,7 +122,7 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
                               'An anomaly was detected in the location data within the last 24 hours. '
                               'This may indicate the use of a GPS spoofing app. '
                               'Check Location Alerts in the Alerts tab for details.',
-                              style: TextStyle(fontSize: 12, color: Colors.brown),
+                              style: TextStyle(fontSize: 12, color: ShieldTheme.textSecondary),
                             ),
                           ],
                         ],
@@ -155,10 +168,10 @@ class _ActivityTab extends ConsumerWidget {
             final blocked = e['action'] == 'BLOCKED';
             return ListTile(
               dense: true,
-              leading: Icon(blocked ? Icons.block : Icons.check_circle, color: blocked ? Colors.red : Colors.green, size: 20),
+              leading: Icon(blocked ? Icons.block : Icons.check_circle, color: blocked ? ShieldTheme.dangerLight : ShieldTheme.successLight, size: 20),
               title: Text(e['domain'] ?? '', style: const TextStyle(fontSize: 13)),
               subtitle: Text(e['category'] ?? '', style: const TextStyle(fontSize: 11)),
-              trailing: Text(_fmt(e['queriedAt'] ?? e['timestamp']), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+              trailing: Text(_fmt(e['queriedAt'] ?? e['timestamp']), style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
             );
           },
         );
@@ -322,9 +335,12 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
       await _loadData();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e'), backgroundColor: ShieldTheme.danger),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } finally {
       if (mounted) setState(() => _toggling = false);
@@ -338,9 +354,12 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
       await _loadData();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to cancel override: $e'), backgroundColor: ShieldTheme.danger),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to cancel override: $e'),
+          backgroundColor: ShieldTheme.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } finally {
       if (mounted) setState(() => _toggling = false);
@@ -384,8 +403,15 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
             icon: Icons.schedule_rounded,
             title: 'Internet Schedule',
             subtitle: 'Set weekly access times',
-            color: const Color(0xFF0277BD),
+            color: ShieldTheme.primaryLight,
             onTap: () => context.go('/family/${widget.profileId}/schedule'),
+          ),
+          _NavCard(
+            icon: Icons.event_available_rounded,
+            title: 'Access Schedule',
+            subtitle: 'View active schedule windows',
+            color: ShieldTheme.accent,
+            onTap: () => context.go('/family/${widget.profileId}/schedule-viewer'),
           ),
           _NavCard(
             icon: Icons.timer_rounded,
@@ -401,14 +427,14 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
             icon: Icons.emoji_events_rounded,
             title: 'Rewards & Tasks',
             subtitle: 'Manage tasks and reward bank',
-            color: Colors.amber.shade700,
+            color: ShieldTheme.warning,
             onTap: () => context.go('/family/${widget.profileId}/rewards'),
           ),
           _NavCard(
             icon: Icons.bar_chart_rounded,
             title: 'Reports & Analytics',
             subtitle: 'Usage charts and insights',
-            color: Colors.teal,
+            color: ShieldTheme.success,
             onTap: () => context.go('/family/${widget.profileId}/reports'),
           ),
           const SizedBox(height: 16),
@@ -418,21 +444,21 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
             icon: Icons.block_rounded,
             title: 'App Blocking',
             subtitle: 'Block apps on child\'s device',
-            color: Colors.red.shade700,
+            color: ShieldTheme.danger,
             onTap: () => context.go('/family/${widget.profileId}/app-blocking'),
           ),
           _NavCard(
             icon: Icons.devices_rounded,
             title: 'Manage Devices',
             subtitle: 'Add or remove child devices',
-            color: Colors.blue.shade800,
+            color: ShieldTheme.primaryDark,
             onTap: () => context.go('/family/${widget.profileId}/devices'),
           ),
           _NavCard(
             icon: Icons.phonelink_setup_rounded,
             title: 'Child Device Setup',
             subtitle: 'Guided QR setup for child\'s phone',
-            color: Colors.blue.shade700,
+            color: ShieldTheme.primary,
             onTap: () => context.go('/child-setup'),
           ),
           const SizedBox(height: 8),
@@ -477,11 +503,11 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: on
-                            ? Colors.green.shade400.withOpacity(0.25)
-                            : Colors.red.shade400.withOpacity(0.25),
+                            ? ShieldTheme.successLight.withOpacity(0.25)
+                            : ShieldTheme.dangerLight.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: on ? Colors.green.shade300 : Colors.red.shade300,
+                          color: on ? ShieldTheme.successLight : ShieldTheme.dangerLight,
                           width: 1,
                         ),
                       ),
@@ -491,7 +517,7 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
                           Icon(
                             on ? Icons.shield_rounded : Icons.shield_outlined,
                             size: 14,
-                            color: on ? Colors.green.shade300 : Colors.red.shade300,
+                            color: on ? ShieldTheme.successLight : ShieldTheme.dangerLight,
                           ),
                           const SizedBox(width: 5),
                           Text(
@@ -499,7 +525,7 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: on ? Colors.green.shade300 : Colors.red.shade300,
+                              color: on ? ShieldTheme.successLight : ShieldTheme.dangerLight,
                             ),
                           ),
                         ],
@@ -522,11 +548,11 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
                           value: on,
                           onChanged: _toggleInternet,
                           thumbColor: WidgetStateProperty.resolveWith((s) =>
-                            s.contains(WidgetState.selected) ? Colors.green.shade300 : Colors.red.shade300),
+                            s.contains(WidgetState.selected) ? ShieldTheme.successLight : ShieldTheme.dangerLight),
                           trackColor: WidgetStateProperty.resolveWith((s) =>
                             s.contains(WidgetState.selected)
-                                ? Colors.green.shade800.withOpacity(0.6)
-                                : Colors.red.shade900.withOpacity(0.5)),
+                                ? ShieldTheme.success.withOpacity(0.6)
+                                : ShieldTheme.danger.withOpacity(0.5)),
                           trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
                         ),
                       ),
@@ -699,20 +725,32 @@ class _LocationTab extends StatelessWidget {
         _NavCard(
           icon: Icons.fence, title: 'Geofences',
           subtitle: 'Set up safe zones on the map',
-          color: const Color(0xFF1565C0),
+          color: ShieldTheme.primary,
           onTap: () => context.go('/family/$profileId/geofences'),
         ),
         _NavCard(
           icon: Icons.place, title: 'Saved Places',
           subtitle: 'Manage frequently visited locations',
-          color: Colors.green,
+          color: ShieldTheme.success,
           onTap: () => context.go('/family/$profileId/places'),
         ),
         _NavCard(
           icon: Icons.route, title: 'Location History',
           subtitle: 'Route playback and timeline',
-          color: Colors.deepOrange,
+          color: ShieldTheme.warning,
           onTap: () => context.go('/family/$profileId/location-history'),
+        ),
+        _NavCard(
+          icon: Icons.link_rounded, title: 'Share Location',
+          subtitle: 'Create temporary shareable links',
+          color: ShieldTheme.accent,
+          onTap: () => context.go('/family/$profileId/location-share'),
+        ),
+        _NavCard(
+          icon: Icons.notifications_active_rounded, title: 'Check-in Reminders',
+          subtitle: 'Get notified if child goes silent',
+          color: ShieldTheme.primaryDark,
+          onTap: () => context.go('/family/$profileId/checkin-reminder'),
         ),
       ],
     );
@@ -733,13 +771,13 @@ class _InsightsTab extends StatelessWidget {
         _NavCard(
           icon: Icons.psychology, title: 'AI Behavioral Insights',
           subtitle: 'Risk analysis and recommendations',
-          color: Colors.blue,
+          color: ShieldTheme.accent,
           onTap: () => context.go('/family/$profileId/ai-insights'),
         ),
         _NavCard(
           icon: Icons.bar_chart, title: 'Full Reports',
           subtitle: 'Detailed usage analytics',
-          color: Colors.teal,
+          color: ShieldTheme.success,
           onTap: () => context.go('/family/$profileId/reports'),
         ),
       ],

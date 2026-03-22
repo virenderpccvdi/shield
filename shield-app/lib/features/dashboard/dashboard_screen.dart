@@ -257,7 +257,7 @@ class _HeroHeader extends ConsumerWidget {
                     const SizedBox(width: 4),
                     _HeaderAction(
                       icon: Icons.sos,
-                      color: Colors.red.shade300,
+                      color: ShieldTheme.dangerLight,
                       onTap: () => context.go('/alerts/sos'),
                     ),
                   ],
@@ -295,7 +295,7 @@ class _HeroHeader extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(width: 7, height: 7,
-                        decoration: const BoxDecoration(color: Color(0xFF69F0AE), shape: BoxShape.circle)),
+                        decoration: const BoxDecoration(color: ShieldTheme.successLight, shape: BoxShape.circle)),
                       const SizedBox(width: 6),
                       Text(
                         '${data['totalProfiles'] ?? 0} children • ${data['blockedToday'] ?? 0} blocked today',
@@ -344,7 +344,7 @@ class _HeaderAction extends StatelessWidget {
               top: 6, right: 6,
               child: Container(
                 width: 14, height: 14,
-                decoration: const BoxDecoration(color: Color(0xFFFF5252), shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: ShieldTheme.dangerLight, shape: BoxShape.circle),
                 child: Center(
                   child: Text(badge > 9 ? '9+' : '$badge',
                     style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700)),
@@ -475,7 +475,7 @@ class _QuickActions extends StatelessWidget {
               children: [
                 _ActionChip(icon: Icons.map_rounded,          label: 'Live Map',    color: ShieldTheme.primary,       onTap: () => context.go('/map')),
                 const SizedBox(width: 10),
-                _ActionChip(icon: Icons.people_rounded,       label: 'Family',      color: const Color(0xFF1565C0),   onTap: () => context.go('/family')),
+                _ActionChip(icon: Icons.people_rounded,       label: 'Family',      color: ShieldTheme.primary,       onTap: () => context.go('/family')),
                 const SizedBox(width: 10),
                 _ActionChip(icon: Icons.notifications_rounded,label: 'Alerts',      color: ShieldTheme.dangerLight,   onTap: () => context.go('/alerts')),
                 const SizedBox(width: 10),
@@ -499,11 +499,7 @@ class _SetupChildDeviceTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
+          gradient: ShieldTheme.primaryGradient,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(children: [
@@ -643,11 +639,7 @@ class _EmptyChildrenState extends State<_EmptyChildren> {
       decoration: BoxDecoration(
         gradient: _onboardingDone
             ? null
-            : const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF1565C0), Color(0xFF0A2463)],
-              ),
+            : ShieldTheme.heroGradient,
         color: _onboardingDone ? Colors.white : null,
         borderRadius: BorderRadius.circular(20),
         border: _onboardingDone
@@ -655,7 +647,7 @@ class _EmptyChildrenState extends State<_EmptyChildren> {
             : null,
         boxShadow: _onboardingDone
             ? null
-            : [BoxShadow(color: const Color(0xFF1565C0).withOpacity(0.25), blurRadius: 20, offset: const Offset(0, 6))],
+            : [BoxShadow(color: ShieldTheme.primary.withOpacity(0.25), blurRadius: 20, offset: const Offset(0, 6))],
       ),
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
       child: _onboardingDone
@@ -755,8 +747,8 @@ class _ChildCard extends StatelessWidget {
 
     // Avatar color from name hash
     final colors = [
-      const Color(0xFF1565C0), const Color(0xFF1565C0), const Color(0xFF00695C),
-      const Color(0xFFBF360C), const Color(0xFF1B5E20), const Color(0xFF0D47A1),
+      ShieldTheme.primary, ShieldTheme.primaryLight, ShieldTheme.success,
+      ShieldTheme.danger, ShieldTheme.successLight, ShieldTheme.primaryDark,
     ];
     final avatarColor = colors[name.codeUnitAt(0) % colors.length];
 
@@ -790,7 +782,7 @@ class _ChildCard extends StatelessWidget {
                     child: Container(
                       width: 14, height: 14,
                       decoration: BoxDecoration(
-                        color: isOnline ? const Color(0xFF00C853) : const Color(0xFFBDBDBD),
+                        color: isOnline ? ShieldTheme.successLight : ShieldTheme.textSecondary,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
@@ -807,18 +799,18 @@ class _ChildCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Row(children: [
                         Icon(isOnline ? Icons.wifi : Icons.wifi_off,
-                          size: 12, color: isOnline ? const Color(0xFF00C853) : Colors.grey),
+                          size: 12, color: isOnline ? ShieldTheme.successLight : ShieldTheme.textSecondary),
                         const SizedBox(width: 4),
                         Text(isOnline ? 'Online' : 'Offline',
                           style: TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w500,
-                            color: isOnline ? const Color(0xFF00C853) : Colors.grey,
+                            color: isOnline ? ShieldTheme.successLight : ShieldTheme.textSecondary,
                           )),
                         const SizedBox(width: 10),
-                        Icon(Icons.shield_outlined, size: 12, color: Colors.grey.shade500),
+                        Icon(Icons.shield_outlined, size: 12, color: ShieldTheme.textSecondary),
                         const SizedBox(width: 3),
                         Text(profile['filterLevel'] as String? ?? 'MODERATE',
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                          style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
                       ]),
                     ],
                   ),
@@ -877,28 +869,28 @@ class _RecentActivitySection extends StatelessWidget {
             const SizedBox(height: 12),
             _MenuRow(
               icon: Icons.dns_rounded,
-              color: const Color(0xFF1565C0),
+              color: ShieldTheme.primary,
               label: 'Content Filtering',
               subtitle: 'Manage blocked categories',
               onTap: () => context.go('/family'),
             ),
             _MenuRow(
               icon: Icons.schedule_rounded,
-              color: const Color(0xFF1565C0),
+              color: ShieldTheme.primary,
               label: 'Screen Time',
               subtitle: 'Set schedules and limits',
               onTap: () => context.go('/family'),
             ),
             _MenuRow(
               icon: Icons.location_on_rounded,
-              color: const Color(0xFF00695C),
+              color: ShieldTheme.success,
               label: 'Geofences',
               subtitle: 'Safe zones and boundaries',
               onTap: () => context.go('/family'),
             ),
             _MenuRow(
               icon: Icons.psychology_rounded,
-              color: const Color(0xFFBF360C),
+              color: ShieldTheme.danger,
               label: 'AI Insights',
               subtitle: 'Behavior analysis and risks',
               onTap: () => context.go('/family'),
@@ -993,7 +985,7 @@ class _DashboardSosBannerState extends State<_DashboardSosBanner> with SingleTic
         opacity: _opacity,
         child: Container(
           width: double.infinity,
-          color: Colors.red.shade700,
+          color: ShieldTheme.danger,
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
           child: SafeArea(
             bottom: false,

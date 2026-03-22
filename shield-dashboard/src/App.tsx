@@ -13,9 +13,11 @@ import AdminLayout from './layouts/AdminLayout';
 import IspLayout from './layouts/IspLayout';
 
 // ── Auth pages (loaded on first visit, always small) ─────────────────────────
-const LoginPage          = lazy(() => import('./pages/auth/LoginPage'));
-const RegisterPage       = lazy(() => import('./pages/auth/RegisterPage'));
-const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const LoginPage               = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage            = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage      = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const FamilyInviteAcceptPage  = lazy(() => import('./pages/auth/FamilyInviteAcceptPage'));
+const ResetPasswordPage       = lazy(() => import('./pages/auth/ResetPasswordPage'));
 
 // ── Customer pages ────────────────────────────────────────────────────────────
 const CustomerDashboardPage    = lazy(() => import('./pages/customer/CustomerDashboardPage'));
@@ -41,6 +43,26 @@ const CheckoutCancelPage       = lazy(() => import('./pages/customer/CheckoutCan
 const NewChildProfilePage      = lazy(() => import('./pages/customer/NewChildProfilePage'));
 const CustomerChildProfilesPage = lazy(() => import('./pages/customer/CustomerChildProfilesPage'));
 const FamilyMembersPage        = lazy(() => import('./pages/customer/FamilyMembersPage'));
+const HomeworkModePage         = lazy(() => import('./pages/customer/HomeworkModePage'));
+const ApprovalRequestsPage     = lazy(() => import('./pages/customer/ApprovalRequestsPage'));
+const AppBudgetsPage           = lazy(() => import('./pages/customer/AppBudgetsPage'));
+const SafeFiltersPage          = lazy(() => import('./pages/customer/SafeFiltersPage'));
+const EmergencyContactsPage    = lazy(() => import('./pages/customer/EmergencyContactsPage'));
+const BedtimeLockPage          = lazy(() => import('./pages/customer/BedtimeLockPage'));
+const SchoolZonePage           = lazy(() => import('./pages/customer/SchoolZonePage'));
+const BatteryAlertsPage        = lazy(() => import('./pages/customer/BatteryAlertsPage'));
+const FamilyRulesPage          = lazy(() => import('./pages/customer/FamilyRulesPage'));
+const ScreenTimeRequestsPage   = lazy(() => import('./pages/customer/ScreenTimeRequestsPage'));
+const SuspiciousActivityPage   = lazy(() => import('./pages/customer/SuspiciousActivityPage'));
+const CoParentPage             = lazy(() => import('./pages/customer/CoParentPage'));
+const CoParentAcceptPage       = lazy(() => import('./pages/customer/CoParentAcceptPage'));
+const AppUsagePage             = lazy(() => import('./pages/customer/AppUsagePage'));
+const CheckinReminderPage      = lazy(() => import('./pages/customer/CheckinReminderPage'));
+const BrowsingHistoryPage      = lazy(() => import('./pages/customer/BrowsingHistoryPage'));
+const LocationSharePage        = lazy(() => import('./pages/customer/LocationSharePage'));
+const AiChatSettingsPage       = lazy(() => import('./pages/customer/AiChatSettingsPage'));
+const AccessSchedulePage       = lazy(() => import('./pages/customer/AccessSchedulePage'));
+const AchievementsPage         = lazy(() => import('./pages/customer/AchievementsPage'));
 
 // ── Global-admin pages ────────────────────────────────────────────────────────
 const PlatformDashboardPage    = lazy(() => import('./pages/global-admin/PlatformDashboardPage'));
@@ -69,6 +91,7 @@ const AdminAppControlPage      = lazy(() => import('./pages/global-admin/AdminAp
 const AdminAiInsightsPage      = lazy(() => import('./pages/global-admin/AdminAiInsightsPage'));
 const LeadsPage                = lazy(() => import('./pages/global-admin/LeadsPage'));
 const VisitorsPage             = lazy(() => import('./pages/global-admin/VisitorsPage'));
+const PlatformAdminPage        = lazy(() => import('./pages/admin/PlatformAdminPage'));
 
 // ── ISP-admin pages ───────────────────────────────────────────────────────────
 const IspDashboardPage     = lazy(() => import('./pages/isp-admin/IspDashboardPage'));
@@ -88,6 +111,10 @@ const IspChildProfilesPage = lazy(() => import('./pages/isp-admin/IspChildProfil
 const IspChildDetailPage   = lazy(() => import('./pages/isp-admin/IspChildDetailPage'));
 const IspPlansPage         = lazy(() => import('./pages/isp-admin/IspPlansPage'));
 const IspAiInsightsPage    = lazy(() => import('./pages/isp-admin/IspAiInsightsPage'));
+const BulkImportPage       = lazy(() => import('./pages/isp-admin/BulkImportPage'));
+const CommunicationsPage   = lazy(() => import('./pages/isp-admin/CommunicationsPage'));
+const AnalyticsExportPage  = lazy(() => import('./pages/isp-admin/AnalyticsExportPage'));
+const IspLiveDashboardPage = lazy(() => import('./pages/isp-admin/IspLiveDashboardPage'));
 
 // ── Shared pages ──────────────────────────────────────────────────────────────
 const PlatformAlertsPage   = lazy(() => import('./pages/PlatformAlertsPage'));
@@ -160,9 +187,12 @@ export default function App() {
         <BrowserRouter basename="/app">
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              <Route path="/login"          element={<LoginPage />} />
-              <Route path="/register"       element={<RegisterPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/login"           element={<LoginPage />} />
+              <Route path="/register"        element={<RegisterPage />} />
+              <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
+              <Route path="/family/invite"   element={<FamilyInviteAcceptPage />} />
+              <Route path="/reset-password"  element={<ResetPasswordPage />} />
+              <Route path="/co-parent/accept" element={<CoParentAcceptPage />} />
 
               <Route path="/" element={<PrivateRoute><RoleRouter /></PrivateRoute>} />
 
@@ -191,6 +221,25 @@ export default function App() {
                 <Route path="/billing/cancel"                     element={<CheckoutCancelPage />} />
                 <Route path="/family-members"                     element={<FamilyMembersPage />} />
                 <Route path="/settings"                           element={<SettingsPage />} />
+                <Route path="/homework"                           element={<HomeworkModePage />} />
+                <Route path="/approvals"                          element={<ApprovalRequestsPage />} />
+                <Route path="/app-budgets"                        element={<AppBudgetsPage />} />
+                <Route path="/safe-filters"                       element={<SafeFiltersPage />} />
+                <Route path="/emergency-contacts"                 element={<EmergencyContactsPage />} />
+                <Route path="/bedtime"                            element={<BedtimeLockPage />} />
+                <Route path="/school-zone"                        element={<SchoolZonePage />} />
+                <Route path="/family-rules"                       element={<FamilyRulesPage />} />
+                <Route path="/battery-alerts"                     element={<BatteryAlertsPage />} />
+                <Route path="/screen-time-requests"               element={<ScreenTimeRequestsPage />} />
+                <Route path="/suspicious-activity"               element={<SuspiciousActivityPage />} />
+                <Route path="/co-parent"                          element={<CoParentPage />} />
+                <Route path="/app-usage"                          element={<AppUsagePage />} />
+                <Route path="/checkin-reminders"                  element={<CheckinReminderPage />} />
+                <Route path="/browsing-history"                   element={<BrowsingHistoryPage />} />
+                <Route path="/location-share"                     element={<LocationSharePage />} />
+                <Route path="/ai-chat"                            element={<AiChatSettingsPage />} />
+                <Route path="/access-schedule"                    element={<AccessSchedulePage />} />
+                <Route path="/achievements"                       element={<AchievementsPage />} />
               </Route>
 
               {/* ── Global Admin ── */}
@@ -224,6 +273,7 @@ export default function App() {
                 <Route path="/admin/leads"                        element={<LeadsPage />} />
                 <Route path="/admin/visitors"                     element={<VisitorsPage />} />
                 <Route path="/admin/settings"                     element={<SettingsPage />} />
+                <Route path="/admin/platform"                     element={<PlatformAdminPage />} />
               </Route>
 
               {/* ── ISP Admin ── */}
@@ -248,6 +298,10 @@ export default function App() {
                 <Route path="/billing/cancel"                     element={<CheckoutCancelPage />} />
                 <Route path="/isp/settings"                       element={<IspSettingsPage />} />
                 <Route path="/isp/ai-insights"                    element={<IspAiInsightsPage />} />
+                <Route path="/isp/customers/import"              element={<BulkImportPage />} />
+                <Route path="/isp/communications"                element={<CommunicationsPage />} />
+                <Route path="/isp/analytics-export"              element={<AnalyticsExportPage />} />
+                <Route path="/isp/live-dashboard"               element={<IspLiveDashboardPage />} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />

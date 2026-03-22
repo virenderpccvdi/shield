@@ -1,6 +1,7 @@
 import { Box, Grid, Card, CardContent, Typography, Skeleton, Chip, Stack, Alert } from '@mui/material';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
+import { useTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -17,10 +18,11 @@ import StatCard from '../../components/StatCard';
 import PageHeader from '../../components/PageHeader';
 import { gradients } from '../../theme/theme';
 
+// Uses palette-aligned hex values (primary.main, success.main, error.main, warning.main)
 const ACTION_COLORS: Record<string, string> = {
   SERVICE_RESTART: '#FB8C00', SERVICE_START: '#43A047', SERVICE_STOP: '#E53935',
-  PLAN_CREATED: '#7B1FA2', PLAN_UPDATED: '#7B1FA2', PLAN_DELETED: '#C62828',
-  TENANT_CREATED: '#43A047', USER_CREATED: '#1565C0', FEATURE_TOGGLED: '#00ACC1',
+  PLAN_CREATED: '#43A047', PLAN_UPDATED: '#1565C0', PLAN_DELETED: '#E53935',
+  TENANT_CREATED: '#43A047', USER_CREATED: '#1565C0', FEATURE_TOGGLED: '#1565C0',
 };
 
 function fmt(v: number) {
@@ -82,6 +84,9 @@ function PlatformSosBanner() {
 }
 
 export default function PlatformDashboardPage() {
+  const theme = useTheme();
+  const primaryColor = theme.palette.primary.main;
+  const errorColor = theme.palette.error.main;
   const { data, isLoading } = useQuery({
     queryKey: ['platform-stats'],
     queryFn: async () => {
@@ -169,16 +174,16 @@ export default function PlatformDashboardPage() {
       {/* Row 2: Secondary stats */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Active Profiles" value={stats.activeProfiles} icon={<ShieldIcon />} gradient="linear-gradient(135deg, #00897B 0%, #4DB6AC 100%)" delay={0.15} />
+          <StatCard title="Active Profiles" value={stats.activeProfiles} icon={<ShieldIcon />} gradient={gradients.teal} delay={0.15} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="DNS Blocked Today" value={fmt(stats.dnsBlockedToday)} icon={<BlockIcon />} gradient="linear-gradient(135deg, #C62828 0%, #EF5350 100%)" delay={0.2} />
+          <StatCard title="DNS Blocked Today" value={fmt(stats.dnsBlockedToday)} icon={<BlockIcon />} gradient={gradients.red} delay={0.2} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Services Online" value={`${stats.servicesOnline}/13`} icon={<MonitorHeartIcon />} gradient="linear-gradient(135deg, #2E7D32 0%, #66BB6A 100%)" delay={0.25} />
+          <StatCard title="Services Online" value={`${stats.servicesOnline}/13`} icon={<MonitorHeartIcon />} gradient={gradients.green} delay={0.25} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Total Revenue" value={`₹${fmt(stats.totalRevenue)}`} icon={<AttachMoneyIcon />} gradient="linear-gradient(135deg, #F57F17 0%, #FFA726 100%)" delay={0.3} />
+          <StatCard title="Total Revenue" value={`₹${fmt(stats.totalRevenue)}`} icon={<AttachMoneyIcon />} gradient={gradients.orange} delay={0.3} />
         </Grid>
       </Grid>
 
@@ -200,20 +205,20 @@ export default function PlatformDashboardPage() {
                     <AreaChart data={stats.trend} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                       <defs>
                         <linearGradient id="queriesGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#1565C0" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#1565C0" stopOpacity={0} />
+                          <stop offset="5%" stopColor={primaryColor} stopOpacity={0.15} />
+                          <stop offset="95%" stopColor={primaryColor} stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="blockedGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#E53935" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#E53935" stopOpacity={0} />
+                          <stop offset="5%" stopColor={errorColor} stopOpacity={0.15} />
+                          <stop offset="95%" stopColor={errorColor} stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
                       <XAxis dataKey="d" tick={{ fontSize: 12 }} />
                       <YAxis tickFormatter={(v: number) => fmt(v)} tick={{ fontSize: 12 }} />
                       <Tooltip formatter={(v: number) => [v.toLocaleString(), '']} contentStyle={{ borderRadius: 8, border: '1px solid #E8EDF2' }} />
-                      <Area type="monotone" dataKey="q" name="Queries" stroke="#1565C0" strokeWidth={2.5} fill="url(#queriesGrad)" dot={{ r: 3, fill: '#1565C0', strokeWidth: 2, stroke: '#fff' }} />
-                      <Area type="monotone" dataKey="b" name="Blocked" stroke="#E53935" strokeWidth={2} fill="url(#blockedGrad)" dot={{ r: 3, fill: '#E53935', strokeWidth: 2, stroke: '#fff' }} />
+                      <Area type="monotone" dataKey="q" name="Queries" stroke={primaryColor} strokeWidth={2.5} fill="url(#queriesGrad)" dot={{ r: 3, fill: primaryColor, strokeWidth: 2, stroke: '#fff' }} />
+                      <Area type="monotone" dataKey="b" name="Blocked" stroke={errorColor} strokeWidth={2} fill="url(#blockedGrad)" dot={{ r: 3, fill: errorColor, strokeWidth: 2, stroke: '#fff' }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
@@ -238,7 +243,7 @@ export default function PlatformDashboardPage() {
                       <XAxis type="number" tickFormatter={(v: number) => fmt(v)} tick={{ fontSize: 11 }} />
                       <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={100} />
                       <Tooltip formatter={(v: number) => [v.toLocaleString(), 'Queries']} />
-                      <Bar dataKey="queries" fill="#1565C0" radius={[0, 4, 4, 0]} barSize={20} />
+                      <Bar dataKey="queries" fill={primaryColor} radius={[0, 4, 4, 0]} barSize={20} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -263,7 +268,7 @@ export default function PlatformDashboardPage() {
                 {stats.recentActivity.map((item: any) => (
                   <Box key={item.id} sx={{
                     display: 'flex', alignItems: 'center', gap: 2, p: 1.5, borderRadius: 2,
-                    transition: 'all 0.2s ease', '&:hover': { bgcolor: '#F8FAFC' },
+                    transition: 'all 0.2s ease', '&:hover': { bgcolor: 'background.default' },
                   }}>
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: item.color, flexShrink: 0, boxShadow: `0 0 0 3px ${item.color}20` }} />
                     <Box sx={{ flex: 1, minWidth: 0 }}>

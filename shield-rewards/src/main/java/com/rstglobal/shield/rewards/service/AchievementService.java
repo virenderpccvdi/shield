@@ -7,7 +7,10 @@ import com.rstglobal.shield.rewards.repository.AchievementRepository;
 import com.rstglobal.shield.rewards.repository.RewardBankRepository;
 import com.rstglobal.shield.rewards.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,9 @@ public class AchievementService {
     private final AchievementRepository achievementRepository;
     private final RewardBankRepository rewardBankRepository;
     private final TaskRepository taskRepository;
+
+    @Setter(onMethod_ = {@Autowired, @Lazy})
+    private BadgeService badgeService;
 
     @Transactional
     public void checkAndAwardAchievements(UUID profileId) {
@@ -92,6 +98,9 @@ public class AchievementService {
             award(profileId, PERFECT_WEEK, "Perfect Week",
                     "Completed 7 tasks in a single week!", null);
         }
+
+        // FC-09: Check and award structured badge milestones
+        badgeService.checkAndAwardBadges(profileId);
     }
 
     @Transactional

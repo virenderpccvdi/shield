@@ -7,7 +7,9 @@ import com.rstglobal.shield.dns.dto.request.UpdateCategoriesRequest;
 import com.rstglobal.shield.dns.dto.request.UpdateListRequest;
 import com.rstglobal.shield.dns.dto.response.DnsRulesResponse;
 import com.rstglobal.shield.dns.dto.response.PlatformDefaultsResponse;
+import com.rstglobal.shield.dns.service.BedtimeLockService;
 import com.rstglobal.shield.dns.service.DnsRulesService;
+import com.rstglobal.shield.dns.service.HomeworkModeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,8 @@ import java.util.UUID;
 public class DnsRulesController {
 
     private final DnsRulesService rulesService;
+    private final HomeworkModeService homeworkModeService;
+    private final BedtimeLockService bedtimeLockService;
 
     @GetMapping("/rules/{profileId}")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> getRules(
@@ -196,6 +200,117 @@ public class DnsRulesController {
             @Valid @RequestBody UpdateListRequest req) {
         requireGlobalAdmin(role);
         return ResponseEntity.ok(ApiResponse.ok(rulesService.updatePlatformAllowlist(req)));
+    }
+
+    // ── Homework Mode ─────────────────────────────────────────────────────────
+
+    /**
+     * Start a homework mode session for a child profile.
+     * Body: { "durationMinutes": 60 }  (1–240 minutes)
+     */
+    @PostMapping("/rules/{profileId}/homework/start")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> startHomework(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestBody Map<String, Integer> body) {
+        requireCustomer(role);
+        int durationMinutes = body.getOrDefault("durationMinutes", 60);
+        homeworkModeService.activate(profileId, durationMinutes);
+        return ResponseEntity.ok(ApiResponse.ok(
+                homeworkModeService.getStatus(profileId),
+                "Homework mode started for " + durationMinutes + " minutes"));
+    }
+
+    /**
+     * Stop an active homework mode session early, restoring original rules.
+     */
+    @PostMapping("/rules/{profileId}/homework/stop")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> stopHomework(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role) {
+        requireCustomer(role);
+        homeworkModeService.deactivate(profileId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                homeworkModeService.getStatus(profileId),
+                "Homework mode stopped"));
+    }
+
+    /**
+     * Get current homework mode status: active, endsAt, minutesRemaining.
+     */
+    @GetMapping("/rules/{profileId}/homework/status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> homeworkStatus(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role) {
+        requireCustomer(role);
+        return ResponseEntity.ok(ApiResponse.ok(homeworkModeService.getStatus(profileId)));
+    }
+
+    // ── PC-05: YouTube Safe Mode ──────────────────────────────────────────────
+
+    /**
+     * Enable or disable YouTube Restricted Mode for a child profile via DNS CNAME rewrite.
+     * Body: { "enabled": true }
+     */
+    @PostMapping("/rules/{profileId}/youtube-safe-mode")
+    public ResponseEntity<ApiResponse<DnsRulesResponse>> setYoutubeSafeMode(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestBody Map<String, Boolean> body) {
+        requireCustomer(role);
+        boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
+        DnsRulesResponse response = rulesService.setYoutubeSafeMode(profileId, enabled);
+        return ResponseEntity.ok(ApiResponse.ok(response,
+                "YouTube safe mode " + (enabled ? "enabled" : "disabled")));
+    }
+
+    // ── PC-06: Safe Search ────────────────────────────────────────────────────
+
+    /**
+     * Enable or disable DNS-level safe search enforcement for a child profile.
+     * Redirects Google, Bing, and DuckDuckGo queries to their safe-search endpoints.
+     * Body: { "enabled": true }
+     */
+    @PostMapping("/rules/{profileId}/safe-search")
+    public ResponseEntity<ApiResponse<DnsRulesResponse>> setSafeSearch(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestBody Map<String, Boolean> body) {
+        requireCustomer(role);
+        boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
+        DnsRulesResponse response = rulesService.setSafeSearch(profileId, enabled);
+        return ResponseEntity.ok(ApiResponse.ok(response,
+                "Safe search " + (enabled ? "enabled" : "disabled")));
+    }
+
+    // ── Bedtime Lock (PC-01) ──────────────────────────────────────────────────
+
+    /**
+     * Configure bedtime lock for a child profile.
+     * Body: { "enabled": true, "bedtimeStart": "21:00", "bedtimeEnd": "07:00" }
+     */
+    @PostMapping("/rules/{profileId}/bedtime/configure")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> configureBedtime(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestBody Map<String, Object> body) {
+        requireCustomer(role);
+        boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
+        String start = (String) body.get("bedtimeStart");
+        String end   = (String) body.get("bedtimeEnd");
+        return ResponseEntity.ok(ApiResponse.ok(bedtimeLockService.configure(profileId, enabled, start, end)));
+    }
+
+    /**
+     * Get current bedtime lock status for a child profile.
+     * Returns: { enabled, bedtimeStart, bedtimeEnd, active }
+     */
+    @GetMapping("/rules/{profileId}/bedtime/status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> bedtimeStatus(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role) {
+        requireCustomer(role);
+        return ResponseEntity.ok(ApiResponse.ok(bedtimeLockService.getStatus(profileId)));
     }
 
     private void requireGlobalAdmin(String role) {

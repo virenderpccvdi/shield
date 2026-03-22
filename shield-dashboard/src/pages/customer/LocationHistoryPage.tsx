@@ -23,6 +23,7 @@ import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import LoadingPage from '../../components/LoadingPage';
+import { useTheme } from '@mui/material/styles';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M';
 
@@ -45,6 +46,7 @@ const DEFAULT_CENTER = { lat: 28.6139, lng: 77.209 };
 function RouteOverlay({ points }: { points: LocationPoint[] }) {
   const map = useMap();
   const mapsLib = useMapsLibrary('maps');
+  const theme = useTheme();
   const polylineRef = useRef<google.maps.Polyline | null>(null);
   const [openMarker, setOpenMarker] = useState<'start' | 'end' | null>(null);
 
@@ -68,7 +70,7 @@ function RouteOverlay({ points }: { points: LocationPoint[] }) {
     polylineRef.current = new mapsLib.Polyline({
       path,
       geodesic: true,
-      strokeColor: '#1565C0',
+      strokeColor: theme.palette.primary.main,
       strokeOpacity: 0.8,
       strokeWeight: 3,
       icons: [{
@@ -107,7 +109,7 @@ function RouteOverlay({ points }: { points: LocationPoint[] }) {
         onClick={() => setOpenMarker(openMarker === 'start' ? null : 'start')}
       >
         <div style={{
-          background: '#43A047', color: 'white', borderRadius: '50%',
+          background: theme.palette.success.main, color: 'white', borderRadius: '50%',
           width: 28, height: 28, display: 'flex', alignItems: 'center',
           justifyContent: 'center', fontSize: 12, fontWeight: 700,
           border: '3px solid white', boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
@@ -133,7 +135,7 @@ function RouteOverlay({ points }: { points: LocationPoint[] }) {
             onClick={() => setOpenMarker(openMarker === 'end' ? null : 'end')}
           >
             <div style={{
-              background: '#E53935', color: 'white', borderRadius: '50%',
+              background: theme.palette.error.main, color: 'white', borderRadius: '50%',
               width: 28, height: 28, display: 'flex', alignItems: 'center',
               justifyContent: 'center', fontSize: 12, fontWeight: 700,
               border: '3px solid white', boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
@@ -161,6 +163,7 @@ function formatTime(iso: string) {
 }
 
 export default function LocationHistoryPage() {
+  const theme = useTheme();
   const qc = useQueryClient();
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [fromDate, setFromDate] = useState<Dayjs>(dayjs().startOf('day'));
@@ -212,7 +215,7 @@ export default function LocationHistoryPage() {
   if (!children || children.length === 0) {
     return (
       <AnimatedPage>
-        <PageHeader icon={<HistoryIcon />} title="Location History" subtitle="Track movement history" iconColor="#1565C0" />
+        <PageHeader icon={<HistoryIcon />} title="Location History" subtitle="Track movement history" iconColor={theme.palette.primary.main} />
         <EmptyState title="No child profiles" description="Add a child profile first to view location history" />
       </AnimatedPage>
     );
@@ -257,7 +260,7 @@ export default function LocationHistoryPage() {
         icon={<HistoryIcon />}
         title="Location History"
         subtitle="View movement history and route playback"
-        iconColor="#1565C0"
+        iconColor={theme.palette.primary.main}
         action={
           <Stack direction="row" spacing={1} alignItems="center">
             {(children || []).map(c => (
@@ -267,9 +270,9 @@ export default function LocationHistoryPage() {
                 onClick={() => setSelectedChild(c.id)}
                 sx={{
                   fontWeight: 600,
-                  bgcolor: (profileId === c.id) ? '#1565C0' : '#E3F2FD',
-                  color: (profileId === c.id) ? 'white' : '#1565C0',
-                  '&:hover': { bgcolor: (profileId === c.id) ? '#0D47A1' : '#BBDEFB' },
+                  bgcolor: (profileId === c.id) ? 'primary.main' : 'primary.light',
+                  color: (profileId === c.id) ? 'white' : 'primary.main',
+                  '&:hover': { filter: 'brightness(0.92)' },
                 }}
               />
             ))}
@@ -278,7 +281,7 @@ export default function LocationHistoryPage() {
                 <Button
                   size="small" variant="outlined" startIcon={<DownloadIcon />}
                   onClick={exportCsv} disabled={points.length === 0}
-                  sx={{ borderRadius: 2, fontWeight: 600, borderColor: '#1565C020', color: '#1565C0' }}
+                  sx={{ borderRadius: 2, fontWeight: 600, borderColor: 'primary.light', color: 'primary.main' }}
                 >
                   Export
                 </Button>
@@ -308,11 +311,11 @@ export default function LocationHistoryPage() {
                 />
                 <Chip
                   label={`${points.length} points`}
-                  sx={{ fontWeight: 600, bgcolor: '#E3F2FD', color: '#1565C0' }}
+                  sx={{ fontWeight: 600, bgcolor: 'primary.light', color: 'primary.main' }}
                 />
                 {isToday && (
                   <Chip
-                    icon={<FiberManualRecordIcon sx={{ fontSize: '10px !important', color: '#43A047 !important', animation: 'pulse 1.5s infinite' }} />}
+                    icon={<FiberManualRecordIcon sx={{ fontSize: '10px !important', color: 'success.main !important', animation: 'pulse 1.5s infinite' }} />}
                     label="Live"
                     size="small"
                     sx={{ fontWeight: 600, bgcolor: '#E8F5E9', color: '#2E7D32',
@@ -365,14 +368,15 @@ export default function LocationHistoryPage() {
                         key={pt.id || i}
                         sx={{
                           py: 1, px: 1, borderRadius: 1.5, mb: 0.5,
-                          borderLeft: i === 0 ? '3px solid #43A047' : i === points.length - 1 ? '3px solid #E53935' : '3px solid #E0E0E0',
+                          borderLeft: i === 0 ? '3px solid' : i === points.length - 1 ? '3px solid' : '3px solid',
+                          borderLeftColor: i === 0 ? 'success.main' : i === points.length - 1 ? 'error.main' : 'divider',
                           transition: 'all 0.2s ease',
                           '&:hover': { bgcolor: '#F5F9FF' },
                         }}
                       >
                         <ListItemIcon sx={{ minWidth: 32 }}>
                           {i === 0 ? (
-                            <DirectionsWalkIcon sx={{ fontSize: 18, color: '#43A047' }} />
+                            <DirectionsWalkIcon sx={{ fontSize: 18, color: 'success.main' }} />
                           ) : (
                             <AccessTimeIcon sx={{ fontSize: 16, color: '#9E9E9E' }} />
                           )}

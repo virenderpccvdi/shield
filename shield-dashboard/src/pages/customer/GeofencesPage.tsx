@@ -46,11 +46,13 @@ interface GeofenceForm {
   type: string;
 }
 
-const GEOFENCE_TYPES: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
-  HOME: { icon: <HomeIcon />, color: '#1565C0', bg: '#E3F2FD' },
-  SCHOOL: { icon: <SchoolIcon />, color: '#7B1FA2', bg: '#F3E5F5' },
-  SPORTS: { icon: <SportsIcon />, color: '#43A047', bg: '#E8F5E9' },
-  OTHER: { icon: <PlaceIcon />, color: '#FB8C00', bg: '#FFF3E0' },
+// color is a real hex (used for Google Maps circle strokeColor/fillColor — must be hex, not MUI token)
+// muiColor is the MUI sx-compatible token used for MUI components
+const GEOFENCE_TYPES: Record<string, { icon: React.ReactNode; color: string; muiColor: string; bg: string }> = {
+  HOME: { icon: <HomeIcon />, color: '#1565C0', muiColor: 'primary.main', bg: 'rgba(21,101,192,0.08)' },
+  SCHOOL: { icon: <SchoolIcon />, color: '#7B1FA2', muiColor: '#7B1FA2', bg: '#F3E5F5' },
+  SPORTS: { icon: <SportsIcon />, color: '#43A047', muiColor: 'success.main', bg: 'rgba(67,160,71,0.08)' },
+  OTHER: { icon: <PlaceIcon />, color: '#FB8C00', muiColor: 'warning.main', bg: 'rgba(251,140,0,0.08)' },
 };
 
 const DEFAULT_CENTER = { lat: 28.6139, lng: 77.209 }; // Delhi
@@ -210,7 +212,7 @@ export default function GeofencesPage() {
   if (!children || children.length === 0) {
     return (
       <AnimatedPage>
-        <PageHeader icon={<FenceIcon />} title="Geofences" subtitle="Set safe zones for your children" iconColor="#43A047" />
+        <PageHeader icon={<FenceIcon />} title="Geofences" subtitle="Set safe zones for your children" iconColor="success.main" />
         <EmptyState title="No child profiles" description="Add a child profile first to create geofences" />
       </AnimatedPage>
     );
@@ -222,7 +224,7 @@ export default function GeofencesPage() {
         icon={<FenceIcon />}
         title="Geofences"
         subtitle="Create and manage safe zones"
-        iconColor="#43A047"
+        iconColor="success.main"
         action={
           <Stack direction="row" spacing={1}>
             {(children || []).map(c => (
@@ -232,9 +234,9 @@ export default function GeofencesPage() {
                 onClick={() => setSelectedChild(c.id)}
                 sx={{
                   fontWeight: 600,
-                  bgcolor: (profileId === c.id) ? '#43A047' : '#E8F5E9',
-                  color: (profileId === c.id) ? 'white' : '#43A047',
-                  '&:hover': { bgcolor: (profileId === c.id) ? '#388E3C' : '#C8E6C9' },
+                  bgcolor: (profileId === c.id) ? 'success.main' : 'rgba(67,160,71,0.08)',
+                  color: (profileId === c.id) ? 'white' : 'success.main',
+                  '&:hover': { bgcolor: (profileId === c.id) ? 'success.dark' : 'rgba(67,160,71,0.16)' },
                 }}
               />
             ))}
@@ -242,7 +244,7 @@ export default function GeofencesPage() {
               variant="contained"
               startIcon={<AddLocationIcon />}
               onClick={() => setDialogOpen(true)}
-              sx={{ bgcolor: '#43A047', '&:hover': { bgcolor: '#388E3C' } }}
+              sx={{ bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }}
             >
               Add Zone
             </Button>
@@ -293,10 +295,11 @@ export default function GeofencesPage() {
                         <ListItem
                           key={g.id}
                           sx={{
-                            borderRadius: 2, mb: 1, bgcolor: '#FAFAFA',
-                            border: '1px solid #F0F0F0',
+                            borderRadius: 2, mb: 1, bgcolor: 'background.paper',
+                            border: '1px solid',
+                            borderColor: 'divider',
                             transition: 'all 0.2s ease',
-                            '&:hover': { bgcolor: '#F5F9FF', borderColor: '#E3F2FD' },
+                            '&:hover': { bgcolor: 'background.default', borderColor: 'rgba(21,101,192,0.20)' },
                             '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
                             animation: `fadeInUp 0.3s ease ${0.1 + i * 0.05}s both`,
                           }}
@@ -305,7 +308,7 @@ export default function GeofencesPage() {
                             <Box sx={{
                               width: 36, height: 36, borderRadius: '8px',
                               bgcolor: typeConf.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              color: typeConf.color, '& .MuiSvgIcon-root': { fontSize: 18 },
+                              color: typeConf.muiColor, '& .MuiSvgIcon-root': { fontSize: 18 },
                             }}>
                               {typeConf.icon}
                             </Box>
@@ -318,7 +321,7 @@ export default function GeofencesPage() {
                             <IconButton size="small" onClick={() => openEdit(g)} sx={{ mr: 0.5 }}>
                               <EditIcon fontSize="small" />
                             </IconButton>
-                            <IconButton size="small" onClick={() => deleteMutation.mutate(g.id)} sx={{ color: '#E53935' }}>
+                            <IconButton size="small" onClick={() => deleteMutation.mutate(g.id)} sx={{ color: 'error.main' }}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </ListItemSecondaryAction>
@@ -352,12 +355,12 @@ export default function GeofencesPage() {
                   <Chip
                     key={key}
                     label={key}
-                    icon={<Box sx={{ color: form.type === key ? 'white' : conf.color, '& .MuiSvgIcon-root': { fontSize: 16 } }}>{conf.icon}</Box>}
+                    icon={<Box sx={{ color: form.type === key ? 'white' : conf.muiColor, '& .MuiSvgIcon-root': { fontSize: 16 } }}>{conf.icon}</Box>}
                     onClick={() => setForm({ ...form, type: key })}
                     sx={{
                       fontWeight: 600,
-                      bgcolor: form.type === key ? conf.color : conf.bg,
-                      color: form.type === key ? 'white' : conf.color,
+                      bgcolor: form.type === key ? conf.muiColor : conf.bg,
+                      color: form.type === key ? 'white' : conf.muiColor,
                     }}
                   />
                 ))}
@@ -397,7 +400,7 @@ export default function GeofencesPage() {
                 onChange={(_, val) => setForm({ ...form, radiusMeters: val as number })}
                 valueLabelDisplay="auto"
                 valueLabelFormat={v => `${v}m`}
-                sx={{ color: '#43A047' }}
+                sx={{ color: 'success.main' }}
               />
             </Box>
             <Typography variant="caption" color="text.secondary">
@@ -411,7 +414,7 @@ export default function GeofencesPage() {
             variant="contained"
             onClick={handleSave}
             disabled={!form.name || createMutation.isPending || updateMutation.isPending}
-            sx={{ bgcolor: '#43A047', '&:hover': { bgcolor: '#388E3C' } }}
+            sx={{ bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }}
           >
             {editingId ? 'Update' : 'Create'}
           </Button>

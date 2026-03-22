@@ -35,6 +35,9 @@ public class GeofenceService {
                 .radiusMeters(req.getRadiusMeters() != null ? req.getRadiusMeters() : BigDecimal.valueOf(100))
                 .alertOnEnter(req.getAlertOnEnter() != null ? req.getAlertOnEnter() : true)
                 .alertOnExit(req.getAlertOnExit() != null ? req.getAlertOnExit() : true)
+                .isSchool(req.getIsSchool() != null ? req.getIsSchool() : false)
+                .schoolStart(req.getSchoolStart())
+                .schoolEnd(req.getSchoolEnd())
                 .build();
 
         geofence = geofenceRepository.save(geofence);
@@ -62,6 +65,9 @@ public class GeofenceService {
         if (req.getRadiusMeters() != null) geofence.setRadiusMeters(req.getRadiusMeters());
         if (req.getAlertOnEnter() != null) geofence.setAlertOnEnter(req.getAlertOnEnter());
         if (req.getAlertOnExit() != null) geofence.setAlertOnExit(req.getAlertOnExit());
+        if (req.getIsSchool() != null) geofence.setIsSchool(req.getIsSchool());
+        if (req.getSchoolStart() != null) geofence.setSchoolStart(req.getSchoolStart());
+        if (req.getSchoolEnd() != null) geofence.setSchoolEnd(req.getSchoolEnd());
 
         geofence = geofenceRepository.save(geofence);
         return toResponse(geofence);
@@ -106,6 +112,9 @@ public class GeofenceService {
                 .isActive(g.getIsActive())
                 .alertOnEnter(g.getAlertOnEnter())
                 .alertOnExit(g.getAlertOnExit())
+                .isSchool(g.getIsSchool())
+                .schoolStart(g.getSchoolStart())
+                .schoolEnd(g.getSchoolEnd())
                 .build();
     }
 }

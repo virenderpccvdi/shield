@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_state.dart';
+import '../../app/theme.dart';
 
 class ChildSosScreen extends ConsumerStatefulWidget {
   const ChildSosScreen({super.key});
@@ -82,7 +83,7 @@ class _ChildSosScreenState extends ConsumerState<ChildSosScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _sent ? Colors.green.shade700 : Colors.red.shade900,
+      backgroundColor: _sent ? ShieldTheme.success : ShieldTheme.danger,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
@@ -123,7 +124,7 @@ class _ChildSosScreenState extends ConsumerState<ChildSosScreen> with SingleTick
                       height: 200 + _pulseController.value * 20,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.red.withAlpha(50),
+                        color: ShieldTheme.danger.withAlpha(50),
                         border: Border.all(color: Colors.white.withAlpha(80), width: 3),
                       ),
                       child: Center(
@@ -164,10 +165,10 @@ class _ChildSosScreenState extends ConsumerState<ChildSosScreen> with SingleTick
                         height: 220 + _pulseController.value * 10,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.red,
+                          color: ShieldTheme.danger,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.red.withAlpha(100 + (_pulseController.value * 80).toInt()),
+                              color: ShieldTheme.danger.withAlpha(100 + (_pulseController.value * 80).toInt()),
                               blurRadius: 30 + _pulseController.value * 20,
                               spreadRadius: 5 + _pulseController.value * 10,
                             ),
@@ -191,7 +192,20 @@ class _ChildSosScreenState extends ConsumerState<ChildSosScreen> with SingleTick
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 24),
-                    Text(_error!, style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w600)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white.withOpacity(0.4)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.error_outline, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(_error!,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13))),
+                      ]),
+                    ),
                   ],
                   const SizedBox(height: 40),
                   const Text('Your location will be shared\nwith your family',

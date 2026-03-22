@@ -20,6 +20,7 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import { gradients } from '../../theme/theme';
 import LoadingPage from '../../components/LoadingPage';
+import { useTheme } from '@mui/material/styles';
 
 interface ServiceInfo {
   name: string;
@@ -34,6 +35,7 @@ const SERVICE_PORTS: Record<string, number> = {
 };
 
 export default function SystemHealthPage() {
+  const theme = useTheme();
   const [services, setServices] = useState<ServiceInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
@@ -128,12 +130,12 @@ export default function SystemHealthPage() {
         icon={<MonitorHeartIcon />}
         title="Service Management"
         subtitle={`Real-time status and control of all platform services${lastChecked ? ` — last checked ${lastChecked.toLocaleTimeString()}` : ''}`}
-        iconColor="#7B1FA2"
+        iconColor={theme.palette.secondary.main}
         action={
           <Stack direction="row" spacing={1}>
             <Button size="small" variant="contained" startIcon={<SystemUpdateIcon />}
               onClick={() => setUpdateDialogOpen(true)}
-              sx={{ bgcolor: '#7B1FA2', '&:hover': { bgcolor: '#6A1B9A' } }}>
+              sx={{ bgcolor: 'secondary.main', '&:hover': { bgcolor: 'secondary.dark' } }}>
               Push App Update
             </Button>
             <Button size="small" variant="outlined" startIcon={<RestartAltIcon />}
@@ -226,11 +228,11 @@ export default function SystemHealthPage() {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Box sx={{
                           '@keyframes pulse': {
-                            '0%, 100%': { boxShadow: `0 0 0 0 ${isActive ? 'rgba(46,125,50,0.4)' : 'rgba(198,40,40,0.4)'}` },
-                            '50%': { boxShadow: `0 0 0 6px ${isActive ? 'rgba(46,125,50,0)' : 'rgba(198,40,40,0)'}` },
+                            '0%, 100%': { boxShadow: `0 0 0 0 ${isActive ? theme.palette.success.main + '66' : theme.palette.error.main + '66'}` },
+                            '50%': { boxShadow: `0 0 0 6px ${isActive ? theme.palette.success.main + '00' : theme.palette.error.main + '00'}` },
                           },
                           width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-                          bgcolor: isActive ? '#2E7D32' : svc.status === 'unknown' ? '#9E9E9E' : '#C62828',
+                          bgcolor: isActive ? 'success.main' : svc.status === 'unknown' ? 'action.disabled' : 'error.main',
                           animation: isActive ? 'pulse 2s ease-in-out infinite' : undefined,
                         }} />
                         <Box>
@@ -310,7 +312,7 @@ export default function SystemHealthPage() {
       {/* App Update Push Dialog */}
       <Dialog open={updateDialogOpen} onClose={() => setUpdateDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <SystemUpdateIcon sx={{ color: '#7B1FA2' }} />
+          <SystemUpdateIcon sx={{ color: 'secondary.main' }} />
           Push App Update to All Users
         </DialogTitle>
         <DialogContent>
@@ -328,7 +330,7 @@ export default function SystemHealthPage() {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setUpdateDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={pushAppUpdate} disabled={updatePushing || !updateVersion}
-            sx={{ bgcolor: '#7B1FA2', '&:hover': { bgcolor: '#6A1B9A' } }}>
+            sx={{ bgcolor: 'secondary.main', '&:hover': { bgcolor: 'secondary.dark' } }}>
             {updatePushing ? 'Sending...' : 'Push Notification'}
           </Button>
         </DialogActions>

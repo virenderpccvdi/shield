@@ -15,9 +15,10 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import LoadingPage from '../../components/LoadingPage';
 
+// Hex values required here — used in CSS gradient string interpolation
 const planColors: Record<string, string> = {
-  STARTER: '#43A047',
-  GROWTH: '#1565C0',
+  STARTER: '#43A047',  // success.main
+  GROWTH: '#1565C0',   // primary.main
   ENTERPRISE: '#7B1FA2',
   FREE: '#78909C',
 };
@@ -112,7 +113,7 @@ export default function SubscriptionPage() {
               const color = planColors[plan.name] || '#1565C0';
               return (
                 <Grid key={plan.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Card sx={{ border: isCurrent ? `2px solid ${color}` : '1px solid #E0E0E0', transition: 'all 0.2s', '&:hover': { boxShadow: '0 8px 24px rgba(0,0,0,0.1)' } }}>
+                  <Card sx={{ border: isCurrent ? `2px solid ${color}` : '1px solid', borderColor: isCurrent ? 'transparent' : 'divider', transition: 'all 0.2s', '&:hover': { boxShadow: '0 8px 24px rgba(0,0,0,0.1)' } }}>
                     <Box sx={{ height: 4, bgcolor: color }} />
                     <CardContent>
                       <Typography variant="h6" fontWeight={700}>{plan.displayName}</Typography>
@@ -148,7 +149,7 @@ export default function SubscriptionPage() {
               <Card>
                 <CardContent sx={{ p: 0 }}>
                   {myInvoices.map((inv: any) => (
-                    <Box key={inv.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5, borderBottom: '1px solid #F0F0F0' }}>
+                    <Box key={inv.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
                       <Box>
                         <Typography variant="body2" fontWeight={600}>{inv.planName} — ₹{inv.amount}</Typography>
                         <Typography variant="caption" color="text.secondary">{new Date(inv.createdAt).toLocaleDateString()}</Typography>

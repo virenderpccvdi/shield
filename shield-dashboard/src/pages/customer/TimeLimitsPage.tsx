@@ -45,18 +45,18 @@ interface ExtensionRequest {
 }
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string; apps: string[] }> = {
-  social: { label: 'Social Media', icon: <PeopleIcon />, color: '#1565C0', bg: '#E3F2FD', apps: ['Facebook', 'Instagram', 'TikTok', 'Snapchat', 'Twitter/X'] },
+  social: { label: 'Social Media', icon: <PeopleIcon />, color: 'primary.main', bg: 'rgba(21,101,192,0.08)', apps: ['Facebook', 'Instagram', 'TikTok', 'Snapchat', 'Twitter/X'] },
   gaming: { label: 'Gaming', icon: <SportsEsportsIcon />, color: '#7B1FA2', bg: '#F3E5F5', apps: ['Steam', 'Roblox', 'Minecraft', 'Fortnite', 'Mobile Games'] },
   streaming: { label: 'Streaming', icon: <LiveTvIcon />, color: '#00897B', bg: '#E0F2F1', apps: ['YouTube', 'Netflix', 'Disney+', 'Prime Video', 'Twitch'] },
-  general: { label: 'General Browsing', icon: <LanguageIcon />, color: '#FB8C00', bg: '#FFF3E0', apps: ['Web browsers', 'News sites', 'General internet'] },
-  educational: { label: 'Educational', icon: <SchoolIcon />, color: '#2E7D32', bg: '#E8F5E9', apps: ['Khan Academy', 'Duolingo', 'School portals', 'Wikipedia'] },
+  general: { label: 'General Browsing', icon: <LanguageIcon />, color: 'warning.main', bg: 'rgba(251,140,0,0.08)', apps: ['Web browsers', 'News sites', 'General internet'] },
+  educational: { label: 'Educational', icon: <SchoolIcon />, color: 'success.main', bg: 'rgba(67,160,71,0.08)', apps: ['Khan Academy', 'Duolingo', 'School portals', 'Wikipedia'] },
 };
 
 const PRESETS: Record<string, { label: string; icon: React.ReactNode; color: string; desc: string; budgets: Record<string, number> }> = {
   schoolDay: {
     label: 'School Day',
     icon: <SchoolIcon />,
-    color: '#1565C0',
+    color: 'primary.main',
     desc: 'Minimal distractions for focus',
     budgets: { social: 30, gaming: 30, streaming: 60, general: 120, educational: 480 },
   },
@@ -70,7 +70,7 @@ const PRESETS: Record<string, { label: string; icon: React.ReactNode; color: str
   homeworkTime: {
     label: 'Homework Time',
     icon: <DoNotDisturbIcon />,
-    color: '#E53935',
+    color: 'error.main',
     desc: 'Block all distractions',
     budgets: { social: 0, gaming: 0, streaming: 0, general: 30, educational: 480 },
   },
@@ -92,7 +92,7 @@ function formatMinsShort(m: number) {
 
 function UsageBar({ used, limit, color }: { used: number; limit: number; color: string }) {
   const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
-  const barColor = pct > 80 ? '#E53935' : pct > 50 ? '#FB8C00' : color;
+  const barColor = pct > 80 ? 'error.main' : pct > 50 ? 'warning.main' : color;
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
@@ -208,7 +208,7 @@ export default function TimeLimitsPage() {
   if (!children || children.length === 0) {
     return (
       <AnimatedPage>
-        <PageHeader icon={<AccessTimeIcon />} title="Time Limits" subtitle="Set daily screen time budgets" iconColor="#FB8C00" />
+        <PageHeader icon={<AccessTimeIcon />} title="Time Limits" subtitle="Set daily screen time budgets" iconColor="warning.main" />
         <EmptyState title="No child profiles" description="Add a child profile first to set time limits" />
       </AnimatedPage>
     );
@@ -220,7 +220,7 @@ export default function TimeLimitsPage() {
         icon={<AccessTimeIcon />}
         title="Time Limits"
         subtitle="Manage daily screen time budgets per category"
-        iconColor="#FB8C00"
+        iconColor="warning.main"
         action={
           <Stack direction="row" spacing={1}>
             {children.map(c => (
@@ -230,9 +230,9 @@ export default function TimeLimitsPage() {
                 onClick={() => { setSelectedChild(c.id); setDirty(false); }}
                 sx={{
                   fontWeight: 600,
-                  bgcolor: (profileId === c.id) ? '#FB8C00' : '#FFF3E0',
-                  color: (profileId === c.id) ? 'white' : '#FB8C00',
-                  '&:hover': { bgcolor: (profileId === c.id) ? '#F57C00' : '#FFE0B2' },
+                  bgcolor: (profileId === c.id) ? 'warning.main' : 'rgba(251,140,0,0.08)',
+                  color: (profileId === c.id) ? 'white' : 'warning.main',
+                  '&:hover': { bgcolor: (profileId === c.id) ? 'warning.dark' : 'rgba(251,140,0,0.16)' },
                 }}
               />
             ))}
@@ -251,8 +251,8 @@ export default function TimeLimitsPage() {
                 label={`${formatMinsShort(totalUsed)} / ${formatMinsShort(totalAllowed)}`}
                 sx={{
                   fontWeight: 600,
-                  bgcolor: usagePercent > 80 ? '#FFEBEE' : '#E8F5E9',
-                  color: usagePercent > 80 ? '#C62828' : '#2E7D32',
+                  bgcolor: usagePercent > 80 ? 'rgba(229,57,53,0.08)' : 'rgba(67,160,71,0.08)',
+                  color: usagePercent > 80 ? 'error.main' : 'success.main',
                 }}
               />
             </Box>
@@ -266,7 +266,7 @@ export default function TimeLimitsPage() {
                   borderRadius: 5,
                   background: usagePercent > 80
                     ? 'linear-gradient(90deg, #FB8C00, #E53935)'
-                    : 'linear-gradient(90deg, #43A047, #66BB6A)',
+                    : 'linear-gradient(90deg, #43A047, #66BB6A)', // intentional brand gradient — kept as-is
                 },
               }}
             />
@@ -279,7 +279,7 @@ export default function TimeLimitsPage() {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <FlashOnIcon sx={{ color: '#FB8C00' }} />
+              <FlashOnIcon sx={{ color: 'warning.main' }} />
               <Typography variant="subtitle1" fontWeight={600}>Quick Presets</Typography>
             </Box>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
@@ -357,8 +357,8 @@ export default function TimeLimitsPage() {
                         label={isNoLimit ? 'No limit' : formatMinsShort(limit)}
                         sx={{
                           mr: 1, fontWeight: 700, fontSize: 11,
-                          bgcolor: isNoLimit ? '#E8F5E9' : limit === 0 ? '#FFEBEE' : '#F3E5F5',
-                          color: isNoLimit ? '#2E7D32' : limit === 0 ? '#C62828' : config.color,
+                          bgcolor: isNoLimit ? 'rgba(67,160,71,0.08)' : limit === 0 ? 'rgba(229,57,53,0.08)' : '#F3E5F5',
+                          color: isNoLimit ? 'success.main' : limit === 0 ? 'error.main' : config.color,
                         }}
                       />
                     </Box>
@@ -391,8 +391,8 @@ export default function TimeLimitsPage() {
                           checked={isNoLimit}
                           onChange={(e) => handleNoLimitToggle(key, e.target.checked)}
                           sx={{
-                            '& .MuiSwitch-switchBase.Mui-checked': { color: '#43A047' },
-                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#43A047' },
+                            '& .MuiSwitch-switchBase.Mui-checked': { color: 'success.main' },
+                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: 'success.main' },
                           }}
                         />
                       }
@@ -446,7 +446,7 @@ export default function TimeLimitsPage() {
               startIcon={<SaveIcon />}
               onClick={() => saveMutation.mutate(budgets)}
               disabled={saveMutation.isPending}
-              sx={{ bgcolor: '#FB8C00', '&:hover': { bgcolor: '#F57C00' } }}
+              sx={{ bgcolor: 'warning.main', '&:hover': { bgcolor: 'warning.dark' } }}
             >
               {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
@@ -485,14 +485,14 @@ export default function TimeLimitsPage() {
                       <IconButton
                         size="small"
                         onClick={() => approveMutation.mutate(req.id)}
-                        sx={{ color: '#43A047', '&:hover': { bgcolor: '#E8F5E9' } }}
+                        sx={{ color: 'success.main', '&:hover': { bgcolor: 'rgba(67,160,71,0.08)' } }}
                       >
                         <CheckCircleIcon />
                       </IconButton>
                       <IconButton
                         size="small"
                         onClick={() => rejectMutation.mutate(req.id)}
-                        sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFEBEE' } }}
+                        sx={{ color: 'error.main', '&:hover': { bgcolor: 'rgba(229,57,53,0.08)' } }}
                       >
                         <CloseIcon />
                       </IconButton>

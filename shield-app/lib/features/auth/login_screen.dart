@@ -5,6 +5,7 @@ import '../../core/auth_state.dart';
 import '../../core/constants.dart';
 import '../../core/shield_logo.dart';
 import '../../core/fcm_service.dart';
+import '../../app/theme.dart';
 import 'package:dio/dio.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -57,12 +58,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1565C0), Color(0xFF0A2463), Color(0xFF012A4A)],
-            stops: [0.0, 0.55, 1.0],
-          ),
+          gradient: ShieldTheme.heroGradient,
         ),
         child: SafeArea(
         child: SingleChildScrollView(
@@ -93,8 +89,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         if (_error != null) ...[
                           Container(
                             padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                            child: Text(_error!, style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+                            decoration: BoxDecoration(
+                              color: ShieldTheme.danger.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: ShieldTheme.danger.withOpacity(0.3)),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.error_outline, color: ShieldTheme.danger, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(_error!, style: const TextStyle(color: ShieldTheme.danger, fontSize: 13))),
+                            ]),
                           ),
                           const SizedBox(height: 16),
                         ],
@@ -137,8 +141,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           label: const Text('Set Up as Child Device'),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(46),
-                            foregroundColor: const Color(0xFF1B5E20),
-                            side: const BorderSide(color: Color(0xFF1B5E20)),
+                            foregroundColor: ShieldTheme.success,
+                            side: const BorderSide(color: ShieldTheme.success),
                           ),
                         ),
                       ],

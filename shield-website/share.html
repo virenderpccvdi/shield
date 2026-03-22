@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shield — Location Share</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; }
+    .header { background: linear-gradient(135deg, #1976D2, #1565C0); color: white; padding: 16px 24px; }
+    .header h1 { font-size: 20px; font-weight: 700; }
+    .header .subtitle { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+    #map { height: calc(100vh - 140px); width: 100%; }
+    .info-bar {
+      background: white;
+      padding: 12px 24px;
+      display: flex;
+      gap: 24px;
+      border-top: 1px solid #e0e0e0;
+      flex-wrap: wrap;
+    }
+    .info-item { display: flex; flex-direction: column; }
+    .info-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+    .info-value { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-top: 2px; }
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: calc(100vh - 60px);
+      gap: 16px;
+      color: #555;
+    }
+    .error-state h2 { font-size: 22px; color: #c62828; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #e3f2fd;
+      color: #1565c0;
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Shield &mdash; Location Share <span class="badge" id="shareLabel"></span></h1>
+    <div class="subtitle" id="headerSubtitle">Loading&hellip;</div>
+  </div>
+
+  <div id="mapContainer">
+    <div id="map"></div>
+    <div class="info-bar">
+      <div class="info-item">
+        <span class="info-label">Child</span>
+        <span class="info-value" id="childName">&mdash;</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Last Updated</span>
+        <span class="info-value" id="lastUpdated">&mdash;</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Accuracy</span>
+        <span class="info-value" id="accuracy">&mdash;</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Expires</span>
+        <span class="info-value" id="expiresAt">&mdash;</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="errorState" class="error-state" style="display:none">
+    <h2>Link Unavailable</h2>
+    <p id="errorMessage">This location share link has expired or is no longer valid.</p>
+    <a href="https://shield.rstglobal.in" style="color:#1976D2">Return to Shield</a>
+  </div>
+
+  <script>
+    // Extract token from path: /share/{token}
+    var pathParts = window.location.pathname.replace(/\/+$/, '').split('/');
+    var token = pathParts[pathParts.length - 1];
+
+    var map = null;
+    var marker = null;
+
+    function formatRelativeTime(isoString) {
+      var d = new Date(isoString);
+      var minutesAgo = Math.round((Date.now() - d.getTime()) / 60000);
+      if (minutesAgo < 2) return 'Just now';
+      if (minutesAgo < 60) return minutesAgo + ' min ago';
+      var hoursAgo = Math.round(minutesAgo / 60);
+      return hoursAgo + ' hr ago';
+    }
+
+    function formatDateTime(isoString) {
+      if (!isoString) return '\u2014';
+      return new Date(isoString).toLocaleString(undefined, {
+        month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function showError(message) {
+      document.getElementById('mapContainer').style.display = 'none';
+      document.getElementById('errorState').style.display = 'flex';
+      document.getElementById('errorMessage').textContent =
+        message || 'This location share link has expired or is no longer valid.';
+    }
+
+    async function loadLocation() {
+      if (!token || token === 'share') {
+        showError('No share token found in the URL.');
+        return;
+      }
+
+      try {
+        var res = await fetch('/public/location/share/' + encodeURIComponent(token));
+
+        if (res.status === 404) throw new Error('This link does not exist or has already been removed.');
+        if (res.status === 410) throw new Error('This location share link has expired.');
+        if (!res.ok) throw new Error('Unable to load location data (HTTP ' + res.status + ').');
+
+        var json = await res.json();
+        var d = json.data || json;
+
+        if (!d || d.latitude == null || d.longitude == null) {
+          throw new Error('Location data is not available at this time.');
+        }
+
+        // Populate info bar
+        document.getElementById('childName').textContent = d.name || 'Child';
+        document.getElementById('shareLabel').textContent = d.shareLabel || '';
+        document.getElementById('accuracy').textContent =
+          d.accuracy != null ? Math.round(d.accuracy) + '\u202fm' : 'N/A';
+        document.getElementById('expiresAt').textContent = formatDateTime(d.expiresAt);
+        document.getElementById('lastUpdated').textContent = formatRelativeTime(d.recordedAt);
+        document.getElementById('headerSubtitle').textContent =
+          'Sharing ' + (d.name || 'child') + '\u2019s live location';
+
+        var lat = parseFloat(d.latitude);
+        var lng = parseFloat(d.longitude);
+
+        if (!map) {
+          map = L.map('map').setView([lat, lng], 15);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '\u00a9 <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+          }).addTo(map);
+        }
+
+        var icon = L.divIcon({
+          html: '<div style="background:#1976D2;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>',
+          className: '',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        });
+
+        if (marker) {
+          marker.setLatLng([lat, lng]);
+        } else {
+          marker = L.marker([lat, lng], { icon: icon })
+            .addTo(map)
+            .bindPopup(d.name || 'Child');
+        }
+
+        // Draw accuracy circle if available
+        if (d.accuracy != null && d.accuracy > 0) {
+          if (window._accuracyCircle) {
+            window._accuracyCircle.setLatLng([lat, lng]).setRadius(d.accuracy);
+          } else {
+            window._accuracyCircle = L.circle([lat, lng], {
+              radius: d.accuracy,
+              color: '#1976D2',
+              fillColor: '#1976D2',
+              fillOpacity: 0.10,
+              weight: 1
+            }).addTo(map);
+          }
+        }
+
+        map.setView([lat, lng], map.getZoom() || 15);
+
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    loadLocation();
+    // Refresh every 30 seconds for live tracking
+    setInterval(loadLocation, 30000);
+  </script>
+</body>
+</html>

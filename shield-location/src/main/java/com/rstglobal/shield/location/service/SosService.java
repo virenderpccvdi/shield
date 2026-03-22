@@ -61,78 +61,173 @@ public class SosService {
     public void sendSosNotification(SosEvent event) {
         try {
             String notifBaseUrl = resolveNotificationUrl();
-            if (notifBaseUrl == null) return;
+            if (notifBaseUrl == null) {
+                log.error("SOS notification FAILED — notification service not found in Eureka for profile={}", event.getProfileId());
+                return;
+            }
 
             // Resolve the parent's real userId and tenantId from the profile service
             Map<String, Object> parentInfo = resolveParentInfo(event.getProfileId());
-            String parentUserId = (String) parentInfo.getOrDefault("userId", event.getProfileId().toString());
-            String tenantId = (String) parentInfo.getOrDefault("tenantId", "00000000-0000-0000-0000-000000000000");
-            String childName = (String) parentInfo.getOrDefault("childName", "Your child");
+            String parentUserId = (String) parentInfo.get("userId");   // null if unresolved
+            String tenantId     = (String) parentInfo.getOrDefault("tenantId", null);
+            String childName    = (String) parentInfo.getOrDefault("childName", "Your child");
 
             String bodyText = childName + " has triggered an emergency SOS alert. " +
                     (event.getMessage() != null && !event.getMessage().isBlank()
                             ? "Message: " + event.getMessage()
                             : "Tap to view their location.");
 
-            // 1. Persistent notification (WebSocket + FCM + email)
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("type", "SOS_ALERT");
-            payload.put("title", "🚨 SOS Alert - Child Needs Help!");
-            payload.put("body", bodyText);
-            payload.put("profileId", event.getProfileId().toString());
-            payload.put("userId", parentUserId);
-            payload.put("actionUrl", "https://shield.rstglobal.in/app/map");
-            payload.put("tenantId", tenantId);
-            payload.put("data", Map.of(
-                    "childName", childName,
-                    "profileId", event.getProfileId().toString()
-            ));
+            // 1. Persistent notification + FCM via notification service (only when parent userId is known)
+            if (parentUserId != null) {
+                Map<String, Object> payload = new java.util.LinkedHashMap<>();
+                payload.put("type",      "SOS_ALERT");
+                payload.put("title",     "🚨 SOS Alert - Child Needs Help!");
+                payload.put("body",      bodyText);
+                payload.put("profileId", event.getProfileId().toString());
+                payload.put("userId",    parentUserId);
+                payload.put("actionUrl", "https://shield.rstglobal.in/app/map");
+                if (tenantId != null) payload.put("tenantId", tenantId);
 
-            restClient.post()
-                    .uri(notifBaseUrl + "/internal/notifications/send")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(payload)
-                    .retrieve()
-                    .toBodilessEntity();
+                try {
+                    restClient.post()
+                            .uri(notifBaseUrl + "/internal/notifications/send")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(payload)
+                            .retrieve()
+                            .toBodilessEntity();
+                } catch (Exception ex) {
+                    log.warn("SOS persistent notification failed (non-fatal): {}", ex.getMessage());
+                }
 
-            // 2. High-priority direct FCM push so the parent's device wakes up immediately
-            Map<String, Object> pushPayload = new HashMap<>();
-            pushPayload.put("userId", parentUserId);
-            pushPayload.put("title", "🚨 SOS Alert!");
-            pushPayload.put("body", "Your child needs help! Tap to see their location.");
-            pushPayload.put("priority", "HIGH");
-            pushPayload.put("data", Map.of(
-                    "type", "SOS_ALERT",
-                    "profileId", event.getProfileId().toString()
-            ));
+                // 2. High-priority direct FCM push — wakes parent device immediately
+                Map<String, Object> pushPayload = new java.util.LinkedHashMap<>();
+                pushPayload.put("userId",   parentUserId);
+                pushPayload.put("title",    "🚨 SOS Alert — " + childName + " needs help!");
+                pushPayload.put("body",     bodyText);
+                pushPayload.put("priority", "HIGH");
+                pushPayload.put("data",     Map.of(
+                        "type",      "SOS_ALERT",
+                        "profileId", event.getProfileId().toString()
+                ));
 
-            restClient.post()
-                    .uri(notifBaseUrl + "/internal/notifications/push")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(pushPayload)
-                    .retrieve()
-                    .toBodilessEntity();
+                try {
+                    restClient.post()
+                            .uri(notifBaseUrl + "/internal/notifications/push")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(pushPayload)
+                            .retrieve()
+                            .toBodilessEntity();
+                    log.info("SOS FCM push sent for profile={} → parent={}", event.getProfileId(), parentUserId);
+                } catch (Exception ex) {
+                    log.warn("SOS FCM push failed (non-fatal): {}", ex.getMessage());
+                }
+            } else {
+                log.error("SOS FCM skipped — could not resolve parent userId for profile={}. Parent will only see alert via dashboard WebSocket.", event.getProfileId());
+            }
 
-            // 3. Also push via WS so live dashboard sees it instantly
-            Map<String, Object> wsBroadcast = new HashMap<>();
-            wsBroadcast.put("type", "SOS_ALERT");
-            wsBroadcast.put("profileId", event.getProfileId().toString());
-            wsBroadcast.put("latitude", event.getLatitude());
-            wsBroadcast.put("longitude", event.getLongitude());
-            wsBroadcast.put("message", event.getMessage());
-            wsBroadcast.put("triggeredAt", event.getTriggeredAt() != null
-                    ? event.getTriggeredAt().toString() : OffsetDateTime.now().toString());
+            // 3. WebSocket broadcast — reaches live dashboard even without FCM
+            //    Sends to /topic/alerts/{tenantId} and /topic/sync/{userId} (if known)
+            Map<String, Object> alertEvent = new java.util.LinkedHashMap<>();
+            alertEvent.put("type",        "SOS_ALERT");
+            alertEvent.put("severity",    "CRITICAL");
+            alertEvent.put("profileId",   event.getProfileId().toString());
+            alertEvent.put("profileName", childName);
+            alertEvent.put("message",     bodyText);
+            alertEvent.put("latitude",    event.getLatitude());
+            alertEvent.put("longitude",   event.getLongitude());
+            alertEvent.put("timestamp",   (event.getTriggeredAt() != null
+                    ? event.getTriggeredAt() : OffsetDateTime.now()).toString());
 
-            restClient.post()
-                    .uri(notifBaseUrl + "/internal/location-update")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(wsBroadcast)
-                    .retrieve()
-                    .toBodilessEntity();
+            try {
+                String broadcastUri = notifBaseUrl + "/internal/notifications/broadcast";
+                if (tenantId != null) broadcastUri += "?tenantId=" + tenantId;
+                if (parentUserId != null) broadcastUri += (tenantId != null ? "&" : "?") + "userId=" + parentUserId;
 
-            log.info("SOS notification sent for profile={} → parentUserId={}", event.getProfileId(), parentUserId);
+                restClient.post()
+                        .uri(broadcastUri)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(alertEvent)
+                        .retrieve()
+                        .toBodilessEntity();
+            } catch (Exception ex) {
+                log.warn("SOS WebSocket broadcast failed (non-fatal): {}", ex.getMessage());
+            }
+
+            // 4. Emergency contact broadcast (SMS/email via notification service)
+            broadcastToEmergencyContacts(event, childName);
+
+            log.info("SOS notification pipeline complete for profile={} parentResolved={}", event.getProfileId(), parentUserId != null);
         } catch (Exception e) {
-            log.warn("Failed to send SOS notification: {}", e.getMessage());
+            log.error("SOS notification pipeline error for profile={}: {}", event.getProfileId(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Fetches emergency contacts for the child profile and sends email alerts
+     * via shield-notification's internal emergency endpoint.
+     * Failures are non-fatal — each contact is attempted independently.
+     */
+    @SuppressWarnings("unchecked")
+    private void broadcastToEmergencyContacts(SosEvent event, String childName) {
+        try {
+            List<ServiceInstance> profileInstances = discoveryClient.getInstances(PROFILE_SERVICE);
+            if (profileInstances.isEmpty()) {
+                log.warn("Emergency contact broadcast skipped — {} not found in Eureka for profile={}",
+                        PROFILE_SERVICE, event.getProfileId());
+                return;
+            }
+            String profileBase = profileInstances.get(0).getUri().toString();
+
+            List<Map<String, Object>> contacts;
+            try {
+                contacts = restClient.get()
+                        .uri(profileBase + "/internal/profiles/" + event.getProfileId() + "/emergency-contacts")
+                        .retrieve()
+                        .body(java.util.List.class);
+            } catch (Exception e) {
+                log.warn("Failed to fetch emergency contacts for profile={}: {}", event.getProfileId(), e.getMessage());
+                return;
+            }
+
+            if (contacts == null || contacts.isEmpty()) {
+                log.debug("No emergency contacts for profile={}", event.getProfileId());
+                return;
+            }
+
+            String notifBaseUrl = resolveNotificationUrl();
+            if (notifBaseUrl == null) return;
+
+            String bodyText = childName + " has triggered an emergency SOS alert! " +
+                    "Please check on them immediately." +
+                    (event.getMessage() != null && !event.getMessage().isBlank()
+                            ? " Message: " + event.getMessage() : "");
+
+            for (Map<String, Object> contact : contacts) {
+                try {
+                    Map<String, Object> payload = new java.util.LinkedHashMap<>();
+                    payload.put("type",           "EMERGENCY_CONTACT_ALERT");
+                    payload.put("title",          "SOS Alert: " + childName + " needs help!");
+                    payload.put("body",           bodyText);
+                    payload.put("recipientName",  contact.get("name"));
+                    payload.put("recipientEmail", contact.get("email"));
+                    payload.put("recipientPhone", contact.get("phone"));
+                    payload.put("channel",        "EMAIL_AND_SMS");
+
+                    restClient.post()
+                            .uri(notifBaseUrl + "/internal/notifications/emergency")
+                            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                            .body(payload)
+                            .retrieve()
+                            .toBodilessEntity();
+
+                    log.info("Emergency contact notified: name={} email={} phone={}",
+                            contact.get("name"), contact.get("email"), contact.get("phone"));
+                } catch (Exception e) {
+                    log.warn("Failed to notify emergency contact {}: {}", contact.get("name"), e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Emergency contact broadcast failed for profile={}: {}", event.getProfileId(), e.getMessage());
         }
     }
 
@@ -140,33 +235,36 @@ public class SosService {
      * Calls shield-profile internal endpoint to resolve the parent's userId and tenantId
      * for a given child profileId. Falls back gracefully if the profile service is unavailable.
      */
+    /**
+     * Resolves the parent userId and tenantId for a child profileId.
+     * Returns a map with "userId" (parent's real UUID), "tenantId", and "childName".
+     * Returns map WITHOUT "userId" key if parent cannot be determined — callers must null-check.
+     * NEVER returns profileId as userId — that would send FCM to the wrong token.
+     */
     @SuppressWarnings("unchecked")
     private Map<String, Object> resolveParentInfo(UUID profileId) {
         try {
             List<ServiceInstance> instances = discoveryClient.getInstances(PROFILE_SERVICE);
             if (instances.isEmpty()) {
-                log.warn("No instances of {} found in Eureka — using profileId as userId fallback", PROFILE_SERVICE);
-                return Map.of("userId", profileId.toString(),
-                              "tenantId", "00000000-0000-0000-0000-000000000000",
-                              "childName", "Your child");
+                log.error("SOS parent resolution FAILED — {} has no instances in Eureka for profile={}",
+                        PROFILE_SERVICE, profileId);
+                return new HashMap<>();  // empty — no userId key, signals caller to skip FCM
             }
             String profileBaseUrl = instances.get(0).getUri().toString();
             Map<String, Object> result = restClient.get()
                     .uri(profileBaseUrl + "/internal/profiles/" + profileId + "/parent")
                     .retrieve()
                     .body(Map.class);
-            if (result == null) {
-                return Map.of("userId", profileId.toString(),
-                              "tenantId", "00000000-0000-0000-0000-000000000000",
-                              "childName", "Your child");
+            if (result == null || !result.containsKey("userId")) {
+                log.error("SOS parent resolution FAILED — profile service returned no userId for profile={}", profileId);
+                return new HashMap<>();
             }
-            log.debug("Resolved parent info for profileId={}: userId={}", profileId, result.get("userId"));
+            log.info("SOS parent resolved for profileId={}: parentUserId={} tenantId={}",
+                    profileId, result.get("userId"), result.get("tenantId"));
             return result;
         } catch (Exception e) {
-            log.warn("Could not resolve parent info for profileId={}: {} — using fallback", profileId, e.getMessage());
-            return Map.of("userId", profileId.toString(),
-                          "tenantId", "00000000-0000-0000-0000-000000000000",
-                          "childName", "Your child");
+            log.error("SOS parent resolution FAILED for profile={}: {}", profileId, e.getMessage());
+            return new HashMap<>();
         }
     }
 

@@ -121,15 +121,15 @@ interface SocialAlert {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SEVERITY_CONFIG: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
-  LOW: { color: '#2E7D32', bg: '#E8F5E9', icon: <InfoIcon /> },
-  MEDIUM: { color: '#F57F17', bg: '#FFF8E1', icon: <WarningAmberIcon /> },
-  HIGH: { color: '#C62828', bg: '#FFEBEE', icon: <ErrorIcon /> },
+  LOW: { color: 'success.main', bg: 'rgba(67,160,71,0.08)', icon: <InfoIcon /> },
+  MEDIUM: { color: 'warning.main', bg: 'rgba(251,140,0,0.08)', icon: <WarningAmberIcon /> },
+  HIGH: { color: 'error.main', bg: 'rgba(229,57,53,0.08)', icon: <ErrorIcon /> },
 };
 
 const RISK_COLORS: Record<string, { color: string; bg: string }> = {
-  LOW: { color: '#43A047', bg: '#E8F5E9' },
-  MEDIUM: { color: '#FB8C00', bg: '#FFF8E1' },
-  HIGH: { color: '#E53935', bg: '#FFEBEE' },
+  LOW: { color: 'success.main', bg: 'rgba(67,160,71,0.08)' },
+  MEDIUM: { color: 'warning.main', bg: 'rgba(251,140,0,0.08)' },
+  HIGH: { color: 'error.main', bg: 'rgba(229,57,53,0.08)' },
 };
 
 const TREND_ICONS: Record<string, React.ReactNode> = {
@@ -145,10 +145,11 @@ const SOCIAL_ALERT_ICONS: Record<string, React.ReactNode> = {
   NEW_CATEGORY: <NewReleasesIcon sx={{ fontSize: 20 }} />,
 };
 
+// color values are hex — used in CSS string interpolation for border alpha tinting
 const SOCIAL_ALERT_COLORS: Record<string, { color: string; bg: string }> = {
-  HIGH: { color: '#C62828', bg: '#FFEBEE' },
-  MEDIUM: { color: '#E65100', bg: '#FFF3E0' },
-  LOW: { color: '#2E7D32', bg: '#E8F5E9' },
+  HIGH: { color: '#E53935', bg: 'rgba(229,57,53,0.08)' },
+  MEDIUM: { color: '#FB8C00', bg: 'rgba(251,140,0,0.08)' },
+  LOW: { color: '#43A047', bg: 'rgba(67,160,71,0.08)' },
 };
 
 const REC_ICON_COLORS: Record<string, string> = {
@@ -283,7 +284,8 @@ function AnomalyRow({ event }: { event: AnomalyEvent }) {
 // ─── Weekly AI Report card ────────────────────────────────────────────────────
 
 function WeeklyReportCard({ weekly, insights }: { weekly: WeeklyDigest; insights?: InsightsData }) {
-  const trendColor = weekly.usageTrend === 'DOWN' ? '#43A047' : weekly.usageTrend === 'UP' ? '#E53935' : '#607D8B';
+  // trendColor used in sx color prop only (not interpolation) — use palette tokens
+  const trendColor = weekly.usageTrend === 'DOWN' ? 'success.main' : weekly.usageTrend === 'UP' ? 'error.main' : 'text.secondary';
   const riskCfg = RISK_COLORS[weekly.riskLevel] || RISK_COLORS.LOW;
 
   const screenHrs = insights?.screenTimeMinutes
@@ -291,10 +293,10 @@ function WeeklyReportCard({ weekly, insights }: { weekly: WeeklyDigest; insights
     : null;
 
   return (
-    <Card sx={{ background: 'linear-gradient(135deg, #F3E5F5 0%, #EDE7F6 100%)', border: '1px solid #CE93D820' }}>
+    <Card sx={{ background: 'linear-gradient(135deg, #F3E5F5 0%, #EDE7F6 100%)', border: '1px solid rgba(206,147,216,0.13)' }}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-          <ShieldIcon sx={{ color: '#7B1FA2' }} />
+          <ShieldIcon sx={{ color: '#7B1FA2' }} />  {/* purple intentional for AI weekly report */}
           <Typography variant="subtitle1" fontWeight={700}>Weekly AI Report</Typography>
           <Chip
             label={`Week of ${weekly.weekOf}`}
@@ -313,7 +315,7 @@ function WeeklyReportCard({ weekly, insights }: { weekly: WeeklyDigest; insights
           )}
           {insights?.totalBlocked != null && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <BlockIcon sx={{ fontSize: 16, color: '#E53935' }} />
+              <BlockIcon sx={{ fontSize: 16, color: 'error.main' }} />
               <Typography variant="body2" fontWeight={600}>{insights.totalBlocked} sites blocked</Typography>
             </Box>
           )}
@@ -375,7 +377,7 @@ function NoDataEmptyState({ profileName }: { profileName?: string }) {
       <CardContent>
         <Box sx={{
           width: 88, height: 88, borderRadius: '50%',
-          bgcolor: '#F3E5F5', display: 'flex', alignItems: 'center',
+          bgcolor: '#F3E5F5', display: 'flex', alignItems: 'center',  // purple bg for AI loading state
           justifyContent: 'center', mx: 'auto', mb: 3,
         }}>
           <HourglassEmptyIcon sx={{ fontSize: 44, color: '#9C27B0' }} />
@@ -498,7 +500,7 @@ function AskAiTab({ profileId }: { profileId: string | null }) {
     return (
       <Card sx={{ textAlign: 'center', p: 4 }}>
         <CardContent>
-          <SmartToyIcon sx={{ fontSize: 48, color: '#1565C0', mb: 2 }} />
+          <SmartToyIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
           <Typography variant="h6" fontWeight={700}>Select a child profile</Typography>
           <Typography variant="body2" color="text.secondary">
             Choose a child above to start chatting with Shield AI.
@@ -514,13 +516,13 @@ function AskAiTab({ profileId }: { profileId: string | null }) {
         {/* Header */}
         <Box sx={{
           display: 'flex', alignItems: 'center', gap: 1.5,
-          px: 2.5, py: 2, borderBottom: '1px solid #F0F0F0',
+          px: 2.5, py: 2, borderBottom: '1px solid', borderColor: 'divider',
         }}>
           <Box sx={{
             width: 36, height: 36, borderRadius: 2,
-            bgcolor: '#E3F2FD', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            bgcolor: 'rgba(21,101,192,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <SmartToyIcon sx={{ color: '#1565C0', fontSize: 20 }} />
+            <SmartToyIcon sx={{ color: 'primary.main', fontSize: 20 }} />
           </Box>
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>Shield AI Assistant</Typography>
@@ -544,9 +546,9 @@ function AskAiTab({ profileId }: { profileId: string | null }) {
                   size="small"
                   onClick={() => sendQuestion(s)}
                   sx={{
-                    cursor: 'pointer', bgcolor: '#E3F2FD', color: '#1565C0',
+                    cursor: 'pointer', bgcolor: 'rgba(21,101,192,0.08)', color: 'primary.main',
                     fontWeight: 600, fontSize: 12,
-                    '&:hover': { bgcolor: '#BBDEFB' },
+                    '&:hover': { bgcolor: 'rgba(21,101,192,0.16)' },
                     mb: 0.5,
                   }}
                 />
@@ -575,7 +577,7 @@ function AskAiTab({ profileId }: { profileId: string | null }) {
                       bgcolor: '#E3F2FD', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       mt: 0.3,
                     }}>
-                      <SmartToyIcon sx={{ fontSize: 16, color: '#1565C0' }} />
+                      <SmartToyIcon sx={{ fontSize: 16, color: 'primary.main' }} />
                     </Box>
                   )}
                   <Box sx={{
@@ -584,7 +586,7 @@ function AskAiTab({ profileId }: { profileId: string | null }) {
                     borderRadius: msg.isUser
                       ? '16px 4px 16px 16px'
                       : '4px 16px 16px 16px',
-                    bgcolor: msg.isUser ? '#7B1FA2' : '#E3F2FD',
+                    bgcolor: msg.isUser ? '#7B1FA2' : 'rgba(21,101,192,0.08)',
                     color: msg.isUser ? 'white' : 'text.primary',
                   }}>
                     <Typography variant="body2" sx={{ lineHeight: 1.55 }}>
@@ -602,9 +604,9 @@ function AskAiTab({ profileId }: { profileId: string | null }) {
                         size="small"
                         onClick={() => sendQuestion(s)}
                         sx={{
-                          cursor: 'pointer', bgcolor: '#E3F2FD', color: '#1565C0',
+                          cursor: 'pointer', bgcolor: 'rgba(21,101,192,0.08)', color: 'primary.main',
                           fontWeight: 600, fontSize: 11,
-                          '&:hover': { bgcolor: '#BBDEFB' },
+                          '&:hover': { bgcolor: 'rgba(21,101,192,0.16)' },
                         }}
                       />
                     ))}
@@ -620,7 +622,7 @@ function AskAiTab({ profileId }: { profileId: string | null }) {
                 }}>
                   <SmartToyIcon sx={{ fontSize: 16, color: '#1565C0' }} />
                 </Box>
-                <CircularProgress size={16} sx={{ color: '#1565C0' }} />
+                <CircularProgress size={16} sx={{ color: 'primary.main' }} />
                 <Typography variant="caption" color="text.secondary">Shield AI is thinking…</Typography>
               </Box>
             )}
@@ -629,7 +631,7 @@ function AskAiTab({ profileId }: { profileId: string | null }) {
         )}
 
         {/* Input */}
-        <Box sx={{ px: 2.5, py: 1.5, borderTop: '1px solid #F0F0F0' }}>
+        <Box sx={{ px: 2.5, py: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
           <TextField
             fullWidth
             size="small"
@@ -646,7 +648,7 @@ function AskAiTab({ profileId }: { profileId: string | null }) {
                       size="small"
                       disabled={loading || !input.trim()}
                       onClick={() => sendQuestion(input)}
-                      sx={{ color: '#1565C0' }}
+                      sx={{ color: 'primary.main' }}
                     >
                       <SendIcon fontSize="small" />
                     </IconButton>
@@ -771,7 +773,7 @@ export default function AiInsightsPage() {
         icon={<PsychologyIcon />}
         title="AI Insights"
         subtitle="AI-powered behavior analysis and risk assessment"
-        iconColor="#7B1FA2"
+        iconColor="#7B1FA2"  // purple — intentional brand color for AI insights
         action={
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
             {(children || []).map(c => (
@@ -781,7 +783,7 @@ export default function AiInsightsPage() {
                 onClick={() => setSelectedChild(c.id)}
                 sx={{
                   fontWeight: 600,
-                  bgcolor: (profileId === c.id) ? '#7B1FA2' : '#F3E5F5',
+                  bgcolor: (profileId === c.id) ? '#7B1FA2' : '#F3E5F5',  // purple intentional for AI
                   color: (profileId === c.id) ? 'white' : '#7B1FA2',
                   '&:hover': { bgcolor: (profileId === c.id) ? '#6A1B9A' : '#E1BEE7' },
                 }}
@@ -806,7 +808,7 @@ export default function AiInsightsPage() {
       />
 
       {/* Tab bar */}
-      <Box sx={{ borderBottom: '1px solid #F0F0F0', mb: 2.5 }}>
+      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Tabs
             value={activeTab}
@@ -910,7 +912,7 @@ export default function AiInsightsPage() {
                     <Typography variant="subtitle2" color="text.secondary">Mental Health</Typography>
                   </Box>
                   {(insights?.mentalHealthSignals || []).length === 0 ? (
-                    <Chip label="No concerns" size="small" sx={{ bgcolor: '#E8F5E9', color: '#2E7D32', fontWeight: 600 }} />
+                    <Chip label="No concerns" size="small" sx={{ bgcolor: 'rgba(67,160,71,0.08)', color: 'success.main', fontWeight: 600 }} />
                   ) : (
                     <Stack spacing={0.5}>
                       {(insights?.mentalHealthSignals || []).slice(0, 3).map((s, i) => (
@@ -1056,7 +1058,7 @@ export default function AiInsightsPage() {
                       <Chip
                         label={`${insights!.anomalies.length} detected`}
                         size="small"
-                        sx={{ bgcolor: '#FFEBEE', color: '#C62828', fontWeight: 700 }}
+                        sx={{ bgcolor: 'rgba(229,57,53,0.08)', color: 'error.main', fontWeight: 700 }}
                       />
                     </Box>
                     <Stack spacing={1.5}>
@@ -1081,7 +1083,7 @@ export default function AiInsightsPage() {
                       <Chip
                         label={`${insights!.recommendations.length} suggestions`}
                         size="small"
-                        sx={{ bgcolor: '#F3E5F5', color: '#7B1FA2', fontWeight: 600 }}
+                        sx={{ bgcolor: '#F3E5F5', color: '#7B1FA2', fontWeight: 600 }}  // purple intentional for AI
                       />
                     </Box>
                     <Grid container spacing={2}>
@@ -1108,7 +1110,7 @@ export default function AiInsightsPage() {
                       <Chip
                         label={`${socialAlerts.filter(a => !a.acknowledged).length} unread`}
                         size="small"
-                        sx={{ bgcolor: '#FFEBEE', color: '#C62828', fontWeight: 700 }}
+                        sx={{ bgcolor: 'rgba(229,57,53,0.08)', color: 'error.main', fontWeight: 700 }}
                       />
                     </Box>
                     <Stack spacing={1.5}>
@@ -1121,10 +1123,10 @@ export default function AiInsightsPage() {
                             sx={{
                               display: 'flex', alignItems: 'flex-start', gap: 1.5,
                               p: 1.5, borderRadius: 2,
-                              bgcolor: alert.acknowledged ? '#FAFAFA' : colors.bg,
+                              bgcolor: alert.acknowledged ? 'background.paper' : colors.bg,
                               opacity: alert.acknowledged ? 0.6 : 1,
                               border: '1px solid',
-                              borderColor: alert.acknowledged ? '#E0E0E0' : `${colors.color}40`,
+                              borderColor: alert.acknowledged ? 'divider' : `${colors.color}40`,
                             }}
                           >
                             <Box sx={{ color: colors.color, mt: 0.2 }}>{icon}</Box>

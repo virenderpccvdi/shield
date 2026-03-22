@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/dns/budgets")
+@RequestMapping("/api/v1/dns/dns-budgets")
 @RequiredArgsConstructor
 public class BudgetController {
 

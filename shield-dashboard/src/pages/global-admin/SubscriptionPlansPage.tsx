@@ -18,6 +18,7 @@ import { syncPlanToStripe } from '../../api/billing';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import LoadingPage from '../../components/LoadingPage';
+import { alpha, useTheme } from '@mui/material/styles';
 
 interface Plan {
   id: string;
@@ -61,6 +62,7 @@ const EMPTY_FORM: Omit<Plan, 'id'> = {
 };
 
 export default function SubscriptionPlansPage() {
+  const theme = useTheme();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Plan | null>(null);
@@ -125,10 +127,10 @@ export default function SubscriptionPlansPage() {
         icon={<CardMembershipIcon />}
         title="Subscription Plans"
         subtitle={`${plans.length} plans configured`}
-        iconColor="#7B1FA2"
+        iconColor={theme.palette.secondary.main}
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}
-            sx={{ background: 'linear-gradient(135deg, #7B1FA2 0%, #AB47BC 100%)' }}>
+            sx={{ bgcolor: 'secondary.main' }}>
             Create Plan
           </Button>
         }
@@ -198,8 +200,8 @@ export default function SubscriptionPlansPage() {
                       </Typography>
                       <Box sx={{ mb: 2 }}>
                         <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                          <Chip size="small" label={`${plan.maxCustomers.toLocaleString()} customers`} sx={{ bgcolor: '#E3F2FD', color: '#1565C0' }} />
-                          <Chip size="small" label={`${plan.maxProfilesPerCustomer} profiles/cust`} sx={{ bgcolor: '#E8F5E9', color: '#2E7D32' }} />
+                          <Chip size="small" label={`${plan.maxCustomers.toLocaleString()} customers`} sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }} />
+                          <Chip size="small" label={`${plan.maxProfilesPerCustomer} profiles/cust`} sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.dark' }} />
                         </Stack>
                       </Box>
                       <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -211,8 +213,8 @@ export default function SubscriptionPlansPage() {
                           return (
                             <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.4 }}>
                               {enabled
-                                ? <CheckCircleIcon sx={{ fontSize: 16, color: '#43A047' }} />
-                                : <CancelIcon sx={{ fontSize: 16, color: '#BDBDBD' }} />}
+                                ? <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                                : <CancelIcon sx={{ fontSize: 16, color: 'text.disabled' }} />}
                               <Typography variant="body2" sx={{ color: enabled ? 'text.primary' : 'text.disabled' }}>{label}</Typography>
                             </Box>
                           );
@@ -287,7 +289,7 @@ export default function SubscriptionPlansPage() {
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleClose} disabled={saving}>Cancel</Button>
           <Button variant="contained" onClick={handleSave} disabled={saving}
-            sx={{ background: 'linear-gradient(135deg, #7B1FA2 0%, #AB47BC 100%)', minWidth: 100 }}>
+            sx={{ bgcolor: 'secondary.main', minWidth: 100 }}>
             {saving ? <CircularProgress size={18} color="inherit" /> : editing ? 'Save' : 'Create'}
           </Button>
         </DialogActions>

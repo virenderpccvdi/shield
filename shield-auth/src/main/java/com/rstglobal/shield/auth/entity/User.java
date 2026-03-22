@@ -74,4 +74,18 @@ public class User extends BaseEntity {
 
     @Column(name = "mfa_backup_codes", columnDefinition = "TEXT")
     private String mfaBackupCodes;
+
+    // ── PO-01: App PIN Lock ───────────────────────────────────────────────────
+
+    /** BCrypt-hashed PIN for parent app lock (null = no PIN set). */
+    @Column(name = "app_pin", length = 64)
+    private String appPin;
+
+    @Column(name = "pin_enabled")
+    @Builder.Default
+    private boolean pinEnabled = false;
+
+    @Column(name = "biometric_enabled")
+    @Builder.Default
+    private boolean biometricEnabled = false;
 }
