@@ -391,15 +391,24 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     const loginData = await loginRes.json();
 
     if (loginRes.ok) {
-      const { accessToken, refreshToken, name: n, email: ue, role } = loginData.data || {};
+      const { accessToken, refreshToken, name: n, email: ue, role, userId, tenantId } = loginData.data || {};
       if (accessToken) {
         localStorage.setItem('shield_access_token',  accessToken);
         if (refreshToken) localStorage.setItem('shield_refresh_token', refreshToken);
         if (n)            localStorage.setItem('shield_name',  n);
         if (ue)           localStorage.setItem('shield_email', ue);
         if (role)         localStorage.setItem('shield_role',  role);
+        // Zustand persist key (for React /app/ dashboard)
+        localStorage.setItem('shield-auth', JSON.stringify({
+          state: {
+            user: { id: userId, name: n || '', email: ue || '', role: role || 'CUSTOMER', tenantId: tenantId || null },
+            accessToken,
+            refreshToken: refreshToken || null
+          },
+          version: 0
+        }));
       }
-      setTimeout(() => { window.location.href = '/dashboard.html'; }, 800);
+      setTimeout(() => { window.location.href = '/app/'; }, 800);
     } else {
       setTimeout(() => { window.location.href = 'login.html?registered=1'; }, 1200);
     }
@@ -418,7 +427,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 document.getElementById('terms').addEventListener('change', () => showFieldError('terms', false));
 
 if (localStorage.getItem('shield_access_token')) {
-  window.location.href = '/dashboard.html';
+  window.location.href = '/app/';
 }
 </script>
 </body>

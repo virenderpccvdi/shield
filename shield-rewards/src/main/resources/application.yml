@@ -41,6 +41,10 @@ eureka:
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30
 
+shield:
+  tenant:
+    base-url: ${SHIELD_TENANT_URL:http://localhost:8282}
+
 management:
   endpoints:
     web:

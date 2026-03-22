@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants.dart';
+import '../../app/theme.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -133,7 +134,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             Text('Learning Buddy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
           ],
         ),
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: const Color(0xFF1565C0),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -143,17 +144,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.blue.shade50,
+            color: const Color(0xFFE3F2FD),
             child: Row(
               children: [
-                Icon(Icons.verified_user, size: 14, color: Colors.blue.shade700),
+                const Icon(Icons.verified_user, size: 14, color: Color(0xFF1565C0)),
                 const SizedBox(width: 6),
-                Expanded(
+                const Expanded(
                   child: Text(
                     'Safe mode active — educational topics only',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.blue.shade700,
+                      color: Color(0xFF1565C0),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -208,7 +209,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: Colors.blue.shade700, width: 1.5),
+                          borderSide: const BorderSide(color: Color(0xFF1565C0), width: 1.5),
                         ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         filled: true,
@@ -224,7 +225,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     child: Material(
-                      color: _isLoading ? Colors.grey.shade300 : Colors.blue.shade700,
+                      color: _isLoading ? Colors.grey.shade300 : const Color(0xFF1565C0),
                       borderRadius: BorderRadius.circular(24),
                       child: InkWell(
                         onTap: _isLoading ? null : _sendMessage,
@@ -278,10 +279,10 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[
-            CircleAvatar(
+            const CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.blue.shade100,
-              child: Icon(Icons.smart_toy, size: 18, color: Colors.blue.shade700),
+              backgroundColor: Color(0xFFBBDEFB),
+              child: Icon(Icons.smart_toy, size: 18, color: Color(0xFF1565C0)),
             ),
             const SizedBox(width: 8),
           ],
@@ -292,7 +293,7 @@ class _MessageBubble extends StatelessWidget {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isUser ? Colors.blue.shade700 : Colors.grey.shade100,
+                color: isUser ? const Color(0xFF1565C0) : Colors.grey.shade100,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(18),
                   topRight: const Radius.circular(18),
@@ -363,10 +364,10 @@ class _TypingIndicatorState extends State<_TypingIndicator>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          CircleAvatar(
+          const CircleAvatar(
             radius: 16,
-            backgroundColor: Colors.blue.shade100,
-            child: Icon(Icons.smart_toy, size: 18, color: Colors.blue.shade700),
+            backgroundColor: Color(0xFFBBDEFB),
+            child: Icon(Icons.smart_toy, size: 18, color: Color(0xFF1565C0)),
           ),
           const SizedBox(width: 8),
           Container(
@@ -398,8 +399,8 @@ class _TypingIndicatorState extends State<_TypingIndicator>
                         margin: EdgeInsets.only(right: i < 2 ? 4 : 0),
                         width: 8,
                         height: 8,
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade400,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF1565C0),
                           shape: BoxShape.circle,
                         ),
                       ),

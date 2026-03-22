@@ -48,10 +48,11 @@ public class AnalyticsController {
             @PathVariable UUID profileId,
             @RequestParam(defaultValue = "today") String period,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
 
         validateAccess(profileId, userId, userRole);
-        UsageStatsResponse stats = analyticsService.getUsageStats(profileId, period);
+        UsageStatsResponse stats = analyticsService.getUsageStats(profileId, tenantId, period);
         return ResponseEntity.ok(stats);
     }
 
@@ -119,12 +120,13 @@ public class AnalyticsController {
             @RequestParam(defaultValue = "50") int size,
             @RequestParam(required = false) String action,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
 
         validateAccess(profileId, userId, userRole);
         int safeSize = Math.min(Math.max(size, 1), 200);
         Pageable pageable = PageRequest.of(page, safeSize, Sort.by("queriedAt").descending());
-        Page<DnsQueryLog> history = analyticsService.getBrowsingHistory(profileId, action, pageable);
+        Page<DnsQueryLog> history = analyticsService.getBrowsingHistory(profileId, tenantId, action, pageable);
         return ResponseEntity.ok(history);
     }
 
@@ -206,11 +208,12 @@ public class AnalyticsController {
             @PathVariable UUID profileId,
             @RequestParam(defaultValue = "week") String period,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
 
         validateAccess(profileId, userId, userRole);
 
-        UsageStatsResponse stats = analyticsService.getUsageStats(profileId, period);
+        UsageStatsResponse stats = analyticsService.getUsageStats(profileId, tenantId, period);
         List<TopDomainEntry> topBlocked = analyticsService.getTopDomains(profileId, "BLOCKED", 10, period);
         List<TopDomainEntry> topAllowed = analyticsService.getTopDomains(profileId, "ALLOWED", 10, period);
         List<CategoryBreakdown> categories = analyticsService.getCategoryBreakdown(profileId, period);

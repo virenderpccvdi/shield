@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
+import '../../app/theme.dart';
 
 class QuickControlSheet extends ConsumerWidget {
   final String profileId;
@@ -26,25 +27,27 @@ class QuickControlSheet extends ConsumerWidget {
         children: [
           Container(
             width: 40, height: 4,
-            decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(color: ShieldTheme.divider, borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(height: 16),
-          const Text('Quick Controls', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+          const Text('Quick Controls',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: ShieldTheme.textPrimary)),
           const SizedBox(height: 4),
-          Text('Apply instant settings for this child', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+          const Text('Apply instant settings for this child',
+              style: TextStyle(color: ShieldTheme.textSecondary, fontSize: 13)),
           const SizedBox(height: 24),
           Row(children: [
             Expanded(child: _QuickAction(
               icon: Icons.pause_circle_filled,
               label: 'Pause\nInternet',
-              color: Colors.orange,
+              color: ShieldTheme.warning,
               onTap: () => _applyAction(context, ref, 'pause'),
             )),
             const SizedBox(width: 12),
             Expanded(child: _QuickAction(
               icon: Icons.school,
               label: 'Homework\nMode',
-              color: const Color(0xFF1565C0),
+              color: ShieldTheme.primary,
               onTap: () => _applyAction(context, ref, 'homework'),
             )),
           ]),
@@ -53,14 +56,14 @@ class QuickControlSheet extends ConsumerWidget {
             Expanded(child: _QuickAction(
               icon: Icons.bedtime,
               label: 'Bedtime\nMode',
-              color: Colors.blue.shade700,
+              color: ShieldTheme.primaryDark,
               onTap: () => _applyAction(context, ref, 'bedtime'),
             )),
             const SizedBox(width: 12),
             Expanded(child: _QuickAction(
               icon: Icons.play_circle,
               label: 'Resume\nNormal',
-              color: Colors.green,
+              color: ShieldTheme.success,
               onTap: () => _applyAction(context, ref, 'resume'),
             )),
           ]),
@@ -79,23 +82,48 @@ class QuickControlSheet extends ConsumerWidget {
       switch (action) {
         case 'pause':
           await client.post('/dns/schedules/$profileId/override', data: {'mode': 'BLOCK_ALL'});
-          messenger.showSnackBar(const SnackBar(content: Text('Internet paused'), backgroundColor: Colors.orange));
+          messenger.showSnackBar(SnackBar(
+            content: const Text('Internet paused'),
+            backgroundColor: ShieldTheme.warning,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
           break;
         case 'homework':
           await client.post('/dns/schedules/$profileId/override', data: {'mode': 'HOMEWORK'});
-          messenger.showSnackBar(const SnackBar(content: Text('Homework mode activated'), backgroundColor: Color(0xFF1565C0)));
+          messenger.showSnackBar(SnackBar(
+            content: const Text('Homework mode activated'),
+            backgroundColor: ShieldTheme.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
           break;
         case 'bedtime':
           await client.post('/dns/schedules/$profileId/override', data: {'mode': 'BEDTIME'});
-          messenger.showSnackBar(const SnackBar(content: Text('Bedtime mode activated'), backgroundColor: Color(0xFF1565C0)));
+          messenger.showSnackBar(SnackBar(
+            content: const Text('Bedtime mode activated'),
+            backgroundColor: ShieldTheme.primaryDark,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
           break;
         case 'resume':
           await client.delete('/dns/schedules/$profileId/override');
-          messenger.showSnackBar(const SnackBar(content: Text('Normal mode resumed'), backgroundColor: Colors.green));
+          messenger.showSnackBar(SnackBar(
+            content: const Text('Normal mode resumed'),
+            backgroundColor: ShieldTheme.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
           break;
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red));
+      messenger.showSnackBar(SnackBar(
+        content: Text('Failed: $e'),
+        backgroundColor: ShieldTheme.danger,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ));
     }
   }
 }

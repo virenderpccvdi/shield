@@ -129,7 +129,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen>
     return Scaffold(
       backgroundColor: ShieldTheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.amber.shade700,
+        backgroundColor: ShieldTheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -404,7 +404,7 @@ class _StatsBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.amber.shade700,
+      color: ShieldTheme.primary,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Row(
         children: [

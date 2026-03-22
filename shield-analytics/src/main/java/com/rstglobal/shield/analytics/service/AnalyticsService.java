@@ -1,5 +1,7 @@
 package com.rstglobal.shield.analytics.service;
 
+import com.rstglobal.shield.common.exception.ShieldException;
+import com.rstglobal.shield.common.service.FeatureGateService;
 import com.rstglobal.shield.analytics.dto.request.BulkLogIngestRequest;
 import com.rstglobal.shield.analytics.dto.request.LogIngestRequest;
 import com.rstglobal.shield.analytics.dto.response.AppUsageEntry;
@@ -39,6 +41,7 @@ public class AnalyticsService {
 
     private final DnsQueryLogRepository dnsQueryLogRepository;
     private final UsageSummaryRepository usageSummaryRepository;
+    private final FeatureGateService featureGate;
 
     @Transactional
     public DnsQueryLog ingestLog(LogIngestRequest req) {
@@ -73,7 +76,8 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
-    public UsageStatsResponse getUsageStats(UUID profileId, String period) {
+    public UsageStatsResponse getUsageStats(UUID profileId, UUID tenantId, String period) {
+        requireFeature(tenantId, "content_reporting");
         Instant[] range = periodToRange(period);
         Instant from = range[0];
         Instant to = range[1];
@@ -164,7 +168,8 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
-    public Page<DnsQueryLog> getBrowsingHistory(UUID profileId, String action, Pageable pageable) {
+    public Page<DnsQueryLog> getBrowsingHistory(UUID profileId, UUID tenantId, String action, Pageable pageable) {
+        requireFeature(tenantId, "browsing_history");
         Instant from = Instant.EPOCH;
         Instant to = Instant.now();
         if (action != null && (action.equals("BLOCKED") || action.equals("ALLOWED"))) {
@@ -481,5 +486,11 @@ public class AnalyticsService {
             default -> now.truncatedTo(ChronoUnit.DAYS); // today
         };
         return new Instant[]{from, now};
+    }
+
+    private void requireFeature(UUID tenantId, String feature) {
+        if (!featureGate.isEnabled(tenantId, feature)) {
+            throw ShieldException.forbidden("Feature '" + feature + "' is not enabled for this tenant");
+        }
     }
 }

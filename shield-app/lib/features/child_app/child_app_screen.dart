@@ -856,10 +856,10 @@ class _RequestTimeCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
+                color: ShieldTheme.primary.withOpacity(0.10),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.timer_outlined, color: Color(0xFF2E7D32), size: 24),
+              child: const Icon(Icons.timer_outlined, color: ShieldTheme.primary, size: 24),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -903,7 +903,7 @@ class _SosButton extends StatelessWidget {
         children: [
           Text('Emergency SOS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: colorScheme.onSurface)),
           const SizedBox(height: 4),
-          const Text('Press and hold in an emergency', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const Text('Tap in an emergency to alert parents', style: TextStyle(fontSize: 12, color: Colors.grey)),
           const SizedBox(height: 20),
           GestureDetector(
             onTap: onTap,

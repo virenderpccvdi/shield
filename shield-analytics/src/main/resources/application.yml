@@ -63,6 +63,8 @@ management:
         enabled: true
 
 shield:
+  tenant:
+    base-url: ${SHIELD_TENANT_URL:http://localhost:8282}
   ai:
     service-url: ${SHIELD_AI_URL:http://localhost:8291}
   notification:

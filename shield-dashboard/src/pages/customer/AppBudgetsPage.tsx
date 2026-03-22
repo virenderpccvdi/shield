@@ -80,7 +80,7 @@ export default function AppBudgetsPage() {
   const { data: budgets, isLoading: loadingBudgets } = useQuery({
     queryKey: ['app-budgets', profileId],
     queryFn: () =>
-      api.get(`/dns/budgets/${profileId}`)
+      api.get(`/dns/app-budgets/${profileId}`)
         .then(r => {
           const d = r.data?.data;
           return (d?.content ?? d ?? []) as AppBudget[];
@@ -89,7 +89,7 @@ export default function AppBudgetsPage() {
   });
 
   const addMutation = useMutation({
-    mutationFn: (data: AddBudgetForm) => api.post(`/dns/budgets/${profileId}`, data),
+    mutationFn: (data: AddBudgetForm) => api.post(`/dns/app-budgets/${profileId}`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['app-budgets', profileId] });
       setDialogOpen(false);
@@ -100,7 +100,7 @@ export default function AppBudgetsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (budgetId: string) => api.delete(`/dns/budgets/${profileId}/${budgetId}`),
+    mutationFn: (budgetId: string) => api.delete(`/dns/app-budgets/${profileId}/${budgetId}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['app-budgets', profileId] });
       setDeleteDialog({ open: false, budgetId: null, budgetName: '' });

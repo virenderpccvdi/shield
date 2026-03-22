@@ -110,6 +110,32 @@ public class InternalTenantAdminController {
         return ResponseEntity.ok(ApiResponse.ok(result, "Tenant activated"));
     }
 
+    // ── Feature check (read-only) ─────────────────────────────────────────────
+
+    /**
+     * GET /internal/tenants/{id}/features/{feature}
+     * Returns {@code true} if the named feature is enabled for the tenant,
+     * {@code false} if it is disabled or not present in the features map.
+     * Called by FeatureGateService in downstream microservices.
+     */
+    @GetMapping("/{id}/features/{feature}")
+    @Transactional(readOnly = true)
+    @Operation(summary = "Internal: check a single feature flag for a tenant")
+    public ResponseEntity<Boolean> checkFeature(
+            @PathVariable UUID id,
+            @PathVariable String feature) {
+
+        Tenant tenant = tenantRepository.findById(id).orElse(null);
+        if (tenant == null) {
+            log.debug("checkFeature: tenant {} not found — returning false", id);
+            return ResponseEntity.ok(false);
+        }
+        Map<String, Boolean> features = tenant.getFeatures();
+        boolean enabled = features != null && Boolean.TRUE.equals(features.get(feature));
+        log.debug("checkFeature: tenant={} feature={} enabled={}", id, feature, enabled);
+        return ResponseEntity.ok(enabled);
+    }
+
     // ── Feature flag ─────────────────────────────────────────────────────────
 
     /**

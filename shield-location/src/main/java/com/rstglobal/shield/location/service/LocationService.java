@@ -1,5 +1,7 @@
 package com.rstglobal.shield.location.service;
 
+import com.rstglobal.shield.common.exception.ShieldException;
+import com.rstglobal.shield.common.service.FeatureGateService;
 import com.rstglobal.shield.location.dto.request.CheckinRequest;
 import com.rstglobal.shield.location.dto.request.LocationUploadRequest;
 import com.rstglobal.shield.location.dto.response.LocationResponse;
@@ -31,6 +33,7 @@ public class LocationService {
     private final GeofenceBreachDetector geofenceBreachDetector;
     private final SpoofingDetectionService spoofingDetectionService;
     private final LocationBroadcaster locationBroadcaster;
+    private final FeatureGateService featureGate;
 
     @Transactional
     public LocationResponse uploadLocation(LocationUploadRequest req, UUID userId, String role) {
@@ -65,7 +68,8 @@ public class LocationService {
     }
 
     @Transactional(readOnly = true)
-    public LocationResponse getLatestLocation(UUID profileId) {
+    public LocationResponse getLatestLocation(UUID profileId, UUID tenantId) {
+        requireFeature(tenantId, "gps_tracking");
         return locationPointRepository.findFirstByProfileIdOrderByRecordedAtDesc(profileId)
                 .map(this::toResponse)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -73,7 +77,8 @@ public class LocationService {
     }
 
     @Transactional(readOnly = true)
-    public Page<LocationResponse> getLocationHistory(UUID profileId, OffsetDateTime from, OffsetDateTime to, Pageable pageable) {
+    public Page<LocationResponse> getLocationHistory(UUID profileId, UUID tenantId, OffsetDateTime from, OffsetDateTime to, Pageable pageable) {
+        requireFeature(tenantId, "gps_tracking");
         return locationPointRepository.findByProfileIdAndRecordedAtBetweenOrderByRecordedAtDesc(
                 profileId, from, to, pageable
         ).map(this::toResponse);
@@ -156,6 +161,12 @@ public class LocationService {
         result.put("distanceMeters", BigDecimal.valueOf(distanceMeters).setScale(1, RoundingMode.HALF_UP));
         result.put("timeDiffSeconds", timeDiffSeconds);
         return result;
+    }
+
+    private void requireFeature(UUID tenantId, String feature) {
+        if (!featureGate.isEnabled(tenantId, feature)) {
+            throw ShieldException.forbidden("Feature '" + feature + "' is not enabled for this tenant");
+        }
     }
 
     private LocationResponse toResponse(LocationPoint p) {

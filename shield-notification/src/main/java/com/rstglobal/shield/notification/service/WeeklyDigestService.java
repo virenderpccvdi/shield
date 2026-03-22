@@ -1,5 +1,6 @@
 package com.rstglobal.shield.notification.service;
 
+import com.rstglobal.shield.common.service.FeatureGateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
@@ -68,13 +69,16 @@ public class WeeklyDigestService {
     //  Dependencies
     // -------------------------------------------------------
 
-    private final EmailService    emailService;
-    private final DiscoveryClient discoveryClient;
-    private final RestClient      restClient;
+    private final EmailService      emailService;
+    private final DiscoveryClient   discoveryClient;
+    private final FeatureGateService featureGate;
+    private final RestClient        restClient;
 
-    public WeeklyDigestService(EmailService emailService, DiscoveryClient discoveryClient) {
+    public WeeklyDigestService(EmailService emailService, DiscoveryClient discoveryClient,
+                                FeatureGateService featureGate) {
         this.emailService    = emailService;
         this.discoveryClient = discoveryClient;
+        this.featureGate     = featureGate;
         this.restClient      = RestClient.builder().build();
     }
 
@@ -128,6 +132,21 @@ public class WeeklyDigestService {
     @Async
     public void sendDigestForUser(Map<String, Object> user,
                                    LocalDate weekStart, LocalDate weekEnd) {
+        // Check weekly_digest feature flag for this tenant before sending
+        String tenantIdStr = getStr(user, "tenantId", null);
+        if (tenantIdStr != null && !tenantIdStr.isBlank()) {
+            try {
+                java.util.UUID tenantUuid = java.util.UUID.fromString(tenantIdStr);
+                if (!featureGate.isEnabled(tenantUuid, "weekly_digest")) {
+                    log.debug("Weekly digest suppressed for user {} — weekly_digest feature disabled for tenant {}",
+                            user.get("id"), tenantUuid);
+                    return;
+                }
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid tenantId '{}' in user map for user {} — sending digest anyway", tenantIdStr, user.get("id"));
+            }
+        }
+
         String userId = String.valueOf(user.get("id"));
         String email  = String.valueOf(user.get("email"));
 

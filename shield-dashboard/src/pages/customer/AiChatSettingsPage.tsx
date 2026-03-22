@@ -80,7 +80,7 @@ export default function AiChatSettingsPage() {
   const { data: profileSettings, isLoading: loadingSettings } = useQuery({
     queryKey: ['profile-ai-settings', profileId],
     queryFn: () =>
-      api.get(`/profiles/profiles/${profileId}`)
+      api.get(`/profiles/children/${profileId}`)
         .then(r => {
           const d = r.data?.data ?? r.data;
           return {
@@ -93,7 +93,7 @@ export default function AiChatSettingsPage() {
 
   const settingsMutation = useMutation({
     mutationFn: (settings: Partial<ProfileSettings>) =>
-      api.put(`/profiles/profiles/${profileId}/settings`, settings),
+      api.put(`/profiles/children/${profileId}`, settings),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['profile-ai-settings', profileId] });
       setSnackbar({ open: true, message: 'Settings saved', severity: 'success' });

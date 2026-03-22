@@ -65,9 +65,9 @@ export default function CheckinReminderPage() {
   const { data: profiles, isLoading: profilesLoading } = useQuery<Profile[]>({
     queryKey: ['profiles'],
     queryFn: async () => {
-      const r = await api.get('/api/v1/profile/profiles');
-      const raw = r.data?.data ?? r.data;
-      return (Array.isArray(raw) ? raw : raw?.content ?? []) as Profile[];
+      const r = await api.get('/profiles/children');
+      const d = r.data?.data ?? r.data;
+      return (d?.content ?? d ?? []) as Profile[];
     },
   });
 
@@ -86,7 +86,7 @@ export default function CheckinReminderPage() {
   } = useQuery<CheckinReminderSettings>({
     queryKey: ['checkin-reminder', selectedProfileId],
     queryFn: async () => {
-      const r = await api.get(`/api/v1/location/checkin-reminder/${selectedProfileId}`);
+      const r = await api.get(`/location/checkin-reminder/${selectedProfileId}`);
       return (r.data?.data ?? r.data) as CheckinReminderSettings;
     },
     enabled: !!selectedProfileId,
@@ -105,7 +105,7 @@ export default function CheckinReminderPage() {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      await api.put(`/api/v1/location/checkin-reminder/${selectedProfileId}`, {
+      await api.put(`/location/checkin-reminder/${selectedProfileId}`, {
         enabled,
         reminderIntervalMin: intervalMin,
         quietStart,

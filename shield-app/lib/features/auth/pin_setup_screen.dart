@@ -292,7 +292,7 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
 
           if (_pinEnabled)
             ListTile(
-              leading: const Icon(Icons.no_encryption_gae, color: Colors.red),
+              leading: const Icon(Icons.no_encryption, color: Colors.red),
               title: const Text('Remove PIN', style: TextStyle(color: Colors.red)),
               subtitle: const Text('Disable PIN lock for this app'),
               onTap: _loading ? null : _removePin,

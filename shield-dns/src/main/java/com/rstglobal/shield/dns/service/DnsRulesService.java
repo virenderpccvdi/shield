@@ -1,6 +1,7 @@
 package com.rstglobal.shield.dns.service;
 
 import com.rstglobal.shield.common.exception.ShieldException;
+import com.rstglobal.shield.common.service.FeatureGateService;
 import com.rstglobal.shield.dns.client.AdGuardClient;
 import com.rstglobal.shield.dns.config.ContentCategories;
 import com.rstglobal.shield.dns.dto.request.DomainActionRequest;
@@ -28,6 +29,7 @@ public class DnsRulesService {
     private final DnsRulesRepository rulesRepo;
     private final PlatformDefaultsRepository platformRepo;
     private final AdGuardClient adGuard;
+    private final FeatureGateService featureGate;
 
     @Value("${shield.app.domain:shield.rstglobal.in}")
     private String appDomain;
@@ -52,12 +54,14 @@ public class DnsRulesService {
 
     @Transactional
     public DnsRulesResponse getRules(UUID profileId, UUID tenantId) {
+        requireFeature(tenantId, "dns_filtering");
         DnsRules rules = findOrInit(profileId, tenantId);
         return toResponse(rules);
     }
 
     @Transactional
     public DnsRulesResponse updateCategories(UUID profileId, UUID tenantId, UpdateCategoriesRequest req) {
+        requireFeature(tenantId, "dns_filtering");
         DnsRules rules = findOrInit(profileId, tenantId);
         Map<String, Boolean> cats = rules.getEnabledCategories();
         if (cats == null) cats = new LinkedHashMap<>();
@@ -70,6 +74,7 @@ public class DnsRulesService {
 
     @Transactional
     public DnsRulesResponse updateAllowlist(UUID profileId, UUID tenantId, UpdateListRequest req) {
+        requireFeature(tenantId, "dns_filtering");
         DnsRules rules = findOrInit(profileId, tenantId);
         rules.setCustomAllowlist(req.getDomains());
         DnsRules saved = rulesRepo.save(rules);
@@ -79,6 +84,7 @@ public class DnsRulesService {
 
     @Transactional
     public DnsRulesResponse updateBlocklist(UUID profileId, UUID tenantId, UpdateListRequest req) {
+        requireFeature(tenantId, "dns_filtering");
         DnsRules rules = findOrInit(profileId, tenantId);
         rules.setCustomBlocklist(req.getDomains());
         DnsRules saved = rulesRepo.save(rules);
@@ -99,6 +105,7 @@ public class DnsRulesService {
 
     @Transactional
     public DnsRulesResponse updateFilterLevel(UUID profileId, UUID tenantId, String filterLevel) {
+        requireFeature(tenantId, "dns_filtering");
         DnsRules rules = findOrInit(profileId, tenantId);
         Map<String, Boolean> cats = rules.getEnabledCategories();
         if (cats == null) cats = new LinkedHashMap<>();
@@ -124,6 +131,7 @@ public class DnsRulesService {
 
     @Transactional
     public DnsRulesResponse domainAction(UUID profileId, UUID tenantId, DomainActionRequest req) {
+        requireFeature(tenantId, "dns_filtering");
         DnsRules rules = findOrInit(profileId, tenantId);
         String domain = req.getDomain().toLowerCase().trim();
         if ("ALLOW".equals(req.getAction())) {
@@ -527,6 +535,16 @@ public class DnsRulesService {
             adGuard.removeDnsRewrite("google.com", "forcesafesearch.google.com");
             adGuard.removeDnsRewrite("www.bing.com", "strict.bing.com");
             adGuard.removeDnsRewrite("duckduckgo.com", "safe.duckduckgo.com");
+        }
+    }
+
+    /**
+     * Throws {@link ShieldException#forbidden} if the given feature is disabled for
+     * the tenant.  Uses {@link FeatureGateService} which caches results for 5 min.
+     */
+    private void requireFeature(UUID tenantId, String feature) {
+        if (!featureGate.isEnabled(tenantId, feature)) {
+            throw ShieldException.forbidden("Feature '" + feature + "' is not enabled for this tenant");
         }
     }
 }

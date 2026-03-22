@@ -1,5 +1,7 @@
 package com.rstglobal.shield.rewards.service;
 
+import com.rstglobal.shield.common.exception.ShieldException;
+import com.rstglobal.shield.common.service.FeatureGateService;
 import com.rstglobal.shield.rewards.dto.request.CreateTaskRequest;
 import com.rstglobal.shield.rewards.dto.request.TaskApprovalRequest;
 import com.rstglobal.shield.rewards.dto.response.TaskResponse;
@@ -34,6 +36,7 @@ public class TaskService {
     private final RewardBankService rewardBankService;
     private final AchievementService achievementService;
     private final DiscoveryClient discoveryClient;
+    private final FeatureGateService featureGate;
 
     @Value("${shield.notification.base-url:http://localhost:8286}")
     private String notifBaseUrl;
@@ -42,6 +45,7 @@ public class TaskService {
 
     @Transactional
     public TaskResponse createTask(CreateTaskRequest req, UUID createdBy, UUID tenantId) {
+        requireFeature(tenantId, "rewards");
         Task task = Task.builder()
                 .tenantId(tenantId)
                 .profileId(req.getProfileId())
@@ -319,6 +323,12 @@ public class TaskService {
             return null;
         }
         return instances.get(0).getUri().toString();
+    }
+
+    private void requireFeature(UUID tenantId, String feature) {
+        if (!featureGate.isEnabled(tenantId, feature)) {
+            throw ShieldException.forbidden("Feature '" + feature + "' is not enabled for this tenant");
+        }
     }
 
     private TaskResponse toResponse(Task task) {

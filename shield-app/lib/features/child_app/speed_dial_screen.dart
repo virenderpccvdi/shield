@@ -28,16 +28,15 @@ class SpeedDialScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final contactsAsync = ref.watch(_emergencyContactsProvider(profileId));
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.background,
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
         title: const Text(
           'Emergency Contacts',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
-        backgroundColor: const Color(0xFFC62828),
+        backgroundColor: const Color(0xFF1565C0),
         foregroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(

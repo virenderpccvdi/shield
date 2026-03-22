@@ -92,7 +92,7 @@ export default function LocationSharePage() {
   const { data: children, isLoading: loadingChildren } = useQuery({
     queryKey: ['children'],
     queryFn: () =>
-      api.get('/profile/profiles').then(r => {
+      api.get('/profiles/children').then(r => {
         const d = r.data?.data;
         return (d?.content ?? d ?? r.data) as ChildProfile[];
       }).catch(() => [] as ChildProfile[]),

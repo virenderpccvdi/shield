@@ -138,7 +138,7 @@ class _CheckInButtonState extends ConsumerState<CheckInButton>
         ? ShieldTheme.success
         : isError
             ? ShieldTheme.danger
-            : const Color(0xFF00897B); // teal-700
+            : ShieldTheme.primary; // Shield blue
 
     final String label = isSuccess
         ? 'Location sent to Mom & Dad \u2713'
@@ -171,8 +171,8 @@ class _CheckInButtonState extends ConsumerState<CheckInButton>
                     : isError
                         ? [ShieldTheme.danger, const Color(0xFFB71C1C)]
                         : [
-                            const Color(0xFF00897B),
-                            const Color(0xFF004D40),
+                            ShieldTheme.primary,
+                            ShieldTheme.primaryDark,
                           ],
               ),
               borderRadius: BorderRadius.circular(16),

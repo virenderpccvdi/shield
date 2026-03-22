@@ -142,7 +142,7 @@ export default function AccessSchedulePage() {
   const { data: schedules, isLoading: loadingSchedules } = useQuery({
     queryKey: ['schedules', profileId],
     queryFn: () =>
-      api.get(`/dns/schedules/${profileId}`)
+      api.get(`/dns/access-schedules/${profileId}`)
         .then(r => {
           const d = r.data?.data;
           return (d?.content ?? d ?? []) as Schedule[];
@@ -151,7 +151,7 @@ export default function AccessSchedulePage() {
   });
 
   const addMutation = useMutation({
-    mutationFn: (data: ScheduleForm) => api.post(`/dns/schedules/${profileId}`, data),
+    mutationFn: (data: ScheduleForm) => api.post(`/dns/access-schedules/${profileId}`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['schedules', profileId] });
       setDialogOpen(false);
@@ -162,7 +162,7 @@ export default function AccessSchedulePage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: ScheduleForm }) =>
-      api.put(`/dns/schedules/${profileId}/${id}`, data),
+      api.put(`/dns/access-schedules/${profileId}/${id}`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['schedules', profileId] });
       setDialogOpen(false);
@@ -173,13 +173,13 @@ export default function AccessSchedulePage() {
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, current }: { id: string; current: Schedule }) =>
-      api.put(`/dns/schedules/${profileId}/${id}`, { ...current, isActive: !current.isActive }),
+      api.put(`/dns/access-schedules/${profileId}/${id}`, { ...current, isActive: !current.isActive }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['schedules', profileId] }),
     onError: () => setSnackbar({ open: true, message: 'Failed to toggle schedule', severity: 'error' }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/dns/schedules/${profileId}/${id}`),
+    mutationFn: (id: string) => api.delete(`/dns/access-schedules/${profileId}/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['schedules', profileId] });
       setDeleteDialog({ open: false, scheduleId: null, scheduleName: '' });

@@ -40,10 +40,13 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
   bool _loading = true;
   bool _showSpoofingDetails = false;
 
+  // 5 tabs: Overview | Controls | Location | Safety | Rewards
+  static const _tabCount = 5;
+
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this);
+    _tabs = TabController(length: _tabCount, vsync: this);
     _loadProfile();
   }
 
@@ -57,8 +60,12 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return Scaffold(
-      appBar: AppBar(title: const Text('Loading…')),
+    if (_loading) { return Scaffold(
+      appBar: AppBar(
+        title: const Text('Loading…'),
+        backgroundColor: ShieldTheme.primary,
+        foregroundColor: Colors.white,
+      ),
       body: const Padding(
         padding: EdgeInsets.all(16),
         child: Column(children: [
@@ -69,13 +76,15 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
           ShieldCardSkeleton(lines: 4),
         ]),
       ),
-    );
+    ); }
     final name = _profile?['name'] ?? 'Child';
     final spoofingAsync = ref.watch(spoofingBannerProvider(widget.profileId));
 
     return Scaffold(
       appBar: AppBar(
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
+        backgroundColor: ShieldTheme.primary,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.flash_on),
@@ -83,9 +92,21 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
             onPressed: () => QuickControlSheet.show(context, ref, widget.profileId),
           ),
         ],
-        bottom: TabBar(controller: _tabs, isScrollable: true, tabs: const [
-          Tab(text: 'Activity'), Tab(text: 'Controls'), Tab(text: 'Location'), Tab(text: 'Insights'),
-        ]),
+        bottom: TabBar(
+          controller: _tabs,
+          isScrollable: true,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white60,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          tabs: const [
+            Tab(text: 'Overview'),
+            Tab(text: 'Controls'),
+            Tab(text: 'Location'),
+            Tab(text: 'Safety'),
+            Tab(text: 'Rewards'),
+          ],
+        ),
       ),
       body: Column(
         children: [
@@ -121,7 +142,7 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
                             const Text(
                               'An anomaly was detected in the location data within the last 24 hours. '
                               'This may indicate the use of a GPS spoofing app. '
-                              'Check Location Alerts in the Alerts tab for details.',
+                              'Check Location Alerts in the Safety tab for details.',
                               style: TextStyle(fontSize: 12, color: ShieldTheme.textSecondary),
                             ),
                           ],
@@ -134,10 +155,11 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
           // Main content
           Expanded(
             child: TabBarView(controller: _tabs, children: [
-              _ActivityTab(profileId: widget.profileId),
+              _OverviewTab(profileId: widget.profileId, profile: _profile),
               _ControlsTab(profileId: widget.profileId),
               _LocationTab(profileId: widget.profileId),
-              _InsightsTab(profileId: widget.profileId),
+              _SafetyTab(profileId: widget.profileId),
+              _RewardsTab(profileId: widget.profileId),
             ]),
           ),
         ],
@@ -149,36 +171,265 @@ class _ChildDetailScreenState extends ConsumerState<ChildDetailScreen> with Sing
   void dispose() { _tabs.dispose(); super.dispose(); }
 }
 
-class _ActivityTab extends ConsumerWidget {
+// ─────────────────────────────────────────────────────────────────────────────
+// Overview Tab — child info card + last seen location + recent activity
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _OverviewTab extends ConsumerWidget {
   final String profileId;
-  const _ActivityTab({required this.profileId});
+  final Map<String, dynamic>? profile;
+  const _OverviewTab({required this.profileId, required this.profile});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final name       = profile?['name'] as String? ?? 'Child';
+    final initial    = name.isNotEmpty ? name[0].toUpperCase() : 'C';
+    final filterLevel= profile?['filterLevel'] as String? ?? 'MODERATE';
+    final online     = profile?['online'] as bool? ?? false;
+    final lastSeen   = profile?['lastSeenAt'] as String?;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // ── Profile hero card ──────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: ShieldTheme.heroGradient,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(children: [
+            // Avatar
+            Stack(children: [
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: Colors.white.withOpacity(0.2),
+                child: Text(initial, style: const TextStyle(
+                    color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800)),
+              ),
+              Positioned(
+                bottom: 2, right: 2,
+                child: Container(
+                  width: 16, height: 16,
+                  decoration: BoxDecoration(
+                    color: online ? ShieldTheme.successLight : Colors.grey.shade400,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+            ]),
+            const SizedBox(width: 16),
+            // Info
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(name, style: const TextStyle(
+                    color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(
+                        width: 6, height: 6,
+                        margin: const EdgeInsets.only(right: 5),
+                        decoration: BoxDecoration(
+                          color: online ? ShieldTheme.successLight : Colors.grey.shade400,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Text(
+                        online ? 'Online' : 'Offline',
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      filterLevel,
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ]),
+                if (lastSeen != null) ...[
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    const Icon(Icons.access_time_rounded, size: 13, color: Colors.white60),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Last seen ${_fmtRelative(lastSeen)}',
+                      style: const TextStyle(fontSize: 12, color: Colors.white70),
+                    ),
+                  ]),
+                ],
+              ]),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Quick action row ───────────────────────────────────────────
+        Row(children: [
+          _OverviewQuickBtn(
+            icon: Icons.dns_rounded, label: 'DNS Rules',
+            color: ShieldTheme.primary,
+            onTap: () => context.go('/family/$profileId/dns-rules'),
+          ),
+          const SizedBox(width: 8),
+          _OverviewQuickBtn(
+            icon: Icons.map_rounded, label: 'Location',
+            color: ShieldTheme.success,
+            onTap: () => context.go('/map?profileId=$profileId'),
+          ),
+          const SizedBox(width: 8),
+          _OverviewQuickBtn(
+            icon: Icons.timer_rounded, label: 'Screen Time',
+            color: ShieldTheme.warning,
+            onTap: () => context.go('/family/$profileId/time-limits'),
+          ),
+          const SizedBox(width: 8),
+          _OverviewQuickBtn(
+            icon: Icons.emoji_events_rounded, label: 'Rewards',
+            color: ShieldTheme.primaryLight,
+            onTap: () => context.go('/family/$profileId/rewards'),
+          ),
+        ]),
+        const SizedBox(height: 20),
+
+        // ── Recent activity ────────────────────────────────────────────
+        const _SectionLabel(label: 'Recent Activity'),
+        const SizedBox(height: 10),
+        _RecentActivityCard(profileId: profileId),
+      ],
+    );
+  }
+
+  String _fmtRelative(String iso) {
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return 'just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      return '${diff.inDays}d ago';
+    } catch (_) {
+      return iso;
+    }
+  }
+}
+
+class _OverviewQuickBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _OverviewQuickBtn({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: ShieldTheme.cardBg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: ShieldTheme.divider),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(height: 5),
+              Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentActivityCard extends ConsumerWidget {
+  final String profileId;
+  const _RecentActivityCard({required this.profileId});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return FutureBuilder<Response>(
-      future: ref.read(dioProvider).get('/analytics/$profileId/history', queryParameters: {'page': 0, 'size': 50}),
+      future: ref.read(dioProvider).get('/analytics/$profileId/history',
+          queryParameters: {'page': 0, 'size': 10}),
       builder: (ctx, snap) {
-        if (snap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const ShieldCardSkeleton(lines: 4);
+        }
         final raw = snap.data?.data['data'];
         final events = (raw is Map ? (raw['content'] ?? raw['items'] ?? []) : raw) as List? ?? [];
-        if (events.isEmpty) return const Center(child: Text('No recent activity'));
-        return ListView.builder(
-          itemCount: events.length,
-          itemBuilder: (_, i) {
-            final e = events[i] as Map<String, dynamic>;
-            final blocked = e['action'] == 'BLOCKED';
-            return ListTile(
-              dense: true,
-              leading: Icon(blocked ? Icons.block : Icons.check_circle, color: blocked ? ShieldTheme.dangerLight : ShieldTheme.successLight, size: 20),
-              title: Text(e['domain'] ?? '', style: const TextStyle(fontSize: 13)),
-              subtitle: Text(e['category'] ?? '', style: const TextStyle(fontSize: 11)),
-              trailing: Text(_fmt(e['queriedAt'] ?? e['timestamp']), style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary)),
-            );
-          },
+        if (events.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: ShieldTheme.cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: ShieldTheme.divider),
+            ),
+            child: const Center(
+              child: Text('No recent activity', style: TextStyle(color: ShieldTheme.textSecondary)),
+            ),
+          );
+        }
+        return Container(
+          decoration: BoxDecoration(
+            color: ShieldTheme.cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: ShieldTheme.divider),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: events.length > 8 ? 8 : events.length,
+            separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+            itemBuilder: (_, i) {
+              final e = events[i] as Map<String, dynamic>;
+              final blocked = e['action'] == 'BLOCKED';
+              return ListTile(
+                dense: true,
+                leading: Icon(
+                  blocked ? Icons.block : Icons.check_circle,
+                  color: blocked ? ShieldTheme.dangerLight : ShieldTheme.successLight,
+                  size: 20,
+                ),
+                title: Text(e['domain'] ?? '', style: const TextStyle(fontSize: 13)),
+                subtitle: Text(e['category'] ?? '', style: const TextStyle(fontSize: 11)),
+                trailing: Text(
+                  _fmt(e['queriedAt'] ?? e['timestamp'] ?? ''),
+                  style: const TextStyle(fontSize: 11, color: ShieldTheme.textSecondary),
+                ),
+              );
+            },
+          ),
         );
       },
     );
   }
-  String _fmt(String ts) { try { final d = DateTime.parse(ts).toLocal(); return '${d.hour}:${d.minute.toString().padLeft(2,'0')}'; } catch (_) { return ts; } }
+
+  String _fmt(String ts) {
+    try {
+      final d = DateTime.parse(ts).toLocal();
+      return '${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+    } catch (_) { return ts; }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -389,39 +640,67 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
           _buildQuickStatsRow(),
           const SizedBox(height: 20),
 
-          // ── 3. Navigation Cards ────────────────────────────────────────
-          _SectionLabel(label: 'Parental Controls'),
+          // ── 3. Content & Filtering ─────────────────────────────────────
+          const _SectionLabel(label: 'Content & Filtering'),
           const SizedBox(height: 10),
           _NavCard(
             icon: Icons.dns_rounded,
             title: 'DNS Content Rules',
-            subtitle: 'Block categories of content',
+            subtitle: 'Block categories, custom lists',
             color: ShieldTheme.primary,
             onTap: () => context.go('/family/${widget.profileId}/dns-rules'),
+          ),
+
+          // ── 4. Screen Time ─────────────────────────────────────────────
+          const SizedBox(height: 16),
+          const _SectionLabel(label: 'Screen Time'),
+          const SizedBox(height: 10),
+          _NavCard(
+            icon: Icons.timer_rounded,
+            title: 'Time Limits',
+            subtitle: 'Daily screen time budgets per app',
+            color: ShieldTheme.warning,
+            onTap: () => context.go('/family/${widget.profileId}/time-limits'),
           ),
           _NavCard(
             icon: Icons.schedule_rounded,
             title: 'Internet Schedule',
-            subtitle: 'Set weekly access times',
+            subtitle: 'Set weekly access hour grid',
             color: ShieldTheme.primaryLight,
             onTap: () => context.go('/family/${widget.profileId}/schedule'),
           ),
           _NavCard(
             icon: Icons.event_available_rounded,
-            title: 'Access Schedule',
-            subtitle: 'View active schedule windows',
+            title: 'Access Schedule Viewer',
+            subtitle: 'View active windows & current status',
             color: ShieldTheme.accent,
             onTap: () => context.go('/family/${widget.profileId}/schedule-viewer'),
           ),
           _NavCard(
-            icon: Icons.timer_rounded,
-            title: 'Time Limits',
-            subtitle: 'Daily screen time budgets',
+            icon: Icons.school_rounded,
+            title: 'Homework Mode',
+            subtitle: 'Block distractions during study time',
+            color: ShieldTheme.primaryDark,
+            onTap: () => QuickControlSheet.show(context, ref, widget.profileId),
+          ),
+          _NavCard(
+            icon: Icons.hourglass_top_rounded,
+            title: 'App Time Budgets',
+            subtitle: 'Per-app daily time allowances',
             color: ShieldTheme.warning,
             onTap: () => context.go('/family/${widget.profileId}/time-limits'),
           ),
+          _NavCard(
+            icon: Icons.pending_actions_rounded,
+            title: 'Screen Time Requests',
+            subtitle: 'Review and approve extra time requests',
+            color: ShieldTheme.success,
+            onTap: () => context.go('/family/${widget.profileId}/time-limits'),
+          ),
+
+          // ── 5. Rewards & Reports ───────────────────────────────────────
           const SizedBox(height: 16),
-          _SectionLabel(label: 'Rewards & Reports'),
+          const _SectionLabel(label: 'Rewards & Reports'),
           const SizedBox(height: 10),
           _NavCard(
             icon: Icons.emoji_events_rounded,
@@ -437,8 +716,10 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
             color: ShieldTheme.success,
             onTap: () => context.go('/family/${widget.profileId}/reports'),
           ),
+
+          // ── 6. Devices ─────────────────────────────────────────────────
           const SizedBox(height: 16),
-          _SectionLabel(label: 'Devices'),
+          const _SectionLabel(label: 'Devices'),
           const SizedBox(height: 10),
           _NavCard(
             icon: Icons.block_rounded,
@@ -645,6 +926,211 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Location Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _LocationTab extends StatelessWidget {
+  final String profileId;
+  const _LocationTab({required this.profileId});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const _SectionLabel(label: 'Live Tracking'),
+        const SizedBox(height: 10),
+        _NavCard(
+          icon: Icons.location_on_rounded,
+          title: 'Live Location',
+          subtitle: 'View real-time position on map',
+          color: ShieldTheme.primary,
+          onTap: () => context.go('/map?profileId=$profileId'),
+        ),
+        _NavCard(
+          icon: Icons.route_rounded,
+          title: 'Location History',
+          subtitle: 'Route playback and timeline',
+          color: ShieldTheme.warning,
+          onTap: () => context.go('/family/$profileId/location-history'),
+        ),
+        const SizedBox(height: 16),
+        const _SectionLabel(label: 'Zones & Places'),
+        const SizedBox(height: 10),
+        _NavCard(
+          icon: Icons.fence_rounded,
+          title: 'Geofences',
+          subtitle: 'Set up safe zones and get breach alerts',
+          color: ShieldTheme.primaryDark,
+          onTap: () => context.go('/family/$profileId/geofences'),
+        ),
+        _NavCard(
+          icon: Icons.school_rounded,
+          title: 'School Zone',
+          subtitle: 'Configure automatic school hours location',
+          color: ShieldTheme.primaryLight,
+          onTap: () => context.go('/family/$profileId/geofences'),
+        ),
+        _NavCard(
+          icon: Icons.place_rounded,
+          title: 'Saved Places',
+          subtitle: 'Manage frequently visited locations',
+          color: ShieldTheme.success,
+          onTap: () => context.go('/family/$profileId/places'),
+        ),
+        const SizedBox(height: 16),
+        const _SectionLabel(label: 'Sharing & Reminders'),
+        const SizedBox(height: 10),
+        _NavCard(
+          icon: Icons.link_rounded,
+          title: 'Share Location',
+          subtitle: 'Create temporary shareable links',
+          color: ShieldTheme.accent,
+          onTap: () => context.go('/family/$profileId/location-share'),
+        ),
+        _NavCard(
+          icon: Icons.notifications_active_rounded,
+          title: 'Check-in Reminders',
+          subtitle: 'Get notified if child goes silent',
+          color: ShieldTheme.primaryDark,
+          onTap: () => context.go('/family/$profileId/checkin-reminder'),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Safety Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SafetyTab extends StatelessWidget {
+  final String profileId;
+  const _SafetyTab({required this.profileId});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const _SectionLabel(label: 'Emergency'),
+        const SizedBox(height: 10),
+        _NavCard(
+          icon: Icons.contact_emergency_rounded,
+          title: 'Emergency Contacts',
+          subtitle: 'Manage trusted contacts for SOS',
+          color: ShieldTheme.danger,
+          onTap: () => context.go('/alerts/sos'),
+        ),
+        _NavCard(
+          icon: Icons.sos_rounded,
+          title: 'SOS Alerts',
+          subtitle: 'View and respond to panic alerts',
+          color: ShieldTheme.dangerLight,
+          onTap: () => context.go('/alerts/sos'),
+        ),
+        const SizedBox(height: 16),
+        const _SectionLabel(label: 'Monitoring'),
+        const SizedBox(height: 10),
+        _NavCard(
+          icon: Icons.battery_alert_rounded,
+          title: 'Battery Alerts',
+          subtitle: 'Notify when battery is critically low',
+          color: ShieldTheme.warning,
+          onTap: () => context.go('/alerts'),
+        ),
+        _NavCard(
+          icon: Icons.psychology_rounded,
+          title: 'Suspicious Activity',
+          subtitle: 'AI-detected anomalies and risk flags',
+          color: ShieldTheme.primaryDark,
+          onTap: () => context.go('/family/$profileId/ai-insights'),
+        ),
+        _NavCard(
+          icon: Icons.gps_not_fixed_rounded,
+          title: 'Location Alerts',
+          subtitle: 'Geofence breaches and spoofing detection',
+          color: ShieldTheme.danger,
+          onTap: () => context.go('/alerts'),
+        ),
+        const SizedBox(height: 16),
+        const _SectionLabel(label: 'AI Insights'),
+        const SizedBox(height: 10),
+        _NavCard(
+          icon: Icons.auto_awesome_rounded,
+          title: 'AI Behavioral Insights',
+          subtitle: 'Risk analysis and recommendations',
+          color: ShieldTheme.accent,
+          onTap: () => context.go('/family/$profileId/ai-insights'),
+        ),
+        _NavCard(
+          icon: Icons.bar_chart_rounded,
+          title: 'Full Reports',
+          subtitle: 'Detailed usage analytics',
+          color: ShieldTheme.success,
+          onTap: () => context.go('/family/$profileId/reports'),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rewards Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _RewardsTab extends StatelessWidget {
+  final String profileId;
+  const _RewardsTab({required this.profileId});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const _SectionLabel(label: 'Points & Rewards'),
+        const SizedBox(height: 10),
+        _NavCard(
+          icon: Icons.emoji_events_rounded,
+          title: 'Points & Rewards',
+          subtitle: 'Manage reward bank and redeem points',
+          color: ShieldTheme.warning,
+          onTap: () => context.go('/family/$profileId/rewards'),
+        ),
+        _NavCard(
+          icon: Icons.task_alt_rounded,
+          title: 'Tasks',
+          subtitle: 'Assign tasks and track completion',
+          color: ShieldTheme.success,
+          onTap: () => context.go('/family/$profileId/rewards'),
+        ),
+        const SizedBox(height: 16),
+        const _SectionLabel(label: 'Achievements'),
+        const SizedBox(height: 10),
+        _NavCard(
+          icon: Icons.military_tech_rounded,
+          title: 'Achievements & Badges',
+          subtitle: 'Celebrate milestones and good behavior',
+          color: ShieldTheme.primaryLight,
+          onTap: () => context.go('/achievements'),
+        ),
+        _NavCard(
+          icon: Icons.leaderboard_rounded,
+          title: 'Progress & Streaks',
+          subtitle: 'Daily streaks and overall progress',
+          color: ShieldTheme.primary,
+          onTap: () => context.go('/family/$profileId/reports'),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared local widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _SectionLabel extends StatelessWidget {
   final String label;
   const _SectionLabel({required this.label});
@@ -652,12 +1138,12 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      label,
+      label.toUpperCase(),
       style: const TextStyle(
         fontWeight: FontWeight.w700,
-        fontSize: 13,
+        fontSize: 11,
         color: ShieldTheme.textSecondary,
-        letterSpacing: 0.6,
+        letterSpacing: 0.8,
       ),
     );
   }
@@ -684,17 +1170,17 @@ class _StatBox extends StatelessWidget {
         children: [
           Container(
             width: 30, height: 30,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 17),
-            alignment: Alignment.center,
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w800,
               color: ShieldTheme.textPrimary,
@@ -711,86 +1197,13 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-class _LocationTab extends StatelessWidget {
-  final String profileId;
-  const _LocationTab({required this.profileId});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text('Location Features', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-        const SizedBox(height: 12),
-        _NavCard(
-          icon: Icons.fence, title: 'Geofences',
-          subtitle: 'Set up safe zones on the map',
-          color: ShieldTheme.primary,
-          onTap: () => context.go('/family/$profileId/geofences'),
-        ),
-        _NavCard(
-          icon: Icons.place, title: 'Saved Places',
-          subtitle: 'Manage frequently visited locations',
-          color: ShieldTheme.success,
-          onTap: () => context.go('/family/$profileId/places'),
-        ),
-        _NavCard(
-          icon: Icons.route, title: 'Location History',
-          subtitle: 'Route playback and timeline',
-          color: ShieldTheme.warning,
-          onTap: () => context.go('/family/$profileId/location-history'),
-        ),
-        _NavCard(
-          icon: Icons.link_rounded, title: 'Share Location',
-          subtitle: 'Create temporary shareable links',
-          color: ShieldTheme.accent,
-          onTap: () => context.go('/family/$profileId/location-share'),
-        ),
-        _NavCard(
-          icon: Icons.notifications_active_rounded, title: 'Check-in Reminders',
-          subtitle: 'Get notified if child goes silent',
-          color: ShieldTheme.primaryDark,
-          onTap: () => context.go('/family/$profileId/checkin-reminder'),
-        ),
-      ],
-    );
-  }
-}
-
-class _InsightsTab extends StatelessWidget {
-  final String profileId;
-  const _InsightsTab({required this.profileId});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text('AI & Insights', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-        const SizedBox(height: 12),
-        _NavCard(
-          icon: Icons.psychology, title: 'AI Behavioral Insights',
-          subtitle: 'Risk analysis and recommendations',
-          color: ShieldTheme.accent,
-          onTap: () => context.go('/family/$profileId/ai-insights'),
-        ),
-        _NavCard(
-          icon: Icons.bar_chart, title: 'Full Reports',
-          subtitle: 'Detailed usage analytics',
-          color: ShieldTheme.success,
-          onTap: () => context.go('/family/$profileId/reports'),
-        ),
-      ],
-    );
-  }
-}
-
 class _NavCard extends StatelessWidget {
   final IconData icon;
   final String title, subtitle;
   final VoidCallback onTap;
   final Color color;
-  const _NavCard({required this.icon, required this.title, required this.subtitle, required this.onTap, this.color = ShieldTheme.primary});
+  const _NavCard({required this.icon, required this.title, required this.subtitle,
+      required this.onTap, this.color = ShieldTheme.primary});
 
   @override
   Widget build(BuildContext context) {
@@ -839,7 +1252,8 @@ class _NavCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: ShieldTheme.textPrimary)),
+                      Text(title, style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 14, color: ShieldTheme.textPrimary)),
                       const SizedBox(height: 2),
                       Text(subtitle, style: const TextStyle(fontSize: 12, color: ShieldTheme.textSecondary)),
                     ],
