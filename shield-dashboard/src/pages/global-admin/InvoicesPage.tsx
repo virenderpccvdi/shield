@@ -20,6 +20,7 @@ import { getAllInvoices, openInvoicePdf } from '../../api/billing';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 const STATUS_CONFIG: Record<string, { color: 'success' | 'error' | 'warning' | 'default'; label: string; icon: React.ReactNode }> = {
   PAID:     { color: 'success', label: 'Paid',     icon: <CheckCircleIcon sx={{ fontSize: 14 }} /> },
@@ -174,7 +175,7 @@ export default function InvoicesPage() {
       </Card>
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>

@@ -12,6 +12,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface BlockedDomain {
   id?: string;
@@ -98,7 +99,7 @@ export default function IspBlocklistPage() {
 
       <Card>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+          <LoadingPage />
         ) : domains.length === 0 ? (
           <EmptyState
             icon={<BlockIcon sx={{ fontSize: 36, color: '#00695C' }} />}

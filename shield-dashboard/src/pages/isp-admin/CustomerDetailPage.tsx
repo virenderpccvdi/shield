@@ -31,6 +31,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 /* ─── Types ─────────────────────────────────────────── */
 interface Customer {
@@ -469,7 +470,7 @@ export default function CustomerDetailPage() {
     enabled: !!id,
   });
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
   if (!customer) return (
     <AnimatedPage>
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(backPath)}>Back</Button>

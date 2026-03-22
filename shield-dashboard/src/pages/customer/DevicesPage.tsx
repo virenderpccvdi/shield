@@ -28,6 +28,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface ChildProfile {
   id: string;
@@ -337,7 +338,7 @@ export default function DevicesPage() {
       />
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : !devices || devices.length === 0 ? (
         <EmptyState
           icon={<DevicesIcon sx={{ fontSize: 36, color: '#00897B' }} />}

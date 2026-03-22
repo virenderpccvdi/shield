@@ -29,6 +29,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import WelcomeBanner from '../../components/WelcomeBanner';
+import LoadingPage from '../../components/LoadingPage';
 
 interface ChildProfile {
   id: string; name: string; online: boolean; lastSeen?: string;
@@ -214,7 +215,7 @@ export default function CustomerDashboardPage() {
     [categories]
   );
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
   if (error) return <Alert severity="error" sx={{ mt: 2 }}>Failed to load dashboard. Check your connection.</Alert>;
 
   const alerts = recentAlerts || [];

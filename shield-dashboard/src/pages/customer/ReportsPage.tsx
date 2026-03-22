@@ -24,6 +24,7 @@ import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import EmptyState from '../../components/EmptyState';
 import { gradients } from '../../theme/theme';
+import LoadingPage from '../../components/LoadingPage';
 
 type Period = 'TODAY' | 'WEEK' | 'MONTH';
 
@@ -292,7 +293,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
 
       {/* Summary Stats Row */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : (
         <>
           <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -364,7 +365,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                       {period === 'TODAY' ? 'Hourly breakdown' : period === 'WEEK' ? 'Daily breakdown — last 7 days' : 'Daily breakdown — last 30 days'}
                     </Typography>
                     {dailyQuery.isLoading ? (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+                      <LoadingPage />
                     ) : daily.length === 0 ? (
                       <EmptyState
                         icon={<DnsIcon sx={{ fontSize: 36, color: '#1565C0' }} />}
@@ -423,7 +424,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                           Content types that were blocked
                         </Typography>
                         {catQuery.isLoading ? (
-                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+                          <LoadingPage />
                         ) : categories.length === 0 ? (
                           <Box sx={{ textAlign: 'center', py: 4 }}>
                             <CategoryIcon sx={{ fontSize: 40, color: '#ccc', mb: 1 }} />
@@ -464,7 +465,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                           Category Details
                         </Typography>
                         {catQuery.isLoading ? (
-                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+                          <LoadingPage />
                         ) : categories.length === 0 ? (
                           <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
                             No data for this period
@@ -524,7 +525,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                       Most frequently blocked sites
                     </Typography>
                     {topBlockedQuery.isLoading ? (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+                      <LoadingPage />
                     ) : topBlocked.length === 0 ? (
                       <EmptyState
                         icon={<BlockIcon sx={{ fontSize: 36, color: '#E53935' }} />}
@@ -593,7 +594,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                       <Typography variant="body2" color="text.secondary">Latest DNS queries from this profile</Typography>
                     </Box>
                     {historyQuery.isLoading ? (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+                      <LoadingPage />
                     ) : history.length === 0 ? (
                       <EmptyState
                         icon={<DnsIcon sx={{ fontSize: 36, color: '#1565C0' }} />}
@@ -667,7 +668,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                       Time spent per app (top 10)
                     </Typography>
                     {appUsageQuery.isLoading ? (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+                      <LoadingPage />
                     ) : appUsage.length === 0 ? (
                       <EmptyState
                         icon={<LanguageIcon sx={{ fontSize: 36, color: '#1565C0' }} />}

@@ -15,6 +15,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface CategoryRow { key: string; label: string; blocked: boolean; }
 interface DomainEntry { id?: string; domain: string; reason?: string; }
@@ -217,7 +218,7 @@ export default function IspFilteringPage() {
         {/* Tab 0: Categories */}
         {tab === 0 && (
           catLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+            <LoadingPage />
           ) : (
             <TableContainer>
               <Table size="small">
@@ -260,7 +261,7 @@ export default function IspFilteringPage() {
         {/* Tab 1: Blocklist */}
         {tab === 1 && (
           blockLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+            <LoadingPage />
           ) : (
             <>
               {platformBlocklist.length > 0 && (
@@ -291,7 +292,7 @@ export default function IspFilteringPage() {
         {/* Tab 2: Allowlist */}
         {tab === 2 && (
           allowLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+            <LoadingPage />
           ) : (
             <>
               {platformAllowlist.length > 0 && (

@@ -20,6 +20,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface Customer { id: string; userId?: string; name?: string; email?: string; subscriptionPlan?: string; profileCount?: number; }
 interface ChildProfile { id: string; name?: string; age?: number; filterLevel?: string; dnsClientId?: string; }
@@ -308,7 +309,7 @@ export default function IspAppControlPage() {
 
       {/* Customer list */}
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : !customers || customers.length === 0 ? (
         <EmptyState
           icon={<PeopleIcon sx={{ fontSize: 36, color: '#00897B' }} />}

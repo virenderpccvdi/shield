@@ -21,6 +21,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface Tenant { id: string; name: string; slug: string; plan: string; active: boolean; }
 interface Customer { id: string; userId?: string; name?: string; email?: string; subscriptionPlan?: string; profileCount?: number; tenantId?: string; }
@@ -267,7 +268,7 @@ export default function AdminAppControlPage() {
 
       {/* Customer list */}
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : !customers || customers.length === 0 ? (
         <EmptyState icon={<PeopleIcon sx={{ fontSize: 36, color: '#00897B' }} />} title="No customers found"
           description={selectedTenant === 'all' ? 'No customers exist on the platform yet' : 'This tenant has no customers yet'} />

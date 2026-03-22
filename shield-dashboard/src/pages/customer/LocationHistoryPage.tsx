@@ -22,6 +22,7 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import LoadingPage from '../../components/LoadingPage';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M';
 
@@ -330,9 +331,7 @@ export default function LocationHistoryPage() {
           <AnimatedPage delay={0.15}>
             <Card sx={{ overflow: 'hidden' }}>
               {isLoading ? (
-                <Box sx={{ height: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <CircularProgress />
-                </Box>
+                <LoadingPage />
               ) : (
                 <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
                   <Map

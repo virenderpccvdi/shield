@@ -33,6 +33,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 interface AuditEntry {
   id: string;
@@ -380,7 +381,7 @@ export default function AuditLogPage() {
       </Card>
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : filtered.length === 0 ? (
         <Card sx={{ borderRadius: 2 }}>
           <Box sx={{ textAlign: 'center', py: 8 }}>

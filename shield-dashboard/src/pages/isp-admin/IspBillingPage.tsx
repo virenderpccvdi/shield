@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSubscription, getActivePlans, createCheckout, cancelSubscription, getMyInvoices } from '../../api/billing';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 export default function IspBillingPage() {
   const qc = useQueryClient();
@@ -40,7 +41,7 @@ export default function IspBillingPage() {
       <PageHeader icon={<PaymentIcon />} title="Billing & Subscription" subtitle="Manage your ISP plan and invoices" iconColor="#00897B" />
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : (
         <>
           <Card sx={{ mb: 3 }}>

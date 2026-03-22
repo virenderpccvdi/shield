@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 interface ChildProfile {
   id: string; customerId: string; name: string;
@@ -114,7 +115,7 @@ export default function CustomerChildProfilesPage() {
       />
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : profiles.length === 0 ? (
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>

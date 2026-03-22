@@ -14,6 +14,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import { gradients } from '../../theme/theme';
+import LoadingPage from '../../components/LoadingPage';
 
 interface Task {
   id: string;
@@ -105,7 +106,7 @@ export default function RewardsPage({ profileId: profileIdProp }: RewardsPagePro
   const totalPoints = approved.reduce((s, t) => s + (t.rewardPoints || 0), 0);
   const progress = tasks.length > 0 ? (approved.length / tasks.length) * 100 : 0;
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
 
   return (
     <AnimatedPage>

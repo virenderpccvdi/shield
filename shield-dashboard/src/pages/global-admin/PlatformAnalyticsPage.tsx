@@ -19,6 +19,7 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import { gradients } from '../../theme/theme';
+import LoadingPage from '../../components/LoadingPage';
 
 const COLORS = ['#1565C0', '#43A047', '#FB8C00', '#E53935', '#9C27B0', '#00ACC1'];
 
@@ -187,7 +188,7 @@ export default function PlatformAnalyticsPage() {
         <Tab label="Blocked Content" />
       </Tabs>
 
-      {loading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>}
+      {loading && <LoadingPage />}
 
       <Box sx={{ '@keyframes tabFadeIn': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } } }}>
         {!loading && tab === 0 && (

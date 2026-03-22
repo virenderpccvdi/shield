@@ -22,6 +22,7 @@ import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import EmptyState from '../../components/EmptyState';
 import { gradients } from '../../theme/theme';
+import LoadingPage from '../../components/LoadingPage';
 
 const ROLE_COLOR: Record<string, 'error' | 'warning' | 'success' | 'default'> = {
   GLOBAL_ADMIN: 'error', ISP_ADMIN: 'warning', CUSTOMER: 'success',
@@ -93,7 +94,7 @@ export default function UserDetailPage() {
   });
   const userTenant = tenants.find((t: any) => t.id === user?.tenantId);
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
   if (!user) return <EmptyState icon={<PersonIcon sx={{ fontSize: 36 }} />} title="User not found" description="The requested user could not be loaded" />;
 
   const isCustomer = user.role === 'CUSTOMER';

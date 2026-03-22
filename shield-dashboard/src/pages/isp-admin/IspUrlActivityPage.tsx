@@ -18,6 +18,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface Customer { id: string; userId?: string; name?: string; email?: string; }
 interface ChildProfile { id: string; name?: string; age?: number; filterLevel?: string; dnsClientId?: string; }
@@ -289,7 +290,7 @@ export default function IspUrlActivityPage() {
             </CardContent>
 
             {loadingHistory ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+              <LoadingPage />
             ) : filteredHistory.length === 0 ? (
               <Box sx={{ py: 4 }}>
                 <Alert severity="info" sx={{ borderRadius: 0 }}>No URL activity found for the selected filters.</Alert>

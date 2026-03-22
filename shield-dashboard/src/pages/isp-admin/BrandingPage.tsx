@@ -14,6 +14,7 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 interface BrandingConfig {
   companyName: string;
@@ -75,7 +76,7 @@ export default function BrandingPage() {
     setDirty(true);
   };
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
 
   return (
     <AnimatedPage>

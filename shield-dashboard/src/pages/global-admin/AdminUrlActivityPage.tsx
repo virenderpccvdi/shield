@@ -18,6 +18,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface Tenant { id: string; name: string; plan?: string; }
 interface Customer { id: string; userId?: string; name?: string; email?: string; }
@@ -317,7 +318,7 @@ export default function AdminUrlActivityPage() {
             </CardContent>
 
             {loadingHistory ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+              <LoadingPage />
             ) : filteredHistory.length === 0 ? (
               <Box sx={{ py: 4 }}>
                 <Alert severity="info" sx={{ borderRadius: 0 }}>No URL activity found for the selected filters.</Alert>

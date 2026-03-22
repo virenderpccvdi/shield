@@ -24,6 +24,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 interface Category { id: string; name: string; key: string; blocked: boolean; alwaysOn?: boolean; emoji: string; }
 
@@ -330,7 +331,7 @@ export default function RulesPage() {
     setSnackbar({ open: true, message: `Successfully imported ${domains.length} domains`, severity: 'success' });
   };
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
 
   return (
     <AnimatedPage>

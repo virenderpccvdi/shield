@@ -24,6 +24,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 interface Tenant {
   id: string; name: string; slug: string; plan: string; status: string;
@@ -94,7 +95,7 @@ export default function FeatureManagementPage() {
 
   const activeTenants = tenants.filter(t => t.status !== 'SUSPENDED');
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
 
   return (
     <AnimatedPage>

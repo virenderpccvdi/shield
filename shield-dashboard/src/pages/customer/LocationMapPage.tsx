@@ -12,6 +12,7 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useState } from 'react';
+import LoadingPage from '../../components/LoadingPage';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M';
 
@@ -224,9 +225,7 @@ export default function LocationMapPage() {
         <Card sx={{ overflow: 'hidden' }}>
           <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
             {isLoading ? (
-              <Box sx={{ height: '65vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CircularProgress />
-              </Box>
+              <LoadingPage />
             ) : (
               <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
                 <Map

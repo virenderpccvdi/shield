@@ -31,6 +31,7 @@ import AnimatedPage from '../../components/AnimatedPage';
 import ActivityPage from '../customer/ActivityPage';
 import ReportsPage from '../customer/ReportsPage';
 import RewardsPage from '../customer/RewardsPage';
+import LoadingPage from '../../components/LoadingPage';
 
 interface ChildProfile {
   id: string; customerId: string; tenantId: string; name: string;
@@ -112,7 +113,7 @@ function ScheduleTab({ profileId }: { profileId: string }) {
     }));
   };
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
 
   const presets = [
     { label: 'School Hours', icon: <SchoolIcon sx={{ fontSize: 16 }} />, color: '#1565C0', key: 'SCHOOL' },
@@ -258,7 +259,7 @@ function BudgetsTab({ profileId }: { profileId: string }) {
   });
 
   const defaultApps = ['youtube', 'tiktok', 'gaming', 'social', 'streaming', 'education'];
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
   const allApps = [...new Set([...defaultApps, ...Object.keys(budgets)])];
 
   return (
@@ -348,7 +349,7 @@ function RulesTab({ profileId }: { profileId: string }) {
     onSuccess: () => { setSnack('Allowlist saved'); queryClient.invalidateQueries({ queryKey: ['isp-rules', profileId] }); },
   });
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
   const catEntries = Object.entries(catLabels || {});
 
   return (
@@ -446,7 +447,7 @@ function ExtensionsTab({ profileId }: { profileId: string }) {
   });
 
   const requests = data || [];
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
 
   return (
     <Box>
@@ -501,7 +502,7 @@ export default function IspChildDetailPage() {
     queryFn: () => api.get(`/profiles/isp/children/${profileId}`).then(r => (r.data?.data || r.data) as ChildProfile),
   });
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
   if (!profile) return <Typography color="error">Profile not found</Typography>;
 
   const fc = filterColors[profile.filterLevel] || filterColors.MODERATE;

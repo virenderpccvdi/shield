@@ -23,6 +23,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface Plan {
   id: string;
@@ -241,7 +242,7 @@ export default function IspPlansPage() {
       />
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : plans.length === 0 ? (
         <EmptyState
           icon={<CardMembershipIcon sx={{ fontSize: 36, color: '#00897B' }} />}

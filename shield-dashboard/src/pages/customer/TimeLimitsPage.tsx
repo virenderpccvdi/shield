@@ -24,6 +24,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface ChildProfile { id: string; name: string; }
 
@@ -202,7 +203,7 @@ export default function TimeLimitsPage() {
   const totalAllowed = todayUsage?.totalMinutesAllowed || Object.values(effectiveBudgets).filter(v => v > 0).reduce((a, b) => a + b, 0);
   const usagePercent = totalAllowed > 0 ? Math.min((totalUsed / totalAllowed) * 100, 100) : 0;
 
-  if (loadingChildren) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (loadingChildren) return <LoadingPage />;
 
   if (!children || children.length === 0) {
     return (
@@ -315,7 +316,7 @@ export default function TimeLimitsPage() {
           Category Budgets
         </Typography>
         {loadingBudgets ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+          <LoadingPage />
         ) : (
           <Box sx={{ mb: 3 }}>
             {Object.entries(CATEGORY_CONFIG).map(([key, config], i) => {

@@ -13,6 +13,7 @@ import { getSubscription, createCheckout, cancelSubscription, getMyInvoices, ope
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 const planColors: Record<string, string> = {
   STARTER: '#43A047',
@@ -69,7 +70,7 @@ export default function SubscriptionPage() {
       <PageHeader icon={<CardMembershipIcon />} title="Subscription" subtitle="Manage your plan and billing" iconColor="#7B1FA2" />
 
       {subLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : (
         <>
           {/* Current Plan */}

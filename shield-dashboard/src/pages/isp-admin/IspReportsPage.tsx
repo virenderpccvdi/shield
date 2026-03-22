@@ -21,6 +21,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -288,7 +289,7 @@ export default function IspReportsPage() {
 
       {/* Tenant Overview Cards */}
       {loadingOverview ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : tenantOverview ? (
         <AnimatedPage delay={0.1}>
           <Grid container spacing={2} sx={{ mb: 3 }}>

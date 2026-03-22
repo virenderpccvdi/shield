@@ -14,6 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -228,9 +229,7 @@ export default function FamilyMembersPage() {
       )}
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
-        </Box>
+        <LoadingPage />
       ) : (
         <Grid container spacing={3}>
 

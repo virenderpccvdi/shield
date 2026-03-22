@@ -15,6 +15,7 @@ import AndroidIcon from '@mui/icons-material/Android';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 interface AppInfo {
   id: string; profileId: string; packageName: string; appName?: string;
@@ -78,7 +79,7 @@ export default function ChildAppsPage() {
 
   if (isLoading) return (
     <AnimatedPage>
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+      <LoadingPage />
     </AnimatedPage>
   );
 

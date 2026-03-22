@@ -21,6 +21,7 @@ import StatCard from '../../components/StatCard';
 import EmptyState from '../../components/EmptyState';
 import { gradients } from '../../theme/theme';
 import { useAuthStore } from '../../store/auth.store';
+import LoadingPage from '../../components/LoadingPage';
 
 interface DayQueries { day: string; queries: number; blocks: number; }
 interface CategoryStat { name: string; value: number; percent: number; }
@@ -175,7 +176,7 @@ export default function IspAnalyticsPage() {
       </Tabs>
 
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       )}
 
       {/* Tab 0: DNS Traffic */}

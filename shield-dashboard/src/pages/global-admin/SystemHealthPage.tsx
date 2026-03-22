@@ -19,6 +19,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import { gradients } from '../../theme/theme';
+import LoadingPage from '../../components/LoadingPage';
 
 interface ServiceInfo {
   name: string;
@@ -206,7 +207,7 @@ export default function SystemHealthPage() {
       </Typography>
 
       {loading && services.length === 0 ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : (
         <Grid container spacing={2}>
           {services.map((svc, idx) => {

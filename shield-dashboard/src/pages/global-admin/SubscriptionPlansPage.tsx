@@ -17,6 +17,7 @@ import api from '../../api/axios';
 import { syncPlanToStripe } from '../../api/billing';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 interface Plan {
   id: string;
@@ -134,7 +135,7 @@ export default function SubscriptionPlansPage() {
       />
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       ) : (
         <Grid container spacing={3}>
           {plans.map((plan, idx) => {

@@ -122,7 +122,7 @@ function ScheduleTab({ profileId }: { profileId: string }) {
     }));
   };
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
 
   if (scheduleError && !schedule) {
     return (
@@ -276,7 +276,7 @@ function BudgetsTab({ profileId }: { profileId: string }) {
   });
 
   const defaultApps = ['youtube', 'tiktok', 'gaming', 'social', 'streaming', 'education'];
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
   const allApps = [...new Set([...defaultApps, ...Object.keys(budgets)])];
 
   return (
@@ -371,7 +371,7 @@ function RulesTab({ profileId }: { profileId: string }) {
     onError: (e: any) => showSnack(e?.response?.data?.message || 'Failed to save allowlist', 'error'),
   });
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
   const catEntries = Object.entries(catLabels || {});
 
   return (
@@ -469,7 +469,7 @@ function ExtensionsTab({ profileId }: { profileId: string }) {
   });
 
   const requests = data || [];
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
 
   return (
     <Box>
@@ -516,6 +516,7 @@ function ExtensionsTab({ profileId }: { profileId: string }) {
 
 // Lazy-load heavy pages so they don't bloat the profile page bundle
 import { lazy, Suspense } from 'react';
+import LoadingPage from '../../components/LoadingPage';
 const RewardsPage   = lazy(() => import('./RewardsPage'));
 const ReportsPage   = lazy(() => import('./ReportsPage'));
 
@@ -533,7 +534,7 @@ export default function ChildProfilePage() {
     retry: 1,
   });
 
-  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+  if (isLoading) return <LoadingPage />;
   if (isError || !profile) {
     const status = (error as any)?.response?.status;
     const msg = status === 401 ? 'Your session has expired. Please log in again.'

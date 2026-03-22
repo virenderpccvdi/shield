@@ -15,6 +15,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface CategoryRow { key: string; label: string; blocked: boolean; }
 
@@ -201,7 +202,7 @@ export default function DnsRulesPage() {
             <Card>
               <CardContent sx={{ pb: '16px !important' }}>
                 {loading ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+                  <LoadingPage />
                 ) : (
                   <>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

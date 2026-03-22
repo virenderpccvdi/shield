@@ -14,6 +14,7 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import LoadingPage from '../../components/LoadingPage';
 
 interface ChildProfile {
   id: string;
@@ -76,7 +77,7 @@ export default function AppControlPage() {
       <AnimatedPage>
         <PageHeader icon={<PhonelinkSetupIcon />} title="App & Content Control"
           subtitle="Manage DNS filtering for each child profile" iconColor="#1565C0" />
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+        <LoadingPage />
       </AnimatedPage>
     );
   }

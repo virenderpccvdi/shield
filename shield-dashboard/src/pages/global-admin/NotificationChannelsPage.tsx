@@ -15,6 +15,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
+import LoadingPage from '../../components/LoadingPage';
 
 interface ChannelData {
   channelType: string;
@@ -111,7 +112,7 @@ export default function NotificationChannelsPage() {
   const inputSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
 
   if (loading) return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>
+    <LoadingPage />
   );
 
   return (
