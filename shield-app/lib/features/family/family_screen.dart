@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../app/theme.dart';
+import '../../core/shield_widgets.dart';
 
 final profilesProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
   final client = ref.read(dioProvider);
@@ -61,7 +62,13 @@ class FamilyScreen extends ConsumerWidget {
         ],
       ),
       body: profilesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ])),
         error: (e, _) => _ErrorState(onRetry: () => ref.invalidate(profilesProvider)),
         data: (profiles) => profiles.isEmpty
           ? _EmptyState()

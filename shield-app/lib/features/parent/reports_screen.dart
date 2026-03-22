@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
+import '../../core/shield_widgets.dart';
 
 // Top-level function required by compute() — must not be a closure or method
 Future<void> _writeFileIsolate(Map<String, dynamic> args) async {
@@ -210,7 +211,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
         children: [
           // ── TAB 1: Overview ──────────────────────────────────────────────
           _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]))
             : RefreshIndicator(
                 onRefresh: () async => _load(),
                 child: SingleChildScrollView(
@@ -339,7 +346,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
 
           // ── TAB 2: App Usage ─────────────────────────────────────────────
           _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]))
             : RefreshIndicator(
                 onRefresh: () async => _load(),
                 child: _appUsage.isEmpty
@@ -454,7 +467,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
               ),
               Expanded(
                 child: _history.isEmpty && _historyLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]))
                   : _history.isEmpty
                     ? const Center(child: Text('No browsing history yet.\nHistory appears once the child uses the internet.',
                         textAlign: TextAlign.center,

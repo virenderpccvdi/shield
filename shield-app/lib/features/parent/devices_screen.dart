@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
+import '../../core/shield_widgets.dart';
 
 class DevicesScreen extends ConsumerStatefulWidget {
   final String profileId;
@@ -158,7 +159,13 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
         foregroundColor: Colors.white,
       ),
       body: _loading
-        ? const Center(child: CircularProgressIndicator())
+        ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]))
         : RefreshIndicator(
             onRefresh: () async => _load(),
             child: _devices.isEmpty

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
+import '../../core/shield_widgets.dart';
 
 class PanicAlertScreen extends ConsumerStatefulWidget {
   const PanicAlertScreen({super.key});
@@ -84,7 +85,13 @@ class _PanicAlertScreenState extends ConsumerState<PanicAlertScreen> {
         ],
       ),
       body: _loading
-        ? const Center(child: CircularProgressIndicator())
+        ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]))
         : RefreshIndicator(
             onRefresh: () async => _load(),
             child: _alerts.isEmpty

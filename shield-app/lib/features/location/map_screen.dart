@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/api_client.dart';
 import '../../core/api/endpoints.dart';
+import '../../core/shield_widgets.dart';
 
 // ---------------------------------------------------------------------------
 // Data models
@@ -311,7 +312,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]))
           : _error != null
               ? _buildErrorState()
               : Column(

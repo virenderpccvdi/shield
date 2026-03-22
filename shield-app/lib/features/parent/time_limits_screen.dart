@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
+import '../../core/shield_widgets.dart';
 
 class TimeLimitsScreen extends ConsumerStatefulWidget {
   final String profileId;
@@ -165,7 +166,13 @@ class _TimeLimitsScreenState extends ConsumerState<TimeLimitsScreen> {
         ],
       ),
       body: _loading
-        ? const Center(child: CircularProgressIndicator())
+        ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]))
         : ListView(
             padding: const EdgeInsets.all(16),
             children: [

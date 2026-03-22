@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/api_client.dart';
+import '../../core/shield_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN SCREEN — list + overview map
@@ -328,7 +329,13 @@ class _GeofencesScreenState extends ConsumerState<GeofencesScreen> {
             style: TextStyle(fontWeight: FontWeight.w600)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(children: [
+                ShieldCardSkeleton(lines: 4),
+                SizedBox(height: 12),
+                ShieldCardSkeleton(lines: 3),
+              ]))
           : CustomScrollView(
               slivers: [
                 // Overview map

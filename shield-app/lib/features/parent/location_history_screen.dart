@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../core/api_client.dart';
+import '../../core/shield_widgets.dart';
 
 class LocationHistoryScreen extends ConsumerStatefulWidget {
   final String profileId;
@@ -316,7 +317,13 @@ class _LocationHistoryScreenState extends ConsumerState<LocationHistoryScreen> {
           Expanded(
             flex: 3,
             child: _loading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]))
               : GoogleMap(
                   initialCameraPosition: _defaultCamera,
                   onMapCreated: (c) {

@@ -14,6 +14,7 @@ import '../../core/auth_state.dart';
 import '../../core/app_lock_service.dart';
 import '../../core/app_blocking_service.dart';
 import '../../core/dns_vpn_service.dart';
+import '../../core/shield_widgets.dart';
 import 'pin_verify_dialog.dart';
 
 final childUsageSummaryProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, profileId) async {
@@ -508,7 +509,7 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? _ChildLoadingSkeleton()
             : CustomScrollView(
                 slivers: [
                   // ── Sliver App Bar ────────────────────────────────────────
@@ -618,7 +619,13 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                         // ── Quick Stats Row ──────────────────────────────────
                         usageSummary.when(
                           data: (data) => _StatsRow(data: data),
-                          loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+                          loading: () => Row(children: [
+                            Expanded(child: ShieldSkeleton(height: 80, radius: 12)),
+                            const SizedBox(width: 10),
+                            Expanded(child: ShieldSkeleton(height: 80, radius: 12)),
+                            const SizedBox(width: 10),
+                            Expanded(child: ShieldSkeleton(height: 80, radius: 12)),
+                          ]),
                           error: (_, __) => const SizedBox.shrink(),
                         ),
                         const SizedBox(height: 16),
@@ -687,6 +694,44 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
 }
 
 // ── Sub-widgets ───────────────────────────────────────────────────────────────
+
+class _ChildLoadingSkeleton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 140,
+          pinned: true,
+          automaticallyImplyLeading: false,
+          backgroundColor: const Color(0xFF1565C0),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              ShieldSkeleton(height: 120, radius: 16),
+              const SizedBox(height: 16),
+              ShieldSkeleton(height: 80, radius: 16),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: ShieldSkeleton(height: 80, radius: 12)),
+                const SizedBox(width: 10),
+                Expanded(child: ShieldSkeleton(height: 80, radius: 12)),
+                const SizedBox(width: 10),
+                Expanded(child: ShieldSkeleton(height: 80, radius: 12)),
+              ]),
+              const SizedBox(height: 16),
+              const ShieldCardSkeleton(lines: 4),
+              const SizedBox(height: 16),
+              const ShieldCardSkeleton(lines: 3),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class _SosButton extends StatelessWidget {
   final bool sending;

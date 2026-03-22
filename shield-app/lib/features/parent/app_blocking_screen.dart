@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 import '../../app/theme.dart';
+import '../../core/shield_widgets.dart';
 
 class AppBlockingScreen extends ConsumerStatefulWidget {
   final String profileId;
@@ -197,7 +198,13 @@ class _AppBlockingScreenState extends ConsumerState<AppBlockingScreen> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(children: [
+            ShieldCardSkeleton(lines: 4),
+            SizedBox(height: 12),
+            ShieldCardSkeleton(lines: 3),
+          ]))
           : _error != null
               ? Center(
                   child: Column(

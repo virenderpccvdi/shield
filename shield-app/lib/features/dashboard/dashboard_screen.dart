@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/auth_state.dart';
 import '../../core/api_client.dart';
 import '../../core/shield_logo.dart';
+import '../../core/shield_widgets.dart';
 import '../../app/theme.dart';
 import '../notifications/notification_history_screen.dart';
 
@@ -1026,15 +1027,88 @@ class _LoadingBody extends StatelessWidget {
   const _LoadingBody();
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      Container(
-        height: 220,
-        decoration: const BoxDecoration(gradient: ShieldTheme.heroGradient),
-        child: const SafeArea(
-          child: Center(child: CircularProgressIndicator(color: Colors.white)),
-        ),
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Hero header skeleton
+          Container(
+            height: 220,
+            decoration: const BoxDecoration(gradient: ShieldTheme.heroGradient),
+          ),
+          // Stats card skeleton
+          Transform.translate(
+            offset: const Offset(0, -20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                  child: Row(
+                    children: List.generate(4, (i) => Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Column(children: [
+                          ShieldSkeleton(height: 40, width: 40, radius: 12),
+                          const SizedBox(height: 8),
+                          ShieldSkeleton(height: 18, width: 32),
+                          const SizedBox(height: 4),
+                          ShieldSkeleton(height: 11, width: 48),
+                        ]),
+                      ),
+                    )),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Quick actions skeleton
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: List.generate(4, (i) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Column(children: [
+                    ShieldSkeleton(height: 56, radius: 14),
+                  ]),
+                ),
+              )),
+            ),
+          ),
+          // Child cards skeleton
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const ShieldSkeleton(width: 100, height: 16),
+                const SizedBox(height: 12),
+                for (int i = 0; i < 2; i++) ...[
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(children: [
+                        ShieldSkeleton(width: 52, height: 52, radius: 26),
+                        const SizedBox(width: 14),
+                        const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          ShieldSkeleton(width: 120, height: 14),
+                          SizedBox(height: 6),
+                          ShieldSkeleton(width: 80, height: 11),
+                        ])),
+                        ShieldSkeleton(width: 48, height: 24, radius: 8),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
-    ]);
+    );
   }
 }
 
