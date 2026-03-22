@@ -87,7 +87,7 @@ export default function HomeworkModePage() {
   });
 
   const stopMutation = useMutation({
-    mutationFn: () => api.delete(`/dns/rules/${profileId}/homework/stop`),
+    mutationFn: () => api.post(`/dns/rules/${profileId}/homework/stop`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['homework-status', profileId] });
       setSnackbar({ open: true, message: 'Homework Mode stopped', severity: 'success' });

@@ -196,7 +196,7 @@ export default function CustomerDashboardPage() {
     mutationFn: ({ id, paused }: { id: string; paused: boolean }) =>
       paused
         ? api.delete(`/dns/schedules/${id}/override`)
-        : api.post(`/dns/schedules/${id}/override`, { action: 'BLOCK_ALL', durationMinutes: 60 }),
+        : api.post(`/dns/schedules/${id}/override`, { overrideType: 'BLOCK_ALL', durationMinutes: 60 }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['children'] }),
   });
 

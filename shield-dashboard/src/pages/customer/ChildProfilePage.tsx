@@ -258,7 +258,7 @@ function BudgetsTab({ profileId }: { profileId: string }) {
 
   const { isLoading } = useQuery({
     queryKey: ['cust-budgets', profileId],
-    queryFn: () => api.get(`/dns/budgets/${profileId}`).then(r => {
+    queryFn: () => api.get(`/dns/dns-budgets/${profileId}`).then(r => {
       const d = r.data?.data || r.data;
       if (d && typeof d === 'object') setBudgets(d);
       return d;
@@ -267,11 +267,11 @@ function BudgetsTab({ profileId }: { profileId: string }) {
 
   const { data: todayData } = useQuery({
     queryKey: ['cust-budgets-today', profileId],
-    queryFn: () => api.get(`/dns/budgets/${profileId}/today`).then(r => r.data?.data || r.data).catch(() => null),
+    queryFn: () => api.get(`/dns/dns-budgets/${profileId}/today`).then(r => r.data?.data || r.data).catch(() => null),
   });
 
   const saveMutation = useMutation({
-    mutationFn: () => api.put(`/dns/budgets/${profileId}`, { budgets }),
+    mutationFn: () => api.put(`/dns/dns-budgets/${profileId}`, { budgets }),
     onSuccess: () => { setSnackSeverity('success'); setSnack('Budgets saved'); queryClient.invalidateQueries({ queryKey: ['cust-budgets', profileId] }); },
     onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save budgets'); },
   });
@@ -344,7 +344,8 @@ function RulesTab({ profileId }: { profileId: string }) {
     queryKey: ['cust-rules', profileId],
     queryFn: () => api.get(`/dns/rules/${profileId}`).then(r => {
       const d = r.data?.data || r.data;
-      if (d?.enabledCategories) setCategories(d.enabledCategories);
+      if (d?.categories) setCategories(d.categories);
+      else if (d?.enabledCategories) setCategories(d.enabledCategories);
       if (d?.customBlocklist) setBlocklist(d.customBlocklist);
       if (d?.customAllowlist) setAllowlist(d.customAllowlist);
       return d;
@@ -357,7 +358,7 @@ function RulesTab({ profileId }: { profileId: string }) {
   });
 
   const saveCatMutation = useMutation({
-    mutationFn: () => api.put(`/dns/rules/${profileId}/categories`, { enabledCategories: categories }),
+    mutationFn: () => api.put(`/dns/rules/${profileId}/categories`, { categories }),
     onSuccess: () => { showSnack('Categories saved'); queryClient.invalidateQueries({ queryKey: ['cust-rules', profileId] }); },
     onError: (e: any) => showSnack(e?.response?.data?.message || 'Failed to save categories', 'error'),
   });

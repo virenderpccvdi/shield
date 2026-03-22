@@ -89,7 +89,11 @@ export default function AppBudgetsPage() {
   });
 
   const addMutation = useMutation({
-    mutationFn: (data: AddBudgetForm) => api.post(`/dns/app-budgets/${profileId}`, data),
+    mutationFn: (data: AddBudgetForm) => api.post(`/dns/app-budgets/${profileId}`, {
+      appName: data.appName,
+      domainPattern: data.domain,
+      dailyMinutes: data.dailyMinutes,
+    }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['app-budgets', profileId] });
       setDialogOpen(false);

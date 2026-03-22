@@ -260,7 +260,7 @@ function BudgetsTab({ profileId }: { profileId: string }) {
 
   const { isLoading } = useQuery({
     queryKey: ['admin-budgets', profileId],
-    queryFn: () => api.get(`/dns/budgets/${profileId}`).then(r => {
+    queryFn: () => api.get(`/dns/dns-budgets/${profileId}`).then(r => {
       const d = r.data?.data || r.data;
       if (d && typeof d === 'object') setBudgets(d);
       return d;
@@ -269,11 +269,11 @@ function BudgetsTab({ profileId }: { profileId: string }) {
 
   const { data: todayData } = useQuery({
     queryKey: ['admin-budgets-today', profileId],
-    queryFn: () => api.get(`/dns/budgets/${profileId}/today`).then(r => r.data?.data || r.data).catch(() => null),
+    queryFn: () => api.get(`/dns/dns-budgets/${profileId}/today`).then(r => r.data?.data || r.data).catch(() => null),
   });
 
   const saveMutation = useMutation({
-    mutationFn: () => api.put(`/dns/budgets/${profileId}`, { budgets }),
+    mutationFn: () => api.put(`/dns/dns-budgets/${profileId}`, { budgets }),
     onSuccess: () => { setSnack('Budgets saved'); queryClient.invalidateQueries({ queryKey: ['admin-budgets', profileId] }); },
   });
 

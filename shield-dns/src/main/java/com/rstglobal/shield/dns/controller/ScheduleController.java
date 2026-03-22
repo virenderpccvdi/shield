@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -57,6 +59,26 @@ public class ScheduleController {
             @Valid @RequestBody ScheduleOverrideRequest req) {
         requireCustomer(role);
         return ResponseEntity.ok(ApiResponse.ok(scheduleService.applyOverride(profileId, req, parseUuid(tenantId))));
+    }
+
+    /** Lightweight status: returns currentMode, overrideActive, overrideEndsAt without the full grid. */
+    @GetMapping("/{profileId}/status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getStatus(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        requireCustomer(role);
+        ScheduleResponse s = scheduleService.getSchedule(profileId, parseUuid(tenantId));
+        String mode = (Boolean.TRUE.equals(s.getOverrideActive()) && s.getOverrideType() != null)
+                ? s.getOverrideType()
+                : (s.getActivePreset() != null ? s.getActivePreset() : "NORMAL");
+        Map<String, Object> status = new HashMap<>();
+        status.put("currentMode", mode);
+        status.put("overrideActive", s.getOverrideActive());
+        status.put("overrideType", s.getOverrideType());
+        status.put("overrideEndsAt", s.getOverrideEndsAt());
+        status.put("activePreset", s.getActivePreset());
+        return ResponseEntity.ok(ApiResponse.ok(status));
     }
 
     @DeleteMapping("/{profileId}/override")

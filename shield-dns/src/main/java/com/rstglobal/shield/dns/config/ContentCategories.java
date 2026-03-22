@@ -124,7 +124,7 @@ public final class ContentCategories {
                 cats.put("chat",           false);
                 cats.put("crypto",         false);
             }
-            case "MODERATE" -> {
+            case "MODERATE", "STANDARD" -> {
                 cats.put("gambling",       false);
                 cats.put("alcohol",        false);
                 cats.put("tobacco",        false);
