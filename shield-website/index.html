@@ -47,7 +47,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css?v=2"/>
+  <link rel="stylesheet" href="style.css?v=3"/>
 
   <!-- ═══ Structured Data ═══ -->
   <script type="application/ld+json">
@@ -588,71 +588,130 @@
 <!-- ═══════════════════════════ PRICING ═══════════════════════════ -->
 <section class="pricing" id="pricing" aria-labelledby="pricing-title">
   <div class="container">
-    <div class="section-header">
-      <div class="section-tag">Simple Pricing</div>
-      <h2 class="section-title" id="pricing-title">Free Today. Premium Coming Soon.</h2>
-      <p class="section-sub">Shield is completely free for families. Premium features will always have a generous free tier.</p>
+    <div class="section-tag">Simple Pricing</div>
+    <h2 class="section-title" id="pricing-title">Choose Your Plan</h2>
+    <p class="section-sub">Start free. Upgrade when you need more. No hidden fees.</p>
+
+    <div class="pricing-toggle">
+      <span class="toggle-label active" id="toggle-monthly">Monthly</span>
+      <label class="toggle-switch" aria-label="Toggle annual billing">
+        <input type="checkbox" id="billing-toggle">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="toggle-label" id="toggle-annual">Annual <span class="save-badge">Save 20%</span></span>
     </div>
+
     <div class="pricing-grid">
 
-      <!-- Starter -->
-      <div class="plan-card">
-        <div class="plan-name">Starter</div>
-        <div class="plan-price"><span class="plan-price-num">Free</span></div>
-        <p class="plan-desc">Perfect for single-child families getting started with parental controls.</p>
+      <!-- Basic -->
+      <div class="pricing-card">
+        <div class="plan-header">
+          <div class="plan-icon">🛡️</div>
+          <h3 class="plan-name">Basic</h3>
+          <p class="plan-tagline">Perfect to get started</p>
+          <div class="plan-price">
+            <span class="price-currency">₹</span>
+            <span class="price-amount" data-monthly="0" data-annual="0">0</span>
+            <span class="price-period">/month</span>
+          </div>
+          <div class="price-note">Free forever</div>
+        </div>
         <ul class="plan-features">
-          <li>1 child profile</li>
-          <li>DNS content filtering (40+ categories)</li>
-          <li>Weekly schedule</li>
-          <li>Real-time alerts (email)</li>
-          <li>1 device per child</li>
-          <li class="plan-dim">GPS location tracking</li>
-          <li class="plan-dim">AI insights</li>
-          <li class="plan-dim">Rewards system</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Up to 3 child profiles</li>
+          <li class="feature-item"><span class="fi-check">✓</span> DNS filtering (basic categories)</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Screen time scheduling</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Bedtime lock</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Parent + Child mobile app</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Safe search enforcement</li>
+          <li class="feature-item dim"><span class="fi-x">✗</span> Location tracking</li>
+          <li class="feature-item dim"><span class="fi-x">✗</span> Browsing history</li>
+          <li class="feature-item dim"><span class="fi-x">✗</span> Rewards &amp; badges</li>
+          <li class="feature-item dim"><span class="fi-x">✗</span> AI Learning Buddy</li>
         </ul>
-        <a href="register.html" class="plan-cta plan-cta-ghost">Get Started Free</a>
+        <a href="/register.html" class="btn btn-plan-outline">Get Started Free</a>
       </div>
 
       <!-- Family — featured -->
-      <div class="plan-card featured">
+      <div class="pricing-card featured">
         <div class="plan-badge">Most Popular</div>
-        <div class="plan-name">Family</div>
-        <div class="plan-price"><span class="plan-price-num">Free</span><span class="plan-price-period">&nbsp;forever</span></div>
-        <p class="plan-desc">Everything a family needs. 5 kids, all features, unlimited rules.</p>
+        <div class="plan-header">
+          <div class="plan-icon">👨‍👩‍👧‍👦</div>
+          <h3 class="plan-name">Family</h3>
+          <p class="plan-tagline">For growing families</p>
+          <div class="plan-price">
+            <span class="price-currency">₹</span>
+            <span class="price-amount" data-monthly="299" data-annual="239">299</span>
+            <span class="price-period">/month</span>
+          </div>
+          <div class="price-note annual-note" style="display:none">Billed ₹2,868/year</div>
+          <div class="price-note monthly-note">Billed monthly</div>
+        </div>
         <ul class="plan-features">
-          <li>Up to 5 child profiles</li>
-          <li>DNS content filtering (40+ categories)</li>
-          <li>Full weekly schedule + presets</li>
-          <li>Real-time alerts (email, WhatsApp, Telegram)</li>
-          <li>Unlimited devices per child</li>
-          <li>GPS location tracking &amp; geofences</li>
-          <li>Time budgets (per app)</li>
-          <li>Rewards &amp; tasks system</li>
-          <li>App blocking</li>
-          <li class="plan-dim">AI insights (coming soon)</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Up to 8 child profiles</li>
+          <li class="feature-item"><span class="fi-check">✓</span> All 43 DNS categories</li>
+          <li class="feature-item"><span class="fi-check">✓</span> 30-day browsing history</li>
+          <li class="feature-item"><span class="fi-check">✓</span> GPS location tracking</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Geofence alerts</li>
+          <li class="feature-item"><span class="fi-check">✓</span> SOS panic button</li>
+          <li class="feature-item"><span class="fi-check">✓</span> App time budgets</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Rewards &amp; achievements</li>
+          <li class="feature-item"><span class="fi-check">✓</span> AI Learning Buddy</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Weekly digest emails</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Priority support</li>
+          <li class="feature-item dim"><span class="fi-x">✗</span> Co-parent access</li>
+          <li class="feature-item dim"><span class="fi-x">✗</span> Video check-in</li>
+          <li class="feature-item dim"><span class="fi-x">✗</span> Monthly report cards</li>
         </ul>
-        <a href="register.html" class="plan-cta plan-cta-primary">Create Free Account →</a>
+        <a href="/register.html" class="btn btn-plan-primary">Start 14-Day Free Trial</a>
+        <p class="plan-footnote">No credit card required</p>
       </div>
 
-      <!-- Premium (Coming Soon) -->
-      <div class="plan-card">
-        <div class="plan-name">Premium</div>
-        <div class="plan-price"><span class="plan-price-coming">Coming Soon</span></div>
-        <p class="plan-desc">Advanced AI-powered insights and multi-family management for power users.</p>
+      <!-- Premium -->
+      <div class="pricing-card">
+        <div class="plan-header">
+          <div class="plan-icon">👑</div>
+          <h3 class="plan-name">Premium</h3>
+          <p class="plan-tagline">Complete protection</p>
+          <div class="plan-price">
+            <span class="price-currency">₹</span>
+            <span class="price-amount" data-monthly="599" data-annual="479">599</span>
+            <span class="price-period">/month</span>
+          </div>
+          <div class="price-note annual-note" style="display:none">Billed ₹5,748/year</div>
+          <div class="price-note monthly-note">Billed monthly</div>
+        </div>
         <ul class="plan-features">
-          <li>Everything in Family</li>
-          <li>Unlimited child profiles</li>
-          <li>AI behaviour insights &amp; risk scoring</li>
-          <li>Weekly PDF reports</li>
-          <li>Co-parent &amp; guardian access</li>
-          <li>Priority support</li>
-          <li>Custom DNS rules (advanced)</li>
-          <li>ISP &amp; school admin portal</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Unlimited child profiles</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Everything in Family</li>
+          <li class="feature-item"><span class="fi-check">✓</span> 90-day browsing history</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Co-parent access</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Video check-in</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Monthly report cards</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Location sharing links</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Battery alerts</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Check-in reminders</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Advanced access schedules</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Suspicious activity alerts</li>
+          <li class="feature-item"><span class="fi-check">✓</span> Dedicated support</li>
         </ul>
-        <button class="plan-cta plan-cta-ghost" disabled style="cursor:default;opacity:.6">Notify Me</button>
+        <a href="/register.html" class="btn btn-plan-outline">Start 14-Day Free Trial</a>
+        <p class="plan-footnote">No credit card required</p>
       </div>
 
+    </div><!-- /pricing-grid -->
+
+    <!-- ISP / Enterprise -->
+    <div class="pricing-enterprise">
+      <div class="enterprise-content">
+        <div class="enterprise-icon">🏢</div>
+        <div>
+          <h3>For ISPs &amp; Enterprises</h3>
+          <p>White-label Shield for your customers. Custom branding, bulk management, usage analytics, and dedicated onboarding.</p>
+        </div>
+        <a href="mailto:sales@rstglobal.in" class="btn btn-enterprise">Contact Sales</a>
+      </div>
     </div>
+
   </div>
 </section>
 
@@ -1548,6 +1607,21 @@ function goToSlide(n) {
 }
 
 carouselTimer = setInterval(() => goToSlide((currentSlide + 1) % 5), 3500);
+
+// ── Billing toggle ────────────────────────────────
+const billingToggle = document.getElementById('billing-toggle');
+if (billingToggle) {
+  billingToggle.addEventListener('change', function() {
+    const isAnnual = this.checked;
+    document.getElementById('toggle-monthly').classList.toggle('active', !isAnnual);
+    document.getElementById('toggle-annual').classList.toggle('active', isAnnual);
+    document.querySelectorAll('.price-amount').forEach(el => {
+      el.textContent = isAnnual ? el.dataset.annual : el.dataset.monthly;
+    });
+    document.querySelectorAll('.annual-note').forEach(el => el.style.display = isAnnual ? 'block' : 'none');
+    document.querySelectorAll('.monthly-note').forEach(el => el.style.display = isAnnual ? 'none' : 'block');
+  });
+}
 </script>
 
 <script>

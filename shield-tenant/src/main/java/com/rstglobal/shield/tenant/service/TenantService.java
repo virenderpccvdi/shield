@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static java.util.Map.entry;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -38,33 +40,90 @@ public class TenantService {
             "multi_admin",        false
     );
 
+    /**
+     * PLAN_DEFAULTS — ISP/tenant tier feature gates.
+     *
+     * Maps to the three consumer plan tiers offered to end-users:
+     *   STARTER   → customers can offer up to the "Basic" consumer plan
+     *   GROWTH    → customers can offer up to the "Family" consumer plan
+     *   ENTERPRISE → customers can offer up to the "Premium" consumer plan
+     *
+     * Consumer plan limits (per child profile):
+     *   Basic   : 3 profiles, DNS only, screen time, no location/history/rewards/AI
+     *   Family  : 8 profiles, all 43 DNS categories, 30-day history, GPS, geofences,
+     *             SOS, time budgets, rewards, AI chat, weekly digest
+     *   Premium : unlimited profiles, 90-day history, co-parent, video check-in,
+     *             report cards, location sharing, battery alerts, advanced schedules
+     */
     private static final Map<TenantPlan, Map<String, Object>> PLAN_DEFAULTS = Map.of(
-        TenantPlan.STARTER, Map.of(
-            "maxCustomers", 100,
-            "maxProfilesPerCustomer", 5,
-            "features", Map.of(
-                "dns_filtering", true, "ai_monitoring", false, "gps_tracking", false,
-                "screen_time", true, "rewards", false, "instant_pause", true,
-                "content_reporting", false, "multi_admin", false
-            )
+        TenantPlan.STARTER, Map.ofEntries(
+            entry("maxCustomers", 100),
+            entry("maxProfilesPerCustomer", 3),
+            entry("dns_filtering",       true),
+            entry("ai_monitoring",       false),
+            entry("gps_tracking",        false),
+            entry("screen_time",         true),
+            entry("rewards",             false),
+            entry("instant_pause",       true),
+            entry("content_reporting",   false),
+            entry("multi_admin",         false),
+            entry("browsing_history",    false),
+            entry("geofences",           false),
+            entry("sos",                 false),
+            entry("ai_chat",             false),
+            entry("weekly_digest",       false),
+            entry("co_parent",           false),
+            entry("video_checkin",       false),
+            entry("report_cards",        false),
+            entry("location_sharing",    false),
+            entry("battery_alerts",      false),
+            entry("advanced_schedules",  false)
         ),
-        TenantPlan.GROWTH, Map.of(
-            "maxCustomers", 1000,
-            "maxProfilesPerCustomer", 10,
-            "features", Map.of(
-                "dns_filtering", true, "ai_monitoring", true, "gps_tracking", true,
-                "screen_time", true, "rewards", true, "instant_pause", true,
-                "content_reporting", true, "multi_admin", false
-            )
+        TenantPlan.GROWTH, Map.ofEntries(
+            entry("maxCustomers", 1000),
+            entry("maxProfilesPerCustomer", 8),
+            entry("dns_filtering",       true),
+            entry("ai_monitoring",       true),
+            entry("gps_tracking",        true),
+            entry("screen_time",         true),
+            entry("rewards",             true),
+            entry("instant_pause",       true),
+            entry("content_reporting",   true),
+            entry("multi_admin",         false),
+            entry("browsing_history",    true),
+            entry("geofences",           true),
+            entry("sos",                 true),
+            entry("ai_chat",             true),
+            entry("weekly_digest",       true),
+            entry("co_parent",           false),
+            entry("video_checkin",       false),
+            entry("report_cards",        false),
+            entry("location_sharing",    false),
+            entry("battery_alerts",      false),
+            entry("advanced_schedules",  false)
         ),
-        TenantPlan.ENTERPRISE, Map.of(
-            "maxCustomers", 100000,
-            "maxProfilesPerCustomer", 20,
-            "features", Map.of(
-                "dns_filtering", true, "ai_monitoring", true, "gps_tracking", true,
-                "screen_time", true, "rewards", true, "instant_pause", true,
-                "content_reporting", true, "multi_admin", true
-            )
+        TenantPlan.ENTERPRISE, Map.ofEntries(
+            entry("maxCustomers", 100000),
+            entry("maxProfilesPerCustomer", 999),
+            entry("dns_filtering",       true),
+            entry("ai_monitoring",       true),
+            entry("gps_tracking",        true),
+            entry("screen_time",         true),
+            entry("rewards",             true),
+            entry("instant_pause",       true),
+            entry("content_reporting",   true),
+            entry("multi_admin",         true),
+            entry("browsing_history",    true),
+            entry("geofences",           true),
+            entry("sos",                 true),
+            entry("ai_chat",             true),
+            entry("weekly_digest",       true),
+            entry("co_parent",           true),
+            entry("video_checkin",       true),
+            entry("report_cards",        true),
+            entry("location_sharing",    true),
+            entry("battery_alerts",      true),
+            entry("advanced_schedules",  true)
         )
     );
 
