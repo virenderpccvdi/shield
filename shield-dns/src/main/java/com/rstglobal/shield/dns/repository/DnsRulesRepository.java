@@ -11,6 +11,7 @@ import java.util.UUID;
 
 public interface DnsRulesRepository extends JpaRepository<DnsRules, UUID> {
     Optional<DnsRules> findByProfileId(UUID profileId);
+    Optional<DnsRules> findByDnsClientId(String dnsClientId);
     boolean existsByProfileId(UUID profileId);
 
     /**

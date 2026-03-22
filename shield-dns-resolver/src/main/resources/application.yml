@@ -1,0 +1,35 @@
+server:
+  port: 8292
+
+spring:
+  application:
+    name: shield-dns-resolver
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: ${REDIS_PASSWORD:}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8261/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+dns:
+  upstream-doh: https://1.1.1.1/dns-query
+  upstream-fallback: https://8.8.8.8/dns-query
+  rules-ttl-seconds: 300
+  query-timeout-ms: 2000
+
+logging:
+  level:
+    com.rstglobal.shield.dnsresolver: DEBUG
+    org.xbill.DNS: WARN

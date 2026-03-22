@@ -344,6 +344,22 @@ public class DnsRulesService {
         return synced;
     }
 
+    // ── Internal API for shield-dns-resolver ────────────────────────────────
+
+    /** Look up DNS rules by dnsClientId — used by shield-dns-resolver Feign client */
+    @Transactional(readOnly = true)
+    public java.util.Optional<DnsRules> findByDnsClientId(String dnsClientId) {
+        return rulesRepo.findByDnsClientId(dnsClientId);
+    }
+
+    /** Get full rules for a profile — used by shield-dns-resolver to load into Redis */
+    @Transactional(readOnly = true)
+    public DnsRulesResponse getRulesForProfile(UUID profileId) {
+        return rulesRepo.findByProfileId(profileId)
+                .map(this::toResponse)
+                .orElse(null);
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     /** Finds existing DNS rules or auto-initializes with MODERATE defaults (lazy provision). */

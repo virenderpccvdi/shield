@@ -43,4 +43,26 @@ public class InternalProvisionController {
         int synced = rulesService.syncAllProfiles();
         return ResponseEntity.ok(ApiResponse.ok(Map.of("synced", synced)));
     }
+
+    /**
+     * Lookup profileId by dnsClientId. Called by shield-dns-resolver via Feign.
+     */
+    @GetMapping("/client/{dnsClientId}/profile")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getProfileByClientId(
+            @PathVariable String dnsClientId) {
+        return rulesService.findByDnsClientId(dnsClientId)
+            .map(rules -> ResponseEntity.ok(ApiResponse.ok(Map.of(
+                "profileId", rules.getProfileId().toString(),
+                "tenantId", rules.getTenantId() != null ? rules.getTenantId().toString() : ""
+            ))))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Get full DNS rules for a profile. Called by shield-dns-resolver to load rules into Redis.
+     */
+    @GetMapping("/rules/{profileId}")
+    public ResponseEntity<ApiResponse<Object>> getRulesForResolver(@PathVariable UUID profileId) {
+        return ResponseEntity.ok(ApiResponse.ok(rulesService.getRulesForProfile(profileId)));
+    }
 }

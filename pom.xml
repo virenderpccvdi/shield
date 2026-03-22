@@ -33,6 +33,7 @@
         <module>shield-rewards</module>
         <module>shield-admin</module>
         <module>shield-location</module>
+        <module>shield-dns-resolver</module>
     </modules>
 
     <properties>
