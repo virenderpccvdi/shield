@@ -444,8 +444,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             itemBuilder: (_, i) {
               final loc = _locations[i];
               final color = loc.isBreaching
-                  ? Colors.red.shade700
-                  : Colors.blue.shade700;
+                  ? ShieldTheme.danger
+                  : ShieldTheme.primary;
               final statusLabel =
                   loc.isBreaching ? 'Outside safe zone' : 'In safe zone';
               return ListTile(
