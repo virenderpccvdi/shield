@@ -2,6 +2,7 @@ package com.rstglobal.shield.admin.controller;
 
 import com.rstglobal.shield.admin.entity.AuditLog;
 import com.rstglobal.shield.admin.service.AuditLogService;
+import com.rstglobal.shield.common.exception.ShieldException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,11 +23,15 @@ public class AuditLogController {
 
     @GetMapping
     public ResponseEntity<Page<AuditLog>> list(
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole,
             @RequestParam(required = false) String action,
             @RequestParam(required = false) UUID userId,
             @RequestParam(required = false) OffsetDateTime from,
             @RequestParam(required = false) OffsetDateTime to,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        if (!"GLOBAL_ADMIN".equals(callerRole)) {
+            throw ShieldException.forbidden("This endpoint requires GLOBAL_ADMIN role");
+        }
         return ResponseEntity.ok(auditLogService.list(action, userId, from, to, pageable));
     }
 }

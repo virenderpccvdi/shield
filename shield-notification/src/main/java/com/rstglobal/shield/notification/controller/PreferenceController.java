@@ -21,9 +21,10 @@ public class PreferenceController {
     @GetMapping
     public ResponseEntity<ApiResponse<AlertPreference>> getPreferences(
             @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-Tenant-Id") String tenantId) {
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        UUID tenantUuid = tenantId != null && !tenantId.isBlank() ? UUID.fromString(tenantId) : null;
         AlertPreference pref = prefRepo.findByUserId(UUID.fromString(userId))
-                .orElse(defaultPref(UUID.fromString(userId), UUID.fromString(tenantId)));
+                .orElse(defaultPref(UUID.fromString(userId), tenantUuid));
         return ResponseEntity.ok(ApiResponse.ok(pref));
     }
 
@@ -31,11 +32,12 @@ public class PreferenceController {
     @Transactional
     public ResponseEntity<ApiResponse<AlertPreference>> updatePreferences(
             @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
             @RequestBody UpdatePreferenceRequest req) {
 
+        UUID tenantUuid = tenantId != null && !tenantId.isBlank() ? UUID.fromString(tenantId) : null;
         AlertPreference pref = prefRepo.findByUserId(UUID.fromString(userId))
-                .orElse(defaultPref(UUID.fromString(userId), UUID.fromString(tenantId)));
+                .orElse(defaultPref(UUID.fromString(userId), tenantUuid));
 
         if (req.getPushEnabled()          != null) pref.setPushEnabled(req.getPushEnabled());
         if (req.getEmailEnabled()         != null) pref.setEmailEnabled(req.getEmailEnabled());

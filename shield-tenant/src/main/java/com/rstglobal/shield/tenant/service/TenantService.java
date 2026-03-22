@@ -196,9 +196,11 @@ public class TenantService {
                 if (req.getMaxProfilesPerCustomer() == null)
                     tenant.setMaxProfilesPerCustomer((Integer) pd.get("maxProfilesPerCustomer"));
                 if (req.getFeatures() == null) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Boolean> f = (Map<String, Boolean>) pd.get("features");
-                    tenant.setFeatures(f);
+                    // PLAN_DEFAULTS stores feature flags as top-level entries (not under a "features" key)
+                    // Extract all boolean-valued entries as the feature map
+                    Map<String, Boolean> f = new HashMap<>();
+                    pd.forEach((k, v) -> { if (v instanceof Boolean b) f.put(k, b); });
+                    if (!f.isEmpty()) tenant.setFeatures(f);
                 }
             }
         }
@@ -222,9 +224,9 @@ public class TenantService {
         if (pd != null) {
             tenant.setMaxCustomers((Integer) pd.get("maxCustomers"));
             tenant.setMaxProfilesPerCustomer((Integer) pd.get("maxProfilesPerCustomer"));
-            @SuppressWarnings("unchecked")
-            Map<String, Boolean> f = (Map<String, Boolean>) pd.get("features");
-            tenant.setFeatures(new HashMap<>(f));
+            Map<String, Boolean> f = new HashMap<>();
+            pd.forEach((k, v) -> { if (v instanceof Boolean b) f.put(k, b); });
+            if (!f.isEmpty()) tenant.setFeatures(f);
         }
         return toResponse(tenantRepository.save(tenant));
     }

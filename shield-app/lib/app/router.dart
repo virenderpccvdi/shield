@@ -41,6 +41,7 @@ import '../features/parent/checkin_reminder_screen.dart';
 import '../features/child_app/ai_chat_screen.dart';
 import '../features/child_app/achievements_screen.dart';
 import '../features/parent/schedule_viewer_screen.dart';
+import '../features/parent/panic_alert_screen.dart';
 
 // ── Auth change notifier — drives GoRouter refresh without recreating it ────
 
@@ -121,6 +122,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/alerts', builder: (_, __) => const AlertsScreen()),
           GoRoute(path: '/alerts/sos', builder: (_, __) => const AlertsScreen(initialTab: 2)),
+          GoRoute(path: '/alerts/panic', builder: (_, __) => const PanicAlertScreen()),
           GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
           // Parent screens with profileId
           GoRoute(path: '/family/:profileId/dns-rules', builder: (_, state) => DnsRulesScreen(profileId: state.pathParameters['profileId']!)),

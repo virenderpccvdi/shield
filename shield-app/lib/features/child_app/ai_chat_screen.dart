@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/constants.dart';
+import '../../core/api_client.dart';
 import '../../app/theme.dart';
 
-class AiChatScreen extends StatefulWidget {
+class AiChatScreen extends ConsumerStatefulWidget {
   const AiChatScreen({super.key});
   @override
-  State<AiChatScreen> createState() => _AiChatScreenState();
+  ConsumerState<AiChatScreen> createState() => _AiChatScreenState();
 }
 
-class _AiChatScreenState extends State<AiChatScreen> {
+class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   final List<ChatMessage> _messages = [];
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -58,8 +57,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _scrollToBottom();
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token') ?? '';
+      final client = ref.read(dioProvider);
 
       // Build conversation history (last 20 messages, skip the initial greeting)
       final history = _messages
@@ -68,33 +66,24 @@ class _AiChatScreenState extends State<AiChatScreen> {
           .map((m) => {'role': m.isUser ? 'user' : 'assistant', 'content': m.text})
           .toList();
 
-      final response = await http.post(
-        Uri.parse('${AppConstants.baseUrl}/ai/safe-chat'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
+      final response = await client.post(
+        '/ai/chat',
+        data: {
           'profileId': _profileId ?? '',
-          'message': text,
+          'question': text,
           'ageGroup': 'child',
           'conversationHistory': history,
-        }),
-      ).timeout(const Duration(seconds: 30));
+        },
+      );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final reply = (data['reply'] as String?) ??
-            (data['data']?['reply'] as String?) ??
+        final data = response.data as Map<String, dynamic>? ?? {};
+        final inner = data['data'] as Map<String, dynamic>? ?? data;
+        final reply = (inner['reply'] as String?) ??
+            (inner['answer'] as String?) ??
             "I'm having trouble responding right now. Try again!";
         setState(() => _messages.add(ChatMessage(
           text: reply,
-          isUser: false,
-          timestamp: DateTime.now(),
-        )));
-      } else {
-        setState(() => _messages.add(ChatMessage(
-          text: "Oops! Something went wrong. Please try again.",
           isUser: false,
           timestamp: DateTime.now(),
         )));

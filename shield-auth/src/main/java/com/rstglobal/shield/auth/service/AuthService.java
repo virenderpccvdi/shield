@@ -338,6 +338,8 @@ public class AuthService {
                 .orElseThrow(() -> ShieldException.notFound("User", userId));
 
         user.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+        user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
         userRepository.save(user);
         redis.delete(OTP_PREFIX + userId);
         log.info("Password reset completed for user {}", userId);

@@ -4,6 +4,7 @@ import com.rstglobal.shield.admin.dto.request.ComplianceReportRequest;
 import com.rstglobal.shield.admin.dto.response.ComplianceReportResponse;
 import com.rstglobal.shield.admin.service.ComplianceService;
 import com.rstglobal.shield.admin.service.GdprService;
+import com.rstglobal.shield.common.exception.ShieldException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -72,7 +73,9 @@ public class ComplianceController {
     @GetMapping("/export/{userId}")
     public ResponseEntity<Map<String, Object>> exportUserData(
             @PathVariable UUID userId,
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole,
             @RequestHeader(value = "X-Admin-Id", required = false) UUID adminId) {
+        requireGlobalAdmin(callerRole);
         Map<String, Object> data = gdprService.exportUserData(userId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -92,9 +95,11 @@ public class ComplianceController {
     @PostMapping("/forget/{userId}")
     public ResponseEntity<Map<String, Object>> forgetUser(
             @PathVariable UUID userId,
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole,
             @RequestHeader(value = "X-Admin-Id", required = false) UUID adminId,
             @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail,
             @RequestHeader(value = "X-Forwarded-For", required = false) String ipAddress) {
+        requireGlobalAdmin(callerRole);
         Map<String, Object> result = gdprService.forgetUser(userId, adminId, adminEmail, ipAddress);
         return ResponseEntity.ok(result);
     }
@@ -105,9 +110,11 @@ public class ComplianceController {
      */
     @GetMapping("/audit-trail")
     public ResponseEntity<byte[]> exportAuditTrail(
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
             @PageableDefault(size = 5000, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        requireGlobalAdmin(callerRole);
         byte[] csv = gdprService.exportAuditTrailCsv(from, to, pageable);
 
         HttpHeaders headers = new HttpHeaders();
@@ -118,5 +125,13 @@ public class ComplianceController {
         headers.setContentType(MediaType.parseMediaType("text/csv; charset=UTF-8"));
 
         return ResponseEntity.ok().headers(headers).body(csv);
+    }
+
+    // ── Private helpers ──────────────────────────────────────────────────────
+
+    private void requireGlobalAdmin(String role) {
+        if (!"GLOBAL_ADMIN".equals(role)) {
+            throw ShieldException.forbidden("This endpoint requires GLOBAL_ADMIN role");
+        }
     }
 }

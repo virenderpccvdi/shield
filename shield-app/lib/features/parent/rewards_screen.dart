@@ -31,7 +31,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
       final results = await Future.wait([
         client.get('/rewards/tasks/${widget.profileId}'),
         client.get('/rewards/bank/${widget.profileId}').catchError((_) => null),
-        client.get('/rewards/${widget.profileId}/achievements').catchError((_) => null),
+        client.get('/rewards/achievements/${widget.profileId}').catchError((_) => null),
       ], eagerError: false);
 
       final tasksRes = results[0] as dynamic;

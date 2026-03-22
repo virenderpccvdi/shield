@@ -3,6 +3,7 @@ package com.rstglobal.shield.admin.controller;
 import com.rstglobal.shield.admin.entity.GlobalBlocklistEntry;
 import com.rstglobal.shield.admin.repository.GlobalBlocklistRepository;
 import com.rstglobal.shield.admin.service.AuditLogService;
+import com.rstglobal.shield.common.exception.ShieldException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -109,14 +110,12 @@ public class GlobalBlocklistController {
             @PathVariable UUID id,
             HttpServletRequest httpReq) {
         requireGlobalAdmin(role);
-        blocklistRepo.findById(id).ifPresentOrElse(entry -> {
-            blocklistRepo.delete(entry);
-            auditLogService.log("GLOBAL_BLOCKLIST_REMOVE", "GlobalBlocklist", id.toString(),
-                    parseUuid(userId), userName, httpReq.getRemoteAddr(),
-                    Map.of("domain", entry.getDomain()));
-        }, () -> {
-            throw new IllegalArgumentException("Blocklist entry not found: " + id);
-        });
+        GlobalBlocklistEntry entry = blocklistRepo.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("BlocklistEntry", id));
+        blocklistRepo.delete(entry);
+        auditLogService.log("GLOBAL_BLOCKLIST_REMOVE", "GlobalBlocklist", id.toString(),
+                parseUuid(userId), userName, httpReq.getRemoteAddr(),
+                Map.of("domain", entry.getDomain()));
         return ResponseEntity.noContent().build();
     }
 

@@ -88,7 +88,7 @@ public class MfaService {
             throw ShieldException.badRequest("No MFA setup in progress. Call /mfa/setup first.");
         }
 
-        if (!googleAuthenticator.authorize(pendingSecret, Integer.parseInt(code))) {
+        if (!googleAuthenticator.authorize(pendingSecret, parseTotpCode(code))) {
             throw ShieldException.badRequest("Invalid TOTP code. Please try again.");
         }
 
@@ -179,10 +179,17 @@ public class MfaService {
 
     // ── Private helpers ─────────────────────────────────────────────────────
 
+    /** Parse TOTP code safely — preserves leading zeros by treating as base-10 int directly.
+     *  "012345" → 12345 which is the same integer the TOTP library expects. */
+    private static int parseTotpCode(String code) {
+        if (code == null || !code.matches("\\d{6}")) throw new NumberFormatException("Not a 6-digit TOTP code");
+        return Integer.parseInt(code); // safe: 6-digit codes never overflow int
+    }
+
     private boolean validateCode(User user, String code) {
-        // Try TOTP code first
+        // Try TOTP code first (6-digit numeric)
         try {
-            int intCode = Integer.parseInt(code);
+            int intCode = parseTotpCode(code);
             if (googleAuthenticator.authorize(user.getMfaSecret(), intCode)) {
                 return true;
             }

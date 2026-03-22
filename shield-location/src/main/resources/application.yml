@@ -7,7 +7,7 @@ spring:
   config:
     import: optional:configserver:http://localhost:8288
   datasource:
-    url: jdbc:postgresql://localhost:5454/shield_db
+    url: jdbc:postgresql://localhost:5432/shield_db
     username: shield
     password: changeme
     driver-class-name: org.postgresql.Driver

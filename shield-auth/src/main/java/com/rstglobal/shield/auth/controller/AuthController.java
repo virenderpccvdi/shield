@@ -144,7 +144,9 @@ public class AuthController {
     public ApiResponse<Page<UserResponse>> listUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String role) {
+            @RequestParam(required = false) String role,
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole) {
+        requireGlobalAdmin(callerRole);
         return ApiResponse.ok(authService.listUsers(page, size, role));
     }
 
@@ -153,7 +155,10 @@ public class AuthController {
     @PostMapping("/admin/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Admin: create user with explicit role + send welcome email (GLOBAL_ADMIN only)")
-    public ApiResponse<UserResponse> adminRegister(@Valid @RequestBody AdminRegisterRequest req) {
+    public ApiResponse<UserResponse> adminRegister(
+            @Valid @RequestBody AdminRegisterRequest req,
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole) {
+        requireGlobalAdmin(callerRole);
         UserRole role;
         try {
             role = UserRole.valueOf(req.getRole().toUpperCase());
@@ -184,7 +189,9 @@ public class AuthController {
     @Operation(summary = "Admin: update user (GLOBAL_ADMIN only)")
     public ApiResponse<UserResponse> adminUpdateUser(
             @PathVariable UUID id,
-            @RequestBody java.util.Map<String, Object> updates) {
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole) {
+        requireGlobalAdmin(callerRole);
         return ApiResponse.ok(authService.adminUpdateUser(id, updates));
     }
 
@@ -192,7 +199,10 @@ public class AuthController {
     @DeleteMapping("/admin/users/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Admin: delete user (GLOBAL_ADMIN only)")
-    public void adminDeleteUser(@PathVariable UUID id) {
+    public void adminDeleteUser(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole) {
+        requireGlobalAdmin(callerRole);
         authService.adminDeleteUser(id);
     }
 
@@ -212,6 +222,13 @@ public class AuthController {
         String newPassword = body != null ? body.get("newPassword") : null;
         authService.adminResetPassword(callerRole, callerTenantId, id, newPassword);
         return ApiResponse.ok(null, "Password reset successfully. An email has been sent to the user.");
+    }
+
+    private void requireGlobalAdmin(String role) {
+        if (!"GLOBAL_ADMIN".equals(role)) {
+            throw com.rstglobal.shield.common.exception.ShieldException.forbidden(
+                    "This endpoint requires GLOBAL_ADMIN role");
+        }
     }
 
     /** Extract real client IP — respects X-Forwarded-For and X-Real-IP from nginx. */
