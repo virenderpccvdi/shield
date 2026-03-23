@@ -999,13 +999,300 @@
           Latest Release &nbsp;·&nbsp; v1.1.1 &nbsp;·&nbsp; 23 Mar 2026
         </div>
         <h3 class="release-title">What's New in v1.1.1</h3>
-        <ul class="release-list">
-          <li>
-            <span class="release-icon ri-green">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-            </span>
-            <div><strong>Background Location Tracking</strong> — Child location is now reported even when the Shield app is minimised, using a foreground service — parents always see the latest position</div>
-          </li>
+
+        <!-- ── Category filter pills ── -->
+        <div class="rn-filters" id="rnFilters">
+          <button class="rn-pill active" onclick="rnFilter(this,'all')">All <span class="rn-pcount">34</span></button>
+          <button class="rn-pill" onclick="rnFilter(this,'safety')">🛡 Safety &amp; SOS</button>
+          <button class="rn-pill" onclick="rnFilter(this,'controls')">⚙ Parental Controls</button>
+          <button class="rn-pill" onclick="rnFilter(this,'child')">🧒 Child App</button>
+          <button class="rn-pill" onclick="rnFilter(this,'analytics')">📊 Analytics &amp; Admin</button>
+        </div>
+
+        <!-- ── Feature cards grid ── -->
+        <div class="rn-grid" id="rnGrid">
+
+          <!-- Safety & SOS -->
+          <div class="rn-item" data-cat="safety">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Background Location Tracking <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">Child location reported even when the app is minimised — parents always see the latest position.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="safety">
+            <span class="rn-iicon ri-teal"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Inline Emergency Contacts <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">Emergency contacts display directly on the child's home screen with one-tap call buttons.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="safety">
+            <span class="rn-iicon ri-red"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Quick Panic Button Widget</div>
+              <p class="rn-idesc">Long-press panic widget sends an SOS alert with GPS to parents — works from the lock screen.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="safety">
+            <span class="rn-iicon ri-red"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Panic Shake Gesture</div>
+              <p class="rn-idesc">Child shakes phone 3× rapidly for a silent SOS — works even when screen is locked.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="safety">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">School Zone Enforcement</div>
+              <p class="rn-idesc">Mark geofences as School Zones — internet automatically restricts to educational content during school hours.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="safety">
+            <span class="rn-iicon ri-teal"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Geofences in Child App</div>
+              <p class="rn-idesc">Safe zones are now visible on the child's map screen so they can see their allowed areas.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="safety">
+            <span class="rn-iicon ri-red"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H8l4-8v4h3l-4 8z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">SOS End-to-End Fixed</div>
+              <p class="rn-idesc">SOS alert button works for child, co-parent, and teen profiles — pipeline fixed end-to-end.</p>
+            </div>
+          </div>
+
+          <!-- Parental Controls -->
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-orange"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Per-App Time Budgets</div>
+              <p class="rn-idesc">Daily limits per app or domain (e.g. YouTube 45 min). DNS blocks automatically when quota is hit.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Advanced Access Schedules</div>
+              <p class="rn-idesc">Per-day internet rules — different settings for school days vs. weekends with minute precision.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-purple"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 11H7v9h2v-9zm4 0h-2v9h2v-9zm4 0h-2v9h2v-9zm2.5-10H18V0h-2v1H8V0H6v1H4.5C3.12 1 2 2.12 2 3.5v17C2 21.88 3.12 23 4.5 23h15c1.38 0 2.5-1.12 2.5-2.5v-17C22 2.12 20.88 1 19.5 1z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Bedtime Lock</div>
+              <p class="rn-idesc">Daily bedtime window (e.g. 9 PM–7 AM) blocks all internet automatically. Overnight windows supported.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">App Blocking</div>
+              <p class="rn-idesc">Block specific apps — blocked apps are instantly closed when opened. Uses Usage Access, no Accessibility Service needed.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-red"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm-1 6h2v6h-2V7zm0 8h2v2h-2v-2z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">YouTube Safe Mode &amp; Safe Search</div>
+              <p class="rn-idesc">One toggle forces YouTube Restricted Mode and SafeSearch on Google, Bing, and DuckDuckGo at DNS level.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-teal"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Two-Way Approval Requests</div>
+              <p class="rn-idesc">Child requests blocked access; parent approves for 1 hour, today, or permanently — all from the dashboard.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-teal"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">VPN Starts Automatically</div>
+              <p class="rn-idesc">DNS protection starts as soon as child opens the app. Clear permission dialog guides approval — no silent failures.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-orange"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Chrome &amp; Firefox DNS Captured</div>
+              <p class="rn-idesc">Blocks built-in DoH from Google, Cloudflare, and Quad9 so all browser traffic is filtered and visible.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-teal"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">DNS Rules Sync in Real Time</div>
+              <p class="rn-idesc">Rule changes broadcast via WebSocket — Flutter app cache refreshes within 60 seconds.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-orange"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Homework Mode</div>
+              <p class="rn-idesc">One tap blocks entertainment, social, and gaming for a set duration — restores normal settings automatically.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-red"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Check-in Reminders</div>
+              <p class="rn-idesc">Parents are notified when a child hasn't updated their location within a configurable time window.</p>
+            </div>
+          </div>
+
+          <!-- Child App -->
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-purple"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 20.29L18 16.61A9 9 0 1016.61 18l3.68 3.68a1 1 0 001.42-1.39zM11 18a7 7 0 110-14 7 7 0 010 14z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Safe AI Chat — Learning Buddy</div>
+              <p class="rn-idesc">Kids chat with an educational AI that answers homework questions and blocks unsafe content in real time.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Daily Screen Time Widget</div>
+              <p class="rn-idesc">Live progress bar of today's screen time budget with colour-coded warning at 80 % usage.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-purple"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Achievement Badges</div>
+              <p class="rn-idesc">12 badges across Tasks, Safety, Learning, and Streak categories reward consistent positive behaviour.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Task Auto-Reward</div>
+              <p class="rn-idesc">Completing a task automatically awards points and sends an FCM push — no manual parent action needed.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Task Real-Time Push</div>
+              <p class="rn-idesc">Child receives instant push when a task is assigned; parent is notified when child marks it complete.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-teal"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">"I'm Here" Check-In</div>
+              <p class="rn-idesc">Child taps one button to instantly share GPS with parents — no phone call required.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Live Video Check-in</div>
+              <p class="rn-idesc">Parent requests a camera view from child's device — full WebRTC video stream, no third-party service.</p>
+            </div>
+          </div>
+
+          <!-- Analytics & Admin -->
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-purple"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 20.29L18 16.61A9 9 0 1016.61 18l3.68 3.68a1 1 0 001.42-1.39zM11 18a7 7 0 110-14 7 7 0 010 14z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">AI Insights</div>
+              <p class="rn-idesc">Risk gauge, behaviour trends, and smart recommendations powered by Claude AI — per child.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Monthly Content Report Card</div>
+              <p class="rn-idesc">Parents receive a graded (A–D) content report by email on the 1st of each month.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-orange"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">ISP Live Tenant Dashboard</div>
+              <p class="rn-idesc">ISP admins see real-time usage — active customers, DNS queries/hour, top blocked categories.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Full Browsing History for Parents</div>
+              <p class="rn-idesc">Every URL visited (blocked + allowed) with 30-second live refresh on the parent dashboard.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-red"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Date-Range Reports</div>
+              <p class="rn-idesc">Activity reports support custom From/To date filters on both web and mobile — default last 30 days.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Email OTP Two-Factor Auth</div>
+              <p class="rn-idesc">Login secured with 6-digit email OTP — expires in 5 minutes with a 60-second resend cooldown.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-purple"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Live Dashboard Alerts</div>
+              <p class="rn-idesc">Browser notifications for SOS, geofence breach, and critical events via WebSocket — even in background tabs.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-purple"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Offline Support (Flutter)</div>
+              <p class="rn-idesc">App loads cached rules, children, and notifications instantly offline; Hive cache refreshes when connectivity returns.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Deep-Link Notifications</div>
+              <p class="rn-idesc">Tapping a push notification opens the exact right screen — SOS → alerts, geofence → live map, task → rewards.</p>
+            </div>
+          </div>
+
+        </div><!-- /rn-grid -->
+
+        <!-- Show-more toggle -->
+        <button class="rn-more-btn" id="rnMoreBtn" onclick="rnToggleMore()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          Show all 34 features
+        </button>
+
+        <script>
+        (function(){
+          var SHOW = 8, expanded = false, cat = 'all';
+          function items(){ return Array.from(document.querySelectorAll('#rnGrid .rn-item')); }
+          function refresh(){
+            var all = items();
+            var vis = all.filter(function(el){ return cat==='all' || el.dataset.cat===cat; });
+            all.forEach(function(el){ el.classList.add('rn-hidden'); });
+            vis.forEach(function(el,i){ if(expanded || i<SHOW) el.classList.remove('rn-hidden'); });
+            var btn = document.getElementById('rnMoreBtn');
+            if(vis.length <= SHOW){ btn.style.display='none'; }
+            else {
+              btn.style.display='';
+              btn.innerHTML = expanded
+                ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg> Show fewer'
+                : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg> Show all '+vis.length+' features';
+            }
+          }
+          window.rnFilter = function(el, c){
+            document.querySelectorAll('#rnFilters .rn-pill').forEach(function(p){ p.classList.remove('active'); });
+            el.classList.add('active');
+            cat = c; expanded = false; refresh();
+          };
+          window.rnToggleMore = function(){ expanded = !expanded; refresh(); };
+          refresh();
+        })();
+        </script>
           <li>
             <span class="release-icon ri-teal">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>

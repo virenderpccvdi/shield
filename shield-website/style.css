@@ -906,6 +906,118 @@ body {
   text-decoration: none;
 }
 
+/* ── Release Notes redesign ─────────────────────────── */
+.rn-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+.rn-pill {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.rn-pill.active {
+  background: #1565C0;
+  color: #fff;
+  border-color: #1565C0;
+}
+.rn-pill:hover:not(.active) { background: #E2E8F0; }
+.rn-pcount {
+  display: inline-block;
+  background: rgba(255,255,255,0.25);
+  border-radius: 10px;
+  padding: 0 5px;
+  font-size: 10px;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+.rn-pill:not(.active) .rn-pcount { background: #CBD5E1; color: #475569; }
+.rn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+@media (max-width: 600px) { .rn-grid { grid-template-columns: 1fr; } }
+.rn-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 10px;
+  padding: 11px 12px;
+  transition: all 0.15s;
+  cursor: default;
+}
+.rn-item:hover { border-color: #BFDBFE; background: #EFF6FF; }
+.rn-item.rn-hidden { display: none; }
+.rn-iicon {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rn-ibody { flex: 1; min-width: 0; }
+.rn-ititle {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  line-height: 1.4;
+}
+.rn-idesc {
+  font-size: 11.5px;
+  color: #64748B;
+  line-height: 1.5;
+  margin: 0;
+}
+.rn-badge-new {
+  background: #DCFCE7;
+  color: #16A34A;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.rn-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 20px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: all 0.15s;
+}
+.rn-more-btn:hover { background: #EFF6FF; border-color: #BFDBFE; color: #1565C0; }
+
 /* ── Installation Guide ──────────────────────────────── */
 .install-guide {
   background: rgba(255,255,255,0.08);
