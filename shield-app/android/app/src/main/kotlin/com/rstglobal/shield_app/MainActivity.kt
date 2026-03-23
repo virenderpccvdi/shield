@@ -1,6 +1,7 @@
 package com.rstglobal.shield_app
 
 import android.app.AppOpsManager
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
@@ -9,6 +10,7 @@ import android.provider.Settings
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.util.Calendar
 
 class MainActivity : FlutterFragmentActivity() {
 
@@ -96,9 +98,33 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                     "isBlockingActive" -> result.success(AppBlockerService.isRunning &&
                             AppBlockerService.isEnabled(this))
+                    "getUsageStats" -> {
+                        if (!hasUsageStatsPermission()) {
+                            result.error("PERMISSION_DENIED", "Usage stats permission not granted", null)
+                            return@setMethodCallHandler
+                        }
+                        result.success(getTodayUsageStats())
+                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    /** Returns Map<packageName, minutesUsed> for today (midnight → now). */
+    private fun getTodayUsageStats(): Map<String, Int> {
+        val usm = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val startOfDay = cal.timeInMillis
+        val now = System.currentTimeMillis()
+        val stats = usm.queryAndAggregateUsageStats(startOfDay, now)
+        return stats
+            .filter { (_, s) -> s.totalTimeInForeground > 0 }
+            .mapValues { (_, s) -> (s.totalTimeInForeground / 60_000).toInt() }
     }
 
     private fun hasUsageStatsPermission(): Boolean {

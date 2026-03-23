@@ -405,14 +405,27 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
       final client = ref.read(dioProvider);
       final profileId = ref.read(authProvider).childProfileId;
       if (profileId == null) return;
+
+      // Read real today's foreground usage per package (requires PACKAGE_USAGE_STATS)
+      final usageStats = await AppBlockingService.getUsageStats();
+
       final appList = apps.take(200).map((a) => {
         'packageName': a.packageName,
         'appName': a.name,
         'versionName': a.versionName,
         'systemApp': false,
-        'usageTodayMinutes': 0,
+        'usageTodayMinutes': usageStats[a.packageName] ?? 0,
       }).toList();
       await client.post('/profiles/apps/sync', data: {'profileId': profileId, 'apps': appList});
+
+      // Bulk-sync per-app usage so backend can enforce time budgets
+      final usageReport = usageStats.entries
+          .where((e) => e.value > 0)
+          .map((e) => {'packageName': e.key, 'minutesUsed': e.value})
+          .toList();
+      if (usageReport.isNotEmpty) {
+        await client.post('/dns/app-budgets/$profileId/usage/sync', data: usageReport);
+      }
     } catch (e) {
       debugPrint('[Shield] App sync failed: $e');
     }

@@ -72,6 +72,18 @@ public class AppTimeBudgetController {
                 budgetService.reportUsage(profileId, req.getDomainPattern(), req.getAdditionalMinutes())));
     }
 
+    /**
+     * Bulk-sync today's absolute usage from the Flutter child app (UsageStatsManager).
+     * Accepts a JSON array of {packageName, minutesUsed} — sets absolute values, not increments.
+     * No role check — child JWT is sufficient.
+     */
+    @PostMapping("/{profileId}/usage/sync")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> syncUsage(
+            @PathVariable UUID profileId,
+            @RequestBody List<Map<String, Object>> usageList) {
+        return ResponseEntity.ok(ApiResponse.ok(budgetService.syncUsage(profileId, usageList)));
+    }
+
     /** Usage history for a profile over a date range (default: last 7 days). */
     @GetMapping("/{profileId}/history")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getHistory(

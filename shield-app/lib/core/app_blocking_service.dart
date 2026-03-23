@@ -58,6 +58,17 @@ class AppBlockingService {
     } catch (_) {}
   }
 
+  /// Returns today's foreground usage in minutes per package name.
+  /// Returns empty map if permission not granted or on non-Android platforms.
+  static Future<Map<String, int>> getUsageStats() async {
+    try {
+      final raw = await _channel.invokeMapMethod<String, int>('getUsageStats');
+      return raw ?? {};
+    } catch (_) {
+      return {};
+    }
+  }
+
   /// Returns true if blocking is currently active.
   static Future<bool> isBlockingActive() async {
     try {

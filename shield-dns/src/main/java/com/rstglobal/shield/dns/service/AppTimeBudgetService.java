@@ -152,6 +152,54 @@ public class AppTimeBudgetService {
         );
     }
 
+    /**
+     * Bulk-sync today's absolute usage from the Flutter child app (via UsageStatsManager).
+     * Accepts a list of {packageName → minutesUsedToday} and sets (not increments) the
+     * usage log for any budget whose domainPattern equals the package name.
+     * Triggers budget depletion logic when thresholds are crossed.
+     */
+    @Transactional
+    public Map<String, Object> syncUsage(UUID profileId, List<Map<String, Object>> usageList) {
+        int tracked = 0;
+        int depleted = 0;
+        for (Map<String, Object> entry : usageList) {
+            String packageName = (String) entry.get("packageName");
+            Object minutesObj = entry.get("minutesUsed");
+            if (packageName == null || minutesObj == null) continue;
+            int minutesUsed = ((Number) minutesObj).intValue();
+            if (minutesUsed < 0) continue;
+
+            Optional<AppTimeBudget> budgetOpt = budgetRepo.findByProfileIdAndDomainPattern(profileId, packageName);
+            if (budgetOpt.isEmpty()) continue;
+            AppTimeBudget budget = budgetOpt.get();
+
+            AppUsageLog usage = usageRepo
+                    .findByProfileIdAndDomainPatternAndUsageDate(profileId, packageName, LocalDate.now())
+                    .orElse(AppUsageLog.builder()
+                            .profileId(profileId)
+                            .appName(budget.getAppName())
+                            .domainPattern(packageName)
+                            .usageDate(LocalDate.now())
+                            .build());
+
+            boolean wasAlreadyDepleted = usage.isBudgetDepleted();
+            // Set absolute minutes (overwrite, not increment)
+            usage.setUsedMinutes(minutesUsed);
+            boolean nowDepleted = minutesUsed >= budget.getDailyMinutes();
+            usage.setBudgetDepleted(nowDepleted);
+            usage.setUpdatedAt(OffsetDateTime.now());
+            usageRepo.save(usage);
+
+            if (nowDepleted && !wasAlreadyDepleted) {
+                blockDomain(profileId, packageName, budget.getAppName());
+                notifyParent(profileId, budget);
+                depleted++;
+            }
+            tracked++;
+        }
+        return Map.of("tracked", tracked, "newlyDepleted", depleted);
+    }
+
     // ── Daily reset at midnight ────────────────────────────────────────────────
 
     /**
