@@ -3,27 +3,27 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:battery_plus/battery_plus.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_state.dart';
 import '../../core/app_lock_service.dart';
 import '../../core/app_blocking_service.dart';
 import '../../core/battery_service.dart';
+import '../../core/background_location_service.dart';
 import '../../core/dns_vpn_service.dart';
 import '../../core/shield_widgets.dart';
 import '../../core/shake_detector_service.dart';
 import '../../app/theme.dart';
 import 'checkin_button.dart';
-import 'home_shortcut_widget.dart';
 import 'pin_verify_dialog.dart';
 import 'screen_time_budget_widget.dart';
 import 'screen_time_request_screen.dart';
-import 'speed_dial_screen.dart';
 import 'ai_chat_screen.dart' show AiChatScreen;
 
 final childUsageSummaryProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, profileId) async {
@@ -58,6 +58,17 @@ final childBankProvider = FutureProvider.autoDispose.family<Map<String, dynamic>
   } catch (_) { return {}; }
 });
 
+final childEmergencyContactsProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, profileId) async {
+  if (profileId.isEmpty) return [];
+  final client = ref.read(dioProvider);
+  try {
+    final res = await client.get('/profiles/$profileId/emergency-contacts');
+    final raw = res.data['data'];
+    final list = raw is List ? raw : [];
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  } catch (_) { return []; }
+});
+
 final childGeofencesProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, profileId) async {
   if (profileId.isEmpty) return [];
   final client = ref.read(dioProvider);
@@ -69,27 +80,6 @@ final childGeofencesProvider = FutureProvider.autoDispose.family<List<Map<String
     return (list as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   } catch (_) { return []; }
 });
-
-/// Check-in status stored in SharedPreferences
-class CheckInState {
-  final bool isCheckedIn;
-  final String? checkedInAt;
-  const CheckInState({this.isCheckedIn = false, this.checkedInAt});
-
-  static Future<CheckInState> load(String profileId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final isIn = prefs.getBool('checkin_$profileId') ?? false;
-    final at = prefs.getString('checkin_at_$profileId');
-    return CheckInState(isCheckedIn: isIn, checkedInAt: at);
-  }
-
-  static Future<void> save(String profileId, {required bool isIn, String? at}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('checkin_$profileId', isIn);
-    if (at != null) await prefs.setString('checkin_at_$profileId', at);
-    else await prefs.remove('checkin_at_$profileId');
-  }
-}
 
 class ChildAppScreen extends ConsumerStatefulWidget {
   const ChildAppScreen({super.key});
@@ -104,9 +94,6 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
   bool _vpnActive = false;
   AppBlockingStatus _blockingStatus = AppBlockingStatus.unavailable;
   Timer? _refreshTimer;
-  bool _checkingIn = false;
-  bool _isCheckedIn = false;
-  String? _checkedInAt;
   int _batteryPct = -1;
   late AnimationController _sosController;
   Timer? _heartbeatTimer;
@@ -135,6 +122,8 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
     _shakeDetector.start();
     // CS-04: Start battery alert reporting
     _startBatteryService();
+    // Start background location service to keep tracking alive when app is minimized
+    _startBackgroundService();
   }
 
   @override
@@ -160,18 +149,25 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
   }
 
   Future<void> _loadInitialState() async {
-    final profileId = ref.read(authProvider).childProfileId ?? '';
-    final state = await CheckInState.load(profileId);
     try {
       final battery = Battery();
       _batteryPct = await battery.batteryLevel;
     } catch (_) {}
-    if (mounted) {
-      setState(() {
-        _isCheckedIn = state.isCheckedIn;
-        _checkedInAt = state.checkedInAt;
-        _loading = false;
-      });
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _startBackgroundService() async {
+    final auth = ref.read(authProvider);
+    final profileId = auth.childProfileId;
+    final token = auth.accessToken;
+    if (profileId == null || token == null) return;
+    // Save credentials for background isolate
+    await saveChildCredentialsForBackground(token: token, profileId: profileId);
+    // Start the background service
+    final service = FlutterBackgroundService();
+    final isRunning = await service.isRunning();
+    if (!isRunning) {
+      await service.startService();
     }
   }
 
@@ -520,102 +516,6 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
     }
   }
 
-  Future<void> _handleCheckIn() async {
-    if (_isCheckedIn) {
-      // Check out — requires parent PIN
-      PinVerifyDialog.show(
-        context,
-        title: 'Check Out',
-        description: 'Enter the parent PIN to check out',
-        onSuccess: () async {
-          setState(() => _checkingIn = true);
-          try {
-            final position = await _getCurrentPosition();
-            final client = ref.read(dioProvider);
-            final profileId = ref.read(authProvider).childProfileId;
-            if (profileId != null && position != null) {
-              await client.post('/location/child/checkin', data: {
-                'profileId': profileId,
-                'latitude': position.latitude,
-                'longitude': position.longitude,
-                'message': 'Child checked out',
-              });
-            }
-            final now = DateTime.now();
-            await CheckInState.save(profileId!, isIn: false);
-            if (mounted) {
-              setState(() {
-                _isCheckedIn = false;
-                _checkedInAt = null;
-                _checkingIn = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: const Text('Checked out successfully'),
-                backgroundColor: ShieldTheme.warning,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ));
-            }
-          } catch (_) {
-            if (mounted) setState(() => _checkingIn = false);
-          }
-        },
-      );
-    } else {
-      // Check in
-      setState(() => _checkingIn = true);
-      try {
-        final position = await _getCurrentPosition();
-        if (position == null) {
-          if (mounted) {
-            setState(() => _checkingIn = false);
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: const Text('Could not get location. Please enable location access.'),
-              backgroundColor: ShieldTheme.warning,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ));
-          }
-          return;
-        }
-        final client = ref.read(dioProvider);
-        final profileId = ref.read(authProvider).childProfileId;
-        await client.post('/location/child/checkin', data: {
-          'profileId': profileId,
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-          'accuracy': position.accuracy,
-          'message': 'Child checked in',
-        });
-        final now = DateTime.now().toIso8601String();
-        await CheckInState.save(profileId!, isIn: true, at: now);
-        if (mounted) {
-          setState(() {
-            _isCheckedIn = true;
-            _checkedInAt = now;
-            _checkingIn = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: const Text('Checked in! Parent notified.'),
-            backgroundColor: ShieldTheme.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ));
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() => _checkingIn = false);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Check-in failed: $e'),
-            backgroundColor: ShieldTheme.danger,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ));
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
@@ -693,10 +593,10 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: _isCheckedIn ? ShieldTheme.success : Colors.white24,
+                              color: _vpnActive ? ShieldTheme.success : Colors.white24,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Text(_isCheckedIn ? '● In' : '○ Out',
+                            child: Text(_vpnActive ? '🛡 Safe' : '⚠ Unprotected',
                               style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
                           ),
                         ],
@@ -1033,103 +933,6 @@ class _SosButton extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _CheckInCard extends StatelessWidget {
-  final bool isCheckedIn;
-  final String? checkedInAt;
-  final bool loading;
-  final VoidCallback? onTap;
-  const _CheckInCard({required this.isCheckedIn, this.checkedInAt, required this.loading, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: BoxDecoration(
-        gradient: isCheckedIn
-            ? ShieldTheme.safeGradient    // green — checked in
-            : ShieldTheme.primaryGradient, // blue — not checked in
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: (isCheckedIn ? ShieldTheme.success : ShieldTheme.primary).withOpacity(0.25),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              isCheckedIn ? Icons.location_on : Icons.location_off_outlined,
-              color: Colors.white, size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  isCheckedIn ? 'Checked In ✓' : 'Not Checked In',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  isCheckedIn && checkedInAt != null
-                      ? 'Since ${_formatTime(checkedInAt!)}'
-                      : isCheckedIn ? 'Parents can see you' : 'Tap to share location',
-                  style: TextStyle(color: Colors.white.withOpacity(0.82), fontSize: 11),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 88,
-            child: ElevatedButton(
-              onPressed: onTap,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: isCheckedIn ? ShieldTheme.success : ShieldTheme.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                elevation: 0,
-              ),
-              child: loading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(
-                      isCheckedIn ? 'Check Out' : 'Check In',
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                      maxLines: 1,
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static String _formatTime(String iso) {
-    try {
-      final d = DateTime.parse(iso).toLocal();
-      final h = d.hour.toString().padLeft(2, '0');
-      final m = d.minute.toString().padLeft(2, '0');
-      return '$h:$m';
-    } catch (_) { return 'today'; }
   }
 }
 
@@ -1636,14 +1439,31 @@ class _GeofenceCard extends ConsumerWidget {
   }
 }
 
-/// CS-03: Speed Dial card — shows a quick-access button to emergency contacts.
-class _SpeedDialCard extends StatelessWidget {
+/// CS-03: Speed Dial card — shows emergency contacts inline with call buttons.
+class _SpeedDialCard extends ConsumerWidget {
   final String profileId;
   const _SpeedDialCard({required this.profileId});
 
+  Future<void> _call(BuildContext context, String phone) async {
+    final cleaned = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    final uri = Uri.parse('tel:$cleaned');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open phone dialer')),
+        );
+      }
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final contactsAsync = ref.watch(childEmergencyContactsProvider(profileId));
     final colorScheme = Theme.of(context).colorScheme;
+    const accentColor = Color(0xFFC62828);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1651,43 +1471,88 @@ class _SpeedDialCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFC62828).withOpacity(0.10),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.contact_emergency, color: Color(0xFFC62828), size: 22),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.contact_emergency, color: accentColor, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Emergency Contacts',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: colorScheme.onSurface)),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Emergency Contacts',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: colorScheme.onSurface)),
-                const SizedBox(height: 2),
-                Text('Tap to call a trusted person',
-                    style: TextStyle(fontSize: 11, color: colorScheme.onSurface.withOpacity(0.55))),
-              ],
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => SpeedDialScreen(profileId: profileId)),
-            ),
-            icon: const Icon(Icons.phone, size: 16),
-            label: const Text('Contacts', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC62828),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            ),
+          const SizedBox(height: 12),
+          contactsAsync.when(
+            loading: () => const Center(child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )),
+            error: (_, __) => Text('Could not load contacts',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+            data: (contacts) {
+              if (contacts.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text('No emergency contacts added.\nAsk your parent to add contacts.',
+                    style: TextStyle(color: colorScheme.onSurface.withOpacity(0.45), fontSize: 13)),
+                );
+              }
+              return Column(
+                children: contacts.take(5).map((c) {
+                  final name = c['name']?.toString() ?? 'Contact';
+                  final phone = c['phone']?.toString() ?? '';
+                  final rel = c['relationship']?.toString() ?? '';
+                  final hasPhone = phone.isNotEmpty;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: accentColor.withOpacity(0.12),
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            style: const TextStyle(fontWeight: FontWeight.w800, color: accentColor, fontSize: 16),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                              if (rel.isNotEmpty)
+                                Text(rel, style: TextStyle(fontSize: 11, color: colorScheme.onSurface.withOpacity(0.55))),
+                            ],
+                          ),
+                        ),
+                        if (hasPhone) ...[
+                          IconButton(
+                            icon: const Icon(Icons.phone, color: Color(0xFF2E7D32), size: 22),
+                            tooltip: 'Call $name',
+                            onPressed: () => _call(context, phone),
+                            style: IconButton.styleFrom(
+                              backgroundColor: const Color(0xFF2E7D32).withOpacity(0.1),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
           ),
         ],
       ),

@@ -1,7 +1,7 @@
 name: shield_app
 description: Shield — Smart Family Internet Protection
 publish_to: 'none'
-version: 1.0.32+131
+version: 1.0.33+132
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -53,6 +53,9 @@ dependencies:
 
   # Battery
   battery_plus: ^6.0.3
+
+  # Background service (keeps location tracking alive when app is in background)
+  flutter_background_service: ^5.0.0
 
   # Installed apps
   installed_apps: ^1.4.0

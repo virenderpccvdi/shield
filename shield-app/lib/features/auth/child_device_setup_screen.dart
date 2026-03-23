@@ -7,6 +7,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/auth_state.dart';
 import '../../core/constants.dart';
 import '../../core/dns_vpn_service.dart';
+import '../../core/background_location_service.dart';
 import '../../app/theme.dart';
 
 class ChildDeviceSetupScreen extends ConsumerStatefulWidget {
@@ -249,6 +250,9 @@ class _ChildDeviceSetupScreenState extends ConsumerState<ChildDeviceSetupScreen>
         profileId: profileId,
         childName: profileName,
       );
+
+      // Save credentials so the background isolate can access them
+      await saveChildCredentialsForBackground(token: childToken, profileId: profileId);
 
       if (mounted) context.go('/child');
     } catch (e) {

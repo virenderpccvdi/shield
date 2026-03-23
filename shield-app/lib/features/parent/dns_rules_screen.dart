@@ -201,7 +201,7 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
   Future<void> _saveCategories() async {
     setState(() => _catsSaving = true);
     try {
-      await ref.read(dioProvider).put('/dns/rules/${widget.profileId}/categories', data: _categories);
+      await ref.read(dioProvider).put('/dns/rules/${widget.profileId}/categories', data: {'categories': _categories});
       if (mounted) _showSnack('Content rules saved', success: true);
     } catch (e) {
       if (mounted) _showSnack('Failed to save: $e', success: false);

@@ -6,12 +6,14 @@ import 'app/app.dart';
 import 'core/fcm_service.dart';
 import 'core/cache_service.dart';
 import 'core/websocket_service.dart';
+import 'core/background_location_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await CacheService.init();
   await initLocalNotifications();
+  await initBackgroundService();
 
   // Initialize Firebase (requires google-services.json in android/app/)
   try {
