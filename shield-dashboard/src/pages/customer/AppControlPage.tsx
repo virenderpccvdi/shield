@@ -15,6 +15,7 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import LoadingPage from '../../components/LoadingPage';
+import { FILTER_COLORS, AVATAR_COLORS, getInitials } from '../../utils/profileUtils';
 
 interface ChildProfile {
   id: string;
@@ -31,20 +32,6 @@ interface DnsRules {
   customBlocklist?: string[];
   customAllowlist?: string[];
 }
-
-const FILTER_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  STRICT:   { bg: '#FFEBEE', text: '#C62828', label: 'Strict' },
-  MODERATE: { bg: '#FFF8E1', text: '#F57F17', label: 'Moderate' },
-  RELAXED:  { bg: '#E8F5E9', text: '#2E7D32', label: 'Relaxed' },
-  CUSTOM:   { bg: '#E3F2FD', text: '#1565C0', label: 'Custom' },
-};
-
-function getInitials(name?: string) {
-  if (!name) return 'P';
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-}
-
-const AVATAR_COLORS = ['#00897B', '#1565C0', '#7B1FA2', '#E53935', '#FB8C00'];
 
 export default function AppControlPage() {
   const navigate = useNavigate();

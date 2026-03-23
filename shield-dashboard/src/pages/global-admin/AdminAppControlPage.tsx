@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, Chip, CircularProgress,
   Stack, Avatar, Button, TextField, InputAdornment, Tooltip, Collapse,
-  IconButton, Divider, LinearProgress, FormControl, InputLabel, Select, MenuItem,
+  IconButton, Divider, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import PhonelinkSetupIcon from '@mui/icons-material/PhonelinkSetup';
 import PeopleIcon from '@mui/icons-material/People';
@@ -10,10 +10,6 @@ import ChildCareIcon from '@mui/icons-material/ChildCare';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import BlockIcon from '@mui/icons-material/Block';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import TuneIcon from '@mui/icons-material/Tune';
-import DnsIcon from '@mui/icons-material/Dns';
 import BusinessIcon from '@mui/icons-material/Business';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -22,29 +18,13 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import LoadingPage from '../../components/LoadingPage';
+import CompactProfileCard from '../../components/CompactProfileCard';
+import { AVATAR_COLORS, PLAN_COLORS, getInitials } from '../../utils/profileUtils';
 
 interface Tenant { id: string; name: string; slug: string; plan: string; active: boolean; }
 interface Customer { id: string; userId?: string; name?: string; email?: string; subscriptionPlan?: string; profileCount?: number; tenantId?: string; }
 interface ChildProfile { id: string; name?: string; filterLevel?: string; dnsClientId?: string; }
 interface DnsRules { profileId: string; enabledCategories?: Record<string, boolean>; customBlocklist?: string[]; customAllowlist?: string[]; }
-
-const FILTER_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  STRICT:   { bg: '#FFEBEE', text: '#C62828', label: 'Strict' },
-  MODERATE: { bg: '#FFF8E1', text: '#F57F17', label: 'Moderate' },
-  RELAXED:  { bg: '#E8F5E9', text: '#2E7D32', label: 'Relaxed' },
-  CUSTOM:   { bg: '#E3F2FD', text: '#1565C0', label: 'Custom' },
-};
-const AVATAR_COLORS = ['#00897B', '#1565C0', '#7B1FA2', '#E53935', '#FB8C00'];
-const PLAN_COLORS: Record<string, { bg: string; text: string }> = {
-  STARTER:    { bg: '#E3F2FD', text: '#1565C0' },
-  GROWTH:     { bg: '#E8F5E9', text: '#1B5E20' },
-  ENTERPRISE: { bg: '#FFF8E1', text: '#E65100' },
-};
-
-function getInitials(name?: string) {
-  if (!name) return 'C';
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-}
 
 function CustomerRow({ customer, idx, search }: { customer: Customer; idx: number; search: string }) {
   const navigate = useNavigate();
@@ -123,65 +103,17 @@ function CustomerRow({ customer, idx, search }: { customer: Customer; idx: numbe
             </Box>
           ) : (
             <Grid container spacing={1.5} sx={{ pb: 1.5 }}>
-              {profiles.map((profile, pi) => {
-                const rules = rulesMap?.[profile.id];
-                const filterConf = FILTER_COLORS[profile.filterLevel ?? 'MODERATE'];
-                const totalCats = Object.keys(rules?.enabledCategories ?? {}).length;
-                const blockedCats = Object.values(rules?.enabledCategories ?? {}).filter(v => v === false).length;
-                const customBlocked = rules?.customBlocklist?.length ?? 0;
-                const customAllowed = rules?.customAllowlist?.length ?? 0;
-
-                return (
-                  <Grid key={profile.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                    <Box sx={{ p: 1.5, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E2E8F0', transition: 'all 0.2s ease', '&:hover': { bgcolor: '#EFF6FF', borderColor: '#BFDBFE' } }}>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <Avatar sx={{ width: 28, height: 28, fontSize: 11, bgcolor: AVATAR_COLORS[pi % AVATAR_COLORS.length], fontWeight: 700 }}>
-                          {getInitials(profile.name)}
-                        </Avatar>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography fontWeight={700} fontSize={13} noWrap>{profile.name ?? `Profile ${pi + 1}`}</Typography>
-                        </Box>
-                        <Chip size="small" label={filterConf.label}
-                          sx={{ height: 20, fontSize: 10, fontWeight: 600, bgcolor: filterConf.bg, color: filterConf.text }} />
-                      </Stack>
-
-                      {totalCats > 0 && (
-                        <Box sx={{ mb: 1 }}>
-                          <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.25 }}>
-                            <Typography variant="caption" color="text.secondary">Categories blocked</Typography>
-                            <Typography variant="caption" fontWeight={600}>{blockedCats}/{totalCats}</Typography>
-                          </Stack>
-                          <LinearProgress variant="determinate"
-                            value={totalCats > 0 ? (blockedCats / totalCats) * 100 : 0}
-                            sx={{ height: 4, borderRadius: 2, bgcolor: '#E2E8F0', '& .MuiLinearProgress-bar': { bgcolor: '#E53935' } }} />
-                        </Box>
-                      )}
-
-                      <Stack direction="row" spacing={0.75} sx={{ mb: 1 }}>
-                        <Chip size="small" icon={<BlockIcon sx={{ fontSize: 11 }} />} label={`${customBlocked} blocked`}
-                          sx={{ height: 20, fontSize: 10, bgcolor: '#FEF2F2', color: '#B71C1C', fontWeight: 600 }} />
-                        <Chip size="small" icon={<CheckCircleIcon sx={{ fontSize: 11 }} />} label={`${customAllowed} allowed`}
-                          sx={{ height: 20, fontSize: 10, bgcolor: '#F0FDF4', color: '#15803D', fontWeight: 600 }} />
-                      </Stack>
-
-                      {profile.dnsClientId && (
-                        <Tooltip title="Copy DNS address">
-                          <Typography variant="caption" onClick={() => navigator.clipboard.writeText(profile.dnsClientId!)}
-                            sx={{ fontFamily: 'monospace', fontSize: 10, color: '#1565C0', bgcolor: '#EFF6FF', px: 0.75, py: 0.25, borderRadius: 0.75, display: 'block', mb: 1, cursor: 'pointer' }}>
-                            <DnsIcon sx={{ fontSize: 10, mr: 0.25 }} />{profile.dnsClientId}
-                          </Typography>
-                        </Tooltip>
-                      )}
-
-                      <Button fullWidth size="small" variant="outlined" startIcon={<TuneIcon sx={{ fontSize: 13 }} />}
-                        onClick={() => navigate(`/admin/dns-rules?profileId=${profile.id}`)}
-                        sx={{ fontSize: 11, py: 0.5, borderColor: AVATAR_COLORS[pi % AVATAR_COLORS.length], color: AVATAR_COLORS[pi % AVATAR_COLORS.length], fontWeight: 600 }}>
-                        View DNS Rules
-                      </Button>
-                    </Box>
-                  </Grid>
-                );
-              })}
+              {profiles.map((profile, pi) => (
+                <Grid key={profile.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <CompactProfileCard
+                    profile={profile}
+                    rules={rulesMap?.[profile.id]}
+                    colorIndex={pi}
+                    manageLabel="View DNS Rules"
+                    onManage={() => navigate(`/admin/dns-rules?profileId=${profile.id}`)}
+                  />
+                </Grid>
+              ))}
             </Grid>
           )}
         </Collapse>
