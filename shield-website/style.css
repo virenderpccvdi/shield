@@ -918,6 +918,11 @@ body {
   margin-left: auto;
   margin-right: auto;
 }
+/* When inside release-grid (220px 1fr), span both columns */
+.release-grid .install-guide {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
 .install-guide-header {
   display: flex;
   align-items: center;
