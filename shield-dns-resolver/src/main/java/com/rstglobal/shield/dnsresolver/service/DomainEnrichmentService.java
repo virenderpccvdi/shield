@@ -147,78 +147,178 @@ public class DomainEnrichmentService {
     );
 
     // ── Domain → Category ──
-    private static final Map<String, String> CATEGORY_MAP = Map.ofEntries(
-        Map.entry("tiktok.com", "social_media"), Map.entry("tiktokcdn.com", "social_media"),
-        Map.entry("tiktokv.com", "social_media"), Map.entry("byteoversea.com", "social_media"),
-        Map.entry("instagram.com", "social_media"), Map.entry("cdninstagram.com", "social_media"),
-        Map.entry("facebook.com", "social_media"), Map.entry("fbcdn.net", "social_media"),
-        Map.entry("fb.com", "social_media"), Map.entry("snapchat.com", "social_media"),
-        Map.entry("snap.com", "social_media"), Map.entry("twitter.com", "social_media"),
-        Map.entry("x.com", "social_media"), Map.entry("reddit.com", "social_media"),
-        Map.entry("pinterest.com", "social_media"), Map.entry("linkedin.com", "social_media"),
-        Map.entry("tumblr.com", "social_media"), Map.entry("threads.net", "social_media"),
-        Map.entry("bsky.app", "social_media"), Map.entry("mastodon.social", "social_media"),
+    // NOTE: Redis cache (shield:domcat:*) is checked FIRST in enrich().
+    //       These in-memory entries serve as fallback when Redis is unavailable.
+    private static final Map<String, String> CATEGORY_MAP;
+    static {
+        Map<String, String> m = new java.util.HashMap<>();
+        // ── Social Media ──
+        m.put("tiktok.com",    "social_media"); m.put("tiktokcdn.com", "social_media");
+        m.put("tiktokv.com",   "social_media"); m.put("byteoversea.com","social_media");
+        m.put("byteimg.com",   "social_media"); m.put("musical.ly",    "social_media");
+        m.put("ttwstatic.com", "social_media"); m.put("ibytedtos.com", "social_media");
+        m.put("amemv.com",     "social_media"); m.put("snssdk.com",    "social_media");
+        m.put("instagram.com", "social_media"); m.put("cdninstagram.com","social_media");
+        m.put("instagramstatic-a.akamaihd.net","social_media");
+        m.put("facebook.com",  "social_media"); m.put("fbcdn.net",     "social_media");
+        m.put("fb.com",        "social_media"); m.put("fbsbx.com",     "social_media");
+        m.put("facebook.net",  "social_media"); m.put("messenger.com", "social_media");
+        m.put("snapchat.com",  "social_media"); m.put("sc-cdn.net",    "social_media");
+        m.put("snapkit.com",   "social_media"); m.put("snap.com",      "social_media");
+        m.put("twitter.com",   "social_media"); m.put("x.com",         "social_media");
+        m.put("twimg.com",     "social_media"); m.put("t.co",          "social_media");
+        m.put("reddit.com",    "social_media"); m.put("redd.it",       "social_media");
+        m.put("redditmedia.com","social_media");m.put("redditstatic.com","social_media");
+        m.put("reddituploads.com","social_media");
+        m.put("pinterest.com", "social_media"); m.put("pinimg.com",    "social_media");
+        m.put("linkedin.com",  "social_media"); m.put("licdn.com",     "social_media");
+        m.put("tumblr.com",    "social_media"); m.put("assets.tumblr.com","social_media");
+        m.put("threads.net",   "social_media"); m.put("bsky.app",      "social_media");
+        m.put("bsky.social",   "social_media"); m.put("mastodon.social","social_media");
+        m.put("bereal.com",    "social_media"); m.put("bere.al",       "social_media");
+        // ── Discord ──
+        m.put("discord.com",   "messaging"); m.put("discord.gg",      "messaging");
+        m.put("discordapp.com","messaging"); m.put("discordapp.net",   "messaging");
+        m.put("dl.discordapp.net","messaging");
+        // ── Messaging ──
+        m.put("whatsapp.com",  "messaging"); m.put("whatsapp.net",    "messaging");
+        m.put("wa.me",         "messaging");
+        m.put("telegram.org",  "messaging"); m.put("t.me",            "messaging");
+        m.put("telegram.me",   "messaging"); m.put("telesco.pe",      "messaging");
+        m.put("signal.org",    "messaging"); m.put("wechat.com",      "messaging");
+        m.put("viber.com",     "messaging"); m.put("kik.com",         "messaging");
+        m.put("line.me",       "messaging"); m.put("kakaocorp.com",   "messaging");
+        // ── YouTube ──
+        m.put("youtube.com",   "streaming"); m.put("youtu.be",        "streaming");
+        m.put("ytimg.com",     "streaming"); m.put("googlevideo.com", "streaming");
+        m.put("yt3.ggpht.com", "streaming"); m.put("youtube-nocookie.com","streaming");
+        // ── Streaming ──
+        m.put("netflix.com",   "streaming"); m.put("nflxvideo.net",   "streaming");
+        m.put("nflximg.net",   "streaming"); m.put("nflxso.net",      "streaming");
+        m.put("nflxext.com",   "streaming");
+        m.put("disneyplus.com","streaming"); m.put("disney-plus.net", "streaming");
+        m.put("dssott.com",    "streaming"); m.put("bamgrid.com",     "streaming");
+        m.put("hulu.com",      "streaming"); m.put("primevideo.com",  "streaming");
+        m.put("max.com",       "streaming"); m.put("hbomax.com",      "streaming");
+        m.put("twitch.tv",     "streaming"); m.put("twitchcdn.net",   "streaming");
+        m.put("jtvnw.net",     "streaming"); m.put("ttvnw.net",       "streaming");
+        m.put("crunchyroll.com","streaming");m.put("peacocktv.com",   "streaming");
+        m.put("paramountplus.com","streaming");
+        m.put("hotstar.com",   "streaming"); m.put("jiocinema.com",   "streaming");
+        m.put("sonyliv.com",   "streaming"); m.put("zee5.com",        "streaming");
+        m.put("voot.com",      "streaming"); m.put("pluto.tv",        "streaming");
 
-        Map.entry("whatsapp.com", "messaging"), Map.entry("whatsapp.net", "messaging"),
-        Map.entry("telegram.org", "messaging"), Map.entry("t.me", "messaging"),
-        Map.entry("discord.com", "messaging"), Map.entry("discordapp.com", "messaging"),
-        Map.entry("signal.org", "messaging"), Map.entry("viber.com", "messaging"),
-        Map.entry("kik.com", "messaging"), Map.entry("messenger.com", "messaging"),
-
-        Map.entry("youtube.com", "streaming"), Map.entry("youtu.be", "streaming"),
-        Map.entry("netflix.com", "streaming"), Map.entry("nflxvideo.net", "streaming"),
-        Map.entry("disneyplus.com", "streaming"), Map.entry("hulu.com", "streaming"),
-        Map.entry("primevideo.com", "streaming"), Map.entry("twitch.tv", "streaming"),
-        Map.entry("crunchyroll.com", "streaming"), Map.entry("max.com", "streaming"),
-        Map.entry("peacocktv.com", "streaming"), Map.entry("paramountplus.com", "streaming"),
-
-        Map.entry("spotify.com", "music"), Map.entry("soundcloud.com", "music"),
-        Map.entry("pandora.com", "music"), Map.entry("deezer.com", "music"),
-        Map.entry("tidal.com", "music"),
-
-        Map.entry("roblox.com", "gaming"), Map.entry("rbxcdn.com", "gaming"),
-        Map.entry("minecraft.net", "gaming"), Map.entry("mojang.com", "gaming"),
-        Map.entry("fortnite.com", "gaming"), Map.entry("epicgames.com", "gaming"),
-        Map.entry("steampowered.com", "gaming"), Map.entry("steamcommunity.com", "gaming"),
-        Map.entry("ea.com", "gaming"), Map.entry("riotgames.com", "gaming"),
-        Map.entry("blizzard.com", "gaming"), Map.entry("battle.net", "gaming"),
-        Map.entry("supercell.com", "gaming"), Map.entry("king.com", "gaming"),
-        Map.entry("zynga.com", "gaming"),
-
-        Map.entry("amazon.com", "shopping"), Map.entry("amazon.in", "shopping"),
-        Map.entry("ebay.com", "shopping"), Map.entry("etsy.com", "shopping"),
-        Map.entry("shopify.com", "shopping"), Map.entry("aliexpress.com", "shopping"),
-        Map.entry("walmart.com", "shopping"), Map.entry("flipkart.com", "shopping"),
-
-        Map.entry("khanacademy.org", "education"), Map.entry("coursera.org", "education"),
-        Map.entry("udemy.com", "education"), Map.entry("edx.org", "education"),
-        Map.entry("duolingo.com", "education"), Map.entry("quizlet.com", "education"),
-        Map.entry("wikipedia.org", "education"), Map.entry("brainly.com", "education"),
-
-        Map.entry("google.com", "search"), Map.entry("bing.com", "search"),
-        Map.entry("duckduckgo.com", "search"), Map.entry("yahoo.com", "search"),
-
-        Map.entry("pornhub.com", "adult"), Map.entry("xvideos.com", "adult"),
-        Map.entry("xnxx.com", "adult"), Map.entry("xhamster.com", "adult"),
-        Map.entry("onlyfans.com", "adult"), Map.entry("chaturbate.com", "adult"),
-        Map.entry("redtube.com", "adult"), Map.entry("youporn.com", "adult"),
-        Map.entry("spankbang.com", "adult"), Map.entry("rule34.xxx", "adult"),
-
-        Map.entry("bet365.com", "gambling"), Map.entry("draftkings.com", "gambling"),
-        Map.entry("fanduel.com", "gambling"), Map.entry("pokerstars.com", "gambling"),
-        Map.entry("bovada.lv", "gambling"), Map.entry("betway.com", "gambling"),
-
-        Map.entry("nordvpn.com", "vpn_proxy"), Map.entry("expressvpn.com", "vpn_proxy"),
-        Map.entry("surfshark.com", "vpn_proxy"), Map.entry("protonvpn.com", "vpn_proxy"),
-        Map.entry("torproject.org", "vpn_proxy"), Map.entry("psiphon3.com", "vpn_proxy"),
-
-        Map.entry("openai.com", "ai"), Map.entry("chatgpt.com", "ai"),
-        Map.entry("anthropic.com", "ai"), Map.entry("claude.ai", "ai"),
-        Map.entry("midjourney.com", "ai"), Map.entry("perplexity.ai", "ai"),
-
-        Map.entry("cnn.com", "news"), Map.entry("bbc.com", "news"),
-        Map.entry("nytimes.com", "news"), Map.entry("reuters.com", "news")
-    );
+        // ── Music ──
+        m.put("spotify.com",   "music"); m.put("spotifycdn.com",  "music");
+        m.put("scdn.co",       "music"); m.put("soundcloud.com",  "music");
+        m.put("sndcdn.com",    "music"); m.put("pandora.com",     "music");
+        m.put("deezer.com",    "music"); m.put("tidal.com",       "music");
+        m.put("jiosaavn.com",  "music"); m.put("gaana.com",       "music");
+        m.put("wynk.in",       "music");
+        // ── Gaming ──
+        m.put("roblox.com",    "gaming"); m.put("rbxcdn.com",     "gaming");
+        m.put("roblox-static.com","gaming"); m.put("rbx.com",     "gaming");
+        m.put("robloxlabs.com","gaming");
+        m.put("minecraft.net", "gaming"); m.put("mojang.com",     "gaming");
+        m.put("fortnite.com",  "gaming"); m.put("epicgames.com",  "gaming");
+        m.put("epicusercontent.com","gaming"); m.put("unrealengine.com","gaming");
+        m.put("steampowered.com","gaming"); m.put("steamcommunity.com","gaming");
+        m.put("steamstatic.com","gaming"); m.put("steamcontent.com","gaming");
+        m.put("valvesoftware.com","gaming");
+        m.put("ea.com","gaming"); m.put("easports.com","gaming");
+        m.put("origin.com","gaming"); m.put("easyanticheat.net","gaming");
+        m.put("riotgames.com","gaming"); m.put("leagueoflegends.com","gaming");
+        m.put("valorant.com","gaming");
+        m.put("blizzard.com","gaming"); m.put("battle.net","gaming");
+        m.put("activision.com","gaming"); m.put("callofduty.com","gaming");
+        m.put("xbox.com","gaming"); m.put("xboxlive.com","gaming");
+        m.put("playstation.com","gaming"); m.put("playstation.net","gaming");
+        m.put("nintendo.com","gaming"); m.put("nintendoswitch.com","gaming");
+        m.put("pubg.com","gaming"); m.put("pubgmobile.com","gaming");
+        m.put("krafton.com","gaming");
+        m.put("freefiremobile.com","gaming"); m.put("garena.com","gaming");
+        m.put("rockstargames.com","gaming");
+        m.put("hoyoverse.com","gaming"); m.put("mihoyo.com","gaming");
+        m.put("nianticlabs.com","gaming"); m.put("pokemongolive.com","gaming");
+        m.put("supercell.com","gaming"); m.put("clashofclans.com","gaming");
+        m.put("clashroyale.com","gaming"); m.put("king.com","gaming");
+        m.put("zynga.com","gaming"); m.put("gameloft.com","gaming");
+        // ── Shopping ──
+        m.put("amazon.com","shopping"); m.put("amazon.in","shopping");
+        m.put("ebay.com","shopping"); m.put("etsy.com","shopping");
+        m.put("shopify.com","shopping"); m.put("aliexpress.com","shopping");
+        m.put("walmart.com","shopping"); m.put("flipkart.com","shopping");
+        m.put("myntra.com","shopping"); m.put("meesho.com","shopping");
+        m.put("ajio.com","shopping"); m.put("nykaa.com","shopping");
+        // ── Education ──
+        m.put("khanacademy.org","education"); m.put("coursera.org","education");
+        m.put("udemy.com","education"); m.put("edx.org","education");
+        m.put("duolingo.com","education"); m.put("quizlet.com","education");
+        m.put("wikipedia.org","education"); m.put("brainly.com","education");
+        m.put("scratch.mit.edu","education"); m.put("code.org","education");
+        m.put("byjus.com","education"); m.put("vedantu.com","education");
+        m.put("unacademy.com","education"); m.put("toppr.com","education");
+        // ── Search ──
+        m.put("google.com","search"); m.put("bing.com","search");
+        m.put("duckduckgo.com","search"); m.put("yahoo.com","search");
+        // ── Adult ──
+        m.put("pornhub.com","adult"); m.put("xvideos.com","adult");
+        m.put("xnxx.com","adult"); m.put("xhamster.com","adult");
+        m.put("onlyfans.com","adult"); m.put("chaturbate.com","adult");
+        m.put("redtube.com","adult"); m.put("youporn.com","adult");
+        m.put("spankbang.com","adult"); m.put("rule34.xxx","adult");
+        m.put("livejasmin.com","adult"); m.put("bongacams.com","adult");
+        m.put("stripchat.com","adult"); m.put("cam4.com","adult");
+        // ── Gambling ──
+        m.put("bet365.com","gambling"); m.put("pokerstars.com","gambling");
+        m.put("betway.com","gambling"); m.put("draftkings.com","gambling");
+        m.put("fanduel.com","gambling"); m.put("bovada.lv","gambling");
+        m.put("dream11.com","gambling"); m.put("d11.dev","gambling");
+        m.put("mpl.live","gambling"); m.put("rummycircle.com","gambling");
+        m.put("1xbet.com","gambling"); m.put("1xbet.co.in","gambling");
+        m.put("pokerstars.net","gambling"); m.put("casumo.com","gambling");
+        m.put("williamhill.com","gambling"); m.put("betfair.com","gambling");
+        // ── Adult Dating ──
+        m.put("tinder.com","dating"); m.put("bumble.com","dating");
+        m.put("grindr.com","dating"); m.put("hinge.co","dating");
+        m.put("badoo.com","dating"); m.put("okcupid.com","dating");
+        m.put("match.com","dating"); m.put("ashley-madison.com","dating");
+        m.put("gotinder.com","dating"); m.put("plentyoffish.com","dating");
+        // ── VPN & Proxy ──
+        m.put("nordvpn.com","vpn_proxy"); m.put("nordvpn.net","vpn_proxy");
+        m.put("nordvpndns.com","vpn_proxy");
+        m.put("expressvpn.com","vpn_proxy"); m.put("expressvpn.net","vpn_proxy");
+        m.put("protonvpn.com","vpn_proxy"); m.put("proton.ch","vpn_proxy");
+        m.put("surfshark.com","vpn_proxy"); m.put("tunnelbear.com","vpn_proxy");
+        m.put("windscribe.com","vpn_proxy"); m.put("psiphon.ca","vpn_proxy");
+        m.put("psiphon3.com","vpn_proxy"); m.put("hidemyass.com","vpn_proxy");
+        m.put("hide.me","vpn_proxy"); m.put("hotspotshield.com","vpn_proxy");
+        m.put("anchorfree.com","vpn_proxy"); m.put("ultrasurf.us","vpn_proxy");
+        m.put("ultrareach.com","vpn_proxy"); m.put("ipvanish.com","vpn_proxy");
+        m.put("cyberghostvpn.com","vpn_proxy"); m.put("vyprvpn.com","vpn_proxy");
+        m.put("privateinternetaccess.com","vpn_proxy");
+        // ── Tor / Dark Web ──
+        m.put("torproject.org","tor"); m.put("tor2web.org","tor");
+        m.put("onion.to","tor"); m.put("darkfail.link","tor");
+        // ── Crypto ──
+        m.put("binance.com","crypto"); m.put("coinbase.com","crypto");
+        m.put("kraken.com","crypto"); m.put("opensea.io","crypto");
+        m.put("metamask.io","crypto"); m.put("coinmarketcap.com","crypto");
+        m.put("wazirx.com","crypto"); m.put("coindcx.com","crypto");
+        // ── Anonymous chat ──
+        m.put("omegle.com","chat"); m.put("chatroulette.com","chat");
+        m.put("monkey.cool","chat"); m.put("yik-yak.com","chat");
+        // ── AI ──
+        m.put("openai.com","ai"); m.put("chatgpt.com","ai");
+        m.put("anthropic.com","ai"); m.put("claude.ai","ai");
+        m.put("midjourney.com","ai"); m.put("perplexity.ai","ai");
+        // ── News ──
+        m.put("cnn.com","news"); m.put("bbc.com","news");
+        m.put("nytimes.com","news"); m.put("reuters.com","news");
+        m.put("ndtv.com","news"); m.put("indiatoday.in","news");
+        m.put("thehindu.com","news"); m.put("hindustantimes.com","news");
+        CATEGORY_MAP = java.util.Collections.unmodifiableMap(m);
+    }
 
     private static final Set<String> CDN_SUFFIXES = Set.of(
         "cdn.com", "cdninstagram.com", "fbcdn.net", "akamaihd.net", "akamai.net",
@@ -269,6 +369,10 @@ public class DomainEnrichmentService {
         return parts[parts.length - 2] + "." + parts[parts.length - 1];
     }
 
+    /**
+     * Synchronous enrich — uses in-memory maps only.
+     * Use enrichWithCache() for Redis-backed lookup in the async DNS pipeline.
+     */
     public DomainInfo enrich(String domain) {
         if (domain == null || domain.isEmpty()) {
             return DomainInfo.builder()
@@ -285,6 +389,7 @@ public class DomainEnrichmentService {
         String appName = APP_MAP.get(root);
         if (appName == null) appName = APP_MAP.get(normalized);
 
+        // In-memory category fallback (Redis check happens in enrichAsync)
         String category = CATEGORY_MAP.get(root);
         if (category == null) category = CATEGORY_MAP.get(normalized);
 
@@ -299,5 +404,61 @@ public class DomainEnrichmentService {
             .cdn(isCdn)
             .tracking(isTracking)
             .build();
+    }
+
+    /**
+     * Async enrich — checks Redis domain-category cache first (populated by CategoryCacheLoader),
+     * then falls back to in-memory CATEGORY_MAP.
+     * Use this in the reactive DNS resolution pipeline for full coverage.
+     */
+    public reactor.core.publisher.Mono<DomainInfo> enrichAsync(
+            String domain,
+            org.springframework.data.redis.core.ReactiveStringRedisTemplate redis) {
+
+        if (domain == null || domain.isEmpty()) {
+            return reactor.core.publisher.Mono.just(
+                DomainInfo.builder().originalDomain(domain).rootDomain(domain).build());
+        }
+
+        String normalized = domain.toLowerCase();
+        if (normalized.endsWith(".")) normalized = normalized.substring(0, normalized.length() - 1);
+        String root = extractRootDomain(normalized);
+
+        String appName = APP_MAP.get(root);
+        if (appName == null) appName = APP_MAP.get(normalized);
+
+        boolean isCdn = CDN_SUFFIXES.contains(root) || normalized.contains(".cdn.");
+        boolean isTracking = TRACKING_DOMAINS.contains(root) || TRACKING_DOMAINS.contains(normalized);
+
+        final String finalAppName = appName;
+        final String finalRoot = root;
+
+        // Check Redis cache (shield:domcat:{root}) first
+        String cacheKey = CategoryCacheLoader.DOMCAT_PREFIX + root;
+        return redis.opsForValue().get(cacheKey)
+            .switchIfEmpty(
+                // Fallback: check normalized full domain in Redis
+                redis.opsForValue().get(CategoryCacheLoader.DOMCAT_PREFIX + normalized))
+            .map(categoryFromRedis -> DomainInfo.builder()
+                .originalDomain(domain)
+                .rootDomain(finalRoot)
+                .appName(finalAppName)
+                .category(categoryFromRedis)
+                .cdn(isCdn)
+                .tracking(isTracking)
+                .build())
+            .switchIfEmpty(reactor.core.publisher.Mono.fromSupplier(() -> {
+                // Final fallback: in-memory CATEGORY_MAP
+                String cat = CATEGORY_MAP.get(finalRoot);
+                if (cat == null) cat = CATEGORY_MAP.get(normalized);
+                return DomainInfo.builder()
+                    .originalDomain(domain)
+                    .rootDomain(finalRoot)
+                    .appName(finalAppName)
+                    .category(cat)
+                    .cdn(isCdn)
+                    .tracking(isTracking)
+                    .build();
+            }));
     }
 }

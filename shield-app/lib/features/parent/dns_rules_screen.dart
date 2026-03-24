@@ -23,6 +23,12 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
   String _search    = '';
   String? _catsError;
 
+  // ── Category metadata (from /dns/categories/full) ───────────────────────
+  // Keys are categoryKey (e.g. 'adult', 'gambling') or category id ('01', '15')
+  List<Map<String, dynamic>> _categoryMeta = [];
+  // Map from categoryKey OR id to meta for fast lookup
+  Map<String, Map<String, dynamic>> _metaByKey = {};
+
   // ── Custom lists state ──────────────────────────────────────────────────
   List<String> _blocklist = [];
   List<String> _allowlist = [];
@@ -70,11 +76,12 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
     setState(() { _catsLoading = true; _listsLoading = true; _catsError = null; });
     try {
       final client = ref.read(dioProvider);
-      // Fetch rules, DNS status, and all categories in parallel
+      // Fetch rules, DNS status, all categories, and category metadata in parallel
       final results = await Future.wait([
         client.get('/dns/rules/${widget.profileId}'),
         client.get('/dns/${widget.profileId}/status').catchError((_) => null),
         client.get('/dns/categories').catchError((_) => null),
+        client.get('/dns/categories/full').catchError((_) => null),
       ], eagerError: false);
 
       final res = results[0] as dynamic;
@@ -125,6 +132,27 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
         }
       } catch (_) {}
 
+      // Parse category metadata from /dns/categories/full
+      List<Map<String, dynamic>> metaList = [];
+      Map<String, Map<String, dynamic>> metaByKey = {};
+      try {
+        final metaRes = results[3];
+        if (metaRes != null) {
+          final mData = (metaRes as dynamic).data;
+          final mList = mData is Map ? (mData['data'] as List?) : null;
+          if (mList != null) {
+            for (final item in mList) {
+              final m = Map<String, dynamic>.from(item as Map);
+              metaList.add(m);
+              final key = m['categoryKey']?.toString();
+              final id = m['id']?.toString();
+              if (key != null && key.isNotEmpty) metaByKey[key.toUpperCase()] = m;
+              if (id != null) metaByKey[id] = m;
+            }
+          }
+        }
+      } catch (_) {}
+
       if (mounted) {
         final resolvedCategories = cats.map((k, v) => MapEntry(k, v == true));
         final resolvedBlocklist = List<String>.from(data['customBlocklist'] ?? []);
@@ -137,6 +165,8 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
           _listsLoading = false;
           _filterLevel = level;
           _paused = paused;
+          _categoryMeta = metaList;
+          _metaByKey = metaByKey;
         });
         // Cache fresh data for offline/stale-while-revalidate use
         CacheService.put('dns_rules_${widget.profileId}', {
@@ -330,6 +360,7 @@ class _DnsRulesScreenState extends ConsumerState<DnsRulesScreen>
             children: [
           _CategoriesTab(
             categories: _categories,
+            metaByKey: _metaByKey,
             loading: _catsLoading,
             saving: _catsSaving,
             search: _search,
@@ -457,6 +488,7 @@ class _DnsStatusCard extends StatelessWidget {
 
 class _CategoriesTab extends StatelessWidget {
   final Map<String, bool> categories;
+  final Map<String, Map<String, dynamic>> metaByKey;
   final bool loading, saving, levelSaving;
   final String search, filterLevel;
   final String? error;
@@ -468,12 +500,47 @@ class _CategoriesTab extends StatelessWidget {
   final String Function(String) fmt;
 
   const _CategoriesTab({
-    required this.categories, required this.loading, required this.saving,
+    required this.categories,
+    required this.metaByKey,
+    required this.loading, required this.saving,
     required this.levelSaving, required this.search, required this.filterLevel,
     required this.error, required this.onSearchChanged, required this.onCategoryChanged,
     required this.onBlockAll, required this.onAllowAll, required this.onSave,
     required this.onLevelChanged, required this.catIcon, required this.fmt,
   });
+
+  Color _riskColor(String? risk) {
+    switch (risk) {
+      case 'HIGH': return const Color(0xFFD32F2F);
+      case 'MEDIUM': return const Color(0xFFF57C00);
+      default: return const Color(0xFF388E3C);
+    }
+  }
+
+  bool _isAlwaysBlocked(String key) {
+    final meta = metaByKey[key] ?? metaByKey[key.toLowerCase()];
+    if (meta != null) return meta['alwaysBlock'] == true;
+    // Fallback for categories not yet in DB
+    const always = {'ADULT', 'MALWARE', 'PHISHING', 'CSAM', 'PIRACY', 'WEAPONS',
+                    'VIOLENCE', 'DRUGS', 'TERRORISM', 'TOR'};
+    return always.contains(key.toUpperCase());
+  }
+
+  String? _riskLevel(String key) {
+    final meta = metaByKey[key] ?? metaByKey[key.toLowerCase()];
+    return meta?['riskLevel'] as String?;
+  }
+
+  int _domainCount(String key) {
+    final meta = metaByKey[key] ?? metaByKey[key.toLowerCase()];
+    if (meta == null) return 0;
+    return (meta['domainCount'] as num?)?.toInt() ?? 0;
+  }
+
+  String? _description(String key) {
+    final meta = metaByKey[key] ?? metaByKey[key.toLowerCase()];
+    return meta?['description'] as String?;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -485,11 +552,14 @@ class _CategoriesTab extends StatelessWidget {
             ShieldCardSkeleton(lines: 3),
           ]));
 
-    final filtered = categories.entries
+    final allEntries = categories.entries
         .where((e) => search.isEmpty || e.key.toLowerCase().contains(search.toLowerCase()))
         .toList()
       ..sort((a, b) => a.key.compareTo(b.key));
-    final blockedCount = categories.values.where((v) => v).length;
+
+    final alwaysBlocked = allEntries.where((e) => _isAlwaysBlocked(e.key)).toList();
+    final configurable  = allEntries.where((e) => !_isAlwaysBlocked(e.key)).toList();
+    final blockedCount  = categories.values.where((v) => v).length;
 
     return Column(children: [
       // ── Filter level selector ───────────────────────────────────────────
@@ -515,43 +585,30 @@ class _CategoriesTab extends StatelessWidget {
         ]),
       ),
       const Divider(height: 1),
-      // ── Search + stats ──────────────────────────────────────────────────
+      // ── Stats + actions bar ─────────────────────────────────────────────
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
         child: Column(children: [
-          TextField(
-            decoration: InputDecoration(
-              hintText: 'Search categories...',
-              prefixIcon: const Icon(Icons.search, size: 20),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onChanged: onSearchChanged,
-          ),
-          const SizedBox(height: 10),
           Row(children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: blockedCount > 10
+                color: blockedCount > 8
                     ? ShieldTheme.success.withOpacity(0.1)
                     : ShieldTheme.warning.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.shield, size: 14,
-                  color: blockedCount > 10 ? ShieldTheme.success : ShieldTheme.warning),
+                  color: blockedCount > 8 ? ShieldTheme.success : ShieldTheme.warning),
                 const SizedBox(width: 4),
                 Text('$blockedCount / ${categories.length} blocked',
                   style: TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w600,
-                    color: blockedCount > 10 ? ShieldTheme.success : ShieldTheme.warning)),
+                    color: blockedCount > 8 ? ShieldTheme.success : ShieldTheme.warning)),
               ]),
             ),
             const Spacer(),
-            TextButton(onPressed: onBlockAll, child: const Text('Block All', style: TextStyle(fontSize: 12))),
-            TextButton(onPressed: onAllowAll, child: const Text('Allow All', style: TextStyle(fontSize: 12))),
             FilledButton(
               onPressed: saving ? null : onSave,
               style: FilledButton.styleFrom(
@@ -564,7 +621,7 @@ class _CategoriesTab extends StatelessWidget {
             ),
           ]),
           if (error != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -574,7 +631,7 @@ class _CategoriesTab extends StatelessWidget {
               child: Row(children: [
                 const Icon(Icons.info_outline, color: ShieldTheme.warning, size: 16),
                 const SizedBox(width: 6),
-                Expanded(child: Text('$error — save to apply to your account.',
+                Expanded(child: Text('$error — save to apply.',
                   style: const TextStyle(fontSize: 11, color: ShieldTheme.warning))),
               ]),
             ),
@@ -583,56 +640,228 @@ class _CategoriesTab extends StatelessWidget {
       ),
       // ── List ────────────────────────────────────────────────────────────
       Expanded(
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          itemCount: filtered.length,
-          itemBuilder: (_, i) {
-            final entry = filtered[i];
-            final blocked = entry.value;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              decoration: BoxDecoration(
-                color: ShieldTheme.cardBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: blocked ? ShieldTheme.dangerLight.withOpacity(0.3) : ShieldTheme.divider,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          children: [
+            // Search box
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search categories...',
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
+                onChanged: onSearchChanged,
               ),
-              child: SwitchListTile(
-                dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                secondary: Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(
-                    color: blocked
-                        ? ShieldTheme.dangerLight.withOpacity(0.1)
-                        : ShieldTheme.divider,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(catIcon(entry.key),
-                    color: blocked ? ShieldTheme.dangerLight : ShieldTheme.textSecondary,
-                    size: 18),
-                ),
-                title: Text(fmt(entry.key),
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                  overflow: TextOverflow.ellipsis, maxLines: 1),
-                subtitle: Text(
-                  blocked ? 'Blocked' : 'Allowed',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: blocked ? ShieldTheme.dangerLight : ShieldTheme.success,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                value: entry.value,
-                activeColor: ShieldTheme.dangerLight,
-                onChanged: (v) => onCategoryChanged(entry.key, v),
+            ),
+
+            // ── Always Blocked section ──────────────────────────────────
+            if (alwaysBlocked.isNotEmpty) ...[
+              _SectionHeader(
+                label: 'Always Blocked',
+                subtitle: 'Cannot be turned off — protects from illegal content',
+                color: const Color(0xFFD32F2F),
+                icon: Icons.lock,
               ),
-            );
-          },
+              ...alwaysBlocked.map((e) => _CategoryCard(
+                catKey: e.key,
+                blocked: true,
+                alwaysBlocked: true,
+                riskColor: const Color(0xFFD32F2F),
+                domainCount: _domainCount(e.key),
+                description: _description(e.key),
+                catIcon: catIcon,
+                fmt: fmt,
+                onChanged: null,
+              )),
+              const SizedBox(height: 8),
+            ],
+
+            // ── Configurable categories ─────────────────────────────────
+            if (configurable.isNotEmpty) ...[
+              _SectionHeader(
+                label: 'Configurable Categories',
+                subtitle: 'Toggle to block or allow — saved with the button above',
+                color: const Color(0xFF1565C0),
+                icon: Icons.tune,
+              ),
+              ...configurable.map((e) {
+                final risk = _riskLevel(e.key);
+                final rColor = _riskColor(risk);
+                return _CategoryCard(
+                  catKey: e.key,
+                  blocked: e.value,
+                  alwaysBlocked: false,
+                  riskColor: rColor,
+                  riskLabel: risk,
+                  domainCount: _domainCount(e.key),
+                  description: _description(e.key),
+                  catIcon: catIcon,
+                  fmt: fmt,
+                  onChanged: (v) => onCategoryChanged(e.key, v),
+                );
+              }),
+            ],
+          ],
         ),
       ),
     ]);
+  }
+}
+
+// ── Section Header ─────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final String label, subtitle;
+  final Color color;
+  final IconData icon;
+  const _SectionHeader({required this.label, required this.subtitle,
+      required this.color, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6, top: 4),
+      child: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 14, color: color),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: TextStyle(
+            fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+          Text(subtitle, style: const TextStyle(
+            fontSize: 10, color: ShieldTheme.textSecondary)),
+        ])),
+      ]),
+    );
+  }
+}
+
+// ── Category Card ──────────────────────────────────────────────────────────
+
+class _CategoryCard extends StatelessWidget {
+  final String catKey;
+  final bool blocked, alwaysBlocked;
+  final Color riskColor;
+  final String? riskLabel;
+  final int domainCount;
+  final String? description;
+  final IconData Function(String) catIcon;
+  final String Function(String) fmt;
+  final ValueChanged<bool>? onChanged;
+
+  const _CategoryCard({
+    required this.catKey, required this.blocked, required this.alwaysBlocked,
+    required this.riskColor, this.riskLabel, required this.domainCount,
+    this.description, required this.catIcon, required this.fmt, required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: ShieldTheme.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: alwaysBlocked
+              ? riskColor.withOpacity(0.25)
+              : (blocked ? riskColor.withOpacity(0.2) : ShieldTheme.divider),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(children: [
+          // Icon badge
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color: (alwaysBlocked || blocked)
+                  ? riskColor.withOpacity(0.1)
+                  : ShieldTheme.divider,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(catIcon(catKey),
+              color: (alwaysBlocked || blocked) ? riskColor : ShieldTheme.textSecondary,
+              size: 18),
+          ),
+          const SizedBox(width: 10),
+          // Text
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Flexible(child: Text(fmt(catKey),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                overflow: TextOverflow.ellipsis, maxLines: 1)),
+              if (alwaysBlocked) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: riskColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.lock, size: 9, color: riskColor),
+                    const SizedBox(width: 2),
+                    Text('Always On', style: TextStyle(fontSize: 9, color: riskColor, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ] else if (riskLabel != null) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: riskColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(riskLabel!, style: TextStyle(
+                    fontSize: 9, color: riskColor, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ]),
+            const SizedBox(height: 2),
+            Row(children: [
+              if (description != null && description!.isNotEmpty)
+                Flexible(child: Text(description!,
+                  style: const TextStyle(fontSize: 10, color: ShieldTheme.textSecondary),
+                  overflow: TextOverflow.ellipsis, maxLines: 1)),
+              if (domainCount > 0) ...[
+                if (description != null && description!.isNotEmpty) const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: ShieldTheme.divider,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text('$domainCount domains',
+                    style: const TextStyle(fontSize: 9, color: ShieldTheme.textSecondary)),
+                ),
+              ],
+            ]),
+          ])),
+          const SizedBox(width: 8),
+          // Toggle or lock
+          if (alwaysBlocked)
+            Icon(Icons.lock, size: 18, color: riskColor.withOpacity(0.5))
+          else
+            Switch(
+              value: blocked,
+              onChanged: onChanged,
+              activeColor: riskColor,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+        ]),
+      ),
+    );
   }
 }
 

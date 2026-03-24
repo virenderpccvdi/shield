@@ -7,6 +7,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.xbill.DNS.*;
 import reactor.core.publisher.Mono;
@@ -31,6 +32,7 @@ public class DnsResolutionService {
     private final DnsUpstreamService dnsUpstreamService;
     private final DomainEnrichmentService domainEnrichmentService;
     private final DnsQueryLogService dnsQueryLogService;
+    private final ReactiveStringRedisTemplate redisTemplate;
     private final Counter queriesTotal;
     private final Counter queriesBlocked;
     private final Counter queriesForwarded;
@@ -40,11 +42,13 @@ public class DnsResolutionService {
                                  DnsUpstreamService dnsUpstreamService,
                                  DomainEnrichmentService domainEnrichmentService,
                                  DnsQueryLogService dnsQueryLogService,
+                                 ReactiveStringRedisTemplate redisTemplate,
                                  MeterRegistry meterRegistry) {
         this.rulesCacheService = rulesCacheService;
         this.dnsUpstreamService = dnsUpstreamService;
         this.domainEnrichmentService = domainEnrichmentService;
         this.dnsQueryLogService = dnsQueryLogService;
+        this.redisTemplate = redisTemplate;
 
         this.queriesTotal = Counter.builder("dns.queries.total")
             .description("Total DNS queries processed")
@@ -94,11 +98,12 @@ public class DnsResolutionService {
             return dnsUpstreamService.forward(queryPacket);
         }
 
-        // Enrich domain
-        DomainInfo info = domainEnrichmentService.enrich(domain);
+        // Enrich domain — check Redis domain-category cache first, then in-memory fallback
+        return domainEnrichmentService.enrichAsync(domain, redisTemplate)
+            .flatMap(info ->
 
         // Resolve profile and check rules
-        return rulesCacheService.getProfileId(dnsClientId)
+        rulesCacheService.getProfileId(dnsClientId)
             .flatMap(profileId ->
                 // Ensure rules are cached
                 rulesCacheService.loadRulesIfMissing(profileId)
@@ -134,7 +139,12 @@ public class DnsResolutionService {
             .onErrorResume(e -> {
                 log.error("Error resolving query for domain={}: {}", domain, e.getMessage());
                 return dnsUpstreamService.forward(queryPacket);
-            });
+            })
+        ) // close enrichAsync flatMap
+        .onErrorResume(e -> {
+            log.error("Domain enrichment error for domain={}: {}", domain, e.getMessage());
+            return dnsUpstreamService.forward(queryPacket);
+        });
     }
 
     /**

@@ -17,6 +17,7 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import PhishingIcon from '@mui/icons-material/Phishing';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import LockIcon from '@mui/icons-material/Lock';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -26,7 +27,17 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import LoadingPage from '../../components/LoadingPage';
 
-interface Category { id: string; name: string; key: string; blocked: boolean; alwaysOn?: boolean; emoji: string; }
+interface FullCategory {
+  id: string; name: string; description: string; riskLevel: string;
+  blockedStarter: boolean; blockedGrowth: boolean; blockedEnterprise: boolean;
+  alwaysBlock: boolean; iconName: string; categoryKey: string; domainCount: number;
+}
+
+interface Category {
+  id: string; name: string; key: string; blocked: boolean;
+  alwaysOn?: boolean; alwaysBlock?: boolean; emoji: string;
+  domainCount?: number; riskLevel?: string; description?: string;
+}
 
 interface DnsRulesResponse {
   profileId: string;
@@ -99,6 +110,7 @@ const CATEGORY_META: Record<string, { name: string; alwaysOn?: boolean; group: s
 function rulesToCategories(
   rules: DnsRulesResponse | null,
   allCategories: Record<string, string> | null,
+  fullCats: FullCategory[] | null,
 ): Category[] {
   const profileCats = rules?.enabledCategories ?? {};
   // Build full key set: prefer backend /dns/categories, fall back to CATEGORY_META keys
@@ -109,20 +121,40 @@ function rulesToCategories(
   for (const k of Object.keys(profileCats)) {
     if (!allKeys.includes(k)) allKeys.push(k);
   }
+  // Build lookup from categoryKey → FullCategory
+  const fullByKey: Record<string, FullCategory> = {};
+  for (const fc of fullCats ?? []) {
+    if (fc.categoryKey) fullByKey[fc.categoryKey] = fc;
+  }
   return allKeys
     .filter(k => !k.startsWith('__')) // hide internal flags
     .map((key, i) => {
       const meta = CATEGORY_META[key] || { name: allCategories?.[key] || key.replace(/_/g, ' ') };
+      const full = fullByKey[key];
       const enabled = profileCats[key] ?? true; // default: allowed (not blocked)
+      const alwaysBlock = full?.alwaysBlock ?? (meta as any).alwaysOn ?? false;
       return {
         id: String(i + 1),
-        name: meta.name,
+        name: full?.name ?? meta.name,
         key,
-        blocked: !enabled,
-        alwaysOn: meta.alwaysOn || false,
+        blocked: alwaysBlock ? true : !enabled,
+        alwaysOn: (meta as any).alwaysOn || false,
+        alwaysBlock,
         emoji: '',
+        domainCount: full?.domainCount,
+        riskLevel: full?.riskLevel,
+        description: full?.description,
       };
     });
+}
+
+function riskChipColor(risk?: string): { bg: string; color: string; label: string } {
+  switch (risk?.toUpperCase()) {
+    case 'HIGH':    return { bg: 'rgba(229,57,53,0.10)', color: '#C62828', label: 'High Risk' };
+    case 'MEDIUM':  return { bg: 'rgba(251,140,0,0.10)',  color: '#E65100', label: 'Medium' };
+    case 'LOW':     return { bg: 'rgba(56,142,60,0.10)',  color: '#2E7D32', label: 'Low' };
+    default:        return { bg: 'rgba(97,97,97,0.08)',   color: '#424242', label: risk ?? '' };
+  }
 }
 
 const categoryIcons: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
@@ -371,10 +403,17 @@ export default function RulesPage() {
   const { data: allCategories } = useQuery({
     queryKey: ['dns-categories'],
     queryFn: () => api.get('/dns/categories').then(r => (r.data.data ?? r.data) as Record<string, string>).catch(() => null),
-    staleTime: 5 * 60 * 1000, // cache 5 min
+    staleTime: 5 * 60 * 1000,
   });
 
-  const categories = rulesToCategories(rulesData ?? null, allCategories ?? null);
+  // Enriched category metadata: domain counts, risk levels, alwaysBlock flags
+  const { data: fullCats } = useQuery({
+    queryKey: ['dns-categories-full'],
+    queryFn: () => api.get('/dns/categories/full').then(r => (r.data.data ?? r.data) as FullCategory[]).catch(() => null),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const categories = rulesToCategories(rulesData ?? null, allCategories ?? null, fullCats ?? null);
   const customAllowlist: string[] = rulesData?.customAllowlist ?? [];
   const customBlocklist: string[] = rulesData?.customBlocklist ?? [];
 
@@ -452,20 +491,22 @@ export default function RulesPage() {
       <Grid container spacing={2}>
         {categories.map((cat, i) => {
           const config = categoryIcons[cat.key] || { icon: <BlockIcon />, color: '#757575', bg: '#F5F5F5' };
+          const risk = cat.riskLevel ? riskChipColor(cat.riskLevel) : null;
+          const borderColor = cat.alwaysBlock ? '#B71C1C' : (cat.blocked ? config.color : '#E0E0E0');
           return (
             <Grid size={{ xs: 12, sm: 6 }} key={cat.id}>
               <AnimatedPage delay={0.05 + i * 0.04}>
                 <Card sx={{
                   transition: 'all 0.2s ease',
-                  borderLeft: `4px solid ${cat.blocked ? config.color : '#E0E0E0'}`,
-                  opacity: cat.blocked ? 1 : 0.75,
+                  borderLeft: `4px solid ${borderColor}`,
+                  opacity: (!cat.blocked && !cat.alwaysBlock) ? 0.75 : 1,
                   '&:hover': { transform: 'translateY(-2px)', opacity: 1 },
                 }}>
                   <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
                         <Box sx={{
-                          width: 40, height: 40, borderRadius: '10px',
+                          width: 40, height: 40, borderRadius: '10px', flexShrink: 0,
                           bgcolor: config.bg,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           color: config.color,
@@ -473,30 +514,65 @@ export default function RulesPage() {
                         }}>
                           {config.icon}
                         </Box>
-                        <Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                             <Typography variant="body2" fontWeight={600}>{cat.name}</Typography>
-                            {cat.alwaysOn && (
+                            {cat.alwaysBlock && (
+                              <Chip size="small" label="Always Blocked" sx={{
+                                height: 18, fontSize: 10, fontWeight: 700,
+                                bgcolor: 'rgba(183,28,28,0.10)', color: '#B71C1C',
+                              }} />
+                            )}
+                            {!cat.alwaysBlock && cat.alwaysOn && (
                               <Chip size="small" label="Always On" sx={{
                                 height: 18, fontSize: 10, fontWeight: 700,
                                 bgcolor: 'rgba(229,57,53,0.08)', color: 'error.main',
                               }} />
                             )}
+                            {risk && risk.label && (
+                              <Chip size="small" label={risk.label} sx={{
+                                height: 18, fontSize: 10, fontWeight: 600,
+                                bgcolor: risk.bg, color: risk.color,
+                              }} />
+                            )}
                           </Box>
-                          <Typography variant="caption" color="text.secondary">
-                            {cat.blocked ? 'Blocked' : 'Allowed'}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              {cat.alwaysBlock ? 'Always blocked' : (cat.blocked ? 'Blocked' : 'Allowed')}
+                            </Typography>
+                            {cat.domainCount != null && cat.domainCount > 0 && (
+                              <Chip size="small" label={`${cat.domainCount.toLocaleString()} domains`} sx={{
+                                height: 16, fontSize: 10, fontWeight: 500,
+                                bgcolor: 'rgba(0,0,0,0.05)', color: 'text.secondary',
+                                '& .MuiChip-label': { px: 0.75 },
+                              }} />
+                            )}
+                          </Box>
+                          {cat.description && (
+                            <Typography variant="caption" color="text.secondary" sx={{
+                              display: 'block', mt: 0.25,
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}>
+                              {cat.description}
+                            </Typography>
+                          )}
                         </Box>
                       </Box>
-                      <Switch
-                        checked={cat.blocked}
-                        disabled={cat.alwaysOn}
-                        onChange={(e) => toggleMutation.mutate({ key: cat.key, blocked: e.target.checked })}
-                        sx={{
-                          '& .MuiSwitch-switchBase.Mui-checked': { color: config.color },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: config.color },
-                        }}
-                      />
+                      {cat.alwaysBlock ? (
+                        <Box sx={{ color: '#B71C1C', display: 'flex', alignItems: 'center', ml: 1 }}>
+                          <LockIcon fontSize="small" />
+                        </Box>
+                      ) : (
+                        <Switch
+                          checked={cat.blocked}
+                          disabled={cat.alwaysOn}
+                          onChange={(e) => toggleMutation.mutate({ key: cat.key, blocked: e.target.checked })}
+                          sx={{
+                            '& .MuiSwitch-switchBase.Mui-checked': { color: config.color },
+                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: config.color },
+                          }}
+                        />
+                      )}
                     </Box>
                   </CardContent>
                 </Card>

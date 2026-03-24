@@ -27,4 +27,12 @@ public interface DnsRulesClient {
      */
     @GetMapping("/rules/{profileId}")
     Map<String, Object> getRulesForProfile(@PathVariable("profileId") String profileId);
+
+    /**
+     * Get all domain→category mappings from the master blocklist database.
+     * Endpoint: GET /internal/dns/domain-blocklist
+     * Returns list of {domain, categoryId} maps — used to populate Redis at startup.
+     */
+    @GetMapping("/domain-blocklist")
+    List<Map<String, String>> getDomainBlocklist();
 }
