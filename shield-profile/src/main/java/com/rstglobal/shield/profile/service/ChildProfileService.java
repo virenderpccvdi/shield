@@ -118,9 +118,12 @@ public class ChildProfileService {
         if (req.getAvatarUrl()   != null) profile.setAvatarUrl(req.getAvatarUrl());
         if (req.getDateOfBirth() != null) profile.setDateOfBirth(req.getDateOfBirth());
         if (req.getAgeGroup()    != null) profile.setAgeGroup(req.getAgeGroup());
+        boolean filterLevelChanged = req.getFilterLevel() != null && !req.getFilterLevel().equals(profile.getFilterLevel());
         if (req.getFilterLevel() != null) profile.setFilterLevel(req.getFilterLevel());
         if (req.getNotes()       != null) profile.setNotes(req.getNotes());
-        return toResponse(childProfileRepository.save(profile));
+        ChildProfile saved = childProfileRepository.save(profile);
+        if (filterLevelChanged) syncFilterLevel(saved.getId(), saved.getTenantId(), saved.getFilterLevel());
+        return toResponse(saved);
     }
 
     @Transactional
@@ -206,9 +209,12 @@ public class ChildProfileService {
         if (req.getAvatarUrl()   != null) profile.setAvatarUrl(req.getAvatarUrl());
         if (req.getDateOfBirth() != null) profile.setDateOfBirth(req.getDateOfBirth());
         if (req.getAgeGroup()    != null) profile.setAgeGroup(req.getAgeGroup());
+        boolean filterLevelChanged = req.getFilterLevel() != null && !req.getFilterLevel().equals(profile.getFilterLevel());
         if (req.getFilterLevel() != null) profile.setFilterLevel(req.getFilterLevel());
         if (req.getNotes()       != null) profile.setNotes(req.getNotes());
-        return toResponse(childProfileRepository.save(profile));
+        ChildProfile saved = childProfileRepository.save(profile);
+        if (filterLevelChanged) syncFilterLevel(saved.getId(), saved.getTenantId(), saved.getFilterLevel());
+        return toResponse(saved);
     }
 
     // ── ISP methods (tenant-scoped) ──────────────────────────────────────────
@@ -242,9 +248,12 @@ public class ChildProfileService {
         if (req.getAvatarUrl()   != null) profile.setAvatarUrl(req.getAvatarUrl());
         if (req.getDateOfBirth() != null) profile.setDateOfBirth(req.getDateOfBirth());
         if (req.getAgeGroup()    != null) profile.setAgeGroup(req.getAgeGroup());
+        boolean filterLevelChanged = req.getFilterLevel() != null && !req.getFilterLevel().equals(profile.getFilterLevel());
         if (req.getFilterLevel() != null) profile.setFilterLevel(req.getFilterLevel());
         if (req.getNotes()       != null) profile.setNotes(req.getNotes());
-        return toResponse(childProfileRepository.save(profile));
+        ChildProfile saved = childProfileRepository.save(profile);
+        if (filterLevelChanged) syncFilterLevel(saved.getId(), tenantId, saved.getFilterLevel());
+        return toResponse(saved);
     }
 
     @Transactional
@@ -263,6 +272,19 @@ public class ChildProfileService {
     private ChildProfile findOrThrow(UUID id) {
         return childProfileRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> ShieldException.notFound("ChildProfile", id));
+    }
+
+    /** Best-effort: tell shield-dns to apply the new filter level to existing DNS rules. */
+    private void syncFilterLevel(UUID profileId, UUID tenantId, String filterLevel) {
+        try {
+            String url = dnsServiceUrl + "/internal/dns/filter-level/" + profileId
+                    + "?level=" + filterLevel
+                    + (tenantId != null ? "&tenantId=" + tenantId : "");
+            REST_TEMPLATE.postForObject(url, null, String.class);
+            log.info("Filter level sync sent to DNS service: profile={} level={}", profileId, filterLevel);
+        } catch (Exception e) {
+            log.warn("Filter level sync failed for profile={}: {}", profileId, e.getMessage());
+        }
     }
 
     private String generateDnsClientId(String name) {
@@ -300,6 +322,12 @@ public class ChildProfileService {
                 .filter(Objects::nonNull)
                 .max(Instant::compareTo)
                 .orElse(null);
+        Integer batteryPct = devices.stream()
+                .filter(com.rstglobal.shield.profile.entity.Device::isOnline)
+                .map(com.rstglobal.shield.profile.entity.Device::getBatteryPct)
+                .filter(Objects::nonNull)
+                .max(Integer::compareTo)
+                .orElse(null);
         return ChildProfileResponse.builder()
                 .id(p.getId())
                 .customerId(p.getCustomerId())
@@ -318,6 +346,7 @@ public class ChildProfileService {
                 .online(online)
                 .lastSeenAt(lastSeenAt)
                 .deviceCount(devices.size())
+                .batteryPct(batteryPct)
                 .build();
     }
 }

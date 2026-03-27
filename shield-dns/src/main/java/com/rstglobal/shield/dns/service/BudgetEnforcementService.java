@@ -182,13 +182,22 @@ public class BudgetEnforcementService {
                             sendBudgetNotification(profileId, rules.getTenantId(), "total",
                                     totalUsed.intValue(), totalLimitMinutes, true);
                         }
-                        // Cut off internet via AdGuard
+                        // Cut off internet via AdGuard + invalidate DNS resolver cache
                         syncBudgetExhaustedToAdGuard(rules, true);
+                        // Invalidate DNS resolver Redis cache for immediate enforcement
+                        redis.delete(List.of(
+                            "shield:dns:profile:" + profileId + ":categories",
+                            "shield:dns:profile:" + profileId + ":level"
+                        ));
                         log.info("Budget EXHAUSTED: profileId={} usedMin={} totalLimit={}",
                                 profileId, totalUsed, totalLimitMinutes);
                     } else {
                         // Budget was restored (parent extended the limit mid-day)
                         syncBudgetExhaustedToAdGuard(rules, false);
+                        redis.delete(List.of(
+                            "shield:dns:profile:" + profileId + ":categories",
+                            "shield:dns:profile:" + profileId + ":level"
+                        ));
                         log.info("Budget RESTORED: profileId={} usedMin={} totalLimit={}",
                                 profileId, totalUsed, totalLimitMinutes);
                     }
@@ -272,6 +281,7 @@ public class BudgetEnforcementService {
 
     /**
      * Block a category by setting it to false in enabledCategories.
+     * Also invalidates the DNS resolver's Redis cache so the block takes effect immediately.
      */
     @Transactional
     public void blockCategory(DnsRules rules, String category) {
@@ -284,6 +294,8 @@ public class BudgetEnforcementService {
         categories.put(category, false);
         rules.setEnabledCategories(categories);
         rulesRepo.save(rules);
+        // Invalidate DNS resolver Redis cache so the block is enforced on the next query
+        redis.delete("shield:dns:profile:" + rules.getProfileId() + ":categories");
         log.info("Blocked category '{}' for profile {} due to budget exceeded", category, rules.getProfileId());
     }
 

@@ -42,21 +42,23 @@ public class FilterCategoryController {
                 FilterCategory::getId,
                 c -> domainRepo.countByCategoryId(c.getId())));
 
-        List<Map<String, Object>> result = cats.stream().map(c -> Map.<String, Object>of(
-            "id",               c.getId(),
-            "name",             c.getName(),
-            "description",      c.getDescription() != null ? c.getDescription() : "",
-            "riskLevel",        c.getRiskLevel(),
-            "blockedStarter",   c.isBlockedStarter(),
-            "blockedGrowth",    c.isBlockedGrowth(),
-            "blockedEnterprise", c.isBlockedEnterprise(),
-            "alwaysBlock",      c.isAlwaysBlock(),
-            "iconName",         c.getIconName() != null ? c.getIconName() : "",
-            "categoryKey",      c.getCategoryKey() != null ? c.getCategoryKey() : "",
-            "domainCount",      domainCounts.getOrDefault(c.getId(), 0L)
-        )).collect(Collectors.toList());
+        List<Map<String, Object>> result = cats.stream().map(c -> {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id",               c.getId());
+            m.put("name",             c.getName());
+            m.put("description",      c.getDescription() != null ? c.getDescription() : "");
+            m.put("riskLevel",        c.getRiskLevel());
+            m.put("blockedStarter",   c.isBlockedStarter());
+            m.put("blockedGrowth",    c.isBlockedGrowth());
+            m.put("blockedEnterprise", c.isBlockedEnterprise());
+            m.put("alwaysBlock",      c.isAlwaysBlock());
+            m.put("iconName",         c.getIconName() != null ? c.getIconName() : "");
+            m.put("categoryKey",      c.getCategoryKey() != null ? c.getCategoryKey() : "");
+            m.put("domainCount",      domainCounts.getOrDefault(c.getId(), 0L));
+            return m;
+        }).collect(Collectors.toList());
 
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     // ─── Internal: domain→category dump for CategoryCacheLoader ────────────

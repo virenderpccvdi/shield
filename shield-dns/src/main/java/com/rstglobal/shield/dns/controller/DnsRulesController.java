@@ -7,11 +7,15 @@ import com.rstglobal.shield.dns.dto.request.UpdateCategoriesRequest;
 import com.rstglobal.shield.dns.dto.request.UpdateListRequest;
 import com.rstglobal.shield.dns.dto.response.DnsRulesResponse;
 import com.rstglobal.shield.dns.dto.response.PlatformDefaultsResponse;
+import com.rstglobal.shield.dns.entity.RulesAuditLog;
+import com.rstglobal.shield.dns.repository.RulesAuditLogRepository;
 import com.rstglobal.shield.dns.service.BedtimeLockService;
 import com.rstglobal.shield.dns.service.DnsRulesService;
 import com.rstglobal.shield.dns.service.HomeworkModeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +30,7 @@ public class DnsRulesController {
     private final DnsRulesService rulesService;
     private final HomeworkModeService homeworkModeService;
     private final BedtimeLockService bedtimeLockService;
+    private final RulesAuditLogRepository auditLogRepo;
 
     @GetMapping("/rules/{profileId}")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> getRules(
@@ -311,6 +316,19 @@ public class DnsRulesController {
             @RequestHeader("X-User-Role") String role) {
         requireCustomer(role);
         return ResponseEntity.ok(ApiResponse.ok(bedtimeLockService.getStatus(profileId)));
+    }
+
+    /** Get DNS rules change history for a child profile (parent/admin access). */
+    @GetMapping("/rules/{profileId}/audit-log")
+    public ResponseEntity<ApiResponse<Page<RulesAuditLog>>> getAuditLog(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        requireCustomer(role);
+        Page<RulesAuditLog> log = auditLogRepo.findByProfileIdOrderByCreatedAtDesc(
+                profileId, PageRequest.of(page, Math.min(size, 200)));
+        return ResponseEntity.ok(ApiResponse.ok(log));
     }
 
     private void requireGlobalAdmin(String role) {

@@ -11,8 +11,10 @@ import com.rstglobal.shield.dns.dto.response.DnsRulesResponse;
 import com.rstglobal.shield.dns.dto.response.PlatformDefaultsResponse;
 import com.rstglobal.shield.dns.entity.DnsRules;
 import com.rstglobal.shield.dns.entity.PlatformDefaults;
+import com.rstglobal.shield.dns.entity.RulesAuditLog;
 import com.rstglobal.shield.dns.repository.DnsRulesRepository;
 import com.rstglobal.shield.dns.repository.PlatformDefaultsRepository;
+import com.rstglobal.shield.dns.repository.RulesAuditLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +33,7 @@ public class DnsRulesService {
     private final AdGuardClient adGuard;
     private final FeatureGateService featureGate;
     private final DnsBroadcastService dnsBroadcast;
+    private final RulesAuditLogRepository auditLogRepo;
 
     @Value("${shield.app.domain:shield.rstglobal.in}")
     private String appDomain;
@@ -71,6 +74,8 @@ public class DnsRulesService {
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
+        audit(profileId, tenantId, null, "CATEGORIES_CHANGED",
+                "Categories updated: " + req.getCategories().keySet());
         return toResponse(saved);
     }
 
@@ -82,6 +87,8 @@ public class DnsRulesService {
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
+        audit(profileId, tenantId, null, "ALLOWLIST_CHANGED",
+                req.getDomains().size() + " domains in allowlist");
         return toResponse(saved);
     }
 
@@ -93,6 +100,8 @@ public class DnsRulesService {
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
+        audit(profileId, tenantId, null, "BLOCKLIST_CHANGED",
+                req.getDomains().size() + " domains in blocklist");
         return toResponse(saved);
     }
 
@@ -132,6 +141,7 @@ public class DnsRulesService {
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
+        audit(profileId, tenantId, null, "FILTER_LEVEL_CHANGED", "Filter level set to " + filterLevel);
         return toResponse(saved);
     }
 
@@ -257,6 +267,8 @@ public class DnsRulesService {
         rules.setEnabledCategories(cats);
         DnsRules saved = rulesRepo.save(rules);
         log.info("Filtering {} for profileId={}", paused ? "paused" : "resumed", profileId);
+        audit(profileId, null, null, paused ? "PAUSE" : "RESUME",
+                "Internet filtering " + (paused ? "paused" : "resumed"));
         return toResponse(saved);
     }
 
@@ -579,6 +591,21 @@ public class DnsRulesService {
     private void requireFeature(UUID tenantId, String feature) {
         if (!featureGate.isEnabled(tenantId, feature)) {
             throw ShieldException.forbidden("Feature '" + feature + "' is not enabled for this tenant");
+        }
+    }
+
+    /** Fire-and-forget audit log write. Never throws — failures are logged only. */
+    private void audit(UUID profileId, UUID tenantId, UUID actorId, String action, String detail) {
+        try {
+            auditLogRepo.save(RulesAuditLog.builder()
+                    .profileId(profileId)
+                    .tenantId(tenantId)
+                    .actorId(actorId)
+                    .action(action)
+                    .detail(detail)
+                    .build());
+        } catch (Exception e) {
+            log.warn("Failed to write audit log for profile={} action={}: {}", profileId, action, e.getMessage());
         }
     }
 }

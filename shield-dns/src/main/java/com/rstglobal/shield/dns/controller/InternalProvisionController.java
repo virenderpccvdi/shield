@@ -65,4 +65,18 @@ public class InternalProvisionController {
     public ResponseEntity<ApiResponse<Object>> getRulesForResolver(@PathVariable UUID profileId) {
         return ResponseEntity.ok(ApiResponse.ok(rulesService.getRulesForProfile(profileId)));
     }
+
+    /**
+     * Apply a new filter level to an existing profile's DNS rules.
+     * Called by shield-profile when a parent changes the child's filter level.
+     */
+    @PostMapping("/filter-level/{profileId}")
+    public ResponseEntity<ApiResponse<Void>> applyFilterLevel(
+            @PathVariable UUID profileId,
+            @RequestParam String level,
+            @RequestParam(required = false) String tenantId) {
+        UUID tid = (tenantId != null && !tenantId.isBlank()) ? UUID.fromString(tenantId) : null;
+        rulesService.updateFilterLevel(profileId, tid, level);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
 }

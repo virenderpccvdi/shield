@@ -28,4 +28,5 @@ public class ChildProfileResponse {
     private boolean online;
     private Instant lastSeenAt;
     private int deviceCount;
+    private Integer batteryPct;
 }
