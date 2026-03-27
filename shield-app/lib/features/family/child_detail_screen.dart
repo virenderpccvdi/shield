@@ -524,7 +524,7 @@ class _ControlsTabState extends ConsumerState<_ControlsTab> {
     final results = await Future.wait([
       _safeFetch(() => client.get('/dns/schedules/${widget.profileId}/status')),
       _safeFetch(() => client.get('/dns/budgets/${widget.profileId}/today')),
-      _safeFetch(() => client.get('/analytics/${widget.profileId}/stats/today')),
+      _safeFetch(() => client.get('/analytics/${widget.profileId}/stats?period=TODAY')),
       _safeFetch(() => client.get('/profiles/devices/profile/${widget.profileId}')),
     ]);
 

@@ -105,6 +105,7 @@ const sections = [
     items: [
       { label: 'Suspicious Activity', icon: <ReportProblemIcon />, path: '/suspicious-activity', color: '#B71C1C' },
       { label: 'App Usage', icon: <QueryStatsIcon />, path: '/app-usage', color: '#1B5E20' },
+      { label: 'Safe Filters Report', icon: <SmartToyIcon />, path: '/safe-filters-report', color: '#2E7D32' },
       { label: 'AI Insights', icon: <PsychologyIcon />, path: '/ai-insights', color: '#4527A0' },
     ],
   },

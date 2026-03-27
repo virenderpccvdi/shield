@@ -63,6 +63,7 @@ const LocationSharePage        = lazy(() => import('./pages/customer/LocationSha
 const AiChatSettingsPage       = lazy(() => import('./pages/customer/AiChatSettingsPage'));
 const AccessSchedulePage       = lazy(() => import('./pages/customer/AccessSchedulePage'));
 const AchievementsPage         = lazy(() => import('./pages/customer/AchievementsPage'));
+const SafeFiltersReportPage    = lazy(() => import('./pages/customer/SafeFiltersReportPage'));
 
 // ── Global-admin pages ────────────────────────────────────────────────────────
 const PlatformDashboardPage    = lazy(() => import('./pages/global-admin/PlatformDashboardPage'));
@@ -243,6 +244,7 @@ export default function App() {
                 <Route path="/ai-chat"                            element={<AiChatSettingsPage />} />
                 <Route path="/access-schedule"                    element={<AccessSchedulePage />} />
                 <Route path="/achievements"                       element={<AchievementsPage />} />
+                <Route path="/safe-filters-report"               element={<SafeFiltersReportPage />} />
               </Route>
 
               {/* ── Global Admin ── */}
