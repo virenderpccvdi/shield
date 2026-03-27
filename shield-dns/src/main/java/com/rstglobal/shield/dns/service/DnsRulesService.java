@@ -52,6 +52,7 @@ public class DnsRulesService {
                 .customAllowlist(new ArrayList<>())
                 .customBlocklist(new ArrayList<>())
                 .timeBudgets(new LinkedHashMap<>())
+                .filterLevel(filterLevel != null ? filterLevel.toUpperCase() : "MODERATE")
                 .build();
         return rulesRepo.save(rules);
     }
@@ -138,6 +139,7 @@ public class DnsRulesService {
         if (budgetExhausted) cats.put(BudgetEnforcementService.BUDGET_EXHAUSTED_KEY, true);
         if (bedtimeLocked)   cats.put(BedtimeLockService.BEDTIME_LOCKED_KEY, true);
         rules.setEnabledCategories(cats);
+        rules.setFilterLevel(filterLevel.toUpperCase());
         DnsRules saved = rulesRepo.save(rules);
         syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
@@ -518,6 +520,7 @@ public class DnsRulesService {
                 .timeBudgets(r.getTimeBudgets())
                 .youtubeSafeMode(r.isYoutubeSafeMode())
                 .safeSearch(r.isSafeSearch())
+                .filterLevel(r.getFilterLevel() != null ? r.getFilterLevel() : "MODERATE")
                 .build();
     }
 

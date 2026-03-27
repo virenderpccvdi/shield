@@ -28,17 +28,19 @@ async def analyze_batch(
         }
     result = detect_anomaly(features)
 
-    # Register an alert if anomaly detected above threshold
-    if result.is_anomaly and result.score > 0.3:
+    # Register an alert if anomaly detected (decision_function returns negative for anomalies)
+    if result.is_anomaly and result.score < -0.05:
         try:
             from routers.alerts import register_alert
+            # Normalize to 0-1 (IsolationForest decision_function is negative for anomalies)
+            normalized_score = min(abs(result.score) * 2, 1.0)
             register_alert(
                 profile_id=str(request.profileId),
                 alert_type="ANOMALY",
                 severity=result.severity.value,
-                score=result.score,
+                score=normalized_score,
                 description=f"Anomaly detected for profile {request.profileId} "
-                            f"(score={result.score:.2f}, severity={result.severity.value}). "
+                            f"(score={normalized_score:.2f}, severity={result.severity.value}). "
                             f"Unusual internet usage pattern identified by IsolationForest model."
             )
         except Exception as e:

@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText,
   Typography, Divider, AppBar, Toolbar, IconButton, Avatar, Menu,
-  MenuItem, Tooltip, useMediaQuery, useTheme,
+  MenuItem, Tooltip, useMediaQuery, useTheme, Collapse,
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -27,6 +27,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import PhonelinkSetupIcon from '@mui/icons-material/PhonelinkSetup';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PublicIcon from '@mui/icons-material/Public';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -35,6 +36,8 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useAuthStore } from '../store/auth.store';
 import { useThemeStore } from '../store/theme.store';
 import LanguageSwitcher from '../components/LanguageSwitcher';
@@ -45,43 +48,44 @@ const DRAWER_COLLAPSED = 56;
 
 const sections = [
   {
-    title: 'Overview',
+    title: 'Overview', color: '#1565C0',
     items: [
-      { label: 'Dashboard', icon: <DashboardIcon />, path: '/admin/dashboard' },
-      { label: 'Alerts', icon: <NotificationsActiveIcon />, path: '/admin/alerts' },
-      { label: 'Analytics', icon: <BarChartIcon />, path: '/admin/analytics' },
+      { label: 'Dashboard', icon: <DashboardIcon />, path: '/admin/dashboard', color: '#1565C0' },
+      { label: 'Alerts', icon: <NotificationsActiveIcon />, path: '/admin/alerts', color: '#D32F2F' },
+      { label: 'Analytics', icon: <BarChartIcon />, path: '/admin/analytics', color: '#388E3C' },
     ],
   },
   {
-    title: 'Management',
+    title: 'Management', color: '#6A1B9A',
     items: [
-      { label: 'Tenants', icon: <BusinessIcon />, path: '/admin/tenants' },
-      { label: 'Customers', icon: <PeopleIcon />, path: '/admin/customers' },
-      { label: 'Users', icon: <PeopleIcon />, path: '/admin/users' },
-      { label: 'Plans', icon: <CardMembershipIcon />, path: '/admin/plans' },
-      { label: 'Devices', icon: <DevicesIcon />, path: '/admin/devices' },
-      { label: 'Child Profiles', icon: <ChildCareIcon />, path: '/admin/child-profiles' },
-      { label: 'URL Activity', icon: <TimelineIcon />, path: '/admin/url-activity' },
-      { label: 'App Control', icon: <PhonelinkSetupIcon />, path: '/admin/app-control' },
-      { label: 'DNS Rules', icon: <DnsIcon />, path: '/admin/dns-rules' },
-      { label: 'Global Blocklist', icon: <BlockIcon />, path: '/admin/blocklist' },
-      { label: 'Features', icon: <ToggleOnIcon />, path: '/admin/features' },
-      { label: 'Role Permissions', icon: <SecurityIcon />, path: '/admin/roles' },
+      { label: 'Tenants', icon: <BusinessIcon />, path: '/admin/tenants', color: '#6A1B9A' },
+      { label: 'Customers', icon: <PeopleIcon />, path: '/admin/customers', color: '#AD1457' },
+      { label: 'Users', icon: <PeopleIcon />, path: '/admin/users', color: '#0288D1' },
+      { label: 'Plans', icon: <CardMembershipIcon />, path: '/admin/plans', color: '#E65100' },
+      { label: 'Devices', icon: <DevicesIcon />, path: '/admin/devices', color: '#37474F' },
+      { label: 'Child Profiles', icon: <ChildCareIcon />, path: '/admin/child-profiles', color: '#BF360C' },
+      { label: 'URL Activity', icon: <TimelineIcon />, path: '/admin/url-activity', color: '#00695C' },
+      { label: 'App Control', icon: <PhonelinkSetupIcon />, path: '/admin/app-control', color: '#7B1FA2' },
+      { label: 'DNS Rules', icon: <DnsIcon />, path: '/admin/dns-rules', color: '#0277BD' },
+      { label: 'Global Blocklist', icon: <BlockIcon />, path: '/admin/blocklist', color: '#B71C1C' },
+      { label: 'Features', icon: <ToggleOnIcon />, path: '/admin/features', color: '#F57F17' },
+      { label: 'Role Permissions', icon: <SecurityIcon />, path: '/admin/roles', color: '#C62828' },
     ],
   },
   {
-    title: 'System',
+    title: 'System', color: '#00695C',
     items: [
-      { label: 'AI Models', icon: <PsychologyIcon />, path: '/admin/ai-models' },
-      { label: 'AI Insights', icon: <PsychologyIcon />, path: '/admin/ai-insights' },
-      { label: 'Services', icon: <MonitorHeartIcon />, path: '/admin/health' },
-      { label: 'Notifications', icon: <NotificationsIcon />, path: '/admin/notifications' },
-      { label: 'Invoices', icon: <ReceiptLongIcon />, path: '/admin/invoices' },
-      { label: 'Audit Log', icon: <HistoryIcon />, path: '/admin/audit-logs' },
-      { label: 'CRM Leads', icon: <ContactMailIcon />, path: '/admin/leads' },
-      { label: 'Visitors', icon: <PublicIcon />, path: '/admin/visitors' },
-      { label: 'Platform Admin', icon: <AdminPanelSettingsIcon />, path: '/admin/platform' },
-      { label: 'Settings', icon: <SettingsIcon />, path: '/admin/settings' },
+      { label: 'AI Models', icon: <PsychologyIcon />, path: '/admin/ai-models', color: '#4527A0' },
+      { label: 'AI Insights', icon: <PsychologyIcon />, path: '/admin/ai-insights', color: '#7B1FA2' },
+      { label: 'Services', icon: <MonitorHeartIcon />, path: '/admin/health', color: '#2E7D32' },
+      { label: 'Notifications', icon: <NotificationsIcon />, path: '/admin/notifications', color: '#D32F2F' },
+      { label: 'Invoices', icon: <ReceiptLongIcon />, path: '/admin/invoices', color: '#1565C0' },
+      { label: 'Audit Log', icon: <HistoryIcon />, path: '/admin/audit-logs', color: '#FF6F00' },
+      { label: 'ISP Reports', icon: <AssessmentIcon />, path: '/admin/isp-reports', color: '#0288D1' },
+      { label: 'CRM Leads', icon: <ContactMailIcon />, path: '/admin/leads', color: '#00838F' },
+      { label: 'Visitors', icon: <PublicIcon />, path: '/admin/visitors', color: '#AD1457' },
+      { label: 'Platform Admin', icon: <AdminPanelSettingsIcon />, path: '/admin/platform', color: '#1A237E' },
+      { label: 'Settings', icon: <SettingsIcon />, path: '/admin/settings', color: '#455A64' },
     ],
   },
 ];
@@ -96,6 +100,13 @@ export default function AdminLayout() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { user, logout } = useAuthStore();
   const { mode: themeMode, toggle: toggleTheme } = useThemeStore();
+
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(sections.map(s => [s.title, true]))
+  );
+  const toggleSection = (title: string) => {
+    setExpandedSections(prev => ({ ...prev, [title]: !prev[title] }));
+  };
 
   const drawerWidth = collapsed && !isMobile ? DRAWER_COLLAPSED : DRAWER_EXPANDED;
 
@@ -143,82 +154,102 @@ export default function AdminLayout() {
         '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 },
       }}>
         <List disablePadding sx={{ px: collapsed && !isMobile ? 0.5 : 1 }}>
-          {sections.map((section, si) => (
-            <Box key={section.title}>
-              {si > 0 && <Box sx={{ my: 1, mx: 1 }}><Divider /></Box>}
-              {(!collapsed || isMobile) && (
-                <Typography variant="overline" sx={{
-                  px: 2, py: 0.5, display: 'block',
-                  color: 'text.disabled', fontSize: 10, fontWeight: 700,
-                  letterSpacing: 1.5,
-                }}>
-                  {section.title}
-                </Typography>
-              )}
-              {section.items.map((item) => {
-                const active = isActive(item.path);
-                const btn = (
-                  <ListItemButton
-                    key={item.label}
-                    selected={active}
-                    onClick={() => { navigate(item.path); if (isMobile) setMobileOpen(false); }}
+          {sections.map((section, si) => {
+            const isExpanded = expandedSections[section.title] ?? true;
+            return (
+              <Box key={section.title}>
+                {si > 0 && <Box sx={{ my: 0.5, mx: 1 }}><Divider /></Box>}
+                {(!collapsed || isMobile) && (
+                  <Box
+                    onClick={() => toggleSection(section.title)}
                     sx={{
-                      borderRadius: '8px',
-                      mb: 0.25,
-                      minHeight: 40,
-                      px: collapsed && !isMobile ? 1 : 1.5,
-                      justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
-                      color: active ? 'primary.main' : 'text.secondary',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      transition: 'all 0.18s ease',
-                      '&::before': {
-                        content: '""',
-                        position: 'absolute', left: 0, top: '20%',
-                        width: 3, height: active ? '60%' : 0,
-                        bgcolor: 'primary.main', borderRadius: '0 3px 3px 0',
-                        transition: 'height 0.2s ease',
-                      },
-                      '&.Mui-selected': {
-                        bgcolor: 'primary.main',
-                        color: 'primary.contrastText',
-                        '& .MuiListItemIcon-root': { color: 'primary.contrastText' },
-                      },
-                      '&.Mui-selected:hover': { bgcolor: 'primary.dark' },
-                      '&:hover': {
-                        bgcolor: 'action.hover',
-                        '& .MuiListItemIcon-root': { transform: 'scale(1.15)' },
-                      },
-                      '& .MuiListItemIcon-root': { transition: 'transform 0.18s ease' },
+                      px: 2, py: 0.5,
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      cursor: 'pointer', borderRadius: 1, mx: 0.5,
+                      '&:hover': { bgcolor: 'action.hover' },
                     }}
                   >
-                    <ListItemIcon sx={{
-                      color: 'inherit',
-                      minWidth: collapsed && !isMobile ? 0 : 36,
-                      mr: collapsed && !isMobile ? 0 : 1,
-                      justifyContent: 'center',
+                    <Typography variant="overline" sx={{
+                      color: section.color, fontSize: 10, fontWeight: 700,
+                      letterSpacing: 1.5, lineHeight: 1.8,
                     }}>
-                      {item.icon}
-                    </ListItemIcon>
-                    {(!collapsed || isMobile) && (
-                      <ListItemText
-                        primary={item.label}
-                        primaryTypographyProps={{ fontSize: 13.5, fontWeight: active ? 600 : 500 }}
-                      />
-                    )}
-                  </ListItemButton>
-                );
+                      {section.title}
+                    </Typography>
+                    <Box sx={{ color: 'text.disabled', display: 'flex', alignItems: 'center' }}>
+                      {isExpanded ? <ExpandLessIcon sx={{ fontSize: 14 }} /> : <ExpandMoreIcon sx={{ fontSize: 14 }} />}
+                    </Box>
+                  </Box>
+                )}
+                <Collapse in={collapsed || isMobile ? true : isExpanded} timeout={150}>
+                  {section.items.map((item) => {
+                    const active = isActive(item.path);
+                    const itemColor = item.color;
+                    const btn = (
+                      <ListItemButton
+                        key={item.label}
+                        selected={active}
+                        onClick={() => { navigate(item.path); if (isMobile) setMobileOpen(false); }}
+                        sx={{
+                          borderRadius: '8px',
+                          mb: 0.25,
+                          minHeight: 40,
+                          px: collapsed && !isMobile ? 1 : 1.5,
+                          justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
+                          color: 'text.secondary',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          transition: 'all 0.18s ease',
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute', left: 0, top: '20%',
+                            width: 3, height: active ? '60%' : 0,
+                            bgcolor: itemColor, borderRadius: '0 3px 3px 0',
+                            transition: 'height 0.2s ease',
+                          },
+                          '&.Mui-selected': {
+                            bgcolor: `${itemColor}18`,
+                            color: itemColor,
+                            '& .MuiListItemIcon-root': { color: itemColor },
+                            '&:hover': { bgcolor: `${itemColor}28` },
+                          },
+                          '&.Mui-selected:hover': { bgcolor: `${itemColor}28` },
+                          '&:hover': {
+                            bgcolor: `${itemColor}10`,
+                            color: itemColor,
+                            '& .MuiListItemIcon-root': { color: itemColor, transform: 'scale(1.15)' },
+                          },
+                          '& .MuiListItemIcon-root': { transition: 'transform 0.18s ease, color 0.15s ease' },
+                        }}
+                      >
+                        <ListItemIcon sx={{
+                          color: itemColor,
+                          minWidth: collapsed && !isMobile ? 0 : 36,
+                          mr: collapsed && !isMobile ? 0 : 1,
+                          justifyContent: 'center',
+                        }}>
+                          {item.icon}
+                        </ListItemIcon>
+                        {(!collapsed || isMobile) && (
+                          <ListItemText
+                            primary={item.label}
+                            primaryTypographyProps={{ fontSize: 13.5, fontWeight: active ? 700 : 500, color: 'inherit' }}
+                          />
+                        )}
+                      </ListItemButton>
+                    );
 
-                return collapsed && !isMobile ? (
-                  <Tooltip key={item.label} title={item.label} placement="right" arrow>
-                    <Box>{btn}</Box>
-                  </Tooltip>
-                ) : (
-                  <Box key={item.label}>{btn}</Box>
-                );
-              })}
-            </Box>
-          ))}
+                    return collapsed && !isMobile ? (
+                      <Tooltip key={item.label} title={item.label} placement="right" arrow>
+                        <Box>{btn}</Box>
+                      </Tooltip>
+                    ) : (
+                      <Box key={item.label}>{btn}</Box>
+                    );
+                  })}
+                </Collapse>
+              </Box>
+            );
+          })}
         </List>
       </Box>
 

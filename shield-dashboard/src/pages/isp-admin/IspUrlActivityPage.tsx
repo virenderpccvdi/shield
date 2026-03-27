@@ -3,7 +3,7 @@ import {
   Box, Typography, Card, CardContent, Grid, Chip, CircularProgress,
   Stack, Avatar, Table, TableHead, TableRow, TableCell, TableBody,
   Paper, Select, MenuItem, FormControl, InputLabel, Alert,
-  Button, Tabs, Tab, TextField, InputAdornment, TablePagination,
+  Button, Tabs, Tab, TextField, InputAdornment, TablePagination, LinearProgress,
 } from '@mui/material';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import BlockIcon from '@mui/icons-material/Block';
@@ -65,7 +65,7 @@ export default function IspUrlActivityPage() {
   const [tab, setTab] = useState<'ALL' | 'BLOCKED' | 'ALLOWED'>('ALL');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const rowsPerPage = 50;
+  const [rowsPerPage, setRowsPerPage] = useState(50);
 
   // Tenant overview
   const { data: overview } = useQuery<TenantOverview>({
@@ -100,30 +100,34 @@ export default function IspUrlActivityPage() {
     queryFn: () => api.get(`/analytics/${selectedProfile}/stats`, { params: { period: 'month' } }).then(r => r.data?.data ?? r.data).catch(() => null),
   });
 
-  // DNS Query history
-  const { data: historyData, isLoading: loadingHistory } = useQuery<HistoryEntry[]>({
-    queryKey: ['isp-url-activity-history', selectedProfile],
+  // DNS Query history — server-side pagination
+  const { data: historyResponse, isLoading: loadingHistory, isFetching: fetchingHistory } = useQuery({
+    queryKey: ['isp-url-activity-history', selectedProfile, page, rowsPerPage],
     enabled: !!selectedProfile,
-    queryFn: () => api.get(`/analytics/${selectedProfile}/history`, { params: { page: 0, size: 500 } }).then(r => {
+    queryFn: () => api.get(`/analytics/${selectedProfile}/history`, { params: { page, size: rowsPerPage } }).then(r => {
+      const totalElements: number = r.data?.data?.totalElements ?? r.data?.totalElements ?? 0;
       const d = r.data?.data?.content ?? r.data?.data ?? r.data;
-      return Array.isArray(d) ? d : [];
-    }).catch(() => []),
+      return { content: (Array.isArray(d) ? d : []) as HistoryEntry[], totalElements };
+    }).catch(() => ({ content: [] as HistoryEntry[], totalElements: 0 })),
   });
 
   // Auto-select first profile when customer changes
   useEffect(() => { setSelectedProfile(''); setPage(0); }, [selectedCustomer]);
   useEffect(() => { setPage(0); }, [tab, search]);
+  useEffect(() => { setPage(0); }, [selectedProfile]);
   useEffect(() => {
     if (profiles?.length && !selectedProfile) setSelectedProfile(profiles[0].id);
   }, [profiles]);
 
-  const allHistory = historyData ?? [];
+  const allHistory = historyResponse?.content ?? [];
+  const totalElements = historyResponse?.totalElements ?? 0;
   const filteredHistory = allHistory.filter(h =>
     (tab === 'ALL' || h.action === tab) &&
     (!search.trim() || h.domain.toLowerCase().includes(search.trim().toLowerCase()) ||
       (h.category ?? '').toLowerCase().includes(search.trim().toLowerCase()))
   );
-  const pagedHistory = filteredHistory.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+  // Server returns the current page already — no client-side slice needed
+  const pagedHistory = filteredHistory;
 
   const selectedProfileObj = profiles?.find(p => p.id === selectedProfile);
   const selectedCustomerObj = customers?.find(c => c.id === selectedCustomer);
@@ -276,7 +280,7 @@ export default function IspUrlActivityPage() {
             <CardContent sx={{ pb: '0 !important' }}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
                 <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ flex: 1 }}>
-                  <Tab label={`All (${allHistory.length})`} value="ALL" />
+                  <Tab label={`All (${totalElements})`} value="ALL" />
                   <Tab label={`Blocked (${allHistory.filter(h => h.action === 'BLOCKED').length})`} value="BLOCKED"
                     sx={{ '&.Mui-selected': { color: '#E53935' } }} />
                   <Tab label={`Allowed (${allHistory.filter(h => h.action === 'ALLOWED').length})`} value="ALLOWED"
@@ -297,6 +301,7 @@ export default function IspUrlActivityPage() {
               </Box>
             ) : (
               <>
+                {fetchingHistory && <LinearProgress />}
                 <Paper elevation={0} sx={{ overflow: 'hidden' }}>
                   <Table size="small">
                     <TableHead>
@@ -344,11 +349,12 @@ export default function IspUrlActivityPage() {
                 </Paper>
                 <TablePagination
                   component="div"
-                  count={filteredHistory.length}
+                  count={totalElements}
                   page={page}
                   onPageChange={(_, p) => setPage(p)}
                   rowsPerPage={rowsPerPage}
-                  rowsPerPageOptions={[rowsPerPage]}
+                  onRowsPerPageChange={(e) => { setRowsPerPage(+e.target.value); setPage(0); }}
+                  rowsPerPageOptions={[20, 50, 100]}
                   labelDisplayedRows={({ from, to, count }) => `${from}–${to} of ${count} entries`}
                 />
               </>

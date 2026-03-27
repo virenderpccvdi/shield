@@ -84,8 +84,9 @@ export default function SuspiciousActivityPage() {
   const { data: profiles = [], isLoading: profilesLoading } = useQuery<ChildProfile[]>({
     queryKey: ['child-profiles-minimal'],
     queryFn: async () => {
-      const { data } = await api.get('/profile/children');
-      return (data.data ?? []) as ChildProfile[];
+      const { data } = await api.get('/profiles/children');
+      const d = data?.data;
+      return ((d?.content ?? d ?? data) as ChildProfile[]) ?? [];
     },
   });
 

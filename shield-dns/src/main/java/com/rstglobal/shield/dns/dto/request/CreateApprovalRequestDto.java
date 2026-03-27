@@ -20,7 +20,7 @@ public class CreateApprovalRequestDto {
     /** DOMAIN or APP — defaults to DOMAIN. */
     private String requestType = "DOMAIN";
 
-    @NotNull
+    /** Populated from X-Tenant-Id header in controller if not provided in body. */
     private UUID tenantId;
 
     @NotNull

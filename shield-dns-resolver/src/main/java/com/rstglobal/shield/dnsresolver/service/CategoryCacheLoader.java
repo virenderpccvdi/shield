@@ -11,7 +11,6 @@ import reactor.core.publisher.Mono;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Loads the master domain → category blocklist from shield-dns into Redis at startup
@@ -65,31 +64,27 @@ public class CategoryCacheLoader {
                 return;
             }
 
-            AtomicInteger count = new AtomicInteger();
-            // Write all in one reactive batch
-            Mono.fromRunnable(() -> {
-                redis.executePipelined((org.springframework.data.redis.connection.ReactiveRedisConnection conn) -> {
-                    for (Map<String, String> entry : entries) {
-                        String domain = entry.get("domain");
-                        String categoryId = entry.get("categoryId");
-                        if (domain != null && categoryId != null) {
-                            String key = DOMCAT_PREFIX + domain.toLowerCase();
-                            conn.stringCommands().set(
-                                key.getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                                categoryId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                            count.incrementAndGet();
-                        }
-                    }
-                    return null;
-                });
-            })
-            .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
-            .doOnSuccess(v -> {
-                lastLoadedCount = count.get();
-                log.info("CategoryCacheLoader: loaded {} domain→category mappings into Redis", lastLoadedCount);
-            })
-            .doOnError(e -> log.warn("CategoryCacheLoader: Redis write failed — {}", e.getMessage()))
-            .subscribe();
+            // Build map of domain → categoryId for bulk set
+            Map<String, String> domcatMap = new java.util.HashMap<>();
+            for (Map<String, String> entry : entries) {
+                String domain = entry.get("domain");
+                // API now returns categoryKey (e.g. "adult", "gambling") — fallback to categoryId for compat
+                String categoryKey = entry.getOrDefault("categoryKey", entry.get("categoryId"));
+                if (domain != null && categoryKey != null) {
+                    domcatMap.put(DOMCAT_PREFIX + domain.toLowerCase(), categoryKey);
+                }
+            }
+
+            if (domcatMap.isEmpty()) return;
+
+            redis.opsForValue().multiSet(domcatMap)
+                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                .doOnSuccess(v -> {
+                    lastLoadedCount = domcatMap.size();
+                    log.info("CategoryCacheLoader: loaded {} domain→category mappings into Redis", lastLoadedCount);
+                })
+                .doOnError(e -> log.warn("CategoryCacheLoader: Redis write failed — {}", e.getMessage()))
+                .subscribe();
 
         } catch (Exception e) {
             log.warn("CategoryCacheLoader: failed to fetch domain-blocklist from shield-dns: {} " +

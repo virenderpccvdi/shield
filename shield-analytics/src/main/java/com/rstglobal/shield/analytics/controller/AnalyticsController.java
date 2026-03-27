@@ -433,6 +433,19 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getCustomersSummary());
     }
 
+    /** GET /api/v1/analytics/{profileId}/hourly?date=YYYY-MM-DD */
+    @GetMapping("/{profileId}/hourly")
+    public ResponseEntity<List<HourlyUsagePoint>> getProfileHourly(
+            @PathVariable UUID profileId,
+            @RequestParam(required = false) String date,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        validateAccess(profileId, userId, userRole);
+        String targetDate = (date != null && !date.isBlank()) ? date
+                : java.time.LocalDate.now().toString();
+        return ResponseEntity.ok(analyticsService.getProfileHourlyBreakdown(profileId, targetDate));
+    }
+
     /** GET /api/v1/analytics/tenant/{tenantId}/hourly?date=YYYY-MM-DD */
     @GetMapping("/tenant/{tenantId}/hourly")
     public ResponseEntity<List<HourlyUsagePoint>> getTenantHourly(

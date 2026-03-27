@@ -14,6 +14,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import PeopleIcon from '@mui/icons-material/People';
 import DownloadIcon from '@mui/icons-material/Download';
 import BusinessIcon from '@mui/icons-material/Business';
+import LockResetIcon from '@mui/icons-material/LockReset';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
@@ -81,6 +84,12 @@ export default function UsersPage() {
   // Delete state
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
+  // Reset password state
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetUser, setResetUser] = useState<User | null>(null);
+  const [resetPw, setResetPw] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [resetError, setResetError] = useState('');
 
   // Reset page when search or filter changes
   useEffect(() => { setPage(0); }, [search, tenantFilter]);
@@ -136,6 +145,16 @@ export default function UsersPage() {
     },
   });
 
+  const resetPwMutation = useMutation({
+    mutationFn: ({ id, newPassword }: { id: string; newPassword: string }) =>
+      api.post(`/auth/admin/users/${id}/reset-password`, { newPassword }),
+    onSuccess: () => {
+      setSnack('Password reset successfully — user will receive an email notification');
+      setResetOpen(false); setResetPw(''); setResetError('');
+    },
+    onError: (e: any) => setResetError(e.response?.data?.message || 'Failed to reset password'),
+  });
+
   const filtered = users.filter(u => {
     const matchSearch = `${u.name} ${u.email} ${u.role} ${tenants.find(t => t.id === u.tenantId)?.name ?? ''}`.toLowerCase().includes(search.toLowerCase());
     const matchTenant = !tenantFilter || u.tenantId === tenantFilter || (tenantFilter === '__none__' && !u.tenantId);
@@ -161,6 +180,11 @@ export default function UsersPage() {
   function openDelete(u: User, e: React.MouseEvent) {
     e.stopPropagation();
     setDeleteUser(u); setDeleteOpen(true);
+  }
+
+  function openReset(u: User, e: React.MouseEvent) {
+    e.stopPropagation();
+    setResetUser(u); setResetPw(''); setResetError(''); setShowPw(false); setResetOpen(true);
   }
 
   return (
@@ -253,6 +277,7 @@ export default function UsersPage() {
                     <TableCell>
                       <Stack direction="row" spacing={0.5}>
                         <Tooltip title="Edit"><IconButton size="small" onClick={(e) => openEdit(u, e)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                        <Tooltip title="Reset Password"><IconButton size="small" color="warning" onClick={(e) => openReset(u, e)}><LockResetIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Delete"><IconButton size="small" color="error" onClick={(e) => openDelete(u, e)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                       </Stack>
                     </TableCell>
@@ -362,7 +387,46 @@ export default function UsersPage() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}
+      {/* Reset Password Dialog */}
+      <Dialog open={resetOpen} onClose={() => setResetOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <LockResetIcon color="warning" /> Reset Password
+        </DialogTitle>
+        <DialogContent dividers>
+          {resetError && <Alert severity="error" sx={{ mb: 2 }}>{resetError}</Alert>}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Reset password for <strong>{resetUser?.name}</strong> ({resetUser?.email}).<br />
+            Leave blank to auto-generate a secure password. User will receive an email notification.
+          </Typography>
+          <TextField
+            fullWidth
+            label="New Password (min 8 chars, or leave blank to auto-generate)"
+            type={showPw ? 'text' : 'password'}
+            value={resetPw}
+            onChange={e => setResetPw(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <IconButton size="small" onClick={() => setShowPw(v => !v)}>
+                  {showPw ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                </IconButton>
+              ),
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setResetOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained" color="warning"
+            disabled={resetPwMutation.isPending || (resetPw.length > 0 && resetPw.length < 8)}
+            onClick={() => resetUser && resetPwMutation.mutate({ id: resetUser.id, newPassword: resetPw })}
+            sx={{ minWidth: 140 }}
+          >
+            {resetPwMutation.isPending ? <CircularProgress size={18} color="inherit" /> : 'Reset Password'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack('')}
         message={snack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
     </AnimatedPage>
   );

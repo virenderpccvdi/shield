@@ -420,8 +420,8 @@ public class DomainEnrichmentService {
                 DomainInfo.builder().originalDomain(domain).rootDomain(domain).build());
         }
 
-        String normalized = domain.toLowerCase();
-        if (normalized.endsWith(".")) normalized = normalized.substring(0, normalized.length() - 1);
+        String rawNorm = domain.toLowerCase();
+        String normalized = rawNorm.endsWith(".") ? rawNorm.substring(0, rawNorm.length() - 1) : rawNorm;
         String root = extractRootDomain(normalized);
 
         String appName = APP_MAP.get(root);
@@ -449,8 +449,8 @@ public class DomainEnrichmentService {
                 .build())
             .switchIfEmpty(reactor.core.publisher.Mono.fromSupplier(() -> {
                 // Final fallback: in-memory CATEGORY_MAP
-                String cat = CATEGORY_MAP.get(finalRoot);
-                if (cat == null) cat = CATEGORY_MAP.get(normalized);
+                String rootCat = CATEGORY_MAP.get(finalRoot);
+                String cat = rootCat != null ? rootCat : CATEGORY_MAP.get(normalized);
                 return DomainInfo.builder()
                     .originalDomain(domain)
                     .rootDomain(finalRoot)

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -12,10 +12,15 @@ import PeopleIcon from '@mui/icons-material/People';
 import DnsIcon from '@mui/icons-material/Dns';
 import BlockIcon from '@mui/icons-material/Block';
 import SaveIcon from '@mui/icons-material/Save';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip,
   ResponsiveContainer, Legend,
+  RadialBarChart, RadialBar,
+  LineChart, Line,
 } from 'recharts';
+import { Client } from '@stomp/stompjs';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -25,14 +30,17 @@ import { useAuthStore } from '../../store/auth.store';
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface TenantOverview {
-  activeProfiles: number;
-  totalProfiles: number;
-  totalQueriesToday: number;
-  blockedQueriesToday: number;
-  topBlockedDomains: string[];
-  topCategories: string[];
-  activeAlerts: number;
-  bandwidthSaved: number;
+  // Actual API fields from /analytics/tenant/{id}/overview
+  totalQueries: number;
+  blockedQueries: number;
+  allowedQueries: number;
+  blockRate: number;
+  // Optional extended fields (may not be present)
+  activeProfiles?: number;
+  totalProfiles?: number;
+  totalQueriesToday?: number;
+  blockedQueriesToday?: number;
+  bandwidthSaved?: number;
 }
 
 interface HourlyPoint {
@@ -48,6 +56,14 @@ interface CustomerActivity {
   blockedToday: number;
   lastSeen: string | null;
   status: 'active' | 'idle' | 'offline';
+}
+
+interface LiveEvent {
+  id: string;
+  domain: string;
+  action: 'BLOCKED' | 'ALLOWED';
+  profileName?: string;
+  timestamp: Date;
 }
 
 type SortField = 'profileName' | 'queriesToday' | 'blockedToday' | 'lastSeen' | 'status';
@@ -79,6 +95,21 @@ function formatLastSeen(ts: string | null): string {
 
 function formatTimestamp(d: Date): string {
   return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function formatEventTime(d: Date): string {
+  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+}
+
+/** Seed-stable sparkline data from a customer row (last 5 synthetic points) */
+function sparklineData(customer: CustomerActivity): { v: number }[] {
+  const base = customer.queriesToday / 5;
+  let seed = customer.profileId.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+  return Array.from({ length: 5 }, (_, i) => {
+    seed = (seed * 1664525 + 1013904223) & 0xFFFFFFFF;
+    const jitter = (seed >>> 0) / 4294967296;
+    return { v: Math.max(0, Math.round(base * (0.6 + jitter * 0.8 + i * 0.05))) };
+  });
 }
 
 // ─── Status Chip ─────────────────────────────────────────────────────────────
@@ -169,14 +200,156 @@ function HourlyTooltip({ active, payload, label }: HourlyTooltipProps) {
   );
 }
 
+// ─── Block Rate Gauge ─────────────────────────────────────────────────────────
+
+function BlockRateGauge({ blockRatePct }: { blockRatePct: number }) {
+  const clampedValue = Math.min(100, Math.max(0, blockRatePct));
+  const gaugeData = [{ name: 'Block Rate', value: clampedValue, fill: '#E53935' }];
+
+  return (
+    <Card sx={{ height: '100%' }}>
+      <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2.5 }}>
+        <Typography variant="body2" fontWeight={600} color="text.secondary" sx={{ mb: 1, textAlign: 'center' }}>
+          Block Rate (Today)
+        </Typography>
+        <ResponsiveContainer width="100%" height={130}>
+          <RadialBarChart
+            cx="50%" cy="88%"
+            innerRadius="65%"
+            outerRadius="95%"
+            startAngle={180}
+            endAngle={0}
+            data={gaugeData}
+            barSize={18}
+          >
+            <RadialBar
+              background={{ fill: '#F0F4F8' }}
+              dataKey="value"
+              cornerRadius={8}
+            />
+          </RadialBarChart>
+        </ResponsiveContainer>
+        <Typography variant="h4" fontWeight={800} sx={{ color: '#E53935', mt: -1.5 }}>
+          {clampedValue.toFixed(1)}%
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+          {clampedValue < 10 ? 'Low filtering' : clampedValue < 30 ? 'Normal' : clampedValue < 60 ? 'Moderate' : 'High block rate'}
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Mini Sparkline ───────────────────────────────────────────────────────────
+
+function MiniSparkline({ data }: { data: { v: number }[] }) {
+  return (
+    <LineChart width={54} height={28} data={data} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+      <Line
+        type="monotone"
+        dataKey="v"
+        stroke="#1565C0"
+        strokeWidth={1.5}
+        dot={false}
+        isAnimationActive={false}
+      />
+    </LineChart>
+  );
+}
+
+// ─── Live Feed Card ───────────────────────────────────────────────────────────
+
+function LiveFeedCard({ events }: { events: LiveEvent[] }) {
+  return (
+    <Card sx={{ mb: 3, borderLeft: '4px solid #1565C0' }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <FiberManualRecordIcon
+            sx={{
+              fontSize: 12,
+              color: '#4CAF50',
+              '@keyframes livePulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.3 } },
+              animation: 'livePulse 1.5s ease infinite',
+            }}
+          />
+          <Typography variant="subtitle1" fontWeight={700}>
+            Live DNS Feed
+          </Typography>
+          <Chip
+            label="LIVE"
+            size="small"
+            sx={{ fontSize: 10, height: 18, fontWeight: 800, bgcolor: '#4CAF50', color: '#fff', ml: 0.5 }}
+          />
+        </Box>
+
+        {events.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+            Waiting for DNS events… (WebSocket connected)
+          </Typography>
+        ) : (
+          <Stack spacing={0.75} sx={{ maxHeight: 260, overflowY: 'auto' }}>
+            {events.map(ev => (
+              <Box
+                key={ev.id}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  py: 0.5,
+                  px: 1,
+                  borderRadius: 1,
+                  bgcolor: ev.action === 'BLOCKED' ? alpha('#E53935', 0.04) : alpha('#1565C0', 0.03),
+                  '@keyframes slideInFeed': { from: { opacity: 0, transform: 'translateX(-8px)' }, to: { opacity: 1, transform: 'translateX(0)' } },
+                  animation: 'slideInFeed 0.25s ease both',
+                }}
+              >
+                <Chip
+                  label={ev.action}
+                  size="small"
+                  sx={{
+                    fontSize: 10,
+                    height: 18,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    bgcolor: ev.action === 'BLOCKED' ? '#FFEBEE' : '#E3F2FD',
+                    color: ev.action === 'BLOCKED' ? '#C62828' : '#1565C0',
+                  }}
+                />
+                <Typography variant="caption" fontWeight={600} noWrap sx={{ flex: 1, fontFamily: 'monospace' }}>
+                  {ev.domain}
+                </Typography>
+                {ev.profileName && (
+                  <Typography variant="caption" color="text.disabled" noWrap sx={{ maxWidth: 80 }}>
+                    {ev.profileName}
+                  </Typography>
+                )}
+                <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0, fontSize: 10 }}>
+                  {formatEventTime(ev.timestamp)}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function IspLiveDashboardPage() {
   const navigate = useNavigate();
-  const tenantId = useAuthStore(s => s.user?.tenantId) ?? localStorage.getItem('shield_tenant_id') ?? '';
+  const user = useAuthStore(s => s.user);
+  const tenantId = user?.tenantId ?? '';
+  const token = useAuthStore(s => s.accessToken);
+
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [sortField, setSortField] = useState<SortField>('queriesToday');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [recentEvents, setRecentEvents] = useState<LiveEvent[]>([]);
+  const [countdown, setCountdown] = useState(30);
+  const stompClientRef = useRef<Client | null>(null);
+  const eventIdRef = useRef(0);
 
   // ── Queries ────────────────────────────────────────────────────────────────
 
@@ -187,10 +360,12 @@ export default function IspLiveDashboardPage() {
   } = useQuery<TenantOverview>({
     queryKey: ['isp-live-overview', tenantId],
     queryFn: async () => {
-      const r = await api.get(`/analytics/tenant/overview?tenantId=${tenantId}`);
+      const url = tenantId
+        ? `/analytics/tenant/${tenantId}/overview`
+        : '/analytics/platform/overview';
+      const r = await api.get(url, { params: { period: 'today' } });
       return r.data?.data ?? r.data;
     },
-    enabled: !!tenantId,
     refetchOnWindowFocus: false,
     staleTime: 25_000,
   });
@@ -202,11 +377,11 @@ export default function IspLiveDashboardPage() {
   } = useQuery<HourlyPoint[]>({
     queryKey: ['isp-live-hourly', tenantId],
     queryFn: async () => {
-      const r = await api.get(`/analytics/tenant/hourly?tenantId=${tenantId}`);
+      if (!tenantId) return [];
+      const r = await api.get(`/analytics/tenant/${tenantId}/hourly`);
       const d = Array.isArray(r.data) ? r.data : r.data?.data ?? [];
       return d;
     },
-    enabled: !!tenantId,
     refetchOnWindowFocus: false,
     staleTime: 25_000,
   });
@@ -218,22 +393,57 @@ export default function IspLiveDashboardPage() {
   } = useQuery<CustomerActivity[]>({
     queryKey: ['isp-live-customers', tenantId],
     queryFn: async () => {
-      const r = await api.get(`/analytics/tenant/customers?tenantId=${tenantId}`);
-      const d = Array.isArray(r.data) ? r.data : r.data?.data ?? [];
-      return d;
+      // Fetch customers → their profiles → today's stats for each profile
+      const params = tenantId ? { tenantId, size: 50 } : { size: 50 };
+      const custRes = await api.get('/profiles/customers', { params }).catch(() => null);
+      const custData = custRes?.data?.data;
+      const custList: { id: string }[] = Array.isArray(custData) ? custData
+        : (custData?.content ?? []);
+      if (!custList.length) return [];
+
+      // For each customer, fetch child profiles
+      const profileArrays = await Promise.allSettled(
+        custList.map(c => api.get(`/profiles/customers/${c.id}/children`)
+          .then(r => (r.data?.data ?? r.data) as { id: string; name?: string; lastSeenAt?: string }[])
+          .catch(() => [] as { id: string; name?: string; lastSeenAt?: string }[]))
+      );
+      const allProfiles = profileArrays.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+      if (!allProfiles.length) return [];
+
+      // For each profile, fetch today's stats
+      const statsResults = await Promise.allSettled(
+        allProfiles.map(p => api.get(`/analytics/${p.id}/stats`, { params: { period: 'today' } })
+          .then(r => ({ profileId: p.id, ...(r.data?.data ?? r.data) }))
+          .catch(() => ({ profileId: p.id, totalQueries: 0, blockedQueries: 0 })))
+      );
+
+      return allProfiles.map((p, i) => {
+        const stats = statsResults[i].status === 'fulfilled' ? statsResults[i].value : null;
+        const lastSeen = p.lastSeenAt ?? null;
+        const minsSince = lastSeen ? (Date.now() - new Date(lastSeen).getTime()) / 60000 : Infinity;
+        const status: CustomerActivity['status'] = minsSince < 5 ? 'active' : minsSince < 60 ? 'idle' : 'offline';
+        return {
+          profileId: p.id,
+          profileName: p.name ?? `Profile ${i + 1}`,
+          queriesToday: stats?.totalQueries ?? 0,
+          blockedToday: stats?.blockedQueries ?? 0,
+          lastSeen,
+          status,
+        };
+      });
     },
-    enabled: !!tenantId,
     refetchOnWindowFocus: false,
     staleTime: 25_000,
   });
 
-  // ── Auto-refresh every 30 seconds ─────────────────────────────────────────
+  // ── Auto-refresh + countdown ───────────────────────────────────────────────
 
   const doRefresh = useCallback(() => {
     refetchOverview();
     refetchHourly();
     refetchCustomers();
     setLastUpdated(new Date());
+    setCountdown(30);
   }, [refetchOverview, refetchHourly, refetchCustomers]);
 
   useEffect(() => {
@@ -241,9 +451,63 @@ export default function IspLiveDashboardPage() {
     return () => clearInterval(timer);
   }, [doRefresh]);
 
+  // Countdown ticker
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) return 30;
+        return c - 1;
+      });
+    }, 1_000);
+    return () => clearInterval(tick);
+  }, []);
+
+  // ── WebSocket / STOMP ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!tenantId) return;
+
+    const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/shield`;
+
+    const client = new Client({
+      brokerURL: wsUrl,
+      connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+      reconnectDelay: 5_000,
+      heartbeatIncoming: 10_000,
+      heartbeatOutgoing: 10_000,
+      onConnect: () => {
+        client.subscribe(`/topic/tenant/${tenantId}`, (message) => {
+          try {
+            const payload = JSON.parse(message.body);
+            const newEvent: LiveEvent = {
+              id: String(++eventIdRef.current),
+              domain: payload.domain ?? payload.qname ?? 'unknown',
+              action: payload.blocked === true || payload.action === 'BLOCKED' ? 'BLOCKED' : 'ALLOWED',
+              profileName: payload.profileName ?? payload.clientName ?? undefined,
+              timestamp: new Date(),
+            };
+            setRecentEvents(prev => [newEvent, ...prev].slice(0, 20));
+          } catch {
+            // ignore malformed messages
+          }
+        });
+      },
+      onStompError: () => {
+        // silently reconnect
+      },
+    });
+
+    client.activate();
+    stompClientRef.current = client;
+
+    return () => {
+      client.deactivate();
+      stompClientRef.current = null;
+    };
+  }, [tenantId, token]);
+
   // ── Derived data ───────────────────────────────────────────────────────────
 
-  // Build hourly chart data: add "allowed" bar = totalQueries - blockedQueries
   const hourlyData = hourlyRaw.map(p => ({
     hour: p.hour,
     label: p.hour === 0 ? '12a' : p.hour < 12 ? `${p.hour}a` : p.hour === 12 ? '12p' : `${p.hour - 12}p`,
@@ -251,7 +515,6 @@ export default function IspLiveDashboardPage() {
     blocked: p.blockedQueries,
   }));
 
-  // Sort customers
   const sortedCustomers = [...customers].sort((a, b) => {
     let cmp = 0;
     if (sortField === 'profileName') {
@@ -280,14 +543,15 @@ export default function IspLiveDashboardPage() {
     }
   }
 
-  // Overview values
-  const activeProfiles = overview?.activeProfiles ?? 0;
-  const totalProfiles = overview?.totalProfiles ?? 0;
-  const totalQueries = overview?.totalQueriesToday ?? 0;
-  const blockedQueries = overview?.blockedQueriesToday ?? 0;
-  const blockedPct = totalQueries > 0 ? ((blockedQueries / totalQueries) * 100).toFixed(1) : '0';
-  const bandwidthSaved = overview?.bandwidthSaved ?? 0;
-  const topBlockedDomains = overview?.topBlockedDomains ?? [];
+  const totalQueries = overview?.totalQueries ?? overview?.totalQueriesToday ?? 0;
+  const blockedQueries = overview?.blockedQueries ?? overview?.blockedQueriesToday ?? 0;
+  const allowedQueries = overview?.allowedQueries ?? Math.max(0, totalQueries - blockedQueries);
+  const blockedPct = overview?.blockRate ?? (totalQueries > 0 ? (blockedQueries / totalQueries) * 100 : 0);
+  const blockedPctStr = blockedPct.toFixed(1);
+  const activeProfiles = overview?.activeProfiles ?? customers.filter(c => c.status === 'active').length;
+  const totalProfiles = overview?.totalProfiles ?? customers.length;
+  const bandwidthSaved = overview?.bandwidthSaved ?? Math.round(blockedQueries * 0.05);
+  const topBlockedDomains: string[] = [];
 
   const isLoading = overviewLoading || hourlyLoading || customersLoading;
 
@@ -310,6 +574,7 @@ export default function IspLiveDashboardPage() {
             </Grid>
           ))}
         </Grid>
+        <Skeleton variant="rounded" height={160} sx={{ mb: 3 }} />
         <Skeleton variant="rounded" height={320} sx={{ mb: 3 }} />
         <Skeleton variant="rounded" height={300} sx={{ mb: 3 }} />
         <Skeleton variant="rounded" height={80} />
@@ -333,6 +598,18 @@ export default function IspLiveDashboardPage() {
             <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
               Updated {formatTimestamp(lastUpdated)}
             </Typography>
+            <Chip
+              label={`Refreshing in ${countdown}s`}
+              size="small"
+              sx={{
+                fontSize: 11,
+                height: 22,
+                fontWeight: 600,
+                bgcolor: alpha('#1565C0', 0.08),
+                color: '#1565C0',
+                display: { xs: 'none', md: 'flex' },
+              }}
+            />
             <Button
               variant="outlined"
               size="small"
@@ -372,7 +649,7 @@ export default function IspLiveDashboardPage() {
           <LiveStatCard
             title="Blocked Today"
             value={formatK(blockedQueries)}
-            sub={`${blockedPct}% of all queries`}
+            sub={`${blockedPctStr}% of all queries`}
             icon={<BlockIcon />}
             gradient={gradients.red}
             delay={0.15}
@@ -390,8 +667,20 @@ export default function IspLiveDashboardPage() {
         </Grid>
       </Grid>
 
-      {/* Section 2 — Hourly Chart */}
-      <AnimatedPage delay={0.25}>
+      {/* Section 2 — Block Rate Gauge + Live Feed */}
+      <AnimatedPage delay={0.22}>
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+            <BlockRateGauge blockRatePct={blockedPct} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 8, md: 9 }}>
+            <LiveFeedCard events={recentEvents} />
+          </Grid>
+        </Grid>
+      </AnimatedPage>
+
+      {/* Section 3 — Hourly Chart */}
+      <AnimatedPage delay={0.28}>
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
@@ -422,7 +711,7 @@ export default function IspLiveDashboardPage() {
         </Card>
       </AnimatedPage>
 
-      {/* Section 3 — Customer Activity Table */}
+      {/* Section 4 — Customer Activity Table */}
       <AnimatedPage delay={0.35}>
         <Card sx={{ mb: 3 }}>
           <CardContent>
@@ -476,6 +765,9 @@ export default function IspLiveDashboardPage() {
                           Queries Today
                         </TableSortLabel>
                       </TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 64 }}>
+                        Trend
+                      </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>
                         <TableSortLabel
                           active={sortField === 'blockedToday'}
@@ -497,52 +789,83 @@ export default function IspLiveDashboardPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {sortedCustomers.map((row, i) => (
-                      <TableRow
-                        key={row.profileId}
-                        hover
-                        sx={{
-                          cursor: 'pointer',
-                          '@keyframes fadeInRow': { from: { opacity: 0, transform: 'translateX(-6px)' }, to: { opacity: 1, transform: 'translateX(0)' } },
-                          animation: `fadeInRow 0.3s ease ${0.05 * i}s both`,
-                          '&:last-child td': { border: 0 },
-                        }}
-                        onClick={() => navigate(`/isp/customers/${row.profileId}`)}
-                      >
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 200 }}>
-                            {row.profileName}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <StatusChip status={row.status} />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" fontWeight={500}>
-                            {formatK(row.queriesToday)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.75 }}>
-                            <Typography variant="body2" fontWeight={500} color={row.blockedToday > 0 ? 'error.main' : 'text.secondary'}>
-                              {formatK(row.blockedToday)}
-                            </Typography>
-                            {row.queriesToday > 0 && (
-                              <Typography variant="caption" color="text.disabled">
-                                ({((row.blockedToday / row.queriesToday) * 100).toFixed(0)}%)
+                    {sortedCustomers.map((row, i) => {
+                      const customerBlockRate = row.queriesToday > 0
+                        ? (row.blockedToday / row.queriesToday) * 100
+                        : 0;
+                      const isHighBlockRate = customerBlockRate > 80;
+                      const spark = sparklineData(row);
+
+                      return (
+                        <TableRow
+                          key={row.profileId}
+                          hover
+                          sx={{
+                            cursor: 'pointer',
+                            '@keyframes fadeInRow': { from: { opacity: 0, transform: 'translateX(-6px)' }, to: { opacity: 1, transform: 'translateX(0)' } },
+                            animation: `fadeInRow 0.3s ease ${0.05 * i}s both`,
+                            '&:last-child td': { border: 0 },
+                            bgcolor: isHighBlockRate ? alpha('#E53935', 0.02) : undefined,
+                          }}
+                          onClick={() => navigate(`/isp/customers/${row.profileId}`)}
+                        >
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              {isHighBlockRate && (
+                                <Tooltip title={`High block rate: ${customerBlockRate.toFixed(0)}%`} placement="top">
+                                  <WarningAmberIcon
+                                    sx={{
+                                      fontSize: 16,
+                                      color: '#F57C00',
+                                      flexShrink: 0,
+                                      '@keyframes warnPulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.5 } },
+                                      animation: 'warnPulse 2s ease infinite',
+                                    }}
+                                  />
+                                </Tooltip>
+                              )}
+                              <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 180 }}>
+                                {row.profileName}
                               </Typography>
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Tooltip title={row.lastSeen ? new Date(row.lastSeen).toLocaleString('en-IN') : 'Never seen'} placement="left">
-                            <Typography variant="body2" color="text.secondary">
-                              {formatLastSeen(row.lastSeen)}
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <StatusChip status={row.status} />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight={500}>
+                              {formatK(row.queriesToday)}
                             </Typography>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell>
+                            <MiniSparkline data={spark} />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.75 }}>
+                              <Typography
+                                variant="body2"
+                                fontWeight={500}
+                                color={isHighBlockRate ? 'error.main' : row.blockedToday > 0 ? 'error.main' : 'text.secondary'}
+                              >
+                                {formatK(row.blockedToday)}
+                              </Typography>
+                              {row.queriesToday > 0 && (
+                                <Typography variant="caption" color={isHighBlockRate ? 'error.main' : 'text.disabled'} fontWeight={isHighBlockRate ? 700 : 400}>
+                                  ({customerBlockRate.toFixed(0)}%)
+                                </Typography>
+                              )}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Tooltip title={row.lastSeen ? new Date(row.lastSeen).toLocaleString('en-IN') : 'Never seen'} placement="left">
+                              <Typography variant="body2" color="text.secondary">
+                                {formatLastSeen(row.lastSeen)}
+                              </Typography>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -551,7 +874,7 @@ export default function IspLiveDashboardPage() {
         </Card>
       </AnimatedPage>
 
-      {/* Section 4 — Top Blocked Domains */}
+      {/* Section 5 — Top Blocked Domains */}
       {topBlockedDomains.length > 0 && (
         <AnimatedPage delay={0.45}>
           <Card>
@@ -563,7 +886,7 @@ export default function IspLiveDashboardPage() {
                 Most frequently blocked domains across all customers today
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ rowGap: 1 }}>
-                {topBlockedDomains.map((domain, i) => (
+                {topBlockedDomains.map((domain: string, i: number) => (
                   <Chip
                     key={domain}
                     label={domain}

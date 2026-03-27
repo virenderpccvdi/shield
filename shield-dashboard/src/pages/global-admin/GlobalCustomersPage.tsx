@@ -156,7 +156,7 @@ export default function GlobalCustomersPage() {
             label="All ISPs"
             size="small"
             onClick={() => setIspFilter(null)}
-            sx={{ fontWeight: 600, bgcolor: !ispFilter ? '#00897B' : '#F0F0F0', color: !ispFilter ? '#fff' : 'inherit' }}
+            sx={{ fontWeight: 600, bgcolor: !ispFilter ? '#00897B' : 'action.selected', color: !ispFilter ? '#fff' : 'text.primary' }}
           />
           {uniqueIsps.map((ispId, i) => {
             const isp = tenantMap[ispId];

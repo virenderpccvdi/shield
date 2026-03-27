@@ -92,6 +92,7 @@ const AdminAppControlPage      = lazy(() => import('./pages/global-admin/AdminAp
 const AdminAiInsightsPage      = lazy(() => import('./pages/global-admin/AdminAiInsightsPage'));
 const LeadsPage                = lazy(() => import('./pages/global-admin/LeadsPage'));
 const VisitorsPage             = lazy(() => import('./pages/global-admin/VisitorsPage'));
+const IspActivityReportPage    = lazy(() => import('./pages/global-admin/IspActivityReportPage'));
 const PlatformAdminPage        = lazy(() => import('./pages/admin/PlatformAdminPage'));
 
 // ── ISP-admin pages ───────────────────────────────────────────────────────────
@@ -274,6 +275,7 @@ export default function App() {
                 <Route path="/admin/app-control"                  element={<AdminAppControlPage />} />
                 <Route path="/admin/leads"                        element={<LeadsPage />} />
                 <Route path="/admin/visitors"                     element={<VisitorsPage />} />
+                <Route path="/admin/isp-reports"                  element={<IspActivityReportPage />} />
                 <Route path="/admin/settings"                     element={<SettingsPage />} />
                 <Route path="/admin/platform"                     element={<PlatformAdminPage />} />
               </Route>

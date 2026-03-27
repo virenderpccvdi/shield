@@ -1,6 +1,7 @@
 package com.rstglobal.shield.dns.repository;
 
 import com.rstglobal.shield.dns.entity.DomainBlocklist;
+import com.rstglobal.shield.dns.entity.FilterCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -17,16 +18,22 @@ public interface DomainBlocklistRepository extends JpaRepository<DomainBlocklist
     boolean existsByDomainIgnoreCase(String domain);
 
     /**
-     * Projection for CategoryCacheLoader — only needs domain + categoryId.
-     * Avoids loading full entity for all 5000+ entries.
+     * Projection for CategoryCacheLoader — returns domain + categoryKey (e.g. "adult", "gambling").
+     * Joins filter_categories to translate numeric categoryId → categoryKey string.
+     * Only includes domains whose category has a non-null categoryKey.
      */
-    @Query("SELECT d.domain as domain, d.categoryId as categoryId FROM DomainBlocklist d")
+    @Query("""
+        SELECT d.domain as domain, fc.categoryKey as categoryKey
+        FROM DomainBlocklist d
+        JOIN FilterCategory fc ON fc.id = d.categoryId
+        WHERE fc.categoryKey IS NOT NULL
+        """)
     List<DomainCategoryProjection> findAllDomainCategoryMappings();
 
     long countByCategoryId(String categoryId);
 
     interface DomainCategoryProjection {
         String getDomain();
-        String getCategoryId();
+        String getCategoryKey();
     }
 }

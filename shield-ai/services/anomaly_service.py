@@ -7,6 +7,14 @@ from schemas.response import AnomalyResult, RiskLevel
 
 logger = logging.getLogger(__name__)
 
+# Feature order matching model_trainer.py (8 normalized features)
+TRAINED_FEATURE_ORDER = [
+    'query_count_norm', 'block_rate', 'unique_domains_norm',
+    'late_night_ratio', 'social_ratio', 'gaming_ratio',
+    'streaming_ratio', 'vpn_ratio',
+]
+
+# Legacy feature order (11 raw features) used by default/synthetic model
 FEATURE_ORDER = [
     'query_count', 'block_count', 'block_rate', 'unique_domains',
     'adult_queries', 'social_queries', 'gaming_queries',
@@ -48,9 +56,15 @@ def load_model() -> IsolationForest:
     if os.path.exists(MODEL_PATH):
         try:
             with open(MODEL_PATH, 'rb') as f:
-                _model = pickle.load(f)
-            logger.info("Anomaly model loaded from disk.")
-            return _model
+                data = pickle.load(f)
+            # Trainer saves a dict {"model": IsolationForest, ...}
+            if isinstance(data, dict):
+                _model = data.get("model")
+            else:
+                _model = data
+            if _model is not None:
+                logger.info("Anomaly model loaded from disk.")
+                return _model
         except Exception as e:
             logger.warning(f"Failed to load model from disk: {e}. Training new model.")
     _model = _train_default_model()
@@ -61,9 +75,29 @@ def load_model() -> IsolationForest:
     return _model
 
 
+def _normalize_features(features: dict) -> list:
+    """Convert raw profile stats to normalized feature vector matching trained model."""
+    qc = max(int(features.get('query_count', 0)), 1)
+    return [
+        min(qc, 500) / 500.0,
+        float(features.get('block_rate', 0)) or (int(features.get('block_count', 0)) / qc),
+        min(int(features.get('unique_domains', 0)), 200) / 200.0,
+        int(features.get('after_hours_queries', 0)) / qc,   # late_night_ratio proxy
+        int(features.get('social_queries', 0)) / qc,
+        int(features.get('gaming_queries', 0)) / qc,
+        0.0,   # streaming_ratio (not in profile stats)
+        0.0,   # vpn_ratio (not in profile stats)
+    ]
+
+
 def detect_anomaly(features: dict) -> AnomalyResult:
     model = load_model()
-    X = np.array([[features.get(f, 0) for f in FEATURE_ORDER]])
+    n_features = model.n_features_in_ if hasattr(model, 'n_features_in_') else 11
+    if n_features == 8:
+        vec = _normalize_features(features)
+    else:
+        vec = [features.get(f, 0) for f in FEATURE_ORDER]
+    X = np.array([vec])
     score = float(model.decision_function(X)[0])
     is_anomaly = model.predict(X)[0] == -1
 

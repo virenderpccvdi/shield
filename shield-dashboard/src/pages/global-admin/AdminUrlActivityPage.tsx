@@ -4,6 +4,7 @@ import {
   Stack, Avatar, Table, TableHead, TableRow, TableCell, TableBody,
   Paper, Select, MenuItem, FormControl, InputLabel, Alert,
   Button, Tabs, Tab, TextField, InputAdornment, TablePagination,
+  LinearProgress,
 } from '@mui/material';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import BlockIcon from '@mui/icons-material/Block';
@@ -24,7 +25,7 @@ interface Tenant { id: string; name: string; plan?: string; }
 interface Customer { id: string; userId?: string; name?: string; email?: string; }
 interface ChildProfile { id: string; name?: string; age?: number; filterLevel?: string; dnsClientId?: string; }
 interface HistoryEntry { id: string; domain: string; action: string; category?: string; timestamp: string; deviceIp?: string; }
-interface ProfileStats { totalQueries: number; totalBlocked: number; totalAllowed: number; blockRate: number; uniqueDomains: number; }
+interface ProfileStats { totalQueries: number; blockedQueries: number; allowedQueries: number; blockRate: number; uniqueDomains: number; totalBlocked?: number; totalAllowed?: number; }
 interface PlatformOverview { totalQueries: number; totalBlocked: number; blockRate: number; activeProfiles: number; }
 
 function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color: string }) {
@@ -64,7 +65,7 @@ export default function AdminUrlActivityPage() {
   const [tab, setTab] = useState<'ALL' | 'BLOCKED' | 'ALLOWED'>('ALL');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const rowsPerPage = 50;
+  const [rowsPerPage, setRowsPerPage] = useState(50);
 
   // Platform overview
   const { data: platformOverview } = useQuery<PlatformOverview>({
@@ -109,14 +110,36 @@ export default function AdminUrlActivityPage() {
     queryFn: () => api.get(`/analytics/${selectedProfile}/stats`, { params: { period: 'month' } }).then(r => r.data?.data ?? r.data).catch(() => null),
   });
 
-  // DNS Query history
-  const { data: historyData, isLoading: loadingHistory } = useQuery<HistoryEntry[]>({
-    queryKey: ['admin-profile-history', selectedProfile],
+  // DNS Query history — server-side pagination
+  const historyQuery = useQuery<{ content: HistoryEntry[]; totalElements: number }>({
+    queryKey: ['admin-profile-history', selectedProfile, page, rowsPerPage, tab],
     enabled: !!selectedProfile,
-    queryFn: () => api.get(`/analytics/${selectedProfile}/history`, { params: { page: 0, size: 500 } }).then(r => {
-      const d = r.data?.data?.content ?? r.data?.data ?? r.data;
-      return Array.isArray(d) ? d : [];
-    }).catch(() => []),
+    queryFn: () => {
+      const params: Record<string, string | number> = { page, size: rowsPerPage };
+      if (tab !== 'ALL') params.action = tab;
+      return api.get(`/analytics/${selectedProfile}/history`, { params }).then(r => {
+        const raw = r.data?.data ?? r.data;
+        const content = raw?.content ?? (Array.isArray(raw) ? raw : []);
+        const totalElements = raw?.totalElements ?? 0;
+        return { content, totalElements };
+      }).catch(() => ({ content: [], totalElements: 0 }));
+    },
+  });
+
+  const { data: blockedTotal = 0 } = useQuery<number>({
+    queryKey: ['admin-profile-blocked-total', selectedProfile],
+    enabled: !!selectedProfile,
+    queryFn: () => api.get(`/analytics/${selectedProfile}/history`, { params: { page: 0, size: 1, action: 'BLOCKED' } })
+      .then(r => { const raw = r.data?.data ?? r.data; return raw?.totalElements ?? 0; }).catch(() => 0),
+    staleTime: 30000,
+  });
+
+  const { data: allowedTotal = 0 } = useQuery<number>({
+    queryKey: ['admin-profile-allowed-total', selectedProfile],
+    enabled: !!selectedProfile,
+    queryFn: () => api.get(`/analytics/${selectedProfile}/history`, { params: { page: 0, size: 1, action: 'ALLOWED' } })
+      .then(r => { const raw = r.data?.data ?? r.data; return raw?.totalElements ?? 0; }).catch(() => 0),
+    staleTime: 30000,
   });
 
   // Reset child selectors on parent change
@@ -124,20 +147,25 @@ export default function AdminUrlActivityPage() {
   useEffect(() => { setSelectedProfile(''); setPage(0); }, [selectedCustomer]);
   useEffect(() => { setPage(0); }, [tab, search]);
 
-  const allHistory = historyData ?? [];
-  const filteredHistory = allHistory.filter(h =>
+  // Reset page when profile or tab changes
+  useEffect(() => { setPage(0); }, [selectedProfile, selectedTenant, tab]);
+
+  const rawContent = historyQuery.data?.content ?? [];
+  const totalElements = historyQuery.data?.totalElements ?? 0;
+
+  // Client-side search/tab filter applied on the current page's content
+  const filteredHistory = rawContent.filter(h =>
     (tab === 'ALL' || h.action === tab) &&
     (!search.trim() || h.domain.toLowerCase().includes(search.trim().toLowerCase()) ||
       (h.category ?? '').toLowerCase().includes(search.trim().toLowerCase()))
   );
-  const pagedHistory = filteredHistory.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
   const selectedProfileObj = profiles?.find(p => p.id === selectedProfile);
   const selectedCustomerObj = customers?.find(c => c.id === selectedCustomer);
   const selectedTenantObj = tenants.find(t => t.id === selectedTenant);
 
-  const blockedCount = filteredHistory.filter(h => h.action === 'BLOCKED').length;
-  const allowedCount = filteredHistory.filter(h => h.action === 'ALLOWED').length;
+  const blockedCount = rawContent.filter(h => h.action === 'BLOCKED').length;
+  const allowedCount = rawContent.filter(h => h.action === 'ALLOWED').length;
 
   return (
     <AnimatedPage>
@@ -286,7 +314,7 @@ export default function AdminUrlActivityPage() {
                       <Typography variant="caption" color="text.secondary">Total</Typography>
                     </Box>
                     <Box sx={{ textAlign: 'center' }}>
-                      <Typography fontWeight={700} color="#E53935">{(profileStats.totalBlocked ?? 0).toLocaleString()}</Typography>
+                      <Typography fontWeight={700} color="#E53935">{(profileStats.blockedQueries ?? profileStats.totalBlocked ?? 0).toLocaleString()}</Typography>
                       <Typography variant="caption" color="text.secondary">Blocked</Typography>
                     </Box>
                     <Box sx={{ textAlign: 'center' }}>
@@ -304,10 +332,10 @@ export default function AdminUrlActivityPage() {
             <CardContent sx={{ pb: '0 !important' }}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} sx={{ mb: 0 }}>
                 <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ flex: 1 }}>
-                  <Tab label={`All (${allHistory.length})`} value="ALL" />
-                  <Tab label={`Blocked (${allHistory.filter(h => h.action === 'BLOCKED').length})`} value="BLOCKED"
+                  <Tab label={`All (${totalElements.toLocaleString()})`} value="ALL" />
+                  <Tab label={`Blocked (${blockedTotal.toLocaleString()})`} value="BLOCKED"
                     sx={{ '&.Mui-selected': { color: '#E53935' } }} />
-                  <Tab label={`Allowed (${allHistory.filter(h => h.action === 'ALLOWED').length})`} value="ALLOWED"
+                  <Tab label={`Allowed (${allowedTotal.toLocaleString()})`} value="ALLOWED"
                     sx={{ '&.Mui-selected': { color: '#2E7D32' } }} />
                 </Tabs>
                 <TextField size="small" placeholder="Search domain or category…" value={search}
@@ -317,7 +345,14 @@ export default function AdminUrlActivityPage() {
               </Stack>
             </CardContent>
 
-            {loadingHistory ? (
+            {/* Fetching progress indicator */}
+            <Box sx={{ height: 3 }}>
+              {historyQuery.isFetching && (
+                <LinearProgress sx={{ height: 3 }} />
+              )}
+            </Box>
+
+            {historyQuery.isLoading ? (
               <LoadingPage />
             ) : filteredHistory.length === 0 ? (
               <Box sx={{ py: 4 }}>
@@ -335,7 +370,7 @@ export default function AdminUrlActivityPage() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {pagedHistory.map((h, idx) => (
+                      {filteredHistory.map((h, idx) => (
                         <TableRow key={h.id || idx} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 600 }}>{h.domain}</Typography>
@@ -372,12 +407,13 @@ export default function AdminUrlActivityPage() {
                 </Paper>
                 <TablePagination
                   component="div"
-                  count={filteredHistory.length}
+                  count={totalElements}
                   page={page}
                   onPageChange={(_, p) => setPage(p)}
                   rowsPerPage={rowsPerPage}
-                  rowsPerPageOptions={[rowsPerPage]}
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} of ${count} entries`}
+                  onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                  rowsPerPageOptions={[25, 50, 100]}
+                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} of ${count.toLocaleString()} entries`}
                 />
               </>
             )}

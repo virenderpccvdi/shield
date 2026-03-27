@@ -228,7 +228,7 @@ public interface DnsQueryLogRepository extends JpaRepository<DnsQueryLog, UUID> 
               GROUP BY profile_id
             ) sub
             """, nativeQuery = true)
-    Object[] findCustomersSummary(@Param("sevenDaysAgo") Instant sevenDaysAgo);
+    List<Object[]> findCustomersSummary(@Param("sevenDaysAgo") Instant sevenDaysAgo);
 
     @Query(value = """
             SELECT COUNT(DISTINCT profile_id)

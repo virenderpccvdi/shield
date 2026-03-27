@@ -36,10 +36,13 @@ public class ExtensionRequestController {
     /** Parent views pending requests. */
     @GetMapping("/budgets/extension-requests")
     public ResponseEntity<ApiResponse<List<ExtensionRequestResponse>>> getPendingRequests(
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-Customer-Id") String customerId,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-Customer-Id", required = false) String customerId,
             @RequestHeader("X-User-Role") String role) {
         requireCustomer(role);
+        if (customerId == null || customerId.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.ok(List.of()));
+        }
         return ResponseEntity.ok(ApiResponse.ok(
                 extensionService.getPendingRequests(UUID.fromString(customerId))));
     }

@@ -169,7 +169,7 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public Page<DnsQueryLog> getBrowsingHistory(UUID profileId, UUID tenantId, String action, Pageable pageable) {
-        requireFeature(tenantId, "browsing_history");
+        requireFeature(tenantId, "content_reporting");
         Instant from = Instant.EPOCH;
         Instant to = Instant.now();
         if (action != null && (action.equals("BLOCKED") || action.equals("ALLOWED"))) {
@@ -303,7 +303,8 @@ public class AnalyticsService {
         Instant sevenDaysAgo = Instant.now().minus(7, ChronoUnit.DAYS);
         Instant monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 
-        Object[] row = dnsQueryLogRepository.findCustomersSummary(sevenDaysAgo);
+        List<Object[]> rows = dnsQueryLogRepository.findCustomersSummary(sevenDaysAgo);
+        Object[] row = (rows != null && !rows.isEmpty()) ? rows.get(0) : null;
         long totalCustomers = row != null && row[0] != null ? ((Number) row[0]).longValue() : 0L;
         long activeCustomers = row != null && row[1] != null ? ((Number) row[1]).longValue() : 0L;
         long newThisMonth = dnsQueryLogRepository.countNewProfilesSince(monthStart);

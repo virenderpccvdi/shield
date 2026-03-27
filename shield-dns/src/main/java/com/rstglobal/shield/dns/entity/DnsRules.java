@@ -37,6 +37,11 @@ public class DnsRules {
     @Column(name = "dns_client_id")
     private String dnsClientId;
 
+    /** Filter level: STRICT, MODERATE, or MINIMAL. Synced from profile.child_profiles. */
+    @Column(name = "filter_level", nullable = false)
+    @Builder.Default
+    private String filterLevel = "MODERATE";
+
     /** Map of category key → enabled (true=allowed, false=blocked) */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "enabled_categories", columnDefinition = "jsonb")

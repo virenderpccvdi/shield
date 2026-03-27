@@ -222,12 +222,19 @@ public class RulesCacheService {
                 if (Boolean.TRUE.equals(exists)) return Mono.empty();
                 return Mono.fromCallable(() -> dnsRulesClient.getRulesForProfile(profileId))
                     .subscribeOn(Schedulers.boundedElastic())
-                    .flatMap(rules -> {
+                    .flatMap(response -> {
+                        // Unwrap ApiResponse wrapper: {success:true, data:{...}, timestamp:...}
+                        Object dataObj = response.get("data");
+                        Map<String, Object> rules = dataObj instanceof Map
+                            ? (Map<String, Object>) dataObj : response;
+
                         Mono<Void> ops = Mono.empty();
 
-                        // Filter level
-                        String level = (String) rules.getOrDefault("filterLevel", "moderate");
-                        ops = ops.then(redisTemplate.opsForValue().set(baseKey + ":level", level, ttl).then());
+                        // Filter level — derived from enabledCategories or filterLevel field
+                        String level = rules.containsKey("filterLevel")
+                            ? String.valueOf(rules.get("filterLevel"))
+                            : "moderate";
+                        ops = ops.then(redisTemplate.opsForValue().set(baseKey + ":level", level.toLowerCase(), ttl).then());
 
                         // Custom blocklist
                         Object blocklist = rules.get("customBlocklist");
@@ -245,12 +252,19 @@ public class RulesCacheService {
                                 .then(redisTemplate.expire(baseKey + ":allowlist", ttl)).then());
                         }
 
-                        // Blocked categories
-                        Object categories = rules.get("blockedCategories");
-                        if (categories instanceof Map<?, ?> catMap && !catMap.isEmpty()) {
+                        // Category overrides — API returns enabledCategories where false=blocked
+                        // Load per-category overrides for non-default blocking decisions
+                        Object enabledCats = rules.get("enabledCategories");
+                        if (enabledCats instanceof Map<?, ?> catMap && !catMap.isEmpty()) {
                             for (Map.Entry<?, ?> e : catMap.entrySet()) {
+                                String key = e.getKey().toString();
+                                // Skip internal flags
+                                if (key.startsWith("__")) continue;
+                                Object val = e.getValue();
+                                // false = blocked, true = allowed
+                                boolean enabled = !Boolean.FALSE.equals(val);
                                 ops = ops.then(redisTemplate.opsForHash()
-                                    .put(baseKey + ":categories", e.getKey().toString(), e.getValue().toString())
+                                    .put(baseKey + ":categories", key, enabled ? "allowed" : "blocked")
                                     .then());
                             }
                             ops = ops.then(redisTemplate.expire(baseKey + ":categories", ttl).then());

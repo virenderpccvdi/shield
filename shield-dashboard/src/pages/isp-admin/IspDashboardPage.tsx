@@ -153,8 +153,8 @@ export default function IspDashboardPage() {
 
       let blockRate = 0;
       if (overviewRes.status === 'fulfilled') {
-        const d = overviewRes.value.data;
-        if (d?.blockRate) blockRate = d.blockRate;
+        const d = overviewRes.value.data?.data ?? overviewRes.value.data;
+        blockRate = d?.blockRate ?? 0;
       }
 
       let categories: CategoryEntry[] = [];
@@ -289,7 +289,7 @@ export default function IspDashboardPage() {
           <StatCard title="DNS Queries (7d)" value={formatK(totalQueries)} icon={<DnsIcon />} gradient={gradients.purple} delay={0.3} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Block Rate" value={`${blockRate}%`} icon={<BlockIcon />} gradient={gradients.orange} delay={0.4} />
+          <StatCard title="Block Rate" value={`${Number(blockRate).toFixed(1)}%`} icon={<BlockIcon />} gradient={gradients.orange} delay={0.4} />
         </Grid>
       </Grid>
 

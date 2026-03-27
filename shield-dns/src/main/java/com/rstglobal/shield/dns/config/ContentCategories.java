@@ -119,10 +119,14 @@ public final class ContentCategories {
                 cats.put("drugs",          false);
                 cats.put("gaming",         false);
                 cats.put("online_gaming",  false);
+                cats.put("esports",        false);
                 cats.put("social_media",   false);
+                cats.put("messaging",      false);
+                cats.put("streaming",      false);
                 cats.put("live_streaming", false);
                 cats.put("chat",           false);
                 cats.put("crypto",         false);
+                cats.put("shopping",       false);
             }
             case "MODERATE", "STANDARD" -> {
                 cats.put("gambling",       false);

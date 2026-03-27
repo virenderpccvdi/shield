@@ -72,8 +72,8 @@ public class FilterCategoryController {
     public List<Map<String, String>> getDomainBlocklist() {
         return domainRepo.findAllDomainCategoryMappings().stream()
             .map(p -> Map.of(
-                "domain",     p.getDomain().toLowerCase(),
-                "categoryId", p.getCategoryId()))
+                "domain",      p.getDomain().toLowerCase(),
+                "categoryKey", p.getCategoryKey()))
             .collect(Collectors.toList());
     }
 

@@ -4,6 +4,7 @@ import {
   Grid, Typography, Box, Card, CardContent, Button, Chip, CircularProgress,
   Alert, Tooltip, Stack, Divider, List, ListItem, ListItemText, ListItemIcon,
   LinearProgress, useTheme, Dialog, DialogTitle, DialogContent, DialogActions,
+  IconButton,
 } from '@mui/material';
 import LockIcon from '@mui/icons-material/Lock';
 import PauseIcon from '@mui/icons-material/Pause';
@@ -23,6 +24,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
@@ -42,7 +44,8 @@ interface RecentAlert {
   profileName?: string; createdAt?: string; read?: boolean;
 }
 interface DailyPoint { date: string; totalQueries: number; totalBlocks: number; }
-interface CategoryBreakdown { category: string; blocked: number; allowed: number; }
+// Fix #9: API returns { category, count } — not { category, blocked, allowed }
+interface CategoryBreakdown { category: string; count: number; }
 
 // Hex values required — used in CSS gradient string interpolation for child profile accent colors
 const GRADIENT_ACCENTS = ['#1565C0', '#43A047', '#7B1FA2', '#FB8C00', '#E53935', '#00897B'];
@@ -67,6 +70,12 @@ function timeAgo(iso?: string) {
 function shortDate(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+}
+
+// Fix #6: returns true if lastSeen was within the last 5 minutes
+function isRecentlyActive(lastSeen?: string): boolean {
+  if (!lastSeen) return false;
+  return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000;
 }
 
 function FeatureLockDialog({ open, featureName, requiredPlan, onClose, onUpgrade }: {
@@ -125,6 +134,38 @@ function StatCard({ label, value, color, bg, icon, subtitle }: {
   );
 }
 
+// Fix #5: Mini trend bar chart for child cards
+function MiniTrendChart({ profileId }: { profileId: string }) {
+  const { data: daily } = useQuery<DailyPoint[]>({
+    queryKey: ['child-mini-trend', profileId],
+    queryFn: () =>
+      api.get(`/analytics/${profileId}/daily?days=7`)
+        .then(r => (r.data?.data ?? r.data ?? []) as DailyPoint[])
+        .catch(() => []),
+    staleTime: 120000,
+  });
+
+  const chartData = useMemo(() =>
+    (daily ?? []).slice(-7).map(d => ({
+      Blocked: d.totalBlocks ?? 0,
+    })),
+    [daily]
+  );
+
+  if (!chartData.length) return null;
+
+  return (
+    <Box sx={{ mt: 1, px: 0.5 }}>
+      <Typography fontSize={9} color="text.disabled" sx={{ mb: 0.25 }}>7-day blocks trend</Typography>
+      <ResponsiveContainer width="100%" height={50}>
+        <BarChart data={chartData} barSize={8} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+          <Bar dataKey="Blocked" fill="#E53935" radius={[2, 2, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </Box>
+  );
+}
+
 export default function CustomerDashboardPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -136,6 +177,18 @@ export default function CustomerDashboardPage() {
     if (h < 12) return 'Good morning';
     if (h < 17) return 'Good afternoon';
     return 'Good evening';
+  };
+
+  // Fix #10: refresh handler — invalidates all dashboard queries
+  const handleRefresh = () => {
+    qc.invalidateQueries({ queryKey: ['children'] });
+    qc.invalidateQueries({ queryKey: ['recent-alerts-dashboard'] });
+    qc.invalidateQueries({ queryKey: ['dashboard-sos'] });
+    qc.invalidateQueries({ queryKey: ['dashboard-daily'] });
+    qc.invalidateQueries({ queryKey: ['dashboard-top-blocked'] });
+    qc.invalidateQueries({ queryKey: ['dashboard-categories'] });
+    qc.invalidateQueries({ queryKey: ['dashboard-profile-stats'] });
+    qc.invalidateQueries({ queryKey: ['my-subscription'] });
   };
 
   const { data, isLoading, error } = useQuery({
@@ -184,6 +237,7 @@ export default function CustomerDashboardPage() {
 
   const { data: dailyStats } = useQuery<DailyPoint[]>({
     queryKey: ['dashboard-daily', firstProfileId],
+    // Fix #4: daily?days=7 is correct — keep it
     queryFn: () => api.get(`/analytics/${firstProfileId}/daily?days=7`).then(r =>
       (r.data?.data ?? r.data ?? []) as DailyPoint[]
     ).catch(() => []),
@@ -192,7 +246,8 @@ export default function CustomerDashboardPage() {
 
   const { data: topBlocked } = useQuery<{ domain: string; count: number }[]>({
     queryKey: ['dashboard-top-blocked', firstProfileId],
-    queryFn: () => api.get(`/analytics/${firstProfileId}/top-domains?type=BLOCKED&limit=5`).then(r =>
+    // Fix #3: use action=BLOCKED instead of type=BLOCKED
+    queryFn: () => api.get(`/analytics/${firstProfileId}/top-domains?action=BLOCKED&limit=5`).then(r =>
       (r.data?.data ?? r.data ?? []) as { domain: string; count: number }[]
     ).catch(() => []),
     enabled: !!firstProfileId,
@@ -200,7 +255,8 @@ export default function CustomerDashboardPage() {
 
   const { data: categories } = useQuery<CategoryBreakdown[]>({
     queryKey: ['dashboard-categories', firstProfileId],
-    queryFn: () => api.get(`/analytics/${firstProfileId}/categories?days=7`).then(r =>
+    // Fix #1: use period=week instead of days=7
+    queryFn: () => api.get(`/analytics/${firstProfileId}/categories?period=week`).then(r =>
       (r.data?.data ?? r.data ?? []) as CategoryBreakdown[]
     ).catch(() => []),
     enabled: !!firstProfileId,
@@ -213,7 +269,8 @@ export default function CustomerDashboardPage() {
         const results: Record<string, any> = {};
         await Promise.all(children.map(async c => {
           try {
-            const r = await api.get(`/analytics/${c.id}/stats?period=TODAY`);
+            // Fix #2: use period=today (lowercase) instead of period=TODAY
+            const r = await api.get(`/analytics/${c.id}/stats?period=today`);
             const raw = r.data?.data ?? r.data;
             // Normalise field names: API returns blockedQueries/allowedQueries
             results[c.id] = {
@@ -230,18 +287,28 @@ export default function CustomerDashboardPage() {
     }
   );
 
-  // Subscription / plan query for feature gating
+  // Fix #8: Subscription / plan query — wrap in try-catch, default gracefully for new users
   interface SubscriptionInfo { planName?: string; planDisplayName?: string; features?: Record<string, boolean>; }
   const { data: subscription } = useQuery<SubscriptionInfo>({
     queryKey: ['my-subscription'],
-    queryFn: () => api.get('/admin/billing/subscription').then(r => (r.data?.data ?? r.data) as SubscriptionInfo).catch(() => ({})),
+    queryFn: async () => {
+      try {
+        const r = await api.get('/admin/billing/subscription');
+        return (r.data?.data ?? r.data) as SubscriptionInfo;
+      } catch {
+        // New users or billing not set up — default to all features enabled
+        return { planName: 'Family Protection', planDisplayName: 'Family Protection', features: {} };
+      }
+    },
     staleTime: 300000, // 5 min — plan rarely changes mid-session
   });
 
-  // Feature gate helper: returns true if the feature flag is enabled (or plan is GROWTH/ENTERPRISE)
+  // Fix #8: Feature gate helper — default to true (show all features) when subscription unavailable
   const isFeatureEnabled = (featureKey: string): boolean => {
-    if (!subscription?.features) return false;
-    return subscription.features[featureKey] === true;
+    if (!subscription?.features) return true; // default to enabled for new users
+    const val = subscription.features[featureKey];
+    if (val === undefined) return true; // unknown key → enabled by default
+    return val === true;
   };
 
   const [lockedFeature, setLockedFeature] = useState<{ name: string; requiredPlan: string } | null>(null);
@@ -263,10 +330,11 @@ export default function CustomerDashboardPage() {
     [dailyStats]
   );
 
+  // Fix #9: categories API returns { category, count } — sort by count, take top 5
   const topCategories = useMemo(() =>
     (categories || [])
-      .filter(c => (c.blocked ?? (c as { blockedQueries?: number }).blockedQueries ?? 0) > 0)
-      .sort((a, b) => (b.blocked ?? (b as { blockedQueries?: number }).blockedQueries ?? 0) - (a.blocked ?? (a as { blockedQueries?: number }).blockedQueries ?? 0))
+      .filter(c => (c.count ?? 0) > 0)
+      .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
       .slice(0, 5),
     [categories]
   );
@@ -275,8 +343,12 @@ export default function CustomerDashboardPage() {
   if (error) return <Alert severity="error" sx={{ mt: 2 }}>Failed to load dashboard. Check your connection.</Alert>;
 
   const alerts = recentAlerts || [];
-  const highBlockChildren = children.filter(c => (c.blocksToday ?? 0) > 10);
-  const totalBlocks = children.reduce((s, c) => s + (c.blocksToday ?? 0), 0);
+  // Use per-profile stats from analytics (blocksToday from profile API is usually 0)
+  const statsMap = profileStats || {};
+  const totalBlocksFromStats = Object.values(statsMap).reduce((s, v: any) => s + (v.totalBlocks ?? 0), 0);
+  const totalQueriesFromStats = Object.values(statsMap).reduce((s, v: any) => s + (v.totalQueries ?? 0), 0);
+  const highBlockChildren = children.filter(c => (statsMap[c.id]?.totalBlocks ?? c.blocksToday ?? 0) > 10);
+  const totalBlocks = totalBlocksFromStats > 0 ? totalBlocksFromStats : children.reduce((s, c) => s + (c.blocksToday ?? 0), 0);
   const onlineCount = children.filter(c => c.online).length;
   const pausedCount = children.filter(c => c.paused).length;
   const totalQueries7d = (dailyStats || []).reduce((s, d) => s + (d.totalQueries || 0), 0);
@@ -357,7 +429,14 @@ export default function CustomerDashboardPage() {
                   : `All ${children.length > 1 ? children.length + ' children' : 'children'} are offline · Last checked just now`}
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1.5} flexShrink={0}>
+          <Stack direction="row" spacing={1.5} flexShrink={0} alignItems="center">
+            {/* Fix #10: Refresh button in header */}
+            <Tooltip title="Refresh dashboard">
+              <IconButton onClick={handleRefresh} size="small"
+                sx={{ color: 'rgba(255,255,255,0.8)', bgcolor: 'rgba(255,255,255,0.1)', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}>
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
             {[
               { value: children.length, label: 'Profiles', color: 'rgba(255,255,255,0.15)' },
               { value: onlineCount, label: 'Online', color: 'rgba(67,160,71,0.35)' },
@@ -377,32 +456,49 @@ export default function CustomerDashboardPage() {
         </Stack>
       </Box>
 
-      {/* Onboarding empty state — shown inline when no children profiles exist */}
+      {/* Fix #7: Onboarding empty state — shown inline when no children profiles exist */}
       {!isLoading && children.length === 0 && (
-        <Box sx={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', py: 8, gap: 3,
+        <Card sx={{
+          mb: 3, border: '2px dashed #CBD5E1', bgcolor: 'transparent',
+          borderRadius: 3, overflow: 'hidden',
         }}>
-          <Box sx={{ fontSize: 80 }}>🛡️</Box>
-          <Typography variant="h5" fontWeight={700}>Welcome to Shield!</Typography>
-          <Typography color="text.secondary" textAlign="center" maxWidth={400}>
-            Add your first child profile to start protecting their internet experience.
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<PersonAddIcon />}
-            onClick={() => navigate('/profiles/new')}
-            sx={{ bgcolor: 'primary.main', borderRadius: 2 }}
-          >
-            Add First Child
-          </Button>
-          <Box sx={{ display: 'flex', gap: 1.5, mt: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {['DNS Filtering', 'Screen Time', 'Location Tracking', 'Safe Rewards'].map(feature => (
-              <Chip key={feature} label={feature} variant="outlined" color="primary" />
-            ))}
+          <Box sx={{
+            background: 'linear-gradient(135deg, rgba(21,101,192,0.04) 0%, rgba(67,160,71,0.04) 100%)',
+            p: { xs: 4, sm: 6 },
+          }}>
+            <Stack alignItems="center" spacing={2.5}>
+              <Box sx={{
+                width: 80, height: 80, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #1565C020, #43A04720)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '2px solid #1565C015',
+              }}>
+                <ShieldIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.8 }} />
+              </Box>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h5" fontWeight={800} gutterBottom>Welcome to Shield!</Typography>
+                <Typography color="text.secondary" fontSize={15} maxWidth={420}>
+                  Add your first child profile to start protecting their internet experience with
+                  DNS filtering, screen time controls, and real-time location tracking.
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<PersonAddIcon />}
+                onClick={() => navigate('/child-profiles/new')}
+                sx={{ bgcolor: 'primary.main', borderRadius: 2.5, px: 4, py: 1.25, fontWeight: 700, fontSize: 15 }}
+              >
+                Add Child Profile
+              </Button>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {['DNS Filtering', 'Screen Time', 'Location Tracking', 'Safe Rewards'].map(feature => (
+                  <Chip key={feature} label={feature} variant="outlined" color="primary" size="small" />
+                ))}
+              </Box>
+            </Stack>
           </Box>
-        </Box>
+        </Card>
       )}
 
       {/* Top stats row */}
@@ -412,12 +508,12 @@ export default function CustomerDashboardPage() {
             icon={<FamilyRestroomIcon fontSize="small" />} subtitle={`${onlineCount} online now`} />
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard label="Blocks Today" value={totalBlocks} color="#E65100" bg="rgba(251,140,0,0.08)"
-            icon={<BlockIcon fontSize="small" />} subtitle="across all children" />
+          <StatCard label="Blocked Today" value={totalBlocks} color="#E65100" bg="rgba(251,140,0,0.08)"
+            icon={<BlockIcon fontSize="small" />} subtitle={totalQueriesFromStats > 0 ? `${Math.round(totalBlocks / totalQueriesFromStats * 100)}% block rate` : 'across all children'} />
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard label="Queries (7d)" value={totalQueries7d.toLocaleString()} color="#00897B" bg="#E0F2F1"
-            icon={<DnsIcon fontSize="small" />} subtitle={`${blockRate7d}% block rate`} />
+          <StatCard label="Allowed Today" value={Math.max(0, totalQueriesFromStats - totalBlocks)} color="#00897B" bg="#E0F2F1"
+            icon={<DnsIcon fontSize="small" />} subtitle={totalQueriesFromStats > 0 ? `of ${totalQueriesFromStats.toLocaleString()} queries` : `${blockRate7d}% block rate (7d)`} />
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
           <StatCard label="Active Alerts" value={alerts.length} color="#7B1FA2" bg="rgba(123,31,162,0.08)"
@@ -449,6 +545,8 @@ export default function CustomerDashboardPage() {
               const stats = profileStats?.[child.id];
               const childBlockRate = stats?.totalQueries ? Math.round((stats.totalBlocks / stats.totalQueries) * 100) : 0;
               const accent = GRADIENT_ACCENTS[i % GRADIENT_ACCENTS.length];
+              // Fix #6: detect recently active (within 5 min) even if not flagged online
+              const recentlyActive = child.online || isRecentlyActive(child.lastSeen);
               return (
                 <Grid size={{ xs: 12, sm: 6 }} key={child.id}>
                   <AnimatedPage delay={0.05 + i * 0.07}>
@@ -474,7 +572,8 @@ export default function CustomerDashboardPage() {
                               <Typography fontWeight={700} fontSize={15} sx={{ color: accent }}>
                                 {getInitials(child.name)}
                               </Typography>
-                              {child.online && (
+                              {/* Fix #6: pulsing dot for online OR recently-active children */}
+                              {recentlyActive && (
                                 <Box sx={{
                                   position: 'absolute', bottom: 0, right: 0,
                                   width: 12, height: 12, borderRadius: '50%',
@@ -569,7 +668,10 @@ export default function CustomerDashboardPage() {
                           </Box>
                         )}
 
-                        <Divider sx={{ mb: 1 }} />
+                        {/* Fix #5: Mini 7-day trend chart */}
+                        <MiniTrendChart profileId={child.id} />
+
+                        <Divider sx={{ mb: 1, mt: 1 }} />
                         <Stack direction="row" spacing={0.5}>
                           {[
                             { label: 'Rules', path: `/profiles/${child.id}/rules`, color: 'primary.main' },
@@ -676,7 +778,7 @@ export default function CustomerDashboardPage() {
               </Grid>
             )}
 
-            {/* Top blocked categories */}
+            {/* Fix #9: Top blocked categories — use count field, render as bar chart */}
             {topCategories.length > 0 && (
               <Grid size={{ xs: 12, sm: 6 }}>
                 <AnimatedPage delay={0.3}>
@@ -686,23 +788,26 @@ export default function CustomerDashboardPage() {
                         <SecurityIcon sx={{ fontSize: 16, color: '#7B1FA2' }} />
                         <Typography fontWeight={700} fontSize={13}>Blocked Categories (7d)</Typography>
                       </Stack>
-                      {topCategories.map((cat, i) => {
-                        const total = cat.blocked + cat.allowed;
-                        const pct = total > 0 ? Math.round((cat.blocked / total) * 100) : 0;
-                        return (
-                          <Box key={cat.category} sx={{ mb: 1 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.3 }}>
-                              <Typography fontSize={12} fontWeight={500} textTransform="capitalize">
-                                {cat.category.replace(/_/g, ' ').toLowerCase()}
-                              </Typography>
-                              <Typography fontSize={11} color="text.secondary">{cat.blocked} blocked</Typography>
-                            </Box>
-                            <LinearProgress variant="determinate" value={pct}
-                              sx={{ height: 5, borderRadius: 3, bgcolor: 'rgba(123,31,162,0.08)',
-                                '& .MuiLinearProgress-bar': { bgcolor: '#7B1FA2', borderRadius: 3 } }} />
-                          </Box>
-                        );
-                      })}
+                      <ResponsiveContainer width="100%" height={140}>
+                        <BarChart
+                          data={topCategories.map(cat => ({
+                            name: cat.category.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()).slice(0, 14),
+                            count: cat.count ?? 0,
+                          }))}
+                          layout="vertical"
+                          barSize={12}
+                          margin={{ top: 0, right: 24, left: 0, bottom: 0 }}
+                        >
+                          <XAxis type="number" hide />
+                          <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={88} />
+                          <ReTooltip
+                            contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #E2E8F0' }}
+                            cursor={{ fill: 'rgba(123,31,162,0.05)' }}
+                            formatter={(v: number) => [`${v} blocks`, 'Count']}
+                          />
+                          <Bar dataKey="count" fill="#7B1FA2" radius={[0, 3, 3, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </CardContent>
                   </Card>
                 </AnimatedPage>

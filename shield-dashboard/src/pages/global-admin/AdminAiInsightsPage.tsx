@@ -80,7 +80,10 @@ export default function AdminAiInsightsPage() {
     queryFn: () => {
       const params = new URLSearchParams({ min_score: '0.1', limit: '200' });
       if (severity) params.set('severity', severity);
-      return api.get(`/ai/alerts?${params.toString()}`).then(r => r.data as AlertItem[]).catch(() => [] as AlertItem[]);
+      return api.get(`/ai/alerts?${params.toString()}`).then(r => {
+        const d = r.data?.data ?? r.data;
+        return (Array.isArray(d) ? d : []) as AlertItem[];
+      }).catch(() => [] as AlertItem[]);
     },
     refetchInterval: 60_000,
     staleTime: 30000,
@@ -89,7 +92,7 @@ export default function AdminAiInsightsPage() {
   // AI model health
   const { data: modelHealth, refetch: refetchHealth } = useQuery({
     queryKey: ['admin-ai-model-health'],
-    queryFn: () => api.get('/ai/model/health').then(r => r.data as ModelHealth).catch(() => null),
+    queryFn: () => api.get('/ai/model/health').then(r => (r.data?.data ?? r.data) as ModelHealth).catch(() => null),
     refetchInterval: 60_000,
     staleTime: 30000,
   });
@@ -97,7 +100,7 @@ export default function AdminAiInsightsPage() {
   // Training status
   const { data: trainingStatus, refetch: refetchTraining } = useQuery({
     queryKey: ['admin-ai-training-status'],
-    queryFn: () => api.get('/ai/train/status').then(r => r.data as TrainingStatus).catch(() => null),
+    queryFn: () => api.get('/ai/train/status').then(r => (r.data?.data ?? r.data) as TrainingStatus).catch(() => null),
     refetchInterval: 60_000,
     staleTime: 30000,
   });

@@ -27,7 +27,7 @@ MODEL_PATH = Path("/var/www/ai/FamilyShield/shield-ai/models/anomaly_model.pkl")
 STATUS_FILE = Path("/tmp/shield_training_status.json")
 
 # Minimum hourly buckets required before we'll train.
-MIN_SAMPLES = 10  # lower threshold for early-stage deployments
+MIN_SAMPLES = 5  # lower threshold for early-stage deployments
 
 
 def _update_status(status: str, progress: int, message: str | None) -> None:
@@ -143,16 +143,17 @@ async def _run_retraining_inner(days_back: int, db) -> None:
         # ------------------------------------------------------------------
         X = []
         for row in rows:
-            qc = max(int(row.query_count or 0), 1)
+            r = dict(row)
+            qc = max(int(r.get('query_count') or 0), 1)
             features = [
                 min(qc, 500) / 500.0,
-                int(row.block_count or 0) / qc,
-                min(int(row.unique_domains or 0), 200) / 200.0,
-                int(row.late_night_queries or 0) / qc,
-                int(row.social_queries or 0) / qc,
-                int(row.gaming_queries or 0) / qc,
-                int(row.streaming_queries or 0) / qc,
-                int(row.vpn_queries or 0) / qc,
+                int(r.get('block_count') or 0) / qc,
+                min(int(r.get('unique_domains') or 0), 200) / 200.0,
+                int(r.get('late_night_queries') or 0) / qc,
+                int(r.get('social_queries') or 0) / qc,
+                int(r.get('gaming_queries') or 0) / qc,
+                int(r.get('streaming_queries') or 0) / qc,
+                int(r.get('vpn_queries') or 0) / qc,
             ]
             X.append(features)
 

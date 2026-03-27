@@ -24,7 +24,7 @@ VALUES
 -- Medium risk — social/gaming (off by default in Starter)
 ('15','Social Media (all)',          'Cyberbullying, predators, inappropriate content, addiction',                'MEDIUM', FALSE, TRUE, TRUE, FALSE, 15, 'people',         'social_media'),
 ('16','TikTok',                      'Extreme algorithm addiction — bans in multiple countries',                  'MEDIUM', FALSE, TRUE, TRUE, FALSE, 16, 'music_video',    null),
-('17','Discord',                     'Anonymous chat rooms, adult content servers, predator grooming',            'MEDIUM', FALSE, TRUE, TRUE, FALSE, 17, 'chat',           'messaging'),
+('17','Discord',                     'Anonymous chat rooms, adult content servers, predator grooming',            'MEDIUM', FALSE, TRUE, TRUE, FALSE, 17, 'chat',           'discord'),
 ('18','Online Gaming (all)',         'In-app purchases, loot boxes, chat with strangers, screen time',           'MEDIUM', FALSE, TRUE, TRUE, FALSE, 18, 'sports_esports', 'gaming'),
 ('19','Gaming Chat & Voice',         'Unmoderated voice and text chat with strangers during gaming',             'MEDIUM', FALSE, TRUE, TRUE, FALSE, 19, 'record_voice_over', null),
 ('20','Streaming Video',             'Screen time management — some mature content on family platforms',          'MEDIUM', FALSE, TRUE, TRUE, FALSE, 20, 'live_tv',        'streaming'),

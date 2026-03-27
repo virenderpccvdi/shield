@@ -714,14 +714,17 @@ export default function AiInsightsPage() {
 
   const { data: keywordData } = useQuery({
     queryKey: ['ai-keywords', profileId],
-    queryFn: () => api.get(`/ai/${profileId}/keywords`).then(r => r.data as KeywordData).catch(() => null),
+    queryFn: () => api.get(`/ai/${profileId}/keywords`).then(r => (r.data?.data ?? r.data) as KeywordData).catch(() => null),
     enabled: !!profileId,
   });
 
   const { data: socialAlerts } = useQuery({
     queryKey: ['social-alerts', profileId],
     queryFn: () => api.get(`/analytics/${profileId}/social-alerts`)
-      .then(r => r.data as SocialAlert[])
+      .then(r => {
+        const d = r.data?.data ?? r.data;
+        return (Array.isArray(d) ? d : []) as SocialAlert[];
+      })
       .catch(() => [] as SocialAlert[]),
     enabled: !!profileId,
     refetchInterval: 2 * 60 * 1000,

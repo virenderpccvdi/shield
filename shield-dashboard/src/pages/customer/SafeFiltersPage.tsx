@@ -9,6 +9,9 @@ import YouTubeIcon from '@mui/icons-material/YouTube';
 import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import MusicVideoIcon from '@mui/icons-material/MusicVideo';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -19,6 +22,9 @@ interface ChildProfile { id: string; name: string; }
 interface SafeFilterStatus {
   youtubeSafeMode: boolean;
   safeSearch: boolean;
+  facebookBlocked: boolean;
+  instagramBlocked: boolean;
+  tiktokBlocked: boolean;
 }
 
 export default function SafeFiltersPage() {
@@ -47,8 +53,11 @@ export default function SafeFiltersPage() {
           return {
             youtubeSafeMode: d?.youtubeSafeMode ?? false,
             safeSearch: d?.safeSearch ?? false,
+            facebookBlocked: d?.facebookBlocked ?? false,
+            instagramBlocked: d?.instagramBlocked ?? false,
+            tiktokBlocked: d?.tiktokBlocked ?? false,
           } as SafeFilterStatus;
-        }).catch(() => ({ youtubeSafeMode: false, safeSearch: false } as SafeFilterStatus)),
+        }).catch(() => ({ youtubeSafeMode: false, safeSearch: false, facebookBlocked: false, instagramBlocked: false, tiktokBlocked: false } as SafeFilterStatus)),
     enabled: !!profileId,
   });
 
@@ -80,6 +89,36 @@ export default function SafeFiltersPage() {
     onError: () => setSnackbar({ open: true, message: 'Failed to update Safe Search', severity: 'error' }),
   });
 
+  const facebookMutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      api.post(`/dns/rules/${profileId}/social-block`, { platform: 'facebook', enabled }),
+    onSuccess: (_, enabled) => {
+      qc.invalidateQueries({ queryKey: ['safe-filter-status', profileId] });
+      setSnackbar({ open: true, message: `Facebook ${enabled ? 'blocked' : 'unblocked'}`, severity: 'success' });
+    },
+    onError: () => setSnackbar({ open: true, message: 'Failed to update Facebook block', severity: 'error' }),
+  });
+
+  const instagramMutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      api.post(`/dns/rules/${profileId}/social-block`, { platform: 'instagram', enabled }),
+    onSuccess: (_, enabled) => {
+      qc.invalidateQueries({ queryKey: ['safe-filter-status', profileId] });
+      setSnackbar({ open: true, message: `Instagram ${enabled ? 'blocked' : 'unblocked'}`, severity: 'success' });
+    },
+    onError: () => setSnackbar({ open: true, message: 'Failed to update Instagram block', severity: 'error' }),
+  });
+
+  const tiktokMutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      api.post(`/dns/rules/${profileId}/social-block`, { platform: 'tiktok', enabled }),
+    onSuccess: (_, enabled) => {
+      qc.invalidateQueries({ queryKey: ['safe-filter-status', profileId] });
+      setSnackbar({ open: true, message: `TikTok ${enabled ? 'blocked' : 'unblocked'}`, severity: 'success' });
+    },
+    onError: () => setSnackbar({ open: true, message: 'Failed to update TikTok block', severity: 'error' }),
+  });
+
   if (loadingChildren) return <LoadingPage />;
 
   if (!children || children.length === 0) {
@@ -93,6 +132,9 @@ export default function SafeFiltersPage() {
 
   const ytEnabled = filterStatus?.youtubeSafeMode ?? false;
   const ssEnabled = filterStatus?.safeSearch ?? false;
+  const fbBlocked = filterStatus?.facebookBlocked ?? false;
+  const igBlocked = filterStatus?.instagramBlocked ?? false;
+  const ttBlocked = filterStatus?.tiktokBlocked ?? false;
 
   const filters = [
     {
@@ -123,6 +165,51 @@ export default function SafeFiltersPage() {
         'Filters explicit images and videos from search',
         'Works across Google, Bing, and DuckDuckGo',
         'Enforced at DNS level — cannot be turned off by child',
+      ],
+    },
+    {
+      key: 'facebook',
+      icon: <PeopleAltIcon sx={{ fontSize: 28, color: '#1877F2' }} />,
+      iconBg: 'rgba(24,119,242,0.08)',
+      title: 'Block Facebook',
+      description: 'Blocks access to Facebook and Messenger — prevents exposure to inappropriate content, cyberbullying, and strangers',
+      enabled: fbBlocked,
+      loading: facebookMutation.isPending || loadingStatus,
+      onChange: (v: boolean) => facebookMutation.mutate(v),
+      benefits: [
+        'Blocks facebook.com, messenger.com and all sub-domains',
+        'Prevents harmful video content and live streams',
+        'Enforced at DNS level across all apps and browsers',
+      ],
+    },
+    {
+      key: 'instagram',
+      icon: <PhotoCameraIcon sx={{ fontSize: 28, color: '#C13584' }} />,
+      iconBg: 'rgba(193,53,132,0.08)',
+      title: 'Block Instagram',
+      description: 'Blocks Instagram and Threads — prevents exposure to harmful Reels, filters, and contact with strangers',
+      enabled: igBlocked,
+      loading: instagramMutation.isPending || loadingStatus,
+      onChange: (v: boolean) => instagramMutation.mutate(v),
+      benefits: [
+        'Blocks instagram.com and threads.net',
+        'Stops harmful video Reels and Stories',
+        'Enforced at DNS level — works on mobile and desktop',
+      ],
+    },
+    {
+      key: 'tiktok',
+      icon: <MusicVideoIcon sx={{ fontSize: 28, color: '#EE1D52' }} />,
+      iconBg: 'rgba(238,29,82,0.08)',
+      title: 'Block TikTok',
+      description: 'Blocks TikTok completely — prevents addictive short-form videos, harmful trends, and stranger interactions',
+      enabled: ttBlocked,
+      loading: tiktokMutation.isPending || loadingStatus,
+      onChange: (v: boolean) => tiktokMutation.mutate(v),
+      benefits: [
+        'Blocks tiktok.com and all TikTok CDN domains',
+        'Stops addictive video feed and harmful challenges',
+        'Enforced at DNS level — cannot be bypassed by VPN apps',
       ],
     },
   ];

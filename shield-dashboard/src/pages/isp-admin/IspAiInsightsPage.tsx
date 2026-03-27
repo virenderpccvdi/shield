@@ -87,7 +87,10 @@ export default function IspAiInsightsPage() {
     queryFn: () => {
       const params = new URLSearchParams({ min_score: '0.2', limit: '100' });
       if (severity) params.set('severity', severity);
-      return api.get(`/ai/alerts?${params.toString()}`).then(r => r.data as AlertItem[]).catch(() => [] as AlertItem[]);
+      return api.get(`/ai/alerts?${params.toString()}`).then(r => {
+        const d = r.data?.data ?? r.data;
+        return (Array.isArray(d) ? d : []) as AlertItem[];
+      }).catch(() => [] as AlertItem[]);
     },
     refetchInterval: 60_000,
   });
@@ -95,13 +98,13 @@ export default function IspAiInsightsPage() {
   // AI model health
   const { data: modelHealth } = useQuery({
     queryKey: ['ai-model-health'],
-    queryFn: () => api.get('/ai/model/health').then(r => r.data as ModelHealth).catch(() => null),
+    queryFn: () => api.get('/ai/model/health').then(r => (r.data?.data ?? r.data) as ModelHealth).catch(() => null),
   });
 
   // Training status
   const { data: trainingStatus } = useQuery({
     queryKey: ['ai-training-status'],
-    queryFn: () => api.get('/ai/train/status').then(r => r.data as TrainingStatus).catch(() => null),
+    queryFn: () => api.get('/ai/train/status').then(r => (r.data?.data ?? r.data) as TrainingStatus).catch(() => null),
   });
 
   // Child profiles to cross-reference
