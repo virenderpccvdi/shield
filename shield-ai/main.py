@@ -47,6 +47,7 @@ app.include_router(safe_chat.router)
 
 
 @app.get("/actuator/health")
+@app.get("/ai/actuator/health")  # gateway rewrites /api/v1/ai/actuator/health → /ai/actuator/health
 async def actuator_health():
     return {"status": "UP", "groups": ["liveness", "readiness"]}
 

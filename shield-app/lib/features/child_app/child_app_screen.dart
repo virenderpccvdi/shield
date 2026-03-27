@@ -113,7 +113,10 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
     _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) => _refreshProviders());
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) => _sendHeartbeat());
     _sendBackgroundLocation();
-    _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) => _sendBackgroundLocation());
+    // 2-minute interval for foreground location updates.
+    // bestForNavigation every 30s was draining battery in under 2 hours.
+    // SOS uses a separate one-shot high-accuracy call; background service sends every 5min.
+    _locationTimer = Timer.periodic(const Duration(minutes: 2), (_) => _sendBackgroundLocation());
     _syncInstalledApps();
     _appsTimer = Timer.periodic(const Duration(minutes: 30), (_) => _syncInstalledApps());
     _startAppBlocking();
@@ -440,9 +443,12 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
       if (permission == LocationPermission.denied) return null;
     }
     if (permission == LocationPermission.deniedForever) return null;
+    // Use 'balanced' accuracy for periodic background updates — bestForNavigation
+    // uses GPS + barometer continuously and drains battery in minutes.
+    // SOS path (_sendSos) uses its own high-accuracy one-shot call.
     return await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
+        accuracy: LocationAccuracy.balanced,
         timeLimit: Duration(seconds: 15),
       ),
     ).timeout(const Duration(seconds: 18), onTimeout: () async {

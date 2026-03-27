@@ -25,6 +25,9 @@ spring:
         order_updates: true
         batch_versioned_data: true
 
+shield:
+  direct-tenant-id: 00000000-0000-0000-0000-000000000001
+
   # Flyway — auth schema
   flyway:
     schemas: auth

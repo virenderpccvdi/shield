@@ -53,6 +53,11 @@ public class AuthService {
     @Value("${shield.jwt.expiry-hours:1}")
     private long expiryHours;
 
+    /** DIRECT tenant UUID — assigned to self-registered users with no ISP affiliation.
+     *  Ensures tenantId is never null, preventing feature-gate bypass. */
+    @Value("${shield.direct-tenant-id:00000000-0000-0000-0000-000000000001}")
+    private UUID directTenantId;
+
     // ── Register ─────────────────────────────────────────────────────────────
 
     @Transactional
@@ -72,7 +77,13 @@ public class AuthService {
                 .phone(req.getPhone())
                 .role(role)
                 .build();
-        user.setTenantId(req.getTenantId());
+        // Never leave tenantId null for CUSTOMER role — null bypasses all feature gates.
+        // Assign DIRECT tenant (STARTER plan) for self-registered users with no ISP affiliation.
+        UUID tenantId = req.getTenantId();
+        if (tenantId == null && role == UserRole.CUSTOMER) {
+            tenantId = directTenantId;
+        }
+        user.setTenantId(tenantId);
         user = userRepository.save(user);
         log.info("Registered user {} with role {}", user.getId(), role);
         auditClient.log("USER_REGISTERED", "User", user.getId().toString(),

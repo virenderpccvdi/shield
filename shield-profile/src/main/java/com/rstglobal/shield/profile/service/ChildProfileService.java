@@ -14,10 +14,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,11 +37,15 @@ public class ChildProfileService {
     @Value("${shield.dns.service.url:http://localhost:8284}")
     private String dnsServiceUrl;
 
+    private static final String JWT_BLACKLIST_PREFIX = "shield:auth:blacklist:";
+    private static final String DNS_CACHE_PREFIX     = "shield:dns:profile:";
+
     private static final RestTemplate REST_TEMPLATE = new RestTemplate();
 
     private final ChildProfileRepository childProfileRepository;
     private final CustomerRepository customerRepository;
     private final com.rstglobal.shield.profile.repository.DeviceRepository deviceRepository;
+    private final StringRedisTemplate redis;
 
     @Transactional
     public ChildProfileResponse create(UUID customerId, UUID tenantId, CreateChildProfileRequest req) {
@@ -134,6 +140,7 @@ public class ChildProfileService {
         }
         profile.setActive(false);
         childProfileRepository.save(profile);
+        revokeProfileAccess(id);
         log.info("Soft-deleted child profile {} for customer {}", id, customerId);
     }
 
@@ -198,6 +205,7 @@ public class ChildProfileService {
                 .orElseThrow(() -> ShieldException.notFound("ChildProfile", id));
         profile.setActive(false);
         childProfileRepository.save(profile);
+        revokeProfileAccess(id);
         log.info("Admin soft-deleted child profile {}", id);
     }
 
@@ -264,6 +272,7 @@ public class ChildProfileService {
         }
         profile.setActive(false);
         childProfileRepository.save(profile);
+        revokeProfileAccess(id);
         log.info("ISP admin soft-deleted child profile {}", id);
     }
 
@@ -348,5 +357,32 @@ public class ChildProfileService {
                 .deviceCount(devices.size())
                 .batteryPct(batteryPct)
                 .build();
+    }
+
+    /**
+     * Revokes access for a deleted/deactivated child profile:
+     * 1. Writes a JWT blacklist key — gateway rejects child tokens with profileId as sub.
+     * 2. Deletes DNS rule cache keys — resolver immediately stops applying rules.
+     *
+     * Blacklist key mirrors shield-gateway's BLACKLIST_PREFIX + sub pattern.
+     * Value = epoch second of revocation; gateway rejects tokens issued before this time.
+     */
+    private void revokeProfileAccess(UUID profileId) {
+        try {
+            // 1. Blacklist the child JWT (sub = profileId for child tokens)
+            redis.opsForValue().set(
+                JWT_BLACKLIST_PREFIX + profileId.toString(),
+                String.valueOf(Instant.now().getEpochSecond()),
+                Duration.ofDays(366)
+            );
+            // 2. Purge DNS resolver cache
+            Set<String> dnsKeys = redis.keys(DNS_CACHE_PREFIX + profileId + ":*");
+            if (dnsKeys != null && !dnsKeys.isEmpty()) {
+                redis.delete(dnsKeys);
+            }
+            log.info("Revoked access for child profile {}", profileId);
+        } catch (Exception e) {
+            log.warn("Failed to revoke Redis access for profile {}: {}", profileId, e.getMessage());
+        }
     }
 }
