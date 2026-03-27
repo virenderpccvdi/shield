@@ -57,7 +57,7 @@ class _HomeworkModeScreenState extends ConsumerState<HomeworkModeScreen> {
     setState(() => _saving = true);
     try {
       await ref.read(dioProvider).post(
-        '/dns/rules/${widget.profileId}/override',
+        '/dns/rules/${widget.profileId}/homework/start',
         data: {
           'overrideType': 'HOMEWORK',
           'durationMinutes': _selectedMinutes,
@@ -94,7 +94,7 @@ class _HomeworkModeScreenState extends ConsumerState<HomeworkModeScreen> {
   Future<void> _deactivate() async {
     setState(() => _saving = true);
     try {
-      await ref.read(dioProvider).delete('/dns/schedules/${widget.profileId}/override');
+      await ref.read(dioProvider).post('/dns/rules/${widget.profileId}/homework/stop');
       if (mounted) {
         setState(() { _active = false; _activeUntil = null; _saving = false; });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

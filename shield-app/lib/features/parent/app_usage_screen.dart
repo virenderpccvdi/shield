@@ -32,7 +32,7 @@ class _AppUsageScreenState extends ConsumerState<AppUsageScreen> {
     setState(() => _loading = true);
     try {
       final res = await ref.read(dioProvider).get(
-        '/analytics/${widget.profileId}/app-usage',
+        '/analytics/profiles/${widget.profileId}/app-usage',
         queryParameters: {'period': _period},
       );
       final d = res.data['data'] ?? res.data;

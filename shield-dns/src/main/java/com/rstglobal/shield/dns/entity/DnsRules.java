@@ -123,6 +123,23 @@ public class DnsRules {
 
     // ── Homework Mode ─────────────────────────────────────────────────────────
 
+    // ── Social Media Blocking ─────────────────────────────────────────────────
+
+    /** Block facebook.com and all Meta domains at DNS level. */
+    @Column(name = "facebook_blocked", nullable = false)
+    @Builder.Default
+    private boolean facebookBlocked = false;
+
+    /** Block instagram.com at DNS level. */
+    @Column(name = "instagram_blocked", nullable = false)
+    @Builder.Default
+    private boolean instagramBlocked = false;
+
+    /** Block tiktok.com at DNS level. */
+    @Column(name = "tiktok_blocked", nullable = false)
+    @Builder.Default
+    private boolean tiktokBlocked = false;
+
     /** Whether homework mode is currently active for this profile. */
     @Column(name = "homework_mode_active", nullable = false)
     @Builder.Default

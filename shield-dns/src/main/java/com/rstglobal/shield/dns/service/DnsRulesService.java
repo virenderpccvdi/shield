@@ -521,6 +521,9 @@ public class DnsRulesService {
                 .youtubeSafeMode(r.isYoutubeSafeMode())
                 .safeSearch(r.isSafeSearch())
                 .filterLevel(r.getFilterLevel() != null ? r.getFilterLevel() : "MODERATE")
+                .facebookBlocked(r.isFacebookBlocked())
+                .instagramBlocked(r.isInstagramBlocked())
+                .tiktokBlocked(r.isTiktokBlocked())
                 .build();
     }
 
@@ -557,6 +560,61 @@ public class DnsRulesService {
         applySafeSearchRewrites(enabled);
         log.info("Safe search {} for profile={}", enabled ? "ENABLED" : "DISABLED", profileId);
         return toResponse(rules);
+    }
+
+    // ── Social Media Blocking ─────────────────────────────────────────────────
+
+    /**
+     * Enable or disable DNS-level blocking for a specific social media platform.
+     * Supported platforms: "facebook", "instagram", "tiktok"
+     * Body: { "platform": "facebook", "enabled": true }
+     */
+    @Transactional
+    public DnsRulesResponse setSocialBlock(UUID profileId, String platform, boolean enabled) {
+        DnsRules rules = rulesRepo.findByProfileId(profileId)
+                .orElseThrow(() -> ShieldException.notFound("dns-rules", profileId.toString()));
+        switch (platform.toLowerCase()) {
+            case "facebook" -> rules.setFacebookBlocked(enabled);
+            case "instagram" -> rules.setInstagramBlocked(enabled);
+            case "tiktok" -> rules.setTiktokBlocked(enabled);
+            default -> throw ShieldException.badRequest("Unknown platform: " + platform + ". Supported: facebook, instagram, tiktok");
+        }
+        rules = rulesRepo.save(rules);
+        applySocialBlockToAdGuard(rules);
+        log.info("Social block {} {} for profile={}", platform, enabled ? "ENABLED" : "DISABLED", profileId);
+        audit(profileId, null, null, "SOCIAL_BLOCK_CHANGED",
+                platform + " blocking " + (enabled ? "enabled" : "disabled"));
+        return toResponse(rules);
+    }
+
+    private void applySocialBlockToAdGuard(DnsRules rules) {
+        // Use the existing category-blocked logic via custom blocklist injection
+        // Facebook: facebook.com, www.facebook.com, m.facebook.com, fb.com
+        List<String> block = new ArrayList<>(Optional.ofNullable(rules.getCustomBlocklist()).orElse(List.of()));
+        List<String> allow = new ArrayList<>(Optional.ofNullable(rules.getCustomAllowlist()).orElse(List.of()));
+
+        applyDomainBlock(block, allow, rules.isFacebookBlocked(),
+                List.of("facebook.com", "www.facebook.com", "m.facebook.com", "fb.com", "fbcdn.net"));
+        applyDomainBlock(block, allow, rules.isInstagramBlocked(),
+                List.of("instagram.com", "www.instagram.com", "cdninstagram.com"));
+        applyDomainBlock(block, allow, rules.isTiktokBlocked(),
+                List.of("tiktok.com", "www.tiktok.com", "tiktokcdn.com", "musical.ly"));
+
+        rules.setCustomBlocklist(block);
+        rules.setCustomAllowlist(allow);
+        rulesRepo.save(rules);
+        syncToAdGuard(rules);
+    }
+
+    private void applyDomainBlock(List<String> block, List<String> allow, boolean blocked, List<String> domains) {
+        if (blocked) {
+            for (String d : domains) {
+                if (!block.contains(d)) block.add(d);
+                allow.remove(d);
+            }
+        } else {
+            block.removeAll(domains);
+        }
     }
 
     // ── DNS Rewrite helpers ───────────────────────────────────────────────────

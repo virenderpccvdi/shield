@@ -288,6 +288,27 @@ public class DnsRulesController {
                 "Safe search " + (enabled ? "enabled" : "disabled")));
     }
 
+    // ── Social Media Blocking ─────────────────────────────────────────────────
+
+    /**
+     * Block or unblock a specific social media platform at DNS level.
+     * Supported platforms: facebook, instagram, tiktok
+     * Body: { "platform": "facebook", "enabled": true }
+     */
+    @PostMapping("/rules/{profileId}/social-block")
+    public ResponseEntity<ApiResponse<DnsRulesResponse>> setSocialBlock(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
+            @RequestBody Map<String, Object> body) {
+        requireCustomer(role);
+        String platform = String.valueOf(body.getOrDefault("platform", ""));
+        boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
+        DnsRulesResponse response = rulesService.setSocialBlock(profileId, platform, enabled);
+        return ResponseEntity.ok(ApiResponse.ok(response,
+                platform + " blocking " + (enabled ? "enabled" : "disabled")));
+    }
+
     // ── Bedtime Lock (PC-01) ──────────────────────────────────────────────────
 
     /**

@@ -26,4 +26,8 @@ public class DnsRulesResponse {
     private boolean youtubeSafeMode;
     /** PC-06: Safe Search via DNS CNAME rewrite for Google/Bing/DuckDuckGo */
     private boolean safeSearch;
+    /** Per-platform social media blocking */
+    private boolean facebookBlocked;
+    private boolean instagramBlocked;
+    private boolean tiktokBlocked;
 }

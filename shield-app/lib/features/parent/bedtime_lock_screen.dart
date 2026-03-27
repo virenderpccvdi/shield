@@ -25,7 +25,7 @@ class _BedtimeLockScreenState extends ConsumerState<BedtimeLockScreen> {
     setState(() => _loading = true);
     try {
       final client = ref.read(dioProvider);
-      final res = await client.get('/dns/bedtime/${widget.profileId}');
+      final res = await client.get('/dns/rules/${widget.profileId}/bedtime/status');
       final data = res.data['data'] ?? res.data;
       if (data is Map) {
         _enabled = data['enabled'] == true;
@@ -72,7 +72,7 @@ class _BedtimeLockScreenState extends ConsumerState<BedtimeLockScreen> {
     setState(() => _saving = true);
     try {
       final client = ref.read(dioProvider);
-      await client.put('/dns/bedtime/${widget.profileId}', data: {
+      await client.post('/dns/rules/${widget.profileId}/bedtime/configure', data: {
         'enabled': _enabled,
         'startTime': _formatTime(_startTime),
         'endTime': _formatTime(_endTime),
