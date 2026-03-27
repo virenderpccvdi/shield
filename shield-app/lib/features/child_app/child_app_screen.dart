@@ -448,7 +448,7 @@ class _ChildAppScreenState extends ConsumerState<ChildAppScreen> with TickerProv
     // SOS path (_sendSos) uses its own high-accuracy one-shot call.
     return await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.balanced,
+        accuracy: LocationAccuracy.medium,
         timeLimit: Duration(seconds: 15),
       ),
     ).timeout(const Duration(seconds: 18), onTimeout: () async {

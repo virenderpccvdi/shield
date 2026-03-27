@@ -91,8 +91,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () => _launchWeb(context, 'settings')),
           _SettingsTile(icon: Icons.pin_outlined, title: 'App PIN Lock', subtitle: 'Set a PIN to lock the parent app',
             onTap: () => context.push('/pin-setup')),
-          _SettingsTile(icon: Icons.group_add_rounded, title: 'Family Members', subtitle: 'Invite co-parents and manage family access',
-            onTap: () => context.go('/family/members')),
           _SettingsTile(icon: Icons.phonelink_setup_rounded, title: 'Child Device Setup', subtitle: 'Link this phone as a child device',
             onTap: () => context.push('/child-setup')),
           if (_biometricAvailable)
@@ -115,6 +113,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 }
               },
             ),
+
+          const Divider(height: 1),
+          _SectionHeader('Family'),
+          _SettingsTile(icon: Icons.gavel_rounded, title: 'Family Rules', subtitle: 'Create and manage household guidelines',
+            onTap: () => context.go('/family/rules')),
+          _SettingsTile(icon: Icons.people_rounded, title: 'Family Members', subtitle: 'Manage co-parents and family access',
+            onTap: () => context.go('/family/members')),
 
           const Divider(height: 1),
           _SectionHeader('Notifications'),

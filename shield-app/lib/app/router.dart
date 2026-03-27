@@ -47,6 +47,10 @@ import '../features/parent/approval_requests_screen.dart';
 import '../features/parent/bedtime_lock_screen.dart';
 import '../features/parent/emergency_contacts_screen.dart';
 import '../features/parent/battery_alerts_screen.dart';
+import '../features/parent/safe_filters_screen.dart';
+import '../features/parent/homework_mode_screen.dart';
+import '../features/parent/family_rules_screen.dart';
+import '../features/parent/app_usage_screen.dart';
 
 // ── Auth change notifier — drives GoRouter refresh without recreating it ────
 
@@ -180,6 +184,22 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/family/:profileId/battery-alerts',
             builder: (_, state) => BatteryAlertsScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/:profileId/safe-filters',
+            builder: (_, state) => SafeFiltersScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/:profileId/homework-mode',
+            builder: (_, state) => HomeworkModeScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/:profileId/app-usage',
+            builder: (_, state) => AppUsageScreen(profileId: state.pathParameters['profileId']!),
+          ),
+          GoRoute(
+            path: '/family/rules',
+            builder: (_, __) => const FamilyRulesScreen(),
           ),
         ],
       ),
