@@ -123,6 +123,7 @@ public final class ContentCategories {
                 cats.put("social_media",   false);
                 cats.put("messaging",      false);
                 cats.put("streaming",      false);
+                cats.put("music",          false);
                 cats.put("live_streaming", false);
                 cats.put("chat",           false);
                 cats.put("crypto",         false);

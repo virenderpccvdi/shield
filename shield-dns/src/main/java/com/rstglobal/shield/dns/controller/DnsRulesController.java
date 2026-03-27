@@ -352,6 +352,27 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(log));
     }
 
+    /**
+     * Quick DNS status for a profile: paused flag, filter level, homework/bedtime active.
+     * Called by the Flutter app to show the DNS status badge on the DNS Rules screen.
+     */
+    @GetMapping("/{profileId}/status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDnsStatus(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role) {
+        requireCustomer(role);
+        DnsRulesResponse rules = rulesService.getRules(profileId, null);
+        boolean paused = rules.getEnabledCategories() != null
+                && Boolean.TRUE.equals(rules.getEnabledCategories().get("__paused__"));
+        Map<String, Object> status = Map.of(
+                "paused", paused,
+                "filterLevel", rules.getFilterLevel() != null ? rules.getFilterLevel() : "MODERATE",
+                "homeworkActive", homeworkModeService.getStatus(profileId).getOrDefault("active", false),
+                "bedtimeActive", bedtimeLockService.getStatus(profileId).getOrDefault("active", false)
+        );
+        return ResponseEntity.ok(ApiResponse.ok(status, "DNS status retrieved"));
+    }
+
     private void requireGlobalAdmin(String role) {
         if (!"GLOBAL_ADMIN".equals(role)) {
             throw ShieldException.forbidden("Global admin role required");

@@ -44,7 +44,8 @@ public class RulesCacheService {
 
     // Categories blocked in strict mode
     private static final Set<String> STRICT_BLOCKED = Set.of(
-        "social_media", "gaming", "streaming", "vpn_proxy", "messaging", "dating", "drugs"
+        "social_media", "gaming", "streaming", "music", "live_streaming",
+        "vpn_proxy", "messaging", "dating", "drugs", "online_gaming", "esports"
     );
 
     // Categories blocked in moderate mode
