@@ -8,9 +8,39 @@ final _scheduleProvider = FutureProvider.autoDispose.family<Map<String, dynamic>
   (ref, pid) async {
     final resp = await ApiClient.instance.get(Endpoints.dnsSchedule(pid));
     final raw = resp.data as Map<String, dynamic>? ?? {};
-    return (raw['data'] as Map<String, dynamic>?) ?? raw;
+    // Interceptor already unwraps {success,data} → data; this handles both cases
+    final outer = (raw['data'] as Map<String, dynamic>?) ?? raw;
+    // Backend returns {grid: {monday: [0,1,...24 slots], ...}} where 1=blocked, 0=allowed
+    final grid = outer['grid'] as Map<String, dynamic>? ?? {};
+    return grid;
   },
 );
+
+// Convert 24-slot hourly grid row → {enabled, startTime, endTime}
+Map<String, String?> _gridRowToUi(dynamic row) {
+  final slots = (row as List?)?.cast<int>() ?? List.filled(24, 0);
+  final allBlocked = slots.every((v) => v == 1);
+  if (allBlocked) {
+    return {'enabled': 'false', 'startTime': '06:00', 'endTime': '22:00'};
+  }
+  final firstAllowed = slots.indexOf(0);
+  final lastAllowed  = slots.lastIndexOf(0);
+  final start = firstAllowed.clamp(0, 23);
+  final end   = (lastAllowed + 1).clamp(1, 24);
+  return {
+    'enabled':   'true',
+    'startTime': '${start.toString().padLeft(2, '0')}:00',
+    'endTime':   '${end.toString().padLeft(2, '0')}:00',
+  };
+}
+
+// Convert {enabled, startTime, endTime} → 24-slot hourly grid row
+List<int> _uiToGridRow(Map<String, String?> ui) {
+  if (ui['enabled'] != 'true') return List.filled(24, 1);
+  final startH = int.tryParse((ui['startTime'] ?? '06:00').split(':')[0]) ?? 6;
+  final endH   = int.tryParse((ui['endTime']   ?? '22:00').split(':')[0]) ?? 22;
+  return List.generate(24, (h) => (h >= startH && h < endH) ? 0 : 1);
+}
 
 class ScheduleScreen extends ConsumerWidget {
   const ScheduleScreen({super.key, required this.profileId});
@@ -53,23 +83,18 @@ class _ScheduleBodyState extends ConsumerState<_ScheduleBody> {
     super.initState();
     _schedule = {};
     for (final day in _days) {
-      final dayData = widget.data[day] as Map<String, dynamic>? ?? {};
-      _schedule[day] = {
-        'enabled':   (dayData['enabled'] as bool? ?? true).toString(),
-        'startTime': dayData['startTime']?.toString() ?? '06:00',
-        'endTime':   dayData['endTime']?.toString()   ?? '22:00',
-      };
+      // widget.data is the grid map: {monday: [0,1,...], tuesday: [...], ...}
+      _schedule[day] = _gridRowToUi(widget.data[day]);
     }
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
+      // Backend expects {grid: {monday: [0,1,...24 slots], ...}, activePreset: null}
       await ApiClient.instance.put(Endpoints.dnsSchedule(widget.profileId), data: {
-        for (final day in _days) day: {
-          'enabled':   _schedule[day]!['enabled'] == 'true',
-          'startTime': _schedule[day]!['startTime'],
-          'endTime':   _schedule[day]!['endTime'],
+        'grid': {
+          for (final day in _days) day: _uiToGridRow(_schedule[day]!),
         }
       });
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(

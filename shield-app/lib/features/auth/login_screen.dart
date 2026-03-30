@@ -1,14 +1,11 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/auth_state.dart';
-import '../../core/constants.dart';
-import '../../core/shield_logo.dart';
-import '../../core/fcm_service.dart';
-import '../../app/theme.dart';
-import 'package:dio/dio.dart';
+import '../../core/providers/auth_provider.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LoginScreen — clean split-panel login with brand gradient header.
+// ─────────────────────────────────────────────────────────────────────────────
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -16,352 +13,256 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  bool _loading = false, _obscure = true;
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with SingleTickerProviderStateMixin {
+
+  final _form      = GlobalKey<FormState>();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl  = TextEditingController();
+  bool  _loading   = false;
+  bool  _obscure   = true;
   String? _error;
 
-  // MFA state
-  bool _mfaStep = false;
-  String _mfaToken = '';
-  final _otpController = TextEditingController();
-  String _otpCode = '';
-  bool _otpLoading = false;
-  int _resendCooldown = 0;
-  Timer? _cooldownTimer;
+  late final AnimationController _animCtrl;
+  late final Animation<Offset>   _slideAnim;
 
-  void _startCooldown() {
-    _resendCooldown = 60;
-    _cooldownTimer?.cancel();
-    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_resendCooldown <= 1) {
-        t.cancel();
-        if (mounted) setState(() => _resendCooldown = 0);
-      } else {
-        if (mounted) setState(() => _resendCooldown--);
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl  = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 500));
+    _slideAnim = Tween<Offset>(
+        begin: const Offset(0, 0.15), end: Offset.zero).animate(
+        CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
+    _animCtrl.forward();
   }
 
-  Future<void> _sendOtp() async {
-    final dio = Dio(BaseOptions(
-      baseUrl: AppConstants.baseUrl,
-      connectTimeout: AppConstants.connectTimeout,
-      receiveTimeout: AppConstants.receiveTimeout,
-    ));
-    await dio.post('/auth/mfa/email/send', data: {'mfaToken': _mfaToken});
-    _startCooldown();
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
   }
 
-  Future<void> _verifyOtp() async {
-    if (_otpCode.length != 6) return;
-    setState(() { _otpLoading = true; _error = null; });
-    try {
-      final dio = Dio(BaseOptions(
-        baseUrl: AppConstants.baseUrl,
-        connectTimeout: AppConstants.connectTimeout,
-        receiveTimeout: AppConstants.receiveTimeout,
-      ));
-      final res = await dio.post('/auth/mfa/validate', data: {
-        'mfaToken': _mfaToken,
-        'code': _otpCode,
-      });
-      final d = res.data['data'];
-      final userId = d['userId'] as String? ?? '';
-      final accessToken = d['accessToken'] as String? ?? '';
-      final tenantId = d['tenantId'] as String? ?? '';
-      await ref.read(authProvider.notifier).setAuth(
-        userId: userId, accessToken: accessToken,
-        name: d['name'] ?? '', email: d['email'] ?? '', role: d['role'] ?? 'CUSTOMER',
-        refreshToken: d['refreshToken'] as String?,
-      );
-      if (userId.isNotEmpty && accessToken.isNotEmpty) {
-        FcmService().initialize(
-          userId: userId,
-          tenantId: tenantId,
-          accessToken: accessToken,
-        ).catchError((e) => debugPrint('FCM init error: $e'));
-      }
-      if (mounted) context.go('/dashboard');
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Invalid OTP code';
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(msg),
-            backgroundColor: ShieldTheme.danger,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _otpLoading = false);
-    }
-  }
-
-  Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _submit() async {
+    if (!_form.currentState!.validate()) return;
     setState(() { _loading = true; _error = null; });
-    try {
-      final dio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl, connectTimeout: AppConstants.connectTimeout, receiveTimeout: AppConstants.receiveTimeout));
-      final res = await dio.post('/auth/login', data: {'email': _email.text.trim(), 'password': _password.text});
-      final d = res.data['data'];
-
-      // Check for MFA requirement
-      if (d['mfaRequired'] == true) {
-        _mfaToken = d['mfaToken'] as String? ?? '';
-        setState(() {
-          _loading = false;
-          _mfaStep = true;
-          _otpCode = '';
-        });
-        _otpController.clear();
-        try {
-          await _sendOtp();
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: const Text('Failed to send OTP. Tap Resend to try again.'),
-              backgroundColor: Colors.orange,
-              behavior: SnackBarBehavior.floating,
-            ));
-          }
-        }
-        return;
-      }
-
-      final userId = d['userId'] as String? ?? '';
-      final accessToken = d['accessToken'] as String? ?? '';
-      final tenantId = d['tenantId'] as String? ?? '';
-      await ref.read(authProvider.notifier).setAuth(
-        userId: userId, accessToken: accessToken,
-        name: d['name'] ?? '', email: d['email'] ?? '', role: d['role'] ?? 'CUSTOMER',
-        refreshToken: d['refreshToken'] as String?,
-      );
-      // Register FCM token with backend (fire-and-forget, don't block navigation)
-      if (userId.isNotEmpty && accessToken.isNotEmpty) {
-        FcmService().initialize(
-          userId: userId,
-          tenantId: tenantId,
-          accessToken: accessToken,
-        ).catchError((e) => debugPrint('FCM init error: $e'));
-      }
-      if (mounted) context.go('/dashboard');
-    } on DioException catch (e) {
-      setState(() => _error = e.response?.data?['message'] ?? 'Login failed. Please try again.');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    final err = await ref.read(authProvider.notifier).login(
+      email:    _emailCtrl.text.trim(),
+      password: _passCtrl.text,
+    );
+    if (!mounted) return;
+    setState(() { _loading = false; _error = err; });
   }
 
-  Widget _buildOtpScreen(BuildContext context) {
-    final theme = Theme.of(context);
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: ShieldTheme.heroGradient),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+    body: Column(children: [
+      // ── Brand header ──────────────────────────────────────────────────────
+      _BrandHeader(),
+
+      // ── Form card ─────────────────────────────────────────────────────────
+      Expanded(
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(24, 32, 24, 24 + bottomInset),
+          child: SlideTransition(
+            position: _slideAnim,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 48),
-                const Center(
-                  child: Icon(Icons.mark_email_read_outlined, size: 80, color: Colors.white),
-                ),
-                const SizedBox(height: 20),
-                const Text('Check your email',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                const SizedBox(height: 8),
-                const Text('We sent a 6-digit code to your email',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70, fontSize: 14, letterSpacing: 0.3)),
-                const SizedBox(height: 40),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text('Enter OTP', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 24),
-                        TextField(
-                          controller: _otpController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 6,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: 8),
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          decoration: const InputDecoration(
-                            hintText: '------',
-                            hintStyle: TextStyle(fontSize: 28, letterSpacing: 8, color: Colors.black26),
-                            counterText: '',
-                          ),
-                          onChanged: (v) => setState(() => _otpCode = v),
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton(
-                          onPressed: (_otpCode.length == 6 && !_otpLoading) ? _verifyOtp : null,
-                          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                          child: _otpLoading
-                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Text('Verify', style: TextStyle(fontSize: 16)),
-                        ),
-                        const SizedBox(height: 12),
-                        TextButton(
-                          onPressed: _resendCooldown == 0
-                            ? () async {
-                                try { await _sendOtp(); } catch (_) {}
-                              }
-                            : null,
-                          child: Text(
-                            _resendCooldown > 0
-                              ? 'Resend OTP in ${_resendCooldown}s'
-                              : 'Resend OTP',
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            _cooldownTimer?.cancel();
-                            setState(() {
-                              _mfaStep = false;
-                              _mfaToken = '';
-                              _otpCode = '';
-                              _resendCooldown = 0;
-                            });
-                            _otpController.clear();
-                          },
-                          child: const Text('← Back to Login'),
-                        ),
-                      ],
+                const Text('Sign In',
+                    style: TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5)),
+                const SizedBox(height: 4),
+                Text('Welcome back. Protect your family today.',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context)
+                            .colorScheme.onSurface.withOpacity(0.55))),
+                const SizedBox(height: 28),
+
+                Form(
+                  key: _form,
+                  child: Column(children: [
+                    // Email
+                    TextFormField(
+                      controller:   _emailCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText:  'Email address',
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                      validator: (v) => (v == null || !v.contains('@'))
+                          ? 'Enter a valid email' : null,
                     ),
+                    const SizedBox(height: 16),
+
+                    // Password
+                    TextFormField(
+                      controller:      _passCtrl,
+                      obscureText:     _obscure,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
+                      decoration: InputDecoration(
+                        labelText:  'Password',
+                        prefixIcon: const Icon(Icons.lock_outlined),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscure
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined),
+                          onPressed: () =>
+                              setState(() => _obscure = !_obscure),
+                        ),
+                      ),
+                      validator: (v) => (v == null || v.length < 6)
+                          ? 'Minimum 6 characters' : null,
+                    ),
+                  ]),
+                ),
+
+                // Error banner
+                if (_error != null) ...[
+                  const SizedBox(height: 14),
+                  _ErrorBanner(message: _error!),
+                ],
+
+                // Forgot password
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.push('/forgot-password'),
+                    child: const Text('Forgot password?',
+                        style: TextStyle(fontSize: 13)),
                   ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Sign In button
+                ElevatedButton(
+                  onPressed: _loading ? null : _submit,
+                  child: _loading
+                      ? const SizedBox(width: 20, height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Text('Sign In'),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Register link
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Text("Don't have an account?",
+                      style: TextStyle(fontSize: 13)),
+                  TextButton(
+                    onPressed: () => context.go('/register'),
+                    child: const Text('Create account',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Row(children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('or', style: TextStyle(
+                          fontSize: 12, color: Colors.grey)),
+                    ),
+                    Expanded(child: Divider()),
+                  ]),
+                ),
+
+                // Child device setup
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/setup'),
+                  icon:  const Icon(Icons.tablet_android, size: 18),
+                  label: const Text('Set up child device'),
                 ),
               ],
             ),
           ),
         ),
       ),
-    );
+    ]),
+  );
   }
+}
 
+// ── Brand header ──────────────────────────────────────────────────────────────
+
+class _BrandHeader extends StatelessWidget {
   @override
-  Widget build(BuildContext context) {
-    if (_mfaStep) return _buildOtpScreen(context);
-
-    final theme = Theme.of(context);
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: ShieldTheme.heroGradient,
-        ),
-        child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 48),
-              const Center(child: ShieldLogoHero(size: 80)),
-              const SizedBox(height: 20),
-              const Text('Shield', textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5)),
-              const SizedBox(height: 4),
-              const Text('Family Internet Protection', textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 14, letterSpacing: 0.5)),
-              const SizedBox(height: 40),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text('Sign In', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 20),
-                        if (_error != null) ...[
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: ShieldTheme.danger.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: ShieldTheme.danger.withOpacity(0.3)),
-                            ),
-                            child: Row(children: [
-                              const Icon(Icons.error_outline, color: ShieldTheme.danger, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(_error!, style: const TextStyle(color: ShieldTheme.danger, fontSize: 13))),
-                            ]),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        TextFormField(
-                          controller: _email, keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
-                          validator: (v) => v!.isEmpty ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _password, obscureText: _obscure,
-                          decoration: InputDecoration(
-                            labelText: 'Password', prefixIcon: const Icon(Icons.lock_outlined),
-                            suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                              onPressed: () => setState(() => _obscure = !_obscure)),
-                          ),
-                          validator: (v) => v!.isEmpty ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton(
-                          onPressed: _loading ? null : _login,
-                          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                          child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Sign In', style: TextStyle(fontSize: 16)),
-                        ),
-                        const SizedBox(height: 12),
-                        TextButton(
-                          onPressed: () => context.go('/forgot-password'),
-                          child: const Text('Forgot Password?'),
-                        ),
-                        TextButton(
-                          onPressed: () => context.go('/register'),
-                          child: const Text("Don't have an account? Register"),
-                        ),
-                        const SizedBox(height: 8),
-                        const Divider(),
-                        const SizedBox(height: 4),
-                        OutlinedButton.icon(
-                          onPressed: () => context.go('/child-setup'),
-                          icon: const Icon(Icons.child_care, size: 18),
-                          label: const Text('Set Up as Child Device'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(46),
-                            foregroundColor: ShieldTheme.success,
-                            side: const BorderSide(color: ShieldTheme.success),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+  Widget build(BuildContext context) => Container(
+    height: 220,
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        colors: [Color(0xFF0D1B4B), Color(0xFF1565C0), Color(0xFF0288D1)],
+        begin: Alignment.topLeft, end: Alignment.bottomRight,
       ),
-        ),
-    );
-  }
+      borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+    ),
+    child: SafeArea(
+      child: Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          // Shield icon with glow ring
+          Container(
+            width: 72, height: 72,
+            decoration: BoxDecoration(
+              shape:  BoxShape.circle,
+              color:  Colors.white.withOpacity(0.15),
+              boxShadow: [
+                BoxShadow(
+                  color:      Colors.white.withOpacity(0.2),
+                  blurRadius: 24, spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: const Icon(Icons.shield, size: 38, color: Colors.white),
+          ),
+          const SizedBox(height: 14),
+          const Text('Shield',
+              style: TextStyle(
+                  color: Colors.white, fontSize: 28,
+                  fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+          const SizedBox(height: 4),
+          Text('Family Internet Protection',
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.7), fontSize: 13)),
+        ]),
+      ),
+    ),
+  );
+}
+
+// ── Error banner ──────────────────────────────────────────────────────────────
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+  final String message;
 
   @override
-  void dispose() {
-    _email.dispose();
-    _password.dispose();
-    _otpController.dispose();
-    _cooldownTimer?.cancel();
-    super.dispose();
-  }
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color:        Colors.red.shade50,
+      borderRadius: BorderRadius.circular(10),
+      border:       Border.all(color: Colors.red.shade200),
+    ),
+    child: Row(children: [
+      const Icon(Icons.error_outline, color: Colors.red, size: 18),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(message,
+            style: const TextStyle(color: Colors.red, fontSize: 13)),
+      ),
+    ]),
+  );
 }
