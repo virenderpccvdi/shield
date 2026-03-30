@@ -101,7 +101,7 @@
           "priceCurrency": "USD"
         },
         "downloadUrl": "https://shield.rstglobal.in/static/shield-app.apk",
-        "version": "1.2.0",
+        "version": "2.1.0",
         "softwareVersion": "1.2.0",
         "description": "Complete parental control app with DNS filtering, screen time limits, GPS tracking, and real-time alerts.",
         "screenshot": "https://shield.rstglobal.in/og-image.svg",
@@ -900,15 +900,22 @@
     <div class="download-content">
       <div class="section-tag light">Free Download</div>
       <h2 class="section-title light" id="download-title">Start Protecting Your Family Today</h2>
-      <p class="section-sub light">Download the Shield parent app for Android. Free to use. No credit card required.</p>
+      <p class="section-sub light">Download Shield for Android or Windows. Free to use. No credit card required.</p>
 
       <!-- ── Download buttons ────────────────────────────────────── -->
       <div class="download-buttons">
         <a href="/static/shield-app.apk" class="btn btn-download" id="apk-download" download aria-label="Download Shield APK for Android">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.523 15.341a.66.66 0 01-.66-.66V9.318a.66.66 0 011.32 0v5.363a.66.66 0 01-.66.66zM6.477 15.341a.66.66 0 01-.66-.66V9.318a.66.66 0 011.32 0v5.363a.66.66 0 01-.66.66zm5.046 3.978a.66.66 0 01-.66-.66V12.9a.66.66 0 111.32 0v5.759a.66.66 0 01-.66.66zm5.516-12.15l1.116-2.18a.231.231 0 00-.1-.309.232.232 0 00-.31.1L16.62 7.009A7.378 7.378 0 0012 5.93a7.378 7.378 0 00-4.62 1.08L6.255 4.779a.232.232 0 00-.31-.1.231.231 0 00-.1.31l1.116 2.18A6.745 6.745 0 005 12.34h14a6.745 6.745 0 00-1.961-5.171zM9.5 10.5a1 1 0 110-2 1 1 0 010 2zm5 0a1 1 0 110-2 1 1 0 010 2z"/></svg>
           <div>
-            <div class="btn-label">Download APK</div>
-            <div class="btn-sub">Android 8.0+ &nbsp;&middot;&nbsp; 15M</div>
+            <div class="btn-label">Android App</div>
+            <div class="btn-sub">Android 8.0+ &nbsp;&middot;&nbsp; 125M</div>
+          </div>
+        </a>
+        <a href="/static/ShieldAgent.exe" class="btn btn-download btn-windows" id="win-download" download aria-label="Download Shield Agent for Windows">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 12V6.75l6-1.32v6.57H3zm17 0V5.25L11 3.75V12h9zm0 .75v6.75L11 20.25V12.75h9zM3 18V12.75h6v6.57L3 18z"/></svg>
+          <div>
+            <div class="btn-label">Windows Agent</div>
+            <div class="btn-sub">Windows 10/11 64-bit &nbsp;&middot;&nbsp; 8.0 MB</div>
           </div>
         </a>
         <div class="ios-coming" aria-label="iOS app coming soon">
@@ -921,7 +928,7 @@
       </div>
 
       <div class="download-note">
-        Requires Android 8.0 or higher &nbsp;·&nbsp; Version 1.2.0 &nbsp;·&nbsp; 127M &nbsp;&middot;&nbsp; Released 27 Mar 2026
+        Android 8.0+ · v2.1.2 · 125M · 30 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; Windows 10/11 64-bit · Agent v1.0.0 · 8.0 MB · Right-click → Run as Administrator
       </div>
     </div>
 
@@ -996,13 +1003,14 @@
       <div class="release-info-card">
         <div class="release-version-badge">
           <span class="release-dot"></span>
-          Latest Release &nbsp;·&nbsp; v1.2.0 &nbsp;·&nbsp; 27 Mar 2026
+          Latest Release &nbsp;·&nbsp; v2.1.1 &nbsp;·&nbsp; 30 Mar 2026
+
         </div>
-        <h3 class="release-title">What's New in v1.2.0</h3>
+        <h3 class="release-title">What's New in v2.1.0</h3>
 
         <!-- ── Category filter pills ── -->
         <div class="rn-filters" id="rnFilters">
-          <button class="rn-pill active" onclick="rnFilter(this,'all')">All <span class="rn-pcount">38</span></button>
+          <button class="rn-pill active" onclick="rnFilter(this,'all')">All <span class="rn-pcount">73</span></button>
           <button class="rn-pill" onclick="rnFilter(this,'safety')">🛡 Safety &amp; SOS</button>
           <button class="rn-pill" onclick="rnFilter(this,'controls')">⚙ Parental Controls</button>
           <button class="rn-pill" onclick="rnFilter(this,'child')">🧒 Child App</button>
@@ -1011,6 +1019,281 @@
 
         <!-- ── Feature cards grid ── -->
         <div class="rn-grid" id="rnGrid">
+
+          <!-- v2.1.2 — Parent Controls Fix — 30 Mar 2026 -->
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Parent Controls — DNS, Filters, Schedule, Bedtime All Fixed <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Fixed critical bug where all child profile screens showed empty data. API response was not unwrapped. Fixed: Safe Filters saves categories correctly; Time Limits uses dailyBudgetMinutes; Bedtime uses bedtimeStart/bedtimeEnd; Homework Mode uses POST start/stop endpoints.</p>
+            </div>
+          </div>
+
+          <!-- v2.1.1 — API Fix — 30 Mar 2026 -->
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">API Endpoint Fixes — DNS, Rewards &amp; Notifications <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Fixed 12 mismatched API paths that caused "Failed to Load" on DNS schedule, homework mode, bedtime, safe filters, rewards tasks, points bank, achievements, daily check-in, notifications, browsing history, and app usage screens. Added daily check-in endpoint (5 bonus points). All backend services restarted with improved connection pool settings.</p>
+            </div>
+          </div>
+
+          <!-- v2.1.0 Fixes — 30 Mar 2026 -->
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Child Device Setup — No Re-Login Required <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Parents who are already logged in no longer see an email/password prompt when linking a child device. The app detects the active session, loads child profiles automatically, and jumps straight to the "Select Child" step. The password screen now only appears on a fresh (unauthenticated) device.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Devices Screen — Link &amp; Remove Devices <span class="rn-badge-new">Improved</span></div>
+              <p class="rn-idesc">Devices screen now has a "+" action in the AppBar and a bottom sheet with two pairing options: set up this device as a child device, or display the QR code for another device to scan. Each device card now shows a delete button with a confirmation dialog. Pull-to-refresh added.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Error Feedback — Tasks, Rewards &amp; Time Limits <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Three screens had silent error handling: task completion failure showed nothing, rewards achievement error collapsed invisibly, and time-limits fetch failure showed no message. All now show user-facing snackbars or error text with retry options.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Admin Charts — Dark Mode Grid Lines Fixed <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Admin analytics trend charts used an invalid Flutter color constant (Colors.black08) that caused a build crash. Fixed to Colors.black12. Charts now render correctly in both light and dark modes.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Parent Profile &amp; Reports Screens <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">New Profile screen: gradient avatar, edit name, change password with confirm-match validation. New Reports screen: child selector tabs, KPI grid (blocked today, screen time, apps used, total requests), recent browsing list with blocked/allowed indicators, app usage progress bars.</p>
+            </div>
+          </div>
+
+          <!-- Admin Panel — 30 Mar 2026 -->
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">ISP &amp; Global Admin Mobile Panel <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">ISP_ADMIN and GLOBAL_ADMIN accounts now land in a dedicated admin shell with 4 tabs: Dashboard (KPIs + trend charts), Customers/Tenants list (search + CRUD), Analytics (overview + 30-day trends), Settings. Role-based routing auto-detects account type at login.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Customer &amp; Tenant Management <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">Admins can invite customers, view full details (profile card + children list), edit name, suspend accounts, and delete — all with confirmation dialogs. GLOBAL_ADMIN gets a Tenants list with ISP creation, plan assignment (Basic/Standard/Premium/Enterprise), and domain management.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Admin Analytics — Overview + 30-Day Trends <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">Analytics screen with two tabs: Overview (6-metric stat grid + top blocked categories pie chart) and Trends (30-day line charts for blocked requests and active devices). ISP_ADMIN sees tenant-scoped data; GLOBAL_ADMIN sees platform-wide data.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Parent Profile &amp; Reports Screens <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">New Profile screen with gradient avatar header, edit name, change password with confirm-match validation. New Reports screen with per-child selector, KPI grid (blocked today, screen time, apps used), recent browsing list, and app usage bar chart.</p>
+            </div>
+          </div>
+          <!-- v2.0.0 Enterprise Upgrade — 30 Mar 2026 -->
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Animated Splash Screen <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">Brand-new animated launch screen with scale + fade animation. Automatically navigates to the correct destination (dashboard, child home, login or onboarding) based on stored session.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">3-Step Onboarding Flow <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">First-install users see a 3-slide onboarding carousel (Smart Protection · Screen Time · Location) before reaching the login screen. Skip button included. Shown only once.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Dark Mode — Full System Support <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">Complete light and dark theme with WCAG AA contrast ratios. Three-way toggle in Settings: System (follows OS), Light, Dark. Preference persisted across restarts.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Material 3 NavigationBar <span class="rn-badge-new">Improved</span></div>
+              <p class="rn-idesc">Bottom navigation upgraded from BottomNavigationBar to Material 3 NavigationBar with pill indicator, correct icon sizing, and unread alert badge support.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="analytics">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Dashboard — Live Activity Chart <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">Parent dashboard now includes a fl_chart line chart showing blocked request trends over the last 7 days, KPI cards (Children · Online · Unread Alerts), and a collapsible gradient SliverAppBar.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Notifications Centre <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">Dedicated full-screen notifications page with alerts grouped by day (Today · Yesterday · date), unread dot indicators, mark-all-read, and per-notification mark-as-read tap.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Global API Response Fix — All Screens Now Load <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Root-cause fix: a single Dio onResponse interceptor now auto-unwraps the backend's {"data":X,"success":true} envelope for every API call. All 20+ parent screens that previously showed "Failed to load" now work correctly.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Child Home — Live Clock, Points &amp; Status Badges <span class="rn-badge-new">Improved</span></div>
+              <p class="rn-idesc">Redesigned child home shows a large live clock (updates every 30s), point total pulled from the rewards API, VPN protection badge (green/red), battery indicator, and circular action tiles.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Comprehensive Settings Screen <span class="rn-badge-new">Improved</span></div>
+              <p class="rn-idesc">Settings rebuilt with sections for Account, Family &amp; Devices, Security (PIN + biometric), Appearance (theme picker), Notifications (per-type toggles), Privacy &amp; Data, and About.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Polished Login Screen <span class="rn-badge-new">Improved</span></div>
+              <p class="rn-idesc">Login page redesigned with a gradient brand header (shield logo + glow), slide-up animation on load, inline error banner, and keyboard-friendly submit on Enter.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-orange"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Layout Overflow Fixes (3 Screens) <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Fixed RenderFlex overflows on: Browsing History (Column in ListTile.trailing → SizedBox+mainAxisSize.min), Child Detail grid (crossAxisCount 4→3), Alerts (isThreeLine on multi-line subtitle).</p>
+            </div>
+          </div>
+
+          <!-- v2.0.0 — Complete Rebuild -->
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Complete App Rewrite — Clean Architecture <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">The entire mobile app has been rebuilt from scratch with a clean three-state auth system (loading → parent → child). No race conditions, no ambiguous redirects, no silent failures.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Child Mode — True Lock Screen <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">Child home is fully locked. Back button blocked. Parent PIN required to exit. Long-press "Parent Access" at the bottom to authenticate and switch back to parent mode.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Child Setup — Credential Persistence Guaranteed <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Child credentials are saved to device storage before any VPN dialog or permission prompt. If Android kills the activity mid-setup the session is always recoverable — the app no longer closes.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Parent App — Redesigned Navigation <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">Clean bottom nav (Home · Family · Map · Alerts · Settings). Child detail screen groups all features: Internet Controls, Screen Time, Location, Activity, Rewards, Safety.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">All API Endpoints Audited &amp; Corrected <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Every API path verified against the backend: /profiles/children/{id}, /profiles/apps/blocked (X-User-Id header), all DNS, location, rewards and analytics endpoints.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Child UI — New Dark Protected Interface <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">New dark-themed child home shows VPN protection status, battery level, check-in button, task/reward/AI-chat shortcuts, and a prominent SOS emergency button.</p>
+            </div>
+          </div>
+
+          <!-- v1.2.4 fixes -->
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Child Device Setup — No Longer Closes App <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Fixed incorrect API endpoint calls during child app startup. App no longer navigates away immediately after child device is attached.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">App Blocking List — Correct API Path <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Child app now fetches its blocked-app list from the correct endpoint, enabling proper app enforcement on the child device.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Browsing History — Error Handling Improved <span class="rn-badge-new">Improved</span></div>
+              <p class="rn-idesc">Browsing history screen now shows a clear error message with retry option when DNS data is not yet available instead of a blank screen.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Parent-to-Child Navigation Fix <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">After exiting child mode on a device that has a parent session, the app now correctly returns to the parent dashboard instead of showing a blank child screen.</p>
+            </div>
+          </div>
+
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Child Device Setup — App No Longer Closes During VPN Dialog <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Root cause fixed: child credentials are now saved to device storage before the VPN permission dialog appears. If Android pauses the app during VPN consent, the child session is already persisted and the app resumes correctly instead of restarting to the login screen.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Background Service — No Longer Crashes on Android 14 <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Foreground service start errors on Android 14 are now caught silently instead of showing a crash screen.</p>
+            </div>
+          </div>
+
+          <!-- v1.2.2 fixes -->
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Child App Login Fixed <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Child app no longer closes immediately after login. Long-lived 365-day child tokens are now correctly issued during device setup.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Browsing History — Time Periods <span class="rn-badge-new">Fixed</span></div>
+              <p class="rn-idesc">Parents can now view browsing history for Today, This Week, This Month, or All Time — previously only today's data was shown.</p>
+            </div>
+          </div>
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Child Re-Setup Banner <span class="rn-badge-new">New</span></div>
+              <p class="rn-idesc">When a child device's protection expires, the setup screen now shows a clear message instead of a confusing login screen.</p>
+            </div>
+          </div>
 
           <!-- v1.2.0 fixes -->
           <div class="rn-item" data-cat="controls">
@@ -1330,17 +1613,23 @@
           </span>
           <span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm7 14l8-8-1.5-1.5L12 14 8.5 10.5 7 12l5 5z"/></svg>
-            107M &nbsp;(debug build)
+            125M &nbsp;(debug build)
           </span>
           <span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
             Free forever
           </span>
         </div>
-        <a href="/static/shield-app.apk" class="btn btn-primary btn-download-inline" download>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download v1.2.0 Free
-        </a>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <a href="/static/shield-app.apk" class="btn btn-primary btn-download-inline" download>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Android v2.0.0
+          </a>
+          <a href="/static/ShieldAgent.exe" class="btn btn-windows-inline" download>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 12V6.75l6-1.32v6.57H3zm17 0V5.25L11 3.75V12h9zm0 .75v6.75L11 20.25V12.75h9zM3 18V12.75h6v6.57L3 18z"/></svg>
+            Windows Agent v1.0.0 · 8.0 MB
+          </a>
+        </div>
       </div>
 
 
@@ -1362,7 +1651,7 @@
           <div class="install-step-num">2</div>
           <div class="install-step-body">
             <strong>Download &amp; install</strong>
-            <p>Tap the Download button above, open the downloaded file, and tap <em>Install</em>. No need to disable Play Protect — v1.2.0 uses standard Android APIs.</p>
+            <p>Tap the Download button above, open the downloaded file, and tap <em>Install</em>. No need to disable Play Protect — v2.0.0 uses standard Android APIs.</p>
           </div>
         </div>
         <div class="install-step">
@@ -1381,7 +1670,7 @@
         </div>
       </div>
       <div class="install-why">
-        <strong>Why sideload?</strong> Shield is pending Play Store review. v1.2.0 no longer uses Accessibility Service or screen overlay — only standard Usage Access and VPN APIs — so Play Protect will not block the installation.
+        <strong>Why sideload?</strong> Shield is pending Play Store review. v2.0.0 no longer uses Accessibility Service or screen overlay — only standard Usage Access and VPN APIs — so Play Protect will not block the installation.
       </div>
     </div>
 
@@ -1449,7 +1738,7 @@
           <span class="faq-arrow" aria-hidden="true">&#9660;</span>
         </button>
         <div class="faq-a" role="region">
-          <p>v1.2.0 no longer uses Accessibility Service or SYSTEM_ALERT_WINDOW — the two permissions that previously triggered Play Protect. App blocking now uses Android's standard <em>Usage Access</em> (PACKAGE_USAGE_STATS) API, which is permitted for parental control apps. If you are installing an older version of the APK you may see a warning — download the latest v1.2.0 from the <a href="#download">Download page</a> to install without any Play Protect warning.</p>
+          <p>v2.0.0 no longer uses Accessibility Service or SYSTEM_ALERT_WINDOW — the two permissions that previously triggered Play Protect. App blocking now uses Android's standard <em>Usage Access</em> (PACKAGE_USAGE_STATS) API, which is permitted for parental control apps. If you are installing an older version of the APK you may see a warning — download the latest v2.0.0 from the <a href="#download">Download page</a> to install without any Play Protect warning.</p>
         </div>
       </div>
             <div class="faq-item">

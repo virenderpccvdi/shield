@@ -156,6 +156,21 @@ public class RewardsController {
         return ResponseEntity.ok(achievementService.listAchievements(profileId));
     }
 
+    // ── Daily Check-in ────────────────────────────────────────────────────────
+
+    /**
+     * Child daily check-in — awards 5 bonus points once per day.
+     * Returns the updated reward bank balance.
+     */
+    @PostMapping("/checkin/{profileId}")
+    public ResponseEntity<RewardBankResponse> dailyCheckin(
+            @PathVariable UUID profileId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
+        log.info("Daily check-in for profile {}", profileId);
+        RewardBankResponse response = rewardBankService.awardPoints(profileId, 5, "Daily check-in", "CHECKIN");
+        return ResponseEntity.ok(response);
+    }
+
     // ── Streaks ─────────────────────────────────────────────────────────────────
 
     /**

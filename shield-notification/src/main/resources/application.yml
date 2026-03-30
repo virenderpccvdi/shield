@@ -14,7 +14,7 @@ spring:
       minimum-idle: 5
       connection-timeout: 20000
       idle-timeout: 300000
-      max-lifetime: 1200000
+      max-lifetime: 600000
       pool-name: ShieldNotificationPool
       leak-detection-threshold: 60000
 

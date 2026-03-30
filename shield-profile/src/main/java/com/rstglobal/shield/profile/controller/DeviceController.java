@@ -5,8 +5,10 @@ import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.profile.dto.request.CreateDeviceRequest;
 import com.rstglobal.shield.profile.dto.response.DeviceResponse;
 import com.rstglobal.shield.profile.entity.Device;
+import com.rstglobal.shield.profile.entity.DevicePairingCode;
 import com.rstglobal.shield.profile.repository.CustomerRepository;
 import com.rstglobal.shield.profile.repository.DeviceRepository;
+import com.rstglobal.shield.profile.repository.DevicePairingCodeRepository;
 import com.rstglobal.shield.profile.service.DeviceService;
 import com.rstglobal.shield.profile.entity.ChildProfile;
 import com.rstglobal.shield.profile.repository.ChildProfileRepository;
@@ -21,6 +23,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -29,7 +32,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.transaction.Transactional;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +54,9 @@ public class DeviceController {
     private final DeviceRepository deviceRepository;
     private final CustomerRepository customerRepository;
     private final ChildProfileRepository childProfileRepository;
+    private final DevicePairingCodeRepository pairingCodeRepository;
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Value("${shield.app.domain:shield.rstglobal.in}")
     private String appDomain;
@@ -253,6 +264,160 @@ public class DeviceController {
                 ? deviceRepository.countByTenantIdAndOnlineTrue(tenantId)
                 : deviceRepository.countByOnlineTrue();
         return ApiResponse.ok(Map.of("totalDevices", total, "onlineDevices", online));
+    }
+
+    // ── Windows Agent pairing ────────────────────────────────────────────────
+
+    /**
+     * Parent generates a 6-digit pairing code (valid 15 min) for a child profile.
+     * Called from the dashboard "Connect Windows Device" dialog.
+     */
+    @PostMapping("/pairing-code")
+    @Operation(summary = "Generate a 6-digit pairing code for Windows agent")
+    public ApiResponse<Map<String, Object>> generatePairingCode(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestBody Map<String, String> body) {
+        if (!"CUSTOMER".equals(role) && !"GLOBAL_ADMIN".equals(role) && !"ISP_ADMIN".equals(role)) {
+            throw ShieldException.forbidden("Access denied");
+        }
+        UUID profileId = UUID.fromString(body.get("profileId"));
+        ChildProfile profile = childProfileRepository.findById(profileId)
+                .orElseThrow(() -> ShieldException.notFound("ChildProfile", profileId));
+
+        if ("CUSTOMER".equals(role)) {
+            UUID customerId = resolveCustomerId(userId, role);
+            if (!profile.getCustomerId().equals(customerId)) {
+                throw ShieldException.forbidden("Access denied to this profile");
+            }
+        }
+
+        // Generate unique 6-digit code
+        String code;
+        int attempts = 0;
+        do {
+            code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+            attempts++;
+        } while (pairingCodeRepository.findActiveCode(code, Instant.now()).isPresent() && attempts < 20);
+
+        DevicePairingCode pairingCode = DevicePairingCode.builder()
+                .profileId(profileId)
+                .code(code)
+                .platform(body.getOrDefault("platform", "windows"))
+                .expiresAt(Instant.now().plusSeconds(900)) // 15 minutes
+                .build();
+        pairingCodeRepository.save(pairingCode);
+
+        return ApiResponse.ok(Map.of(
+                "code",       code,
+                "profileId",  profileId,
+                "profileName", profile.getName(),
+                "expiresIn",  "15 minutes",
+                "platform",   pairingCode.getPlatform()
+        ), "Pairing code generated");
+    }
+
+    /**
+     * Windows agent redeems a pairing code.
+     * Registers the device and returns profile + DNS info.
+     * Called by the Shield Windows Agent during setup.
+     */
+    @PostMapping("/pair")
+    @Transactional
+    @Operation(summary = "Pair a Windows device using a 6-digit code")
+    public ApiResponse<Map<String, Object>> pairDevice(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestBody Map<String, String> body) {
+        String code       = body.get("pairingCode");
+        String deviceName = body.getOrDefault("deviceName", "Windows PC");
+        String platform   = body.getOrDefault("platform", "windows");
+        String agentVer   = body.getOrDefault("agentVersion", "1.0.0");
+
+        if (code == null || code.length() != 6) {
+            throw ShieldException.badRequest("Invalid pairing code format");
+        }
+
+        DevicePairingCode pairingCode = pairingCodeRepository
+                .findActiveCode(code, Instant.now())
+                .orElseThrow(() -> ShieldException.badRequest("Pairing code is invalid or expired"));
+
+        ChildProfile profile = childProfileRepository.findById(pairingCode.getProfileId())
+                .orElseThrow(() -> ShieldException.notFound("ChildProfile", pairingCode.getProfileId()));
+
+        // Register the device
+        Device device = Device.builder()
+                .profileId(profile.getId())
+                .name(deviceName)
+                .deviceType("WINDOWS_PC")
+                .dnsMethod("DOH_AGENT")
+                .build();
+        device.setTenantId(profile.getTenantId());
+        device = deviceRepository.save(device);
+
+        // Mark code used
+        pairingCode.setUsed(true);
+        pairingCodeRepository.save(pairingCode);
+
+        String dohUrl = "https://shield.rstglobal.in/dns/" + profile.getDnsClientId() + "/dns-query";
+
+        log.info("Windows agent paired: device={} profile={} clientId={}",
+                deviceName, profile.getId(), profile.getDnsClientId());
+
+        return ApiResponse.ok(Map.of(
+                "deviceId",    device.getId(),
+                "profileId",   profile.getId(),
+                "name",        profile.getName(),
+                "dnsClientId", profile.getDnsClientId(),
+                "dohUrl",      dohUrl,
+                "filterLevel", profile.getFilterLevel() != null ? profile.getFilterLevel() : "MODERATE",
+                "platform",    platform,
+                "agentVersion", agentVer
+        ), "Device paired successfully");
+    }
+
+    /**
+     * Per-device heartbeat (used by Windows agent — different from mobile bulk heartbeat).
+     */
+    @PostMapping("/{deviceId}/heartbeat")
+    @Operation(summary = "Device-specific heartbeat (Windows agent)")
+    public ResponseEntity<Void> deviceHeartbeat(
+            @PathVariable UUID deviceId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestBody Map<String, Object> body) {
+        deviceRepository.findById(deviceId).ifPresent(device -> {
+            device.setOnline(true);
+            device.setLastSeenAt(Instant.now());
+            deviceRepository.save(device);
+        });
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Download the Windows PowerShell setup script.
+     * Requires authentication — not publicly accessible.
+     * Any authenticated parent, ISP admin, or global admin can download it.
+     */
+    @GetMapping("/setup-script")
+    @Operation(summary = "Download Windows PowerShell setup script (authenticated users only)")
+    public ResponseEntity<byte[]> downloadSetupScript(
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        if (role == null || role.isBlank()) {
+            throw ShieldException.forbidden("Authentication required to download setup script");
+        }
+        try {
+            ClassPathResource resource = new ClassPathResource("scripts/ShieldSetup.ps1");
+            byte[] bytes = resource.getInputStream().readAllBytes();
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType("text/plain; charset=utf-8"))
+                    .header("Content-Disposition", "attachment; filename=\"ShieldSetup.ps1\"")
+                    .header("Content-Length", String.valueOf(bytes.length))
+                    .header("Cache-Control", "no-store, no-cache")
+                    .body(bytes);
+        } catch (IOException e) {
+            log.error("Failed to read ShieldSetup.ps1: {}", e.getMessage());
+            throw new RuntimeException("Setup script not available", e);
+        }
     }
 
     private UUID resolveCustomerId(UUID userId, String role) {

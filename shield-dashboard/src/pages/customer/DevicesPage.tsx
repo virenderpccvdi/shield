@@ -24,6 +24,8 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DnsIcon from '@mui/icons-material/Dns';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AndroidIcon from '@mui/icons-material/Android';
+import WindowIcon from '@mui/icons-material/Window';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -226,12 +228,211 @@ function SetupDnsDialog({ child, open, onClose }: { child: ChildProfile; open: b
   );
 }
 
+// ── Windows Agent Pairing Dialog ────────────────────────────────────────────
+function WindowsPairingDialog({ child, open, onClose }: { child: ChildProfile; open: boolean; onClose: () => void }) {
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [codeError, setCodeError] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [step, setStep] = useState<'intro' | 'code'>('intro');
+  const [scriptDownloading, setScriptDownloading] = useState(false);
+
+  const handleDownloadScript = async () => {
+    setScriptDownloading(true);
+    try {
+      const res = await api.get('/profiles/devices/setup-script', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ShieldSetup.ps1';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // silently ignore — rare
+    } finally {
+      setScriptDownloading(false);
+    }
+  };
+
+  const handleGenerateCode = async () => {
+    setCodeLoading(true);
+    setCodeError('');
+    try {
+      const r = await api.post('/profiles/devices/pairing-code', { profileId: child.id, platform: 'windows' });
+      setPairingCode(r.data?.data?.code ?? r.data?.code);
+      setStep('code');
+    } catch {
+      setCodeError('Failed to generate pairing code. Try again.');
+    } finally {
+      setCodeLoading(false);
+    }
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleClose = () => {
+    setPairingCode(null);
+    setStep('intro');
+    setCodeError('');
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ pb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <WindowIcon sx={{ color: '#0078D4' }} />
+          <Box>
+            <Typography fontWeight={700}>Connect Windows PC for {child.name}</Typography>
+            <Typography variant="caption" color="text.secondary">Install Shield Agent to protect this Windows device</Typography>
+          </Box>
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={3}>
+          {/* Step 1 — Download installer */}
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: '#0078D4', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>1</Box>
+              <Typography fontWeight={600} fontSize={14}>Download Shield Setup for Windows</Typography>
+            </Box>
+            <Box sx={{ pl: 4 }}>
+              {/* Recommended: PowerShell all-in-one */}
+              <Box sx={{ p: 1.5, border: '1.5px solid #0078D4', borderRadius: 2, bgcolor: '#F0F8FF', mb: 1.5 }}>
+                <Typography variant="body2" fontWeight={600} color="#0078D4" mb={0.5}>
+                  Recommended — PowerShell Setup Script
+                </Typography>
+                <Typography variant="body2" color="text.secondary" mb={1.5} fontSize={13}>
+                  One script that asks for your Shield login, pairing code, then installs everything automatically. Run as Administrator on {child.name}'s PC.
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={scriptDownloading ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <DownloadIcon />}
+                  onClick={handleDownloadScript}
+                  disabled={scriptDownloading}
+                  sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#0078D4', '&:hover': { bgcolor: '#005a9e' } }}
+                >
+                  {scriptDownloading ? 'Downloading…' : 'Download ShieldSetup.ps1'}
+                </Button>
+                <Box sx={{ mt: 1, p: 1, bgcolor: '#1E1E1E', borderRadius: 1 }}>
+                  <Typography sx={{ fontFamily: 'monospace', fontSize: 12, color: '#4EC9B0' }}>
+                    {'# Open PowerShell as Administrator, then run:'}
+                  </Typography>
+                  <Typography sx={{ fontFamily: 'monospace', fontSize: 13, color: '#DCDCAA', userSelect: 'all' }}>
+                    {'powershell -ExecutionPolicy Bypass -File .\\ShieldSetup.ps1'}
+                  </Typography>
+                </Box>
+                <Alert severity="info" sx={{ mt: 1, fontSize: 12, py: 0 }}>
+                  <strong>If you see "not digitally signed" error</strong> — this is normal for unsigned scripts. Use the command above with <code>-ExecutionPolicy Bypass</code> to run it.
+                </Alert>
+              </Box>
+              {/* Alternative: EXE direct */}
+              <Typography variant="caption" color="text.secondary" mb={0.5} sx={{ display: 'block' }}>
+                Advanced: download agent EXE separately
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<DownloadIcon />}
+                href="/static/ShieldAgent.exe"
+                download="ShieldAgent.exe"
+                sx={{ textTransform: 'none', fontSize: 12 }}
+              >
+                ShieldAgent.exe (8.0 MB)
+              </Button>
+            </Box>
+          </Box>
+
+          <Divider />
+
+          {/* Step 2 — Generate pairing code */}
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: '#0078D4', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>2</Box>
+              <Typography fontWeight={600} fontSize={14}>Generate a Pairing Code</Typography>
+            </Box>
+            <Box sx={{ pl: 4 }}>
+              <Typography variant="body2" color="text.secondary" mb={1.5}>
+                Generate a 6-digit code (valid 15 min) and enter it in the installer on {child.name}'s PC.
+              </Typography>
+              {!pairingCode ? (
+                <Button
+                  variant="outlined"
+                  onClick={handleGenerateCode}
+                  disabled={codeLoading}
+                  startIcon={codeLoading ? <CircularProgress size={16} /> : <WindowIcon />}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                  {codeLoading ? 'Generating…' : 'Generate Pairing Code'}
+                </Button>
+              ) : (
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Box sx={{ px: 3, py: 1.5, bgcolor: '#E3F2FD', borderRadius: 2, border: '2px solid #0078D4' }}>
+                      <Typography sx={{ fontFamily: 'monospace', fontSize: 28, fontWeight: 800, letterSpacing: 6, color: '#0078D4' }}>
+                        {pairingCode}
+                      </Typography>
+                    </Box>
+                    <Tooltip title={copied ? 'Copied!' : 'Copy code'}>
+                      <IconButton onClick={() => handleCopy(pairingCode)} sx={{ color: copied ? 'success.main' : '#0078D4' }}>
+                        {copied ? <CheckCircleIcon /> : <ContentCopyIcon />}
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Generate new code">
+                      <IconButton onClick={handleGenerateCode} disabled={codeLoading} sx={{ color: 'text.secondary' }}>
+                        <RefreshIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                  <Alert severity="info" sx={{ fontSize: 13 }}>
+                    Enter this code when the installer asks for a pairing code. It expires in 15 minutes.
+                  </Alert>
+                </Box>
+              )}
+              {codeError && <Alert severity="error" sx={{ mt: 1 }}>{codeError}</Alert>}
+            </Box>
+          </Box>
+
+          <Divider />
+
+          {/* Step 3 — How it works */}
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: '#78909C', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>3</Box>
+              <Typography fontWeight={600} fontSize={14}>What the Agent Does</Typography>
+            </Box>
+            <Box sx={{ pl: 4 }}>
+              <Box component="ul" sx={{ m: 0, pl: 2, '& li': { fontSize: 13, color: 'text.secondary', mb: 0.5 } }}>
+                <li>Installs as a <strong>Windows service</strong> (starts automatically on boot)</li>
+                <li>Intercepts all DNS queries and filters through Shield's <strong>{child.name || 'child'}'s profile rules</strong></li>
+                <li>Detects and <strong>blocks DNS bypass attempts</strong> (VPN, DNS-over-HTTPS bypass)</li>
+                <li>Reports <strong>real-time activity</strong> to your Shield dashboard</li>
+                <li>Enforces <strong>screen time budgets</strong> and <strong>bedtime locks</strong></li>
+              </Box>
+            </Box>
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+        <Button onClick={handleClose} variant="outlined">Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 export default function DevicesPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [setupChild, setSetupChild] = useState<ChildProfile | null>(null);
+  const [winPairChild, setWinPairChild] = useState<ChildProfile | null>(null);
   const [newDevice, setNewDevice] = useState({ name: '', deviceType: 'PHONE', profileId: '' });
 
   const { data: children } = useQuery({
@@ -244,6 +445,24 @@ export default function DevicesPage() {
 
   const profileId = selectedChild || (children && children.length > 0 ? children[0].id : null);
   const activeChild = (children || []).find(c => c.id === profileId) ?? null;
+
+  const [scriptDownloading, setScriptDownloading] = useState(false);
+  const handleDownloadScript = async () => {
+    setScriptDownloading(true);
+    try {
+      const res = await api.get('/profiles/devices/setup-script', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ShieldSetup.ps1';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { /* ignore */ } finally {
+      setScriptDownloading(false);
+    }
+  };
 
   const { data: devices, isLoading } = useQuery({
     queryKey: ['devices', profileId],
@@ -313,7 +532,17 @@ export default function DevicesPage() {
                 onClick={() => setSetupChild(activeChild)}
                 sx={{ borderColor: 'secondary.main', color: 'secondary.main', '&:hover': { bgcolor: 'success.light' }, textTransform: 'none', fontWeight: 600 }}
               >
-                Connect Device
+                Android / iOS
+              </Button>
+            )}
+            {activeChild && (
+              <Button
+                variant="outlined"
+                startIcon={<WindowIcon />}
+                onClick={() => setWinPairChild(activeChild)}
+                sx={{ borderColor: '#0078D4', color: '#0078D4', '&:hover': { bgcolor: '#E3F2FD' }, textTransform: 'none', fontWeight: 600 }}
+              >
+                Windows PC
               </Button>
             )}
             {profileId && (
@@ -338,14 +567,83 @@ export default function DevicesPage() {
         }
       />
 
+      {/* ── Connect a New Device Banner ─────────────────────────────────────── */}
+      {children && children.length > 0 && (
+        <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          {/* Android card */}
+          <Card
+            onClick={() => activeChild && setSetupChild(activeChild)}
+            sx={{
+              flex: '1 1 220px', cursor: 'pointer', border: '2px solid transparent',
+              transition: 'all 0.2s', '&:hover': { borderColor: 'secondary.main', transform: 'translateY(-2px)' },
+            }}
+          >
+            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: '12px !important' }}>
+              <Box sx={{ width: 40, height: 40, borderRadius: '10px', bgcolor: '#E8F5E9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AndroidIcon sx={{ color: '#2E7D32', fontSize: 22 }} />
+              </Box>
+              <Box>
+                <Typography fontWeight={700} fontSize={13}>Connect Android / iOS</Typography>
+                <Typography variant="caption" color="text.secondary">QR code setup, Private DNS</Typography>
+              </Box>
+              <QrCodeIcon sx={{ color: 'secondary.main', ml: 'auto', flexShrink: 0 }} />
+            </CardContent>
+          </Card>
+
+          {/* Windows PC card (per child — open pairing dialog) */}
+          {children.map(c => (
+            <Card
+              key={c.id}
+              onClick={() => setWinPairChild(c)}
+              sx={{
+                flex: '1 1 220px', cursor: 'pointer', border: '2px solid transparent',
+                transition: 'all 0.2s', '&:hover': { borderColor: '#0078D4', transform: 'translateY(-2px)' },
+              }}
+            >
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: '12px !important' }}>
+                <Box sx={{ width: 40, height: 40, borderRadius: '10px', bgcolor: '#E3F2FD', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <WindowIcon sx={{ color: '#0078D4', fontSize: 22 }} />
+                </Box>
+                <Box>
+                  <Typography fontWeight={700} fontSize={13}>Windows PC — {c.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">Pair &amp; get pairing code</Typography>
+                </Box>
+                <DownloadIcon sx={{ color: '#0078D4', ml: 'auto', flexShrink: 0 }} />
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* PowerShell setup script card — no child required, authenticated download */}
+          <Card
+            onClick={handleDownloadScript}
+            sx={{
+              flex: '1 1 220px', cursor: 'pointer', border: '2px solid transparent',
+              transition: 'all 0.2s', '&:hover': { borderColor: '#0078D4', transform: 'translateY(-2px)' },
+              opacity: scriptDownloading ? 0.7 : 1,
+            }}
+          >
+            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: '12px !important' }}>
+              <Box sx={{ width: 40, height: 40, borderRadius: '10px', bgcolor: '#EDE7F6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {scriptDownloading ? <CircularProgress size={20} /> : <DownloadIcon sx={{ color: '#5E35B1', fontSize: 22 }} />}
+              </Box>
+              <Box>
+                <Typography fontWeight={700} fontSize={13}>Download Setup Script</Typography>
+                <Typography variant="caption" color="text.secondary">ShieldSetup.ps1 — Windows installer</Typography>
+              </Box>
+              <WindowIcon sx={{ color: '#5E35B1', ml: 'auto', flexShrink: 0 }} />
+            </CardContent>
+          </Card>
+        </Box>
+      )}
+
       {isLoading ? (
         <LoadingPage />
       ) : !devices || devices.length === 0 ? (
         <EmptyState
           icon={<DevicesIcon sx={{ fontSize: 36, color: '#00897B' }} />}
           title="No devices registered"
-          description="Connect your child's device to start monitoring"
-          action={{ label: 'Connect Device', onClick: () => activeChild && setSetupChild(activeChild) }}
+          description="Use the cards above to connect Android or Windows devices"
+          action={undefined}
         />
       ) : (
         <Grid container spacing={2.5}>
@@ -458,15 +756,25 @@ export default function DevicesPage() {
                         )}
                       </Stack>
 
-                      <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px solid #F0F0F0' }}>
+                      <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px solid #F0F0F0', display: 'flex', gap: 1 }}>
                         <Button
                           size="small"
                           startIcon={<QrCodeIcon />}
                           onClick={() => activeChild && setSetupChild(activeChild)}
                           sx={{ color: 'secondary.main', fontWeight: 600, fontSize: 12, textTransform: 'none', '&:hover': { bgcolor: 'success.light' } }}
                         >
-                          Setup DNS Filtering
+                          Android
                         </Button>
+                        {(device.deviceType === 'LAPTOP' || device.deviceType === 'DESKTOP' || device.deviceType === 'WINDOWS_PC') && (
+                          <Button
+                            size="small"
+                            startIcon={<WindowIcon />}
+                            onClick={() => activeChild && setWinPairChild(activeChild)}
+                            sx={{ color: '#0078D4', fontWeight: 600, fontSize: 12, textTransform: 'none', '&:hover': { bgcolor: '#E3F2FD' } }}
+                          >
+                            Windows
+                          </Button>
+                        )}
                       </Box>
                     </CardContent>
                   </Card>
@@ -517,12 +825,21 @@ export default function DevicesPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Setup DNS Dialog */}
+      {/* Setup DNS Dialog (Android) */}
       {setupChild && (
         <SetupDnsDialog
           child={setupChild}
           open={!!setupChild}
           onClose={() => setSetupChild(null)}
+        />
+      )}
+
+      {/* Windows Agent Pairing Dialog */}
+      {winPairChild && (
+        <WindowsPairingDialog
+          child={winPairChild}
+          open={!!winPairChild}
+          onClose={() => setWinPairChild(null)}
         />
       )}
     </AnimatedPage>

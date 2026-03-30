@@ -71,6 +71,9 @@ body {
   transition: all .2s;
 }
 .btn-download:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+.btn-download.btn-windows { background: #0078D4; color: #fff; }
+.btn-download.btn-windows:hover { background: #005a9e; box-shadow: 0 8px 32px rgba(0,120,212,.35); }
+.btn-download.btn-windows .btn-sub { color: rgba(255,255,255,.75); }
 .btn-label { font-size: 16px; font-weight: 700; }
 .btn-sub { font-size: 12px; font-weight: 400; color: var(--text-muted); }
 .ios-coming {
@@ -905,6 +908,20 @@ body {
   border-radius: 12px;
   text-decoration: none;
 }
+.btn-windows-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 13px 28px;
+  border-radius: 12px;
+  text-decoration: none;
+  background: #0078D4;
+  color: #fff;
+  transition: background .2s, transform .15s;
+}
+.btn-windows-inline:hover { background: #005a9e; transform: translateY(-1px); }
 
 /* ── Release Notes redesign ─────────────────────────── */
 .rn-filters {
