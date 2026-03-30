@@ -101,7 +101,7 @@
           "priceCurrency": "USD"
         },
         "downloadUrl": "https://shield.rstglobal.in/static/shield-app.apk",
-        "version": "2.1.0",
+        "version": "2.1.3",
         "softwareVersion": "1.2.0",
         "description": "Complete parental control app with DNS filtering, screen time limits, GPS tracking, and real-time alerts.",
         "screenshot": "https://shield.rstglobal.in/og-image.svg",
@@ -928,7 +928,7 @@
       </div>
 
       <div class="download-note">
-        Android 8.0+ · v2.1.2 · 125M · 30 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; Windows 10/11 64-bit · Agent v1.0.0 · 8.0 MB · Right-click → Run as Administrator
+        Android 8.0+ · v2.1.3 · 125M · 30 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; Windows 10/11 64-bit · Agent v1.0.0 · 8.0 MB · Right-click → Run as Administrator
       </div>
     </div>
 
@@ -1003,10 +1003,10 @@
       <div class="release-info-card">
         <div class="release-version-badge">
           <span class="release-dot"></span>
-          Latest Release &nbsp;·&nbsp; v2.1.1 &nbsp;·&nbsp; 30 Mar 2026
+          Latest Release &nbsp;·&nbsp; v2.1.3 &nbsp;·&nbsp; 30 Mar 2026
 
         </div>
-        <h3 class="release-title">What's New in v2.1.0</h3>
+        <h3 class="release-title">What's New in v2.1.3</h3>
 
         <!-- ── Category filter pills ── -->
         <div class="rn-filters" id="rnFilters">
@@ -1019,6 +1019,15 @@
 
         <!-- ── Feature cards grid ── -->
         <div class="rn-grid" id="rnGrid">
+
+          <!-- v2.1.3 — Login Overflow, Logout Fix, Schedule Grid — 30 Mar 2026 -->
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Login Overflow, Logout &amp; Schedule Screen Fixed <span class="rn-badge-new">v2.1.3</span></div>
+              <p class="rn-idesc">Fixed 21px overflow on the login screen (home indicator inset was ignored). Fixed logout not working — GoRouter redirect alone was unreliable; explicit navigation added. Fixed Internet Schedule screen showing wrong data — backend uses a 24-slot hourly grid format (1=blocked, 0=allowed) which is now correctly converted to the per-day start/end time UI.</p>
+            </div>
+          </div>
 
           <!-- v2.1.2 — Parent Controls Fix — 30 Mar 2026 -->
           <div class="rn-item" data-cat="controls">
@@ -1623,7 +1632,7 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <a href="/static/shield-app.apk" class="btn btn-primary btn-download-inline" download>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Android v2.0.0
+            Android v2.1.3
           </a>
           <a href="/static/ShieldAgent.exe" class="btn btn-windows-inline" download>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 12V6.75l6-1.32v6.57H3zm17 0V5.25L11 3.75V12h9zm0 .75v6.75L11 20.25V12.75h9zM3 18V12.75h6v6.57L3 18z"/></svg>
