@@ -25,7 +25,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
 import api from '../../api/axios';
@@ -516,8 +516,14 @@ export default function CustomerDashboardPage() {
             icon={<DnsIcon fontSize="small" />} subtitle={totalQueriesFromStats > 0 ? `of ${totalQueriesFromStats.toLocaleString()} queries` : `${blockRate7d}% block rate (7d)`} />
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard label="Active Alerts" value={alerts.length} color="#7B1FA2" bg="rgba(123,31,162,0.08)"
-            icon={<WarningAmberIcon fontSize="small" />} subtitle={pausedCount > 0 ? `${pausedCount} paused` : 'all running'} />
+          <StatCard
+            label="Block Rate (7d)"
+            value={`${blockRate7d}%`}
+            color={blockRate7d > 20 ? '#E53935' : '#43A047'}
+            bg={blockRate7d > 20 ? 'rgba(229,57,53,0.08)' : 'rgba(67,160,71,0.08)'}
+            icon={<TrendingUpIcon fontSize="small" />}
+            subtitle={blockRate7d > 0 ? `${totalBlocks7d.toLocaleString()} blocks / ${totalQueries7d.toLocaleString()} queries` : 'No data yet'}
+          />
         </Grid>
       </Grid>
 
@@ -778,36 +784,52 @@ export default function CustomerDashboardPage() {
               </Grid>
             )}
 
-            {/* Fix #9: Top blocked categories — use count field, render as bar chart */}
+            {/* Top blocked categories — donut chart */}
             {topCategories.length > 0 && (
               <Grid size={{ xs: 12, sm: 6 }}>
                 <AnimatedPage delay={0.3}>
                   <Card>
                     <CardContent>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                         <SecurityIcon sx={{ fontSize: 16, color: '#7B1FA2' }} />
                         <Typography fontWeight={700} fontSize={13}>Blocked Categories (7d)</Typography>
                       </Stack>
-                      <ResponsiveContainer width="100%" height={140}>
-                        <BarChart
-                          data={topCategories.map(cat => ({
-                            name: cat.category.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()).slice(0, 14),
-                            count: cat.count ?? 0,
-                          }))}
-                          layout="vertical"
-                          barSize={12}
-                          margin={{ top: 0, right: 24, left: 0, bottom: 0 }}
-                        >
-                          <XAxis type="number" hide />
-                          <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={88} />
+                      <ResponsiveContainer width="100%" height={150}>
+                        <PieChart>
+                          <Pie
+                            data={topCategories.map(cat => ({
+                              name: cat.category.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                              value: cat.count ?? 0,
+                            }))}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius="45%"
+                            outerRadius="75%"
+                            paddingAngle={3}
+                          >
+                            {topCategories.map((_, i) => (
+                              <Cell key={i} fill={['#7B1FA2','#E53935','#1565C0','#F57F17','#43A047'][i % 5]} />
+                            ))}
+                          </Pie>
                           <ReTooltip
                             contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #E2E8F0' }}
-                            cursor={{ fill: 'rgba(123,31,162,0.05)' }}
-                            formatter={(v: number) => [`${v} blocks`, 'Count']}
+                            formatter={(v: number) => [`${v} blocks`, '']}
                           />
-                          <Bar dataKey="count" fill="#7B1FA2" radius={[0, 3, 3, 0]} />
-                        </BarChart>
+                        </PieChart>
                       </ResponsiveContainer>
+                      <Stack spacing={0.4} sx={{ mt: 0.5 }}>
+                        {topCategories.slice(0, 4).map((cat, i) => (
+                          <Stack key={cat.category} direction="row" alignItems="center" spacing={0.75}>
+                            <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: ['#7B1FA2','#E53935','#1565C0','#F57F17'][i], flexShrink: 0 }} />
+                            <Typography fontSize={10} color="text.secondary" flex={1} noWrap sx={{ textTransform: 'capitalize' }}>
+                              {cat.category.replace(/_/g, ' ').toLowerCase()}
+                            </Typography>
+                            <Typography fontSize={10} fontWeight={700}>{cat.count}</Typography>
+                          </Stack>
+                        ))}
+                      </Stack>
                     </CardContent>
                   </Card>
                 </AnimatedPage>

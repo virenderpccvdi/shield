@@ -1,0 +1,19 @@
+# Build outputs
+*.exe
+*.dll
+*.so
+*.syso
+
+# Go build cache
+/vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Secrets / keys
+assets/*.key
+*.pem
+bootstrap.json
+agent.dat

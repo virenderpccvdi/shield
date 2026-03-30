@@ -3,9 +3,10 @@ import {
   Box, Typography, Card, CardContent, Chip, CircularProgress,
   Stack, Alert, Table, TableHead, TableRow, TableCell,
   TableBody, TableContainer, Paper, FormControl, InputLabel,
-  Select, MenuItem,
+  Select, MenuItem, Button,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import SecurityIcon from '@mui/icons-material/Security';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import SearchIcon from '@mui/icons-material/Search';
@@ -15,7 +16,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
-  ResponsiveContainer, Legend,
+  ResponsiveContainer, Legend, PieChart, Pie, Cell,
 } from 'recharts';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
@@ -154,6 +155,29 @@ function StatusChip({ active }: { active: boolean }) {
       }}
     />
   );
+}
+
+// ─── CSV helper ───────────────────────────────────────────────────────────────
+
+const DONUT_COLORS = ['#C62828', '#2E7D32'];
+
+function exportBreakdownCsv(
+  rows: { platform: string; filterType: string; events: number; active: boolean }[],
+  period: string,
+) {
+  const header = 'platform,filter_type,events,active\n';
+  const body = rows
+    .map(r => `"${r.platform}","${r.filterType}",${r.events},${r.active}`)
+    .join('\n');
+  const blob = new Blob([header + body], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `shield-safe-filters-${period}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -353,6 +377,17 @@ export default function SafeFiltersReportPage() {
                 }}
               />
             ))}
+
+            {/* CSV Export */}
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<FileDownloadIcon />}
+              onClick={() => exportBreakdownCsv(breakdownRows, period)}
+              sx={{ borderColor: '#2E7D32', color: '#2E7D32', '&:hover': { borderColor: '#1B5E20', bgcolor: 'rgba(46,125,50,0.06)' } }}
+            >
+              Export CSV
+            </Button>
           </Stack>
         }
       />
@@ -390,6 +425,57 @@ export default function SafeFiltersReportPage() {
               gradient="linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)"
             />
           </Stack>
+        </AnimatedPage>
+      )}
+
+      {/* ── Blocked vs Allowed Donut ── */}
+      {!loadingStats && (Number(stats?.blockedQueries ?? stats?.totalBlocked ?? 0) + Number(stats?.allowedQueries ?? stats?.totalAllowed ?? 0)) > 0 && (
+        <AnimatedPage delay={0.08}>
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
+                Blocked vs Allowed Ratio
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                <ResponsiveContainer width={180} height={180}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Blocked', value: Number(stats?.blockedQueries ?? stats?.totalBlocked ?? 0) },
+                        { name: 'Allowed', value: Number(stats?.allowedQueries ?? stats?.totalAllowed ?? 0) },
+                      ]}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={52}
+                      outerRadius={76}
+                      paddingAngle={3}
+                    >
+                      <Cell fill={DONUT_COLORS[0]} />
+                      <Cell fill={DONUT_COLORS[1]} />
+                    </Pie>
+                    <ReTooltip
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E0E0E0' }}
+                      formatter={(value: number, name: string) => [value.toLocaleString(), name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <Stack spacing={1}>
+                  {[
+                    { label: 'Blocked', value: Number(stats?.blockedQueries ?? stats?.totalBlocked ?? 0), color: DONUT_COLORS[0] },
+                    { label: 'Allowed', value: Number(stats?.allowedQueries ?? stats?.totalAllowed ?? 0), color: DONUT_COLORS[1] },
+                  ].map(item => (
+                    <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: item.color, flexShrink: 0 }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ minWidth: 60 }}>{item.label}</Typography>
+                      <Typography variant="body2" fontWeight={700}>{item.value.toLocaleString()}</Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
+            </CardContent>
+          </Card>
         </AnimatedPage>
       )}
 

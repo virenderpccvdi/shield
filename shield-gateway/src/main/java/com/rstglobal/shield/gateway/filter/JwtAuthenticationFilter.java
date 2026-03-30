@@ -111,11 +111,18 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         long   tokenIat = claims.getIssuedAt() != null
                           ? claims.getIssuedAt().toInstant().getEpochSecond() : 0;
 
+        // Child app tokens carry CHILD_APP role — downstream services expect CUSTOMER.
+        // Map it here so no service needs to know about the CHILD_APP role.
+        // X-Profile-Id is also injected so child-specific services can identify the profile.
+        String profileId = claims.get("profile_id", String.class);
+        String effectiveRole = "CHILD_APP".equals(role) ? "CUSTOMER" : role;
+
         // Build the mutated request (same regardless of blacklist outcome)
         ServerHttpRequest mutated = exchange.getRequest().mutate()
-                .header("X-User-Id",   userId   != null ? userId   : "")
-                .header("X-User-Role", role      != null ? role      : "")
-                .header("X-Tenant-Id", tenantId  != null ? tenantId  : "")
+                .header("X-User-Id",    userId      != null ? userId      : "")
+                .header("X-User-Role",  effectiveRole != null ? effectiveRole : "")
+                .header("X-Tenant-Id",  tenantId    != null ? tenantId    : "")
+                .header("X-Profile-Id", profileId   != null ? profileId   : "")
                 .headers(h -> h.remove(HttpHeaders.AUTHORIZATION))
                 .build();
 

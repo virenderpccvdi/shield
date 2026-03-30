@@ -2,7 +2,9 @@ import {
   Box, Grid, Card, CardContent, Typography, Chip, Stack, Skeleton,
   Divider, Button, Table, TableHead, TableRow, TableCell, TableBody,
   TableContainer, Alert, TablePagination, Tooltip as MuiTooltip,
+  ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -131,6 +133,42 @@ function DashboardSkeleton() {
   );
 }
 
+// ─── CSV export ──────────────────────────────────────────────────────────────
+
+function exportPlatformCSV(d: ReturnType<typeof buildExportData>, days: number) {
+  const lines: string[] = [];
+  lines.push('Shield Platform Dashboard Export');
+  lines.push(`Generated,${new Date().toLocaleString()}`);
+  lines.push(`Period,Last ${days} days`);
+  lines.push('');
+  lines.push('Platform Summary');
+  lines.push(`ISP Tenants,${d.totalIspTenants}`);
+  lines.push(`Total Customers,${d.totalCustomers}`);
+  lines.push(`Active Profiles,${d.activeProfiles}`);
+  lines.push(`DNS Queries Today,${d.totalQueries}`);
+  lines.push(`Blocked Queries,${d.blockedQueries}`);
+  lines.push(`Block Rate,${Number(d.blockRate).toFixed(1)}%`);
+  lines.push(`Monthly Revenue,${d.monthlyRevenue}`);
+  lines.push(`Active Subscriptions,${d.activeSubscriptions}`);
+  lines.push('');
+  lines.push('DNS Query Trend');
+  lines.push('Day,Queries,Blocked');
+  (d.trend ?? []).forEach((p: { d: string; q: number; b: number }) => lines.push(`${p.d},${p.q},${p.b}`));
+  lines.push('');
+  lines.push('Top Tenants by DNS Queries');
+  lines.push('Tenant,Queries');
+  (d.topTenants ?? []).forEach((t: { name: string; queries: number }) => lines.push(`"${t.name}",${t.queries}`));
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `platform-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildExportData(data: any) { return data; }
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export default function PlatformDashboardPage() {
@@ -142,6 +180,7 @@ export default function PlatformDashboardPage() {
   const [tenantRowsPerPage, setTenantRowsPerPage] = useState(5);
   const [auditPage, setAuditPage] = useState(0);
   const [auditRowsPerPage, setAuditRowsPerPage] = useState(10);
+  const [days, setDays] = useState<7 | 30 | 90>(7);
 
   // ── Paginated tenants query ──────────────────────────────────────────
   const { data: tenantsPage } = useQuery({
@@ -182,7 +221,7 @@ export default function PlatformDashboardPage() {
 
   // ── Data fetch ──────────────────────────────────────────────────────────
   const { data, isLoading, error } = useQuery({
-    queryKey: ['platform-dashboard-v2'],
+    queryKey: ['platform-dashboard-v2', days],
     queryFn: async () => {
       // Use allSettled so one failure never blocks the whole dashboard
       const [
@@ -192,7 +231,7 @@ export default function PlatformDashboardPage() {
       ] = await Promise.allSettled([
         api.get('/admin/platform/stats'),                              // 0
         api.get('/analytics/platform/overview?period=today'),         // 1
-        api.get('/analytics/platform/daily?days=7'),                  // 2
+        api.get(`/analytics/platform/daily?days=${days}`),            // 2
         api.get('/analytics/platform/categories?period=week'),        // 3
         api.get('/analytics/platform/top-tenants?limit=10&period=week'), // 4
         api.get('/admin/platform/revenue'),                           // 5
@@ -329,6 +368,34 @@ export default function PlatformDashboardPage() {
         icon={<DashboardIcon />}
         title="Platform Dashboard"
         subtitle="Global overview of all Shield metrics"
+        action={
+          <Stack direction="row" spacing={1} alignItems="center">
+            <ToggleButtonGroup
+              value={days}
+              exclusive
+              size="small"
+              onChange={(_, v) => { if (v) setDays(v); }}
+              sx={{ bgcolor: 'background.paper' }}
+            >
+              {([7, 30, 90] as const).map(n => (
+                <ToggleButton key={n} value={n} sx={{ px: 1.5, fontSize: 12, fontWeight: 600 }}>
+                  {n}D
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+            {data && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<FileDownloadIcon />}
+                onClick={() => exportPlatformCSV(data, days)}
+                sx={{ fontSize: 12 }}
+              >
+                Export CSV
+              </Button>
+            )}
+          </Stack>
+        }
       />
 
       {error && (

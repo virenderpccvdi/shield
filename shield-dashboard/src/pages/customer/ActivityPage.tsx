@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -13,6 +14,7 @@ import {
   type Theme,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import SearchIcon from '@mui/icons-material/Search';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import WifiIcon from '@mui/icons-material/Wifi';
@@ -100,6 +102,28 @@ const EVENT_ROW_BASE_SX: SxProps<Theme> = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const todayStr = () => new Date().toISOString().split('T')[0];
+
+function downloadCsv(rows: DnsEvent[], profileId: string) {
+  if (rows.length === 0) return;
+  const header = 'domain,action,category,timestamp\n';
+  const body = rows
+    .map(r => [
+      `"${r.domain.replace(/"/g, '""')}"`,
+      r.action,
+      `"${(r.category ?? '').replace(/"/g, '""')}"`,
+      new Date(r.queriedAt).toISOString(),
+    ].join(','))
+    .join('\n');
+  const blob = new Blob([header + body], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `shield-activity-${profileId}-${todayStr()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -580,6 +604,16 @@ export default function ActivityPage({ profileId: profileIdProp }: ActivityPageP
             {historyQuery.data?.totalElements ?? 0} result
             {(historyQuery.data?.totalElements ?? 0) !== 1 ? 's' : ''}
           </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+            onClick={() => downloadCsv(historyRows, profileId ?? 'unknown')}
+            disabled={historyRows.length === 0}
+            sx={{ flexShrink: 0 }}
+          >
+            Export CSV
+          </Button>
         </Box>
 
         {historyQuery.isFetching && (

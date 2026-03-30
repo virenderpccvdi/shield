@@ -4,7 +4,7 @@ import {
   Stack, Avatar, Table, TableHead, TableRow, TableCell, TableBody,
   Paper, Select, MenuItem, FormControl, InputLabel, Alert,
   Button, Tabs, Tab, TextField, InputAdornment, TablePagination,
-  LinearProgress,
+  LinearProgress, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import BlockIcon from '@mui/icons-material/Block';
@@ -26,7 +26,7 @@ interface Customer { id: string; userId?: string; name?: string; email?: string;
 interface ChildProfile { id: string; name?: string; age?: number; filterLevel?: string; dnsClientId?: string; }
 interface HistoryEntry { id: string; domain: string; action: string; category?: string; timestamp: string; deviceIp?: string; }
 interface ProfileStats { totalQueries: number; blockedQueries: number; allowedQueries: number; blockRate: number; uniqueDomains: number; totalBlocked?: number; totalAllowed?: number; }
-interface PlatformOverview { totalQueries: number; totalBlocked: number; blockRate: number; activeProfiles: number; }
+interface PlatformOverview { totalQueries: number; totalBlocked: number; totalAllowed?: number; blockRate: number; activeProfiles: number; }
 
 function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color: string }) {
   return (
@@ -66,11 +66,12 @@ export default function AdminUrlActivityPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [days, setDays] = useState<7 | 14 | 30>(7);
 
   // Platform overview
   const { data: platformOverview } = useQuery<PlatformOverview>({
-    queryKey: ['admin-platform-overview'],
-    queryFn: () => api.get('/analytics/platform/overview').then(r => r.data?.data ?? r.data).catch(() => null),
+    queryKey: ['admin-platform-overview', days],
+    queryFn: () => api.get('/analytics/platform/overview', { params: { days } }).then(r => r.data?.data ?? r.data).catch(() => null),
   });
 
   // Tenants list
@@ -112,10 +113,10 @@ export default function AdminUrlActivityPage() {
 
   // DNS Query history — server-side pagination
   const historyQuery = useQuery<{ content: HistoryEntry[]; totalElements: number }>({
-    queryKey: ['admin-profile-history', selectedProfile, page, rowsPerPage, tab],
+    queryKey: ['admin-profile-history', selectedProfile, page, rowsPerPage, tab, days],
     enabled: !!selectedProfile,
     queryFn: () => {
-      const params: Record<string, string | number> = { page, size: rowsPerPage };
+      const params: Record<string, string | number> = { page, size: rowsPerPage, days };
       if (tab !== 'ALL') params.action = tab;
       return api.get(`/analytics/${selectedProfile}/history`, { params }).then(r => {
         const raw = r.data?.data ?? r.data;
@@ -185,7 +186,7 @@ export default function AdminUrlActivityPage() {
         }
       />
 
-      {/* Platform Overview Cards */}
+      {/* Platform Overview KPI Row */}
       {platformOverview && (
         <AnimatedPage delay={0.05}>
           <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -196,10 +197,15 @@ export default function AdminUrlActivityPage() {
               <StatCard label="Blocked" value={(platformOverview.totalBlocked ?? 0).toLocaleString()} color="#E53935" sub="Blocked requests" />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <StatCard label="Block Rate" value={`${((platformOverview.blockRate ?? 0) * 100).toFixed(1)}%`} color="#F57F17" sub="Of all queries" />
+              <StatCard
+                label="Allowed"
+                value={(platformOverview.totalAllowed ?? Math.max(0, (platformOverview.totalQueries ?? 0) - (platformOverview.totalBlocked ?? 0))).toLocaleString()}
+                color="#2E7D32"
+                sub="Allowed requests"
+              />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <StatCard label="Active Profiles" value={platformOverview.activeProfiles ?? 0} color="#00897B" sub="Child profiles" />
+              <StatCard label="Block Rate" value={`${((platformOverview.blockRate ?? 0) * 100).toFixed(1)}%`} color="#F57F17" sub="Of all queries" />
             </Grid>
           </Grid>
         </AnimatedPage>
@@ -212,7 +218,7 @@ export default function AdminUrlActivityPage() {
             <Typography fontWeight={700} fontSize={14} sx={{ mb: 2, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Filter by Hierarchy
             </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap">
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap" alignItems={{ sm: 'center' }}>
               <FormControl size="small" sx={{ minWidth: 200 }}>
                 <InputLabel>ISP / Tenant</InputLabel>
                 <Select value={selectedTenant} label="ISP / Tenant" onChange={e => setSelectedTenant(e.target.value)}>
@@ -267,6 +273,20 @@ export default function AdminUrlActivityPage() {
                   Clear filters
                 </Button>
               )}
+              <Box sx={{ ml: 'auto' }}>
+                <ToggleButtonGroup
+                  value={days}
+                  exclusive
+                  size="small"
+                  onChange={(_, v) => { if (v) { setDays(v); setPage(0); } }}
+                >
+                  {([7, 14, 30] as const).map(d => (
+                    <ToggleButton key={d} value={d} sx={{ px: 1.5, fontSize: 12, fontWeight: 600 }}>
+                      {d}D
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </Box>
             </Stack>
 
             {/* Breadcrumb */}

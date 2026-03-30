@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Box, Button, Card, CardContent, CardHeader, Chip, Grid, Skeleton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Tab, Tabs, Typography, Paper, Stack, Tooltip as MuiTooltip,
+  Tab, Tabs, Typography, Paper, Stack, Tooltip as MuiTooltip, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import DevicesIcon from '@mui/icons-material/Devices';
@@ -17,6 +17,7 @@ import {
   Tooltip, ResponsiveContainer, Legend,
   RadialBarChart, RadialBar,
   ScatterChart, Scatter, ZAxis, ReferenceLine,
+  PieChart, Pie, Cell,
 } from 'recharts';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
@@ -112,8 +113,8 @@ async function fetchOverview() {
   };
 }
 
-async function fetchDailyStats() {
-  const res = await api.get('/analytics/platform/daily?days=30');
+async function fetchDailyStats(days = 30) {
+  const res = await api.get(`/analytics/platform/daily?days=${days}`);
   const d = res.data;
   const arr: any[] = Array.isArray(d) ? d : (d?.data ?? []);
   return arr.map((p: any) => ({
@@ -448,8 +449,16 @@ function printReport(overview: any, daily: any[]) {
 const CHART_TABS = ['Traffic', 'Tenant Analysis'] as const;
 type ChartTab = (typeof CHART_TABS)[number];
 
+const DATE_RANGES = [
+  { label: '7D', value: 7 },
+  { label: '14D', value: 14 },
+  { label: '30D', value: 30 },
+  { label: '90D', value: 90 },
+];
+
 export default function AdminAnalyticsPage() {
   const [chartTab, setChartTab] = useState<ChartTab>('Traffic');
+  const [dateRange, setDateRange] = useState(30);
 
   // ── Queries ──────────────────────────────────────────────────────────────
 
@@ -460,8 +469,8 @@ export default function AdminAnalyticsPage() {
   });
 
   const { data: daily = [], isLoading: dailyLoading } = useQuery({
-    queryKey: ['admin-analytics-daily'],
-    queryFn: fetchDailyStats,
+    queryKey: ['admin-analytics-daily', dateRange],
+    queryFn: () => fetchDailyStats(dateRange),
     staleTime: 60_000,
   });
 
@@ -611,7 +620,20 @@ export default function AdminAnalyticsPage() {
         title="Admin Analytics"
         subtitle="Platform-wide statistics — customers, DNS traffic, blocked threats, active tenants, and recent alerts"
         action={
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+            {/* Date range filter */}
+            <ToggleButtonGroup
+              value={dateRange}
+              exclusive
+              onChange={(_, v) => { if (v !== null) setDateRange(v); }}
+              size="small"
+              sx={{ '& .MuiToggleButton-root': { px: 1.5, py: 0.5, fontSize: 12, fontWeight: 600, textTransform: 'none', borderRadius: '6px !important' } }}
+            >
+              {DATE_RANGES.map(r => (
+                <ToggleButton key={r.value} value={r.value}>{r.label}</ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+
             <MuiTooltip title="Download daily stats as CSV">
               <Button
                 size="small"
@@ -631,7 +653,7 @@ export default function AdminAnalyticsPage() {
                 onClick={() => printReport(overview, daily)}
                 disabled={!daily.length}
               >
-                Export PDF (Report)
+                Export PDF
               </Button>
             </MuiTooltip>
           </Stack>
@@ -878,58 +900,55 @@ export default function AdminAnalyticsPage() {
           </Card>
         </Grid>
 
-        {/* Top blocked categories bar chart */}
+        {/* Top blocked categories — donut + bar */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ height: '100%' }}>
             <CardHeader
-              title="Top Blocked Categories"
+              title="Category Distribution"
               titleTypographyProps={{ fontWeight: 700, fontSize: 15 }}
+              subheader="Top blocked categories (donut)"
+              subheaderTypographyProps={{ fontSize: 11 }}
             />
             <CardContent sx={{ pt: 0 }}>
               {catLoading ? (
-                <ChartSkeleton height={260} />
+                <ChartSkeleton height={220} />
               ) : categories.length === 0 ? (
-                <Box
-                  sx={{
-                    height: 260,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography color="text.secondary" variant="body2">
-                    No data available
-                  </Typography>
+                <Box sx={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Typography color="text.secondary" variant="body2">No data available</Typography>
                 </Box>
               ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart
-                    data={categories}
-                    layout="vertical"
-                    margin={{ top: 0, right: 16, left: 8, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="rgba(128,128,128,0.15)"
-                      horizontal={false}
-                    />
-                    <XAxis
-                      type="number"
-                      tick={{ fontSize: 10 }}
-                      tickLine={false}
-                      tickFormatter={fmt}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      tick={{ fontSize: 10 }}
-                      width={80}
-                      tickLine={false}
-                    />
-                    <Tooltip formatter={(v: number) => fmt(v)} />
-                    <Bar dataKey="blocks" name="Blocked" fill="#E53935" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={categories.slice(0, 6)}
+                        dataKey="blocks"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="52%"
+                        outerRadius="80%"
+                        paddingAngle={3}
+                      >
+                        {categories.slice(0, 6).map((_: any, i: number) => (
+                          <Cell key={i} fill={['#E53935','#1565C0','#F57F17','#43A047','#7B1FA2','#0288D1'][i % 6]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: number) => fmt(v)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <Stack spacing={0.5} sx={{ mt: 1 }}>
+                    {categories.slice(0, 5).map((c: any, i: number) => (
+                      <Stack key={c.name} direction="row" alignItems="center" spacing={1}>
+                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: ['#E53935','#1565C0','#F57F17','#43A047','#7B1FA2'][i], flexShrink: 0 }} />
+                        <Typography variant="caption" sx={{ flex: 1, color: 'text.secondary', textTransform: 'capitalize', fontSize: 11 }}>
+                          {c.name?.toLowerCase().replace(/_/g, ' ')}
+                        </Typography>
+                        <Typography variant="caption" fontWeight={700} fontSize={11}>{fmt(c.blocks)}</Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </>
               )}
             </CardContent>
           </Card>

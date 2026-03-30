@@ -15,6 +15,9 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer,
+} from 'recharts';
 import { useAuthStore } from '../../store/auth.store';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
@@ -292,6 +295,69 @@ export default function AnalyticsExportPage() {
         iconColor="primary.main"
         hero
       />
+
+      {/* Export History Summary — stat cards */}
+      {history.length > 0 && (() => {
+        const totalExports = history.length;
+        const lastExport = history[0]?.timestamp
+          ? new Date(history[0].timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+          : '—';
+        const mostRecentFormat = history[0]?.format ?? '—';
+
+        // Build bar chart data: count per export type
+        const typeCounts: Record<string, number> = {};
+        history.forEach(r => { typeCounts[r.type] = (typeCounts[r.type] ?? 0) + 1; });
+        const barData = Object.entries(typeCounts).map(([type, count]) => ({ type: type.replace(' Export', '').replace(' (CSV)', ''), count }));
+
+        return (
+          <Grid container spacing={2} sx={{ mb: 3 }} alignItems="stretch">
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+              <Card sx={{ border: `1px solid ${alpha(theme.palette.divider, 0.6)}`, borderRadius: 3, height: '100%' }}>
+                <CardContent sx={{ pb: '12px !important' }}>
+                  <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block' }}>Total Exports</Typography>
+                  <Typography variant="h4" fontWeight={700} color="primary.main" sx={{ my: 0.5 }}>{totalExports}</Typography>
+                  <Typography variant="caption" color="text.secondary">In local history</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+              <Card sx={{ border: `1px solid ${alpha(theme.palette.divider, 0.6)}`, borderRadius: 3, height: '100%' }}>
+                <CardContent sx={{ pb: '12px !important' }}>
+                  <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block' }}>Last Export</Typography>
+                  <Typography variant="h6" fontWeight={700} color="success.main" sx={{ my: 0.5, lineHeight: 1.3 }}>{lastExport}</Typography>
+                  <Typography variant="caption" color="text.secondary">Most recent download</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+              <Card sx={{ border: `1px solid ${alpha(theme.palette.divider, 0.6)}`, borderRadius: 3, height: '100%' }}>
+                <CardContent sx={{ pb: '12px !important' }}>
+                  <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block' }}>Recent Format</Typography>
+                  <Typography variant="h4" fontWeight={700} color="warning.main" sx={{ my: 0.5 }}>{mostRecentFormat}</Typography>
+                  <Typography variant="caption" color="text.secondary">Last export format</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            {barData.length > 0 && (
+              <Grid size={{ xs: 12, md: 5 }}>
+                <Card sx={{ border: `1px solid ${alpha(theme.palette.divider, 0.6)}`, borderRadius: 3, height: '100%' }}>
+                  <CardContent>
+                    <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 1.5 }}>Exports by Type</Typography>
+                    <ResponsiveContainer width="100%" height={80}>
+                      <BarChart data={barData} margin={{ top: 0, right: 8, left: -20, bottom: 0 }}>
+                        <XAxis dataKey="type" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                        <RechartsTooltip formatter={(v: number) => [v, 'Exports']} />
+                        <Bar dataKey="count" fill={theme.palette.primary.main} radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+          </Grid>
+        );
+      })()}
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
 

@@ -1,102 +1,136 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:dio/dio.dart';
-import '../../core/constants.dart';
-import '../../app/theme.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/widgets/common_widgets.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _name = TextEditingController(), _email = TextEditingController(), _password = TextEditingController();
-  bool _loading = false, _obscure = true;
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+  final _form     = GlobalKey<FormState>();
+  final _name     = TextEditingController();
+  final _email    = TextEditingController();
+  final _password = TextEditingController();
+  bool _loading   = false;
+  bool _obscure   = true;
   String? _error;
 
-  Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
+  @override
+  void dispose() {
+    _name.dispose(); _email.dispose(); _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_form.currentState!.validate()) return;
     setState(() { _loading = true; _error = null; });
-    try {
-      final dio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl, connectTimeout: AppConstants.connectTimeout));
-      await dio.post('/auth/register', data: {'name': _name.text.trim(), 'email': _email.text.trim(), 'password': _password.text});
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Account created! Please sign in.'),
-          backgroundColor: ShieldTheme.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ));
-        context.go('/login');
-      }
-    } on DioException catch (e) {
-      setState(() => _error = e.response?.data?['message'] ?? 'Registration failed.');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    final err = await ref.read(authProvider.notifier).register(
+      name:     _name.text.trim(),
+      email:    _email.text.trim(),
+      password: _password.text,
+    );
+    if (!mounted) return;
+    setState(() { _loading = false; _error = err; });
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ShieldTheme.primary,
-      body: SafeArea(
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFF1565C0),
+    body: SafeArea(
+      child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              const Icon(Icons.shield, color: Colors.white, size: 64),
-              const SizedBox(height: 12),
-              const Text('Create Account', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 32),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (_error != null) ...[
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: ShieldTheme.danger.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: ShieldTheme.danger.withOpacity(0.3)),
-                            ),
-                            child: Row(children: [
-                              const Icon(Icons.error_outline, color: ShieldTheme.danger, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(_error!, style: const TextStyle(color: ShieldTheme.danger, fontSize: 13))),
-                            ]),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        TextFormField(controller: _name, decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person_outlined)), validator: (v) => v!.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        TextFormField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)), validator: (v) => v!.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        TextFormField(controller: _password, obscureText: _obscure, decoration: InputDecoration(labelText: 'Password (min 8 chars)', prefixIcon: const Icon(Icons.lock_outlined), suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined), onPressed: () => setState(() => _obscure = !_obscure))), validator: (v) => v!.length < 8 ? 'Min 8 characters' : null),
-                        const SizedBox(height: 24),
-                        FilledButton(onPressed: _loading ? null : _register, style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)), child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Create Account', style: TextStyle(fontSize: 16))),
-                        const SizedBox(height: 12),
-                        TextButton(onPressed: () => context.go('/login'), child: const Text('Already have an account? Sign in')),
-                      ],
+          child: Column(children: [
+            const ShieldLogo(size: 56),
+            const SizedBox(height: 8),
+            const Text('Shield', style: TextStyle(
+                color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 32),
+
+            Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _form,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    const Text('Create Account', style: TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 24),
+
+                    TextFormField(
+                      controller:   _name,
+                      decoration:   const InputDecoration(
+                          labelText: 'Full Name', prefixIcon: Icon(Icons.person_outline)),
+                      validator:    (v) => (v == null || v.trim().isEmpty)
+                          ? 'Enter your name' : null,
                     ),
-                  ),
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller:   _email,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration:   const InputDecoration(
+                          labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
+                      validator:    (v) => (v == null || !v.contains('@'))
+                          ? 'Enter a valid email' : null,
+                    ),
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller:  _password,
+                      obscureText: _obscure,
+                      decoration:  InputDecoration(
+                        labelText:  'Password',
+                        prefixIcon: const Icon(Icons.lock_outlined),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                        ),
+                      ),
+                      validator: (v) => (v == null || v.length < 8)
+                          ? 'Minimum 8 characters' : null,
+                    ),
+
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8)),
+                        child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+
+                    ElevatedButton(
+                      onPressed: _loading ? null : _submit,
+                      child: _loading
+                          ? const SizedBox(height: 20, width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Create Account'),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const Text('Already have an account? '),
+                      TextButton(
+                        onPressed: () => context.go('/login'),
+                        child: const Text('Sign In'),
+                      ),
+                    ]),
+                  ]),
                 ),
               ),
-            ],
-          ),
+            ),
+          ]),
         ),
       ),
-    );
-  }
-
-  @override
-  void dispose() { _name.dispose(); _email.dispose(); _password.dispose(); super.dispose(); }
+    ),
+  );
 }

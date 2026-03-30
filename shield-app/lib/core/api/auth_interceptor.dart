@@ -1,19 +1,45 @@
 import 'package:dio/dio.dart';
-import '../storage/secure_storage.dart';
-import '../auth_state.dart';
+import 'package:flutter/foundation.dart';
+import '../constants.dart';
+import '../services/storage_service.dart';
 
+typedef OnClearSession = Future<void> Function();
+
+/// Attaches the Bearer token to every request.
+/// On 401: attempts one token refresh (parent mode only).
+/// If refresh fails — or if in child mode — clears the session.
 class AuthInterceptor extends Interceptor {
-  final Dio dio;
-  final AuthNotifier _authNotifier;
+  AuthInterceptor({
+    required this.onClearParentSession,
+    required this.onClearChildSession,
+    required this.getIsChildMode,
+  });
 
-  AuthInterceptor(this.dio, this._authNotifier);
+  final OnClearSession onClearParentSession;
+  final OnClearSession onClearChildSession;
+  final bool Function() getIsChildMode;
+
+  // ── Auto-unwrap { "data": X, "success": true } for every response ──────────
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final body = response.data;
+    if (body is Map<String, dynamic> &&
+        body['success'] == true &&
+        body.containsKey('data')) {
+      response.data = body['data'];
+    }
+    handler.next(response);
+  }
 
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // Read token from AuthNotifier state — always correct for both parent and child mode.
-    // Do NOT use SecureStorage.getAccessToken() which always reads the parent key
-    // ('access_token') and will return null in child mode (stored under 'child_access_token').
-    final token = _authNotifier.state.accessToken;
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    final storage = StorageService.instance;
+    final isChild = getIsChildMode();
+
+    final token = isChild
+        ? await storage.read(AppConstants.keyChildToken)
+        : await storage.read(AppConstants.keyAccessToken);
+
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -22,41 +48,62 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    try {
-      if (err.response?.statusCode == 401) {
-        // In child mode there is no refresh token — clear child mode only (restores
-        // parent session if one exists, or redirects to login on a child-only device).
-        if (_authNotifier.state.isChildMode) {
-          await _authNotifier.clearChildMode();
-          handler.next(err);
-          return;
-        }
-        // Parent mode: try to refresh
-        final refresh = await SecureStorage.getRefreshToken();
-        if (refresh != null) {
-          try {
-            final response = await dio.post('/auth/refresh', data: {'refreshToken': refresh});
-            final newToken = response.data['data']['accessToken'] as String;
-            await SecureStorage.saveTokens(access: newToken, refresh: refresh);
-            _authNotifier.updateToken(newToken);
-            final opts = err.requestOptions;
-            opts.headers['Authorization'] = 'Bearer $newToken';
-            final cloneReq = await dio.request(
-              opts.path,
-              options: Options(method: opts.method, headers: opts.headers),
-              data: opts.data,
-              queryParameters: opts.queryParameters,
-            );
-            return handler.resolve(cloneReq);
-          } catch (_) {
-            await _authNotifier.logout();
-          }
-        } else {
-          await _authNotifier.logout();
-        }
-      }
+    if (err.response?.statusCode != 401) {
       handler.next(err);
+      return;
+    }
+
+    final isChild = getIsChildMode();
+
+    if (isChild) {
+      // Child token expired — clear child session, show expired screen
+      debugPrint('[Auth] Child token 401 → clearing child session');
+      await onClearChildSession();
+      handler.next(err);
+      return;
+    }
+
+    // Parent mode — attempt refresh
+    final refreshToken = await StorageService.instance.read(AppConstants.keyRefreshToken);
+    if (refreshToken == null) {
+      await onClearParentSession();
+      handler.next(err);
+      return;
+    }
+
+    try {
+      final refreshDio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl));
+      final resp = await refreshDio.post(
+        '/auth/token/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+      // API wraps response: { "data": {...}, "success": true }
+      final body = resp.data as Map<String, dynamic>;
+      final inner = (body['data'] as Map<String, dynamic>?) ?? body;
+      final newAccess  = inner['accessToken']  as String?;
+      final newRefresh = inner['refreshToken'] as String?;
+
+      if (newAccess == null) {
+        await onClearParentSession();
+        handler.next(err);
+        return;
+      }
+
+      await StorageService.instance.write(AppConstants.keyAccessToken, newAccess);
+      if (newRefresh != null) {
+        await StorageService.instance.write(AppConstants.keyRefreshToken, newRefresh);
+      }
+
+      // Retry original request with new token
+      final retryOptions = err.requestOptions
+        ..headers['Authorization'] = 'Bearer $newAccess';
+
+      final retryDio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl));
+      final retryResp = await retryDio.fetch(retryOptions);
+      handler.resolve(retryResp);
     } catch (_) {
+      debugPrint('[Auth] Refresh failed → clearing parent session');
+      await onClearParentSession();
       handler.next(err);
     }
   }

@@ -555,10 +555,9 @@ public class AuthService {
             throw ShieldException.forbidden("Only CUSTOMER users can issue child tokens");
         }
 
-        // Validate PIN (default child PIN is "0000" if not customised)
-        // In production this would be stored per-profile; for now accept any 4-digit PIN
-        if (pin == null || pin.length() < 4) {
-            throw ShieldException.badRequest("Invalid PIN");
+        // PIN is optional — only validate format if the caller provided one
+        if (pin != null && !pin.isBlank() && pin.length() < 4) {
+            throw ShieldException.badRequest("PIN must be at least 4 digits");
         }
 
         String childToken = jwtUtils.generateChildToken(childProfileId, parentUserId, parent.getTenantId());

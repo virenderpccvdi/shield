@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Grid, Card, CardContent, Typography, Avatar, Chip, Stack, Skeleton, Alert } from '@mui/material';
+import { Box, Grid, Card, CardContent, Typography, Avatar, Chip, Stack, Skeleton, Alert, Button, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
 import DnsIcon from '@mui/icons-material/Dns';
@@ -12,6 +13,7 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import RouterIcon from '@mui/icons-material/Router';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell,
@@ -107,18 +109,47 @@ interface DashboardData {
   categories: CategoryEntry[];
 }
 
+function exportDashboardCSV(
+  trend: DailyPoint[],
+  customerCount: number,
+  profileCount: number,
+  blockRate: number,
+  days: number,
+) {
+  const lines: string[] = [];
+  lines.push('Shield ISP Dashboard Export');
+  lines.push(`Generated,${new Date().toLocaleString()}`);
+  lines.push(`Period,Last ${days} days`);
+  lines.push('');
+  lines.push('Summary');
+  lines.push(`Total Customers,${customerCount}`);
+  lines.push(`Active Profiles,${profileCount}`);
+  lines.push(`Block Rate,${Number(blockRate).toFixed(1)}%`);
+  lines.push('');
+  lines.push('DNS Query Trend');
+  lines.push('Day,Queries');
+  trend.forEach(p => lines.push(`${p.day},${p.queries}`));
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `isp-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+}
+
 export default function IspDashboardPage() {
   const tenantId = useAuthStore(s => s.user?.tenantId);
   const tId = tenantId || '';
+  const [days, setDays] = useState<7 | 14 | 30>(7);
 
   const { data, isLoading } = useQuery<DashboardData>({
-    queryKey: ['isp-dashboard', tId],
+    queryKey: ['isp-dashboard', tId, days],
     queryFn: async () => {
       const [customersRes, dailyRes, overviewRes, catRes] = await Promise.allSettled([
         api.get('/profiles/customers', { params: tId ? { tenantId: tId } : undefined }),
         tId
-          ? api.get(`/analytics/tenant/${tId}/daily?days=7`)
-          : api.get('/analytics/platform/daily?days=7'),
+          ? api.get(`/analytics/tenant/${tId}/daily?days=${days}`)
+          : api.get(`/analytics/platform/daily?days=${days}`),
         tId
           ? api.get(`/analytics/tenant/${tId}/overview?period=today`)
           : api.get('/analytics/platform/overview?period=today'),
@@ -218,6 +249,32 @@ export default function IspDashboardPage() {
         title="ISP Dashboard"
         subtitle="Monitor your customers and DNS infrastructure"
         iconColor="#00897B"
+        action={
+          <Stack direction="row" spacing={1} alignItems="center">
+            <ToggleButtonGroup
+              value={days}
+              exclusive
+              size="small"
+              onChange={(_, v) => { if (v) setDays(v); }}
+              sx={{ bgcolor: 'background.paper' }}
+            >
+              {([7, 14, 30] as const).map(d => (
+                <ToggleButton key={d} value={d} sx={{ px: 1.5, fontSize: 12, fontWeight: 600 }}>
+                  {d}D
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<FileDownloadIcon />}
+              onClick={() => exportDashboardCSV(trend, customerCount, profileCount, blockRate, days)}
+              sx={{ borderColor: '#00897B', color: '#00897B', '&:hover': { bgcolor: '#E0F2F1' }, fontSize: 12 }}
+            >
+              Export CSV
+            </Button>
+          </Stack>
+        }
       />
 
       <PlatformSosBanner />
@@ -286,7 +343,7 @@ export default function IspDashboardPage() {
           <StatCard title="Active Profiles" value={profileCount} icon={<ShieldIcon />} gradient={gradients.blue} delay={0.2} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="DNS Queries (7d)" value={formatK(totalQueries)} icon={<DnsIcon />} gradient={gradients.purple} delay={0.3} />
+          <StatCard title={`DNS Queries (${days}d)`} value={formatK(totalQueries)} icon={<DnsIcon />} gradient={gradients.purple} delay={0.3} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard title="Block Rate" value={`${Number(blockRate).toFixed(1)}%`} icon={<BlockIcon />} gradient={gradients.orange} delay={0.4} />
@@ -300,7 +357,7 @@ export default function IspDashboardPage() {
             <Card>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
-                  7-Day DNS Query Trend
+                  {days}-Day DNS Query Trend
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   Total queries processed across all customers

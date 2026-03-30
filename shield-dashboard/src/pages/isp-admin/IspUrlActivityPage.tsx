@@ -4,6 +4,7 @@ import {
   Stack, Avatar, Table, TableHead, TableRow, TableCell, TableBody,
   Paper, Select, MenuItem, FormControl, InputLabel, Alert,
   Button, Tabs, Tab, TextField, InputAdornment, TablePagination, LinearProgress,
+  ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import BlockIcon from '@mui/icons-material/Block';
@@ -24,7 +25,7 @@ interface Customer { id: string; userId?: string; name?: string; email?: string;
 interface ChildProfile { id: string; name?: string; age?: number; filterLevel?: string; dnsClientId?: string; }
 interface HistoryEntry { id: string; domain: string; action: string; category?: string; timestamp: string; deviceIp?: string; }
 interface ProfileStats { totalQueries: number; totalBlocked: number; totalAllowed: number; blockRate: number; }
-interface TenantOverview { totalQueries: number; totalBlocked: number; blockRate: number; activeProfiles: number; }
+interface TenantOverview { totalQueries: number; totalBlocked: number; totalAllowed?: number; blockRate: number; activeProfiles: number; }
 
 function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color: string }) {
   return (
@@ -66,12 +67,13 @@ export default function IspUrlActivityPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [days, setDays] = useState<7 | 14 | 30>(7);
 
   // Tenant overview
   const { data: overview } = useQuery<TenantOverview>({
-    queryKey: ['isp-url-activity-overview', tenantId],
+    queryKey: ['isp-url-activity-overview', tenantId, days],
     enabled: !!tenantId,
-    queryFn: () => api.get(`/analytics/tenant/${tenantId}/overview`).then(r => r.data?.data ?? r.data).catch(() => null),
+    queryFn: () => api.get(`/analytics/tenant/${tenantId}/overview`, { params: { days } }).then(r => r.data?.data ?? r.data).catch(() => null),
   });
 
   // Customers list
@@ -102,9 +104,9 @@ export default function IspUrlActivityPage() {
 
   // DNS Query history — server-side pagination
   const { data: historyResponse, isLoading: loadingHistory, isFetching: fetchingHistory } = useQuery({
-    queryKey: ['isp-url-activity-history', selectedProfile, page, rowsPerPage],
+    queryKey: ['isp-url-activity-history', selectedProfile, page, rowsPerPage, days],
     enabled: !!selectedProfile,
-    queryFn: () => api.get(`/analytics/${selectedProfile}/history`, { params: { page, size: rowsPerPage } }).then(r => {
+    queryFn: () => api.get(`/analytics/${selectedProfile}/history`, { params: { page, size: rowsPerPage, days } }).then(r => {
       const totalElements: number = r.data?.data?.totalElements ?? r.data?.totalElements ?? 0;
       const d = r.data?.data?.content ?? r.data?.data ?? r.data;
       return { content: (Array.isArray(d) ? d : []) as HistoryEntry[], totalElements };
@@ -150,7 +152,7 @@ export default function IspUrlActivityPage() {
         }
       />
 
-      {/* Tenant Overview */}
+      {/* Tenant Overview KPI Row */}
       {overview && (
         <AnimatedPage delay={0.05}>
           <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -161,10 +163,15 @@ export default function IspUrlActivityPage() {
               <StatCard label="Blocked" value={(overview.totalBlocked ?? 0).toLocaleString()} color="#E53935" sub="Blocked requests" />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <StatCard label="Block Rate" value={`${((overview.blockRate ?? 0) * 100).toFixed(1)}%`} color="#F57F17" sub="Of all queries" />
+              <StatCard
+                label="Allowed"
+                value={(overview.totalAllowed ?? Math.max(0, (overview.totalQueries ?? 0) - (overview.totalBlocked ?? 0))).toLocaleString()}
+                color="#2E7D32"
+                sub="Allowed requests"
+              />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <StatCard label="Active Profiles" value={overview.activeProfiles ?? 0} color="#00897B" sub="Child profiles" />
+              <StatCard label="Block Rate" value={`${((overview.blockRate ?? 0) * 100).toFixed(1)}%`} color="#F57F17" sub="Of all queries" />
             </Grid>
           </Grid>
         </AnimatedPage>
@@ -177,7 +184,7 @@ export default function IspUrlActivityPage() {
             <Typography fontWeight={700} fontSize={14} sx={{ mb: 2, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Select Profile
             </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
               <FormControl size="small" sx={{ minWidth: 220 }}>
                 <InputLabel>Customer</InputLabel>
                 <Select value={selectedCustomer} label="Customer" onChange={e => setSelectedCustomer(e.target.value)}>
@@ -216,6 +223,20 @@ export default function IspUrlActivityPage() {
                   Clear
                 </Button>
               )}
+              <Box sx={{ ml: 'auto' }}>
+                <ToggleButtonGroup
+                  value={days}
+                  exclusive
+                  size="small"
+                  onChange={(_, v) => { if (v) { setDays(v); setPage(0); } }}
+                >
+                  {([7, 14, 30] as const).map(d => (
+                    <ToggleButton key={d} value={d} sx={{ px: 1.5, fontSize: 12, fontWeight: 600 }}>
+                      {d}D
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </Box>
             </Stack>
 
             {/* Breadcrumb */}

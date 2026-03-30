@@ -14,6 +14,5 @@ public class ChildTokenRequest {
     @NotNull
     private UUID childProfileId;
 
-    @NotNull
     private String pin;
 }

@@ -3,27 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'app/app.dart';
-import 'core/fcm_service.dart';
-import 'core/cache_service.dart';
-import 'core/websocket_service.dart';
-import 'core/background_location_service.dart';
+import 'core/services/background_service.dart';
+import 'core/services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await CacheService.init();
-  await initLocalNotifications();
-  await initBackgroundService();
+  // Configure background service (does not start it — only child devices start it)
+  await BackgroundServiceHelper.configure();
 
-  // Initialize Firebase (requires google-services.json in android/app/)
+  // Firebase push notifications (optional — app works without google-services.json)
   try {
     await Firebase.initializeApp();
-    // Register background message handler
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    debugPrint('Firebase initialized');
+    FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
+    await FcmService.init();
   } catch (e) {
-    // Firebase not configured yet — app still works without push notifications
-    debugPrint('Firebase init skipped (not configured): $e');
+    debugPrint('[Shield] Firebase init skipped: $e');
   }
 
   runApp(const ProviderScope(child: ShieldApp()));

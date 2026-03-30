@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText,
   Typography, Divider, AppBar, Toolbar, IconButton, Avatar, Menu,
-  MenuItem, Tooltip, useMediaQuery, useTheme, Collapse,
+  MenuItem, Tooltip, useMediaQuery, useTheme, Collapse, InputBase, Badge, Chip,
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -38,6 +38,9 @@ import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import SearchIcon from '@mui/icons-material/Search';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import PersonIcon from '@mui/icons-material/Person';
 import { useAuthStore } from '../store/auth.store';
 import { useThemeStore } from '../store/theme.store';
 import LanguageSwitcher from '../components/LanguageSwitcher';
@@ -359,35 +362,100 @@ export default function AdminLayout() {
       )}
 
       <Box sx={{ flexGrow: 1, ml: isMobile ? 0 : `${drawerWidth}px`, transition: 'margin-left 0.25s ease' }}>
-        <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Toolbar sx={{ minHeight: 56 }}>
+        <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider', backdropFilter: 'blur(8px)' }}>
+          <Toolbar sx={{ minHeight: 60, gap: 0.5, px: { xs: 1.5, md: 2.5 } }}>
             {isMobile && (
-              <IconButton edge="start" onClick={() => setMobileOpen(true)} aria-label="Open navigation" sx={{ mr: 1 }}>
+              <IconButton edge="start" onClick={() => setMobileOpen(true)} aria-label="Open navigation" sx={{ mr: 0.5 }}>
                 <MenuIcon />
               </IconButton>
             )}
+
+            {/* Search bar */}
+            <Box className="search-bar" sx={{ display: { xs: 'none', sm: 'flex' }, mr: 1, width: { sm: 180, md: 260 } }}>
+              <SearchIcon sx={{ fontSize: 17, color: 'text.disabled', flexShrink: 0 }} />
+              <InputBase
+                placeholder="Search…"
+                inputProps={{ 'aria-label': 'global search' }}
+                sx={{ fontSize: 13.5, flex: 1 }}
+              />
+            </Box>
+
             <Box sx={{ flexGrow: 1 }} />
+
+            <Tooltip title="Help & docs">
+              <IconButton size="small" sx={{ color: 'text.secondary' }}>
+                <HelpOutlineIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
             <LanguageSwitcher />
-            <IconButton onClick={toggleTheme} aria-label={themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} sx={{ mr: 0.5 }}>
-              {themeMode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-            </IconButton>
-            <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} aria-label="User menu">
-              <Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: 14, fontWeight: 700 }}>
-                {user?.name?.charAt(0)?.toUpperCase()}
+
+            <Tooltip title={themeMode === 'dark' ? 'Light mode' : 'Dark mode'}>
+              <IconButton size="small" onClick={toggleTheme} aria-label={themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+                {themeMode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="Notifications">
+              <IconButton size="small" onClick={() => navigate('/admin/notifications')} aria-label="Notifications">
+                <Badge badgeContent={0} color="error" variant="dot">
+                  <NotificationsIcon fontSize="small" />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+
+            {/* User button */}
+            <Box
+              onClick={(e) => setAnchorEl(e.currentTarget)}
+              sx={{
+                display: 'flex', alignItems: 'center', gap: 1, ml: 0.5, px: 1, py: 0.5,
+                borderRadius: 2, cursor: 'pointer', border: '1px solid',
+                borderColor: 'divider', transition: 'all 0.15s ease',
+                '&:hover': { bgcolor: 'action.hover' },
+              }}
+            >
+              <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.main', fontSize: 12, fontWeight: 700 }}>
+                {user?.name?.charAt(0)?.toUpperCase() ?? 'A'}
               </Avatar>
-            </IconButton>
+              <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                <Typography variant="body2" sx={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.2, color: 'text.primary' }}>
+                  {user?.name ?? 'Admin'}
+                </Typography>
+                <Typography variant="caption" sx={{ fontSize: 10.5, color: 'text.secondary', lineHeight: 1 }}>
+                  Global Admin
+                </Typography>
+              </Box>
+            </Box>
           </Toolbar>
         </AppBar>
-        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-          <MenuItem disabled>
-            <Typography variant="body2" fontWeight={600}>{user?.name}</Typography>
-          </MenuItem>
-          <MenuItem disabled>
-            <Typography variant="caption" color="text.secondary">{user?.email}</Typography>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          PaperProps={{ elevation: 4, sx: { minWidth: 220, mt: 0.5 } }}
+        >
+          <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main', fontSize: 16, fontWeight: 700 }}>
+              {user?.name?.charAt(0)?.toUpperCase() ?? 'A'}
+            </Avatar>
+            <Box>
+              <Typography variant="body2" fontWeight={700} sx={{ lineHeight: 1.3 }}>{user?.name ?? 'Admin'}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2, display: 'block' }}>{user?.email ?? ''}</Typography>
+              <Chip label="Global Admin" size="small" sx={{ mt: 0.5, height: 18, fontSize: 10, fontWeight: 600 }} color="primary" />
+            </Box>
+          </Box>
+          <Divider />
+          <MenuItem onClick={() => { navigate('/admin/settings'); setAnchorEl(null); }} sx={{ gap: 1.5, py: 1 }}>
+            <PersonIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+            <Typography variant="body2">Profile & Settings</Typography>
           </MenuItem>
           <Divider />
-          <MenuItem onClick={() => { navigate('/admin/settings'); setAnchorEl(null); }}>Settings</MenuItem>
-          <MenuItem onClick={() => { logout(); navigate('/login'); }} sx={{ color: 'error.main' }}>Sign out</MenuItem>
+          <MenuItem onClick={() => { logout(); navigate('/login'); }} sx={{ color: 'error.main', gap: 1.5, py: 1 }}>
+            <LogoutIcon fontSize="small" />
+            <Typography variant="body2">Sign out</Typography>
+          </MenuItem>
         </Menu>
         <Box component="main" id="main-content" sx={{ p: { xs: 2, md: 3 } }}>
           <Outlet />

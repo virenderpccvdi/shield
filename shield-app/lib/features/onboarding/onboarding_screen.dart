@@ -1,477 +1,221 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../app/theme.dart';
-import '../../core/shield_logo.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OnboardingScreen — 3-slide introduction shown once on first install.
+// ─────────────────────────────────────────────────────────────────────────────
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
-
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-  static const int _totalPages = 4;
+  final _controller = PageController();
+  int _page = 0;
+
+  static const _slides = [
+    _Slide(
+      gradient:   [Color(0xFF0D1B4B), Color(0xFF1565C0)],
+      icon:       Icons.shield,
+      iconColor:  Color(0xFF4FC3F7),
+      title:      'Smart Family Protection',
+      body:       'Shield blocks harmful content, enforces safe browsing, '
+                  'and keeps your children protected — automatically.',
+    ),
+    _Slide(
+      gradient:   [Color(0xFF004D40), Color(0xFF00796B)],
+      icon:       Icons.schedule,
+      iconColor:  Color(0xFF80CBC4),
+      title:      'Screen Time Control',
+      body:       'Set daily limits, bedtime lockdowns, and homework mode. '
+                  'Healthy digital habits built right in.',
+    ),
+    _Slide(
+      gradient:   [Color(0xFF1A237E), Color(0xFF283593)],
+      icon:       Icons.location_on,
+      iconColor:  Color(0xFF9FA8DA),
+      title:      'Always Know Where They Are',
+      body:       'Real-time location, geofence alerts, and location history '
+                  'so you\'re always connected to your family.',
+    ),
+  ];
+
+  void _next() {
+    if (_page < _slides.length - 1) {
+      _controller.nextPage(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      context.go('/login');
+    }
+  }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _markDone() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_done', true);
-  }
-
-  Future<void> _skip() async {
-    await _markDone();
-    if (mounted) context.go('/dashboard');
-  }
-
-  Future<void> _getStarted() async {
-    await _markDone();
-    if (mounted) context.go('/family/new');
-  }
-
-  void _nextPage() {
-    _pageController.nextPage(
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOut,
-    );
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Pages
-          PageView(
-            controller: _pageController,
-            onPageChanged: (i) => setState(() => _currentPage = i),
-            children: const [
-              _WelcomePage(),
-              _AddChildPage(),
-              _ProtectionPage(),
-              _ConnectDevicePage(),
-            ],
-          ),
-
-          // Skip button (top right)
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8, right: 16),
-                child: TextButton(
-                  onPressed: _skip,
-                  style: TextButton.styleFrom(
-                    foregroundColor: _currentPage == 0
-                        ? Colors.white70
-                        : ShieldTheme.textSecondary,
-                  ),
-                  child: const Text('Skip',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                ),
-              ),
-            ),
-          ),
-
-          // Bottom nav (dots + button)
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Dot indicators
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(_totalPages, (i) {
-                        final isActive = i == _currentPage;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: isActive ? 24 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? ShieldTheme.primary
-                                : ShieldTheme.divider,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 20),
-                    // Action button
-                    if (_currentPage < _totalPages - 1)
-                      FilledButton(
-                        onPressed: _nextPage,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 52),
-                        ),
-                        child: const Text('Next'),
-                      )
-                    else
-                      Column(
-                        children: [
-                          FilledButton(
-                            onPressed: _getStarted,
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 52),
-                            ),
-                            child: const Text('Get Started'),
-                          ),
-                          const SizedBox(height: 10),
-                          TextButton(
-                            onPressed: _skip,
-                            child: const Text('Skip for now',
-                                style: TextStyle(
-                                    color: ShieldTheme.textSecondary,
-                                    fontWeight: FontWeight.w500)),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+  Widget build(BuildContext context) => Scaffold(
+    body: Stack(children: [
+      // Pages
+      PageView.builder(
+        controller: _controller,
+        onPageChanged: (i) => setState(() => _page = i),
+        itemCount: _slides.length,
+        itemBuilder: (_, i) => _SlidePage(slide: _slides[i]),
       ),
-    );
-  }
+
+      // Bottom controls overlay
+      Positioned(
+        left: 0, right: 0, bottom: 0,
+        child: _BottomControls(
+          page:      _page,
+          total:     _slides.length,
+          onNext:    _next,
+          onSkip:    () => context.go('/login'),
+        ),
+      ),
+    ]),
+  );
 }
 
-// ── Page 1: Welcome ─────────────────────────────────────────────────────────
+// ── Slide page ────────────────────────────────────────────────────────────────
 
-class _WelcomePage extends StatelessWidget {
-  const _WelcomePage();
+class _SlidePage extends StatelessWidget {
+  const _SlidePage({required this.slide});
+  final _Slide slide;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: ShieldTheme.heroGradient),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(32, 60, 32, 120),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const ShieldLogoHero(size: 80),
-              const SizedBox(height: 36),
-              const Text(
-                'Welcome to Shield',
-                style: TextStyle(
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: slide.gradient,
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+      ),
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(32, 80, 32, 160),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon container
+            Container(
+              width: 120, height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.12),
+              ),
+              child: Icon(slide.icon, size: 60, color: slide.iconColor),
+            ),
+            const SizedBox(height: 48),
+
+            Text(slide.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
+                  fontSize: 28, fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5, height: 1.2,
+                )),
+            const SizedBox(height: 20),
+
+            Text(slide.body,
                 textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'The smart family internet protection system',
                 style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.15)),
-                ),
-                child: const Text(
-                  'Monitor, protect, and manage your child\'s online activity with AI-powered insights',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    height: 1.6,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
+                  color: Colors.white.withOpacity(0.75),
+                  fontSize: 15, height: 1.6,
+                )),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// ── Bottom controls ───────────────────────────────────────────────────────────
+
+class _BottomControls extends StatelessWidget {
+  const _BottomControls({
+    required this.page,
+    required this.total,
+    required this.onNext,
+    required this.onSkip,
+  });
+  final int page, total;
+  final VoidCallback onNext, onSkip;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(32, 0, 32, 48),
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      // Dots
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(
+        total,
+        (i) => AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width:  i == page ? 24 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: i == page ? Colors.white : Colors.white30,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      )),
+      const SizedBox(height: 32),
+
+      // Next / Get Started button
+      SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton(
+          onPressed: onNext,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: const Color(0xFF1565C0),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+            elevation: 0,
+          ),
+          child: Text(
+            page == total - 1 ? 'Get Started' : 'Next',
+            style: const TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w700),
           ),
         ),
       ),
-    );
-  }
-}
+      const SizedBox(height: 12),
 
-// ── Page 2: Add Your First Child ────────────────────────────────────────────
-
-class _AddChildPage extends StatelessWidget {
-  const _AddChildPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return _ContentPage(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _IconCircle(
-            icon: Icons.child_care_rounded,
-            color: ShieldTheme.primary,
-            size: 72,
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'Add a Child Profile',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: ShieldTheme.textPrimary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Create profiles for each child to set personalized content filters, schedules, and screen time limits',
-            style: TextStyle(
-              fontSize: 15,
-              color: ShieldTheme.textSecondary,
-              height: 1.6,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 28),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: ShieldTheme.primary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: ShieldTheme.primary.withOpacity(0.2)),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.flag_rounded, color: ShieldTheme.primary, size: 16),
-                SizedBox(width: 8),
-                Text(
-                  'Step 1 of 3',
-                  style: TextStyle(
-                    color: ShieldTheme.primary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Page 3: Set Up Protection ────────────────────────────────────────────────
-
-class _ProtectionPage extends StatelessWidget {
-  const _ProtectionPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return _ContentPage(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _IconCircle(
-            icon: Icons.shield_rounded,
-            color: ShieldTheme.success,
-            size: 72,
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'Smart Content Filtering',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: ShieldTheme.textPrimary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Block harmful content, set internet schedules, and monitor usage with AI behavioral insights',
-            style: TextStyle(
-              fontSize: 15,
-              color: ShieldTheme.textSecondary,
-              height: 1.6,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 28),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 10,
-            runSpacing: 10,
-            children: const [
-              _FeatureChip(label: 'DNS Filtering', icon: Icons.dns_rounded, color: ShieldTheme.primary),
-              _FeatureChip(label: 'Screen Time', icon: Icons.access_time_rounded, color: ShieldTheme.warning),
-              _FeatureChip(label: 'AI Insights', icon: Icons.psychology_rounded, color: ShieldTheme.success),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Page 4: Connect Child's Device ──────────────────────────────────────────
-
-class _ConnectDevicePage extends StatelessWidget {
-  const _ConnectDevicePage();
-
-  @override
-  Widget build(BuildContext context) {
-    return _ContentPage(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _IconCircle(
-            icon: Icons.smartphone_rounded,
-            color: ShieldTheme.success,
-            size: 72,
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'Connect Child\'s Device',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: ShieldTheme.textPrimary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Download the Shield app on your child\'s device and scan the QR code to link it',
-            style: TextStyle(
-              fontSize: 15,
-              color: ShieldTheme.textSecondary,
-              height: 1.6,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 28),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: ShieldTheme.success.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: ShieldTheme.success.withOpacity(0.2)),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.qr_code_scanner_rounded, color: ShieldTheme.success, size: 28),
-                SizedBox(width: 14),
-                Flexible(
-                  child: Text(
-                    'A QR code will be generated after you add your first child',
-                    style: TextStyle(
-                      color: ShieldTheme.success,
-                      fontSize: 13,
-                      height: 1.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Shared widgets ──────────────────────────────────────────────────────────
-
-class _ContentPage extends StatelessWidget {
-  final Widget child;
-  const _ContentPage({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: ShieldTheme.surface,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(32, 60, 32, 140),
-          child: child,
+      // Skip
+      if (page < total - 1)
+        TextButton(
+          onPressed: onSkip,
+          child: Text('Skip',
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.6), fontSize: 14)),
         ),
-      ),
-    );
-  }
+    ]),
+  );
 }
 
-class _IconCircle extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final double size;
-  const _IconCircle({required this.icon, required this.color, required this.size});
+// ── Data ──────────────────────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size * 1.6,
-      height: size * 1.6,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        shape: BoxShape.circle,
-        border: Border.all(color: color.withOpacity(0.2), width: 2),
-      ),
-      child: Icon(icon, size: size, color: color),
-    );
-  }
-}
-
-class _FeatureChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  const _FeatureChip({required this.label, required this.icon, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.25)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 7),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+class _Slide {
+  const _Slide({
+    required this.gradient,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.body,
+  });
+  final List<Color> gradient;
+  final IconData    icon;
+  final Color       iconColor;
+  final String      title;
+  final String      body;
 }
