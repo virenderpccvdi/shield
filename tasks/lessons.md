@@ -91,3 +91,16 @@
 
 ### L17 — Check service logs FIRST on 500/503 errors
 **Pattern:** `journalctl -u shield-{service} -n 50 --no-pager | tail -60` immediately surfaces root cause. Don't guess at code before reading logs.
+
+---
+
+## Android VPN / DoH
+
+### L18 — VPN DoH forwarding must NOT resolve hostname inside the tunnel (2026-04-07)
+**Mistake:** `InetSocketAddress(u.host, port)` in `ShieldVpnService.openProtectedConnection()` triggers OS DNS resolution. But the VPN is already running, so that DNS query goes through the fake DNS (10.111.0.2) → intercepted by the proxy → calls `forwardToDoh()` again → infinite recursive loop → ALL DNS timeouts → no websites load.
+**Rule:** Always pre-resolve the DoH server IP BEFORE calling `builder.establish()` (while normal DNS still works). Cache as `dohServerIp`. Use `InetSocketAddress(serverIp, port)` for socket connect. Keep hostname only for `sslFactory.createSocket(rawSocket, u.host, ...)` so TLS SNI and cert verification work.
+**How to apply:** Any time a VPN service needs to make an outbound HTTPS connection, the target hostname must be resolved before the tunnel is up.
+
+### L19 — Stale sentinel flags in dns.dns_rules block all internet (2026-04-07)
+**Mistake:** `__budget_exhausted__: true` was stuck in Disha's `enabled_categories` JSONB even though `daily_budget_minutes` was NULL (no budget configured). This AdGuard sync flag was set incorrectly and never cleared.
+**Rule:** After clearing/disabling a time budget feature, always verify the corresponding sentinel flag is also cleared: `SELECT enabled_categories->>'__budget_exhausted__' FROM dns.dns_rules WHERE profile_id = '...'`. If stuck, clear via direct SQL update.

@@ -44,6 +44,14 @@ class ShieldVpnService : VpnService() {
     private var dohUrl: String = ""
     @Volatile private var running = false
 
+    /**
+     * IP address of the DoH server, resolved BEFORE the VPN tunnel is started.
+     * Used instead of hostname in socket connections to avoid the DNS resolution loop:
+     * if we used the hostname, the OS would try to resolve it via the VPN's fake DNS
+     * (10.111.0.2), which calls back into forwardToDoh(), causing infinite recursion.
+     */
+    private var dohServerIp: String? = null
+
     // ── Lifecycle ────────────────────────────────────────────────────────────
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -76,6 +84,21 @@ class ShieldVpnService : VpnService() {
     private fun startVpn() {
         if (running) return
         try {
+            // ── Pre-resolve DoH server IP BEFORE establishing the VPN tunnel ──────────
+            // CRITICAL: must happen here, before builder.establish(), while the device
+            // still uses its normal DNS. After the tunnel is up, all DNS goes through our
+            // fake 10.111.0.2 server, so resolving the hostname there would recursively
+            // call forwardToDoh() → deadlock. We cache the IP and use it directly in
+            // openProtectedConnection() instead of the hostname.
+            try {
+                val dohHost = java.net.URL(dohUrl).host
+                dohServerIp = java.net.InetAddress.getByName(dohHost).hostAddress
+                Log.i(TAG, "Pre-resolved DoH host $dohHost → $dohServerIp")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to pre-resolve DoH host — VPN will not start: ${e.message}")
+                return
+            }
+
             // Fake DNS address — all DNS queries will appear to go here; we intercept them
             val fakeDns = "10.111.0.2"
 
@@ -195,19 +218,32 @@ class ShieldVpnService : VpnService() {
     /**
      * Open an HTTPS connection with a VPN-protected socket so the DoH request
      * doesn't re-enter the tunnel (which would cause infinite DNS resolution loop).
+     *
+     * KEY: we connect using the pre-resolved IP (dohServerIp), NOT the hostname.
+     * InetSocketAddress(hostname, port) would trigger OS DNS resolution, which goes
+     * through our fake DNS 10.111.0.2, which calls forwardToDoh() again → infinite loop.
+     * Using the cached IP bypasses DNS entirely. The hostname is still passed to
+     * createSocket() so TLS SNI and certificate verification work correctly.
      */
     private fun openProtectedConnection(url: String, body: ByteArray): ByteArray? {
         return try {
             val u = URL(url)
             val port = if (u.port == -1) 443 else u.port
 
-            // Create a raw socket and protect it BEFORE DNS resolution
-            val rawSocket = java.net.Socket()
-            protect(rawSocket)                             // ← key call: excludes from VPN routing
+            // Use pre-resolved IP — never do hostname resolution inside the VPN tunnel
+            val serverIp = dohServerIp ?: run {
+                Log.e(TAG, "dohServerIp not set — cannot forward DNS query")
+                return null
+            }
 
-            rawSocket.connect(InetSocketAddress(u.host, port), 5000)
+            val rawSocket = java.net.Socket()
+            protect(rawSocket)                             // excludes socket from VPN routing
+
+            // Connect via IP address (no DNS lookup) — hostname is for SNI only
+            rawSocket.connect(InetSocketAddress(serverIp, port), 5000)
 
             val sslFactory = javax.net.ssl.SSLSocketFactory.getDefault() as javax.net.ssl.SSLSocketFactory
+            // Pass u.host for SNI so TLS certificate matches the expected hostname
             val sslSocket  = sslFactory.createSocket(rawSocket, u.host, port, true) as javax.net.ssl.SSLSocket
             sslSocket.startHandshake()
 
