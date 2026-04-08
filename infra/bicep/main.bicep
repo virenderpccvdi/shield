@@ -10,7 +10,7 @@ param environment string = 'prod'
 param location string = resourceGroup().location
 
 @description('Kubernetes version')
-param kubernetesVersion string = '1.31'
+param kubernetesVersion string = '1.32'
 
 @description('PostgreSQL admin password')
 @secure()
@@ -60,7 +60,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
     agentPoolProfiles: [
       {
         name: 'system'
-        vmSize: 'Standard_B4ms'      // 4 vCPU, 16GB RAM — fits all 12 services
+        vmSize: 'Standard_D4s_v3'    // 4 vCPU, 16GB RAM — fits all 12 services (B4ms not available in centralindia)
         count: 1
         minCount: 1
         maxCount: 3                  // autoscale up to 3 nodes under load
@@ -68,8 +68,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         osType: 'Linux'
         osSKU: 'AzureLinux'
         mode: 'System'
-        diskSizeGB: 50
-        availabilityZones: ['1', '2', '3']
+        osDiskSizeGB: 50
       }
     ]
 
@@ -77,15 +76,6 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
       networkPlugin: 'azure'
       networkPolicy: 'azure'
       loadBalancerSku: 'standard'
-    }
-
-    addonProfiles: {
-      omsagent: {
-        enabled: true
-        config: {
-          logAnalyticsWorkspaceResourceID: logWorkspace.id
-        }
-      }
     }
 
     autoUpgradeProfile: {
@@ -173,7 +163,7 @@ resource redis 'Microsoft.Cache/Redis@2024-03-01' = {
     enableNonSslPort: false
     minimumTlsVersion: '1.2'
     redisConfiguration: {
-      maxmemoryPolicy: 'allkeys-lru'
+      'maxmemory-policy': 'allkeys-lru'
     }
   }
 }

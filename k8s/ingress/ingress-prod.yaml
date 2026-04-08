@@ -1,36 +1,25 @@
-# NGINX Ingress for shield-prod namespace
-# Requires: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/cloud/deploy.yaml
-# Requires: cert-manager installed + ClusterIssuer letsencrypt-prod
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: shield-ingress
   namespace: shield-prod
   annotations:
-    kubernetes.io/ingress.class: "nginx"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    # WebSocket support (for STOMP notifications)
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection "upgrade";
-    # Rate limiting at ingress level
     nginx.ingress.kubernetes.io/limit-rps: "100"
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
-    # Body size for APK downloads
     nginx.ingress.kubernetes.io/proxy-body-size: "200m"
 spec:
+  ingressClassName: nginx
   tls:
     - hosts:
         - shield.rstglobal.in
         - api.shield.rstglobal.in
       secretName: shield-tls-cert
   rules:
-    # API traffic → gateway
     - host: api.shield.rstglobal.in
       http:
         paths:
@@ -41,7 +30,6 @@ spec:
                 name: shield-gateway
                 port:
                   number: 8280
-    # Main domain → gateway (API calls from Flutter/browser)
     - host: shield.rstglobal.in
       http:
         paths:
@@ -52,7 +40,6 @@ spec:
                 name: shield-gateway
                 port:
                   number: 8280
-          # Swagger docs
           - path: /docs/
             pathType: Prefix
             backend:
