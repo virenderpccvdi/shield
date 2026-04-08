@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../app/theme.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/constants.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/theme_provider.dart';
@@ -161,21 +163,21 @@ class SettingsScreen extends ConsumerWidget {
           iconColor: Colors.blueGrey,
           title:    'Privacy Policy',
           trailing: const Icon(Icons.open_in_new, size: 16),
-          onTap:    () {},
+          onTap:    () => _openUrl('https://shield.rstglobal.in/privacy'),
         ),
         _tile(
           icon:     Icons.article_outlined,
           iconColor: Colors.blueGrey,
           title:    'Terms of Service',
           trailing: const Icon(Icons.open_in_new, size: 16),
-          onTap:    () {},
+          onTap:    () => _openUrl('https://shield.rstglobal.in/terms'),
         ),
         _tile(
           icon:     Icons.help_outline,
           iconColor: ShieldTheme.secondary,
           title:    'Help & Support',
           trailing: const Icon(Icons.open_in_new, size: 16),
-          onTap:    () {},
+          onTap:    () => _openUrl('https://shield.rstglobal.in/#contact'),
         ),
 
         const SizedBox(height: 40),
@@ -267,7 +269,10 @@ class SettingsScreen extends ConsumerWidget {
               child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
-              if (ctrl1.text.length >= 4 && ctrl1.text == ctrl2.text) {
+              final digitsOnly = RegExp(r'^\d+$');
+              if (ctrl1.text.length >= 4 &&
+                  digitsOnly.hasMatch(ctrl1.text) &&
+                  ctrl1.text == ctrl2.text) {
                 await StorageService.instance.setParentPin(ctrl1.text);
                 if (context.mounted) {
                   Navigator.pop(context);
@@ -276,8 +281,13 @@ class SettingsScreen extends ConsumerWidget {
                         backgroundColor: Colors.green));
                 }
               } else if (context.mounted) {
+                final msg = ctrl1.text != ctrl2.text
+                    ? 'PINs do not match'
+                    : !digitsOnly.hasMatch(ctrl1.text)
+                        ? 'PIN must contain digits only'
+                        : 'PIN must be at least 4 digits';
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('PINs must match and be ≥ 4 digits')));
+                  SnackBar(content: Text(msg)));
               }
             },
             child: const Text('Save PIN'),
@@ -310,8 +320,40 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     if (ok == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Activity data cleared')));
+      try {
+        // Fetch children and delete their browsing history
+        final childResp = await ApiClient.instance.get('/profiles/children');
+        final raw = childResp.data is List
+            ? childResp.data as List
+            : (childResp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
+        for (final c in raw) {
+          final pid = (c as Map<String, dynamic>)['id']?.toString();
+          if (pid != null) {
+            try {
+              await ApiClient.instance.delete('/analytics/$pid/history');
+            } catch (_) {}
+          }
+        }
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Activity data cleared successfully'),
+              backgroundColor: Colors.green,
+            ));
+        }
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to clear data — try again')));
+        }
+      }
+    }
+  }
+
+  void _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 }
@@ -331,7 +373,7 @@ class _AccountCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0D1B4B), Color(0xFF1565C0)],
+          colors: [Color(0xFF1E40AF), Color(0xFF2563EB)],
           begin: Alignment.topLeft, end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),

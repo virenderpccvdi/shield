@@ -43,7 +43,7 @@ class NotificationsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               try {
-                await ApiClient.instance.post('/alerts/mark-all-read');
+                await ApiClient.instance.post(Endpoints.markAllRead);
                 ref.invalidate(_notifProvider);
               } catch (_) {}
             },
@@ -81,7 +81,7 @@ class NotificationsScreen extends ConsumerWidget {
                   onRead: () async {
                     try {
                       await ApiClient.instance
-                          .post('/alerts/${(entry).id}/read');
+                          .post(Endpoints.markRead((entry as AlertModel).id));
                       ref.invalidate(_notifProvider);
                     } catch (_) {}
                   },

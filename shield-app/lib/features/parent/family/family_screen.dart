@@ -78,9 +78,9 @@ class _ChildListTile extends StatelessWidget {
         child: Row(children: [
           CircleAvatar(
             radius:          28,
-            backgroundColor: const Color(0xFF1565C0).withOpacity(0.12),
+            backgroundColor: const Color(0xFF2563EB).withOpacity(0.12),
             child: Text(child.initials,
-                style: const TextStyle(color: Color(0xFF1565C0),
+                style: const TextStyle(color: Color(0xFF2563EB),
                     fontWeight: FontWeight.bold, fontSize: 20)),
           ),
           const SizedBox(width: 14),

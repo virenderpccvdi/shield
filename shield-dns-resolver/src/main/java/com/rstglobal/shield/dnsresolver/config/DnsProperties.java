@@ -8,8 +8,10 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "dns")
 public class DnsProperties {
-    private String upstreamDoh = "https://1.1.1.1/dns-query";
-    private String upstreamFallback = "https://8.8.8.8/dns-query";
+    /** Primary upstream DNS server IP (UDP port 53). Default: Cloudflare. */
+    private String upstreamDns = "1.1.1.1";
+    /** Fallback upstream DNS server IP (UDP port 53). Default: Google. */
+    private String upstreamFallbackDns = "8.8.8.8";
     private int rulesTtlSeconds = 300;
     private int queryTimeoutMs = 2000;
 }

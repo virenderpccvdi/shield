@@ -26,7 +26,7 @@ class _BatteryAlertsState extends ConsumerState<BatteryAlertsScreen> {
       final d = resp.data as Map<String, dynamic>? ?? {};
       setState(() {
         _enabled    = d['enabled'] as bool? ?? true;
-        _threshold  = (d['threshold'] as int?) ?? 20;
+        _threshold  = ((d['threshold'] as num?) ?? 20).toInt();
         _loading    = false;
       });
     } catch (_) { setState(() => _loading = false); }

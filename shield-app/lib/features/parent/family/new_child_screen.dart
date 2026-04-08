@@ -53,8 +53,8 @@ class _NewChildScreenState extends ConsumerState<NewChildScreen> {
           Center(
             child: CircleAvatar(
               radius:          48,
-              backgroundColor: const Color(0xFF1565C0).withOpacity(0.1),
-              child: const Icon(Icons.child_friendly, size: 48, color: Color(0xFF1565C0)),
+              backgroundColor: const Color(0xFF2563EB).withOpacity(0.1),
+              child: const Icon(Icons.child_friendly, size: 48, color: Color(0xFF2563EB)),
             ),
           ),
           const SizedBox(height: 24),

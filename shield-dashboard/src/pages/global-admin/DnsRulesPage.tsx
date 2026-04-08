@@ -214,6 +214,7 @@ export default function DnsRulesPage() {
                         {saving ? <CircularProgress size={18} color="inherit" /> : 'Save Changes'}
                       </Button>
                     </Box>
+                    <Box sx={{ overflowX: 'auto' }}>
                     <TableContainer>
                       <Table size="small">
                         <TableHead>
@@ -258,6 +259,7 @@ export default function DnsRulesPage() {
                         </TableBody>
                       </Table>
                     </TableContainer>
+                    </Box>
                   </>
                 )}
               </CardContent>
@@ -333,6 +335,7 @@ function DomainTable({ domains, type, onDelete, color }: { domains: string[]; ty
   );
   return (
     <Card>
+      <Box sx={{ overflowX: 'auto' }}>
       <TableContainer>
         <Table size="small">
           <TableHead>
@@ -363,6 +366,7 @@ function DomainTable({ domains, type, onDelete, color }: { domains: string[]; ty
           </TableBody>
         </Table>
       </TableContainer>
+      </Box>
     </Card>
   );
 }

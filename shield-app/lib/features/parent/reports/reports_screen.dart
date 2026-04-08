@@ -16,7 +16,7 @@ final _childrenForReportProvider =
     final raw = resp.data is List
         ? resp.data as List
         : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-    return raw.cast<Map<String, dynamic>>();
+    return raw.whereType<Map<String, dynamic>>().toList();
   } catch (_) {
     return [];
   }
@@ -44,7 +44,7 @@ final _browsingHistoryProvider = FutureProvider.autoDispose
     final raw = resp.data is List
         ? resp.data as List
         : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-    return raw.cast<Map<String, dynamic>>();
+    return raw.whereType<Map<String, dynamic>>().toList();
   } catch (_) {
     return [];
   }
@@ -58,7 +58,7 @@ final _appUsageProvider = FutureProvider.autoDispose
     final raw = resp.data is List
         ? resp.data as List
         : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-    return raw.cast<Map<String, dynamic>>();
+    return raw.whereType<Map<String, dynamic>>().toList();
   } catch (_) {
     return [];
   }
@@ -348,7 +348,7 @@ class _BrowsingCard extends StatelessWidget {
         children: rows.take(10).map((r) {
           final domain  = r['domain']?.toString()  ?? r['url']?.toString() ?? '—';
           final blocked = r['blocked'] as bool?    ?? false;
-          final count   = r['count']  as int?      ?? 1;
+          final count   = (r['count'] as num?)?.toInt() ?? 1;
           return ListTile(
             dense: true,
             leading: Container(

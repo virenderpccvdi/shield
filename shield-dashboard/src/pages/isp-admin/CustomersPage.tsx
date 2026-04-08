@@ -187,6 +187,7 @@ export default function CustomersPage() {
                 action={search ? undefined : { label: 'Add Customer', onClick: () => setAddOpen(true) }}
               />
             ) : (
+              <Box sx={{ overflowX: 'auto' }}>
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#F8FAFC' }}>
@@ -263,6 +264,7 @@ export default function CustomersPage() {
                   ))}
                 </TableBody>
               </Table>
+              </Box>
             )}
             {!isLoading && totalElements > 0 && (
               <TablePagination

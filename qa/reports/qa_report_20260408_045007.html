@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shield QA Report — 2026-04-08</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:#0f172a;color:#f1f5f9;padding:32px }
+  table { width:100%;border-collapse:collapse }
+  th { text-align:left;padding:10px 16px;color:#94a3b8;
+        font-size:11px;text-transform:uppercase;letter-spacing:.5px;
+        border-bottom:1px solid #334155 }
+  a { color:#38bdf8;text-decoration:none }
+  @media print { body { background:#fff;color:#000 } }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px">
+  <div>
+    <h1 style="font-size:28px;font-weight:700">🛡 Shield Platform — QA Report</h1>
+    <div style="color:#94a3b8;margin-top:4px">Generated: 2026-04-08T04:49:49.614298+00:00 | Version: 2.1.4</div>
+  </div>
+  <div style="background:#d97706;color:#fff;padding:12px 24px;border-radius:8px;font-weight:700;font-size:16px">
+    ⚠ PARTIAL FAILURES — ACTION REQUIRED
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px">
+  
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Total Tests</div>
+          <div style="font-size:32px;font-weight:700;color:#f1f5f9">266</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Passed</div>
+          <div style="font-size:32px;font-weight:700;color:#16a34a">246</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Failed</div>
+          <div style="font-size:32px;font-weight:700;color:#dc2626">20</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Pass Rate</div>
+          <div style="font-size:32px;font-weight:700;color:#d97706">92.5%</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Duration</div>
+          <div style="font-size:32px;font-weight:700;color:#94a3b8">18s</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Critical Bugs</div>
+          <div style="font-size:32px;font-weight:700;color:#dc2626">2</div>
+        </div>
+</div>
+
+<!-- Charts Row -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px">
+  <div style="background:#1e293b;border:1px solid #334155;
+              border-radius:12px;padding:20px">
+    <h3 style="margin-bottom:16px;color:#94a3b8;font-size:13px;text-transform:uppercase">
+      Results by Test Suite
+    </h3>
+    <canvas id="suiteChart" height="220"></canvas>
+  </div>
+  <div style="background:#1e293b;border:1px solid #334155;
+              border-radius:12px;padding:20px">
+    <h3 style="margin-bottom:16px;color:#94a3b8;font-size:13px;text-transform:uppercase">
+      Bug Severity Distribution
+    </h3>
+    <canvas id="sevChart" height="220"></canvas>
+  </div>
+</div>
+
+<!-- Suite Summary Table -->
+<h2 style="color:#f1f5f9;margin-bottom:16px">📋 Test Suite Summary</h2>
+<div style="background:#1e293b;border:1px solid #334155;
+            border-radius:12px;overflow:hidden;margin-bottom:32px">
+  <table>
+    <tr>
+      <th>Suite</th><th>Passed</th><th>Failed</th><th>Coverage</th>
+    </tr>
+    
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">health</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">12</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">auth</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">14</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">2</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#d97706;height:8px;border-radius:4px;width:88%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">88%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">rbac</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">14</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">dns</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">70</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">analytics</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">39</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">ai_insights</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">0</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">1</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#dc2626;height:8px;border-radius:4px;width:0%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">0%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">billing</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">14</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">3</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#d97706;height:8px;border-radius:4px;width:82%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">82%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">dashboard</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">24</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">4</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#d97706;height:8px;border-radius:4px;width:86%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">86%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">db</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">29</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">3</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#d97706;height:8px;border-radius:4px;width:91%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">91%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">performance</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">9</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">security</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">10</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">5</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#dc2626;height:8px;border-radius:4px;width:67%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">67%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">workflows</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">11</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">2</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#d97706;height:8px;border-radius:4px;width:85%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">85%</span>
+          </td>
+        </tr>
+  </table>
+</div>
+
+<!-- Bug Report -->
+<h2 style="color:#f1f5f9;margin-bottom:16px">🐛 Bug Report (20 issues)</h2>
+<div style="background:#1e293b;border:1px solid #334155;
+            border-radius:12px;overflow:hidden;margin-bottom:32px">
+  <table>
+    <tr>
+      <th style="width:40px">#</th>
+      <th style="width:100px">Severity</th>
+      <th style="width:120px">Suite</th>
+      <th>Issue</th>
+      <th style="width:80px">Latency</th>
+    </tr>
+    
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">1</td>
+          <td style="padding:10px 8px"><span style="background:#d97706;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">MEDIUM</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">auth</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">Empty creds rejected (400 or 401)</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got no response</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">2</td>
+          <td style="padding:10px 8px"><span style="background:#d97706;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">MEDIUM</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">auth</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">Malformed JSON handled (400/415)</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got 500</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">3</td>
+          <td style="padding:10px 8px"><span style="background:#ea580c;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">HIGH</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">ai_insights</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">AI service reachable</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">shield-ai not responding on port 8291</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: systemctl restart shield-ai; check Python .venv and FastAPI startup</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">4</td>
+          <td style="padding:10px 8px"><span style="background:#d97706;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">MEDIUM</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">billing</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">Table admin.subscriptions exists</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">admin.subscriptions not found in DB</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">5</td>
+          <td style="padding:10px 8px"><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">INFO</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">billing</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">subscriptions table accessible (-1 records)</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">subscriptions query failed</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">6</td>
+          <td style="padding:10px 8px"><span style="background:#d97706;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">MEDIUM</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">billing</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">Non-existent invoice → 404</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got error (expected 404)</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: InvoiceService.findById must throw ShieldException.notFound()</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">7</td>
+          <td style="padding:10px 8px"><span style="background:#d97706;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">MEDIUM</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">dashboard</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">GET /profiles/family accessible</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got error</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">8</td>
+          <td style="padding:10px 8px"><span style="background:#d97706;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">MEDIUM</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">dashboard</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">GET /dns/rules/tenant</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">HTTP NO_RESPONSE (expected 200)</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">9</td>
+          <td style="padding:10px 8px"><span style="background:#d97706;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">MEDIUM</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">dashboard</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">GET /location/history for profile</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got error</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">10</td>
+          <td style="padding:10px 8px"><span style="background:#65a30d;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">LOW</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">dashboard</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">GET /admin/import jobs</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got error</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">11</td>
+          <td style="padding:10px 8px"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">db</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">Table rewards.reward_tasks exists</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Table rewards.reward_tasks not found</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">12</td>
+          <td style="padding:10px 8px"><span style="background:#ea580c;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">HIGH</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">db</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">No orphaned dns_rules (FK integrity)</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">1 dns_rules have no matching child_profile</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: Run: DELETE FROM dns.dns_rules dr WHERE NOT EXISTS (SELECT 1 FROM profile.child_profiles cp WHERE cp.dns_client_id=dr.dns_client_id)</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">13</td>
+          <td style="padding:10px 8px"><span style="background:#65a30d;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">LOW</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">db</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">rewards.reward_tasks populated (-1)</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">reward_tasks error: relation "rewards.reward_tasks" does not exist
+LINE 1: SELECT COUNT(*) FROM rewards.reward_tasks
+                             ^
+</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">14</td>
+          <td style="padding:10px 8px"><span style="background:#ea580c;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">HIGH</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">security</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">NoSQL injection blocked</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got error</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">15</td>
+          <td style="padding:10px 8px"><span style="background:#ea580c;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">HIGH</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">security</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">NoSQL injection blocked</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got error</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">16</td>
+          <td style="padding:10px 8px"><span style="background:#65a30d;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">LOW</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">security</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">Security header present: Strict-Transport-Security</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Missing Strict-Transport-Security response header</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: Add 'add_header Strict-Transport-Security ...' in nginx config</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">17</td>
+          <td style="padding:10px 8px"><span style="background:#ea580c;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">HIGH</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">security</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">IDOR: random invoice ID → 404 (not 200/500)</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got error</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: Ensure ownership checks before returning any resource</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">18</td>
+          <td style="padding:10px 8px"><span style="background:#d97706;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">MEDIUM</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">security</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">Rate limiting on failed logins (429 after N attempts)</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">No rate limiting detected after 15 rapid failed logins</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: Add Spring Security rate limiting or nginx limit_req for /auth/login</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">19</td>
+          <td style="padding:10px 8px"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">workflows</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">WF1 Step 1: Login</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Login failed</div>
+            <ol style='margin:4px 0;padding-left:16px;color:#94a3b8;font-size:12px'><li>POST /api/v1/auth/login with admin credentials</li></ol>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">20</td>
+          <td style="padding:10px 8px"><span style="background:#d97706;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">MEDIUM</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">workflows</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">WF3 Step 1: DNS rules loadable</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got error</div>
+            
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+  </table>
+</div>
+
+
+
+<!-- Footer -->
+<div style="margin-top:40px;padding-top:20px;border-top:1px solid #334155;
+            color:#94a3b8;font-size:12px;display:flex;justify-content:space-between">
+  <span>Shield QA Agent v1.0 | 2026-04-08T04:49:49.614298+00:00</span>
+  <span>Total run time: 18.1s</span>
+</div>
+
+<script>
+const grid = { color: 'rgba(255,255,255,0.08)' };
+const tick  = { color: '#94a3b8' };
+
+new Chart(document.getElementById('suiteChart'), {
+  type: 'bar',
+  data: {
+    labels: ["health", "auth", "rbac", "dns", "analytics", "ai_insights", "billing", "dashboard", "db", "performance", "security", "workflows"],
+    datasets: [
+      { label:'Passed', data:[12, 14, 14, 70, 39, 0, 14, 24, 29, 9, 10, 11], backgroundColor:'#16a34a', borderRadius:4 },
+      { label:'Failed', data:[0, 2, 0, 0, 0, 1, 3, 4, 3, 0, 5, 2], backgroundColor:'#dc2626', borderRadius:4 }
+    ]
+  },
+  options: {
+    responsive:true, plugins:{ legend:{ labels:{ color:'#94a3b8' } } },
+    scales: {
+      x:{ grid, ticks:{ ...tick, maxRotation:30 } },
+      y:{ grid, ticks:tick, stacked:false }
+    }
+  }
+});
+
+new Chart(document.getElementById('sevChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"],
+    datasets: [{ data:[2, 5, 9, 3, 1], backgroundColor:["#dc2626", "#ea580c", "#d97706", "#65a30d", "#6b7280"], borderWidth:0 }]
+  },
+  options: {
+    responsive:true, cutout:'65%',
+    plugins:{ legend:{ position:'right', labels:{ color:'#94a3b8', boxWidth:12 } } }
+  }
+});
+</script>
+
+</body>
+</html>

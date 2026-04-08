@@ -73,7 +73,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFF0D1B4B),
+    backgroundColor: const Color(0xFF1E40AF),
     appBar: AppBar(
       backgroundColor: Colors.transparent,
       foregroundColor: Colors.white,
@@ -162,7 +162,7 @@ class _BubbleWidget extends StatelessWidget {
         if (msg.isBot) ...[
           const CircleAvatar(
             radius:          16,
-            backgroundColor: Color(0xFF1565C0),
+            backgroundColor: Color(0xFF2563EB),
             child: Icon(Icons.psychology, color: Colors.white, size: 16),
           ),
           const SizedBox(width: 8),
@@ -173,7 +173,7 @@ class _BubbleWidget extends StatelessWidget {
             decoration: BoxDecoration(
               color: msg.isBot
                   ? Colors.white.withOpacity(0.12)
-                  : const Color(0xFF1565C0),
+                  : const Color(0xFF2563EB),
               borderRadius: BorderRadius.circular(18).copyWith(
                 bottomLeft:  msg.isBot ? const Radius.circular(4) : null,
                 bottomRight: !msg.isBot ? const Radius.circular(4) : null,

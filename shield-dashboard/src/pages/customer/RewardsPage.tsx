@@ -131,7 +131,7 @@ export default function RewardsPage({ profileId: profileIdProp }: RewardsPagePro
         <Card sx={{ mb: 3, background: gradients.orange, color: '#fff', position: 'relative', overflow: 'hidden' }}>
           <Box sx={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
           <CardContent sx={{ position: 'relative', zIndex: 1, py: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
               <Box sx={{ width: 64, height: 64, borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <EmojiEventsIcon sx={{ fontSize: 32 }} />
               </Box>

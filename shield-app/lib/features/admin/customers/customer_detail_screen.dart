@@ -24,7 +24,7 @@ final _customerChildrenProvider = FutureProvider.autoDispose
     final raw = resp.data is List
         ? resp.data as List
         : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-    return raw.cast<Map<String, dynamic>>();
+    return raw.whereType<Map<String, dynamic>>().toList();
   } catch (_) {
     return [];
   }
@@ -233,7 +233,7 @@ class _Body extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF0D1B4B), Color(0xFF1565C0)],
+              colors: [Color(0xFF1E40AF), Color(0xFF2563EB)],
               begin: Alignment.topLeft, end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(18),

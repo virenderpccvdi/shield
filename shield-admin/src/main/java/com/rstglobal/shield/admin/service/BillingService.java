@@ -304,7 +304,7 @@ public class BillingService {
 
     public InvoiceResponse getInvoiceById(UUID id) {
         return invoiceRepo.findById(id).map(this::toResponse)
-                .orElseThrow(() -> new RuntimeException("Invoice not found: " + id));
+                .orElseThrow(() -> ShieldException.notFound("Invoice", id));
     }
 
     /**

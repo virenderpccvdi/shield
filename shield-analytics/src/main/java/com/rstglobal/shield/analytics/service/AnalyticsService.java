@@ -18,6 +18,9 @@ import com.rstglobal.shield.analytics.repository.DnsQueryLogRepository;
 import com.rstglobal.shield.analytics.repository.UsageSummaryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -43,6 +46,13 @@ public class AnalyticsService {
     private final UsageSummaryRepository usageSummaryRepository;
     private final FeatureGateService featureGate;
 
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "analytics:platform", allEntries = true, cacheManager = "analyticsCacheManager"),
+        @CacheEvict(cacheNames = "analytics:tenant",   allEntries = true, cacheManager = "analyticsCacheManager"),
+        @CacheEvict(cacheNames = "analytics:profile",  allEntries = true, cacheManager = "analyticsCacheManager"),
+        @CacheEvict(cacheNames = "analytics:daily",    allEntries = true, cacheManager = "analyticsCacheManager"),
+        @CacheEvict(cacheNames = "analytics:top",      allEntries = true, cacheManager = "analyticsCacheManager")
+    })
     @Transactional
     public DnsQueryLog ingestLog(LogIngestRequest req) {
         DnsQueryLog log = new DnsQueryLog();
@@ -57,6 +67,13 @@ public class AnalyticsService {
         return dnsQueryLogRepository.save(log);
     }
 
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "analytics:platform", allEntries = true, cacheManager = "analyticsCacheManager"),
+        @CacheEvict(cacheNames = "analytics:tenant",   allEntries = true, cacheManager = "analyticsCacheManager"),
+        @CacheEvict(cacheNames = "analytics:profile",  allEntries = true, cacheManager = "analyticsCacheManager"),
+        @CacheEvict(cacheNames = "analytics:daily",    allEntries = true, cacheManager = "analyticsCacheManager"),
+        @CacheEvict(cacheNames = "analytics:top",      allEntries = true, cacheManager = "analyticsCacheManager")
+    })
     @Transactional
     public List<DnsQueryLog> ingestBulk(BulkLogIngestRequest req) {
         List<DnsQueryLog> entities = new ArrayList<>();
@@ -75,6 +92,8 @@ public class AnalyticsService {
         return dnsQueryLogRepository.saveAll(entities);
     }
 
+    @Cacheable(cacheNames = "analytics:profile", key = "#profileId + ':' + #tenantId + ':' + #period",
+               cacheManager = "analyticsCacheManager")
     @Transactional(readOnly = true)
     public UsageStatsResponse getUsageStats(UUID profileId, UUID tenantId, String period) {
         requireFeature(tenantId, "content_reporting");
@@ -87,9 +106,11 @@ public class AnalyticsService {
         long allowed = dnsQueryLogRepository.countByProfileIdAndActionAndQueriedAtBetween(profileId, "ALLOWED", from, to);
         double blockRate = total > 0 ? (double) blocked / total * 100.0 : 0.0;
 
-        return new UsageStatsResponse(profileId, period, total, blocked, allowed, blockRate);
+        return new UsageStatsResponse(profileId, period, total, blocked, allowed, blockRate, 1L, 1L);
     }
 
+    @Cacheable(cacheNames = "analytics:top", key = "#profileId + ':' + #action + ':' + #limit + ':' + #period",
+               cacheManager = "analyticsCacheManager")
     @Transactional(readOnly = true)
     public List<TopDomainEntry> getTopDomains(UUID profileId, String action, int limit, String period) {
         Instant[] range = periodToRange(period);
@@ -203,6 +224,8 @@ public class AnalyticsService {
 
     // ── platform-wide (admin) ────────────────────────────────────────────────
 
+    @Cacheable(cacheNames = "analytics:platform", key = "#period",
+               cacheManager = "analyticsCacheManager")
     @Transactional(readOnly = true)
     public UsageStatsResponse getPlatformOverview(String period) {
         Instant[] range = periodToRange(period);
@@ -210,9 +233,13 @@ public class AnalyticsService {
         long blocked = dnsQueryLogRepository.countByActionAndQueriedAtBetween("BLOCKED", range[0], range[1]);
         long allowed = total - blocked;
         double blockRate = total > 0 ? (double) blocked / total * 100.0 : 0.0;
-        return new UsageStatsResponse(null, period, total, blocked, allowed, blockRate);
+        long activeProfiles = dnsQueryLogRepository.countDistinctActiveProfiles(range[0], range[1]);
+        UsageStatsResponse resp = new UsageStatsResponse(null, period, total, blocked, allowed, blockRate, activeProfiles, activeProfiles);
+        return resp;
     }
 
+    @Cacheable(cacheNames = "analytics:daily", key = "'platform:' + #days",
+               cacheManager = "analyticsCacheManager")
     @Transactional(readOnly = true)
     public List<DailyUsagePoint> getPlatformDailyBreakdown(int days) {
         Instant from = Instant.now().minus(days, ChronoUnit.DAYS).truncatedTo(ChronoUnit.DAYS);
@@ -229,6 +256,8 @@ public class AnalyticsService {
 
     // ── tenant-scoped (ISP admin) ────────────────────────────────────────────
 
+    @Cacheable(cacheNames = "analytics:tenant", key = "#tenantId + ':' + #period",
+               cacheManager = "analyticsCacheManager")
     @Transactional(readOnly = true)
     public UsageStatsResponse getTenantOverview(UUID tenantId, String period) {
         Instant[] range = periodToRange(period);
@@ -236,9 +265,11 @@ public class AnalyticsService {
         long blocked = dnsQueryLogRepository.countByTenantIdAndActionAndQueriedAtBetween(tenantId, "BLOCKED", range[0], range[1]);
         long allowed = total - blocked;
         double blockRate = total > 0 ? (double) blocked / total * 100.0 : 0.0;
-        return new UsageStatsResponse(null, period, total, blocked, allowed, blockRate);
+        return new UsageStatsResponse(null, period, total, blocked, allowed, blockRate, 0L, 0L);
     }
 
+    @Cacheable(cacheNames = "analytics:daily", key = "#tenantId + ':' + #days",
+               cacheManager = "analyticsCacheManager")
     @Transactional(readOnly = true)
     public List<DailyUsagePoint> getTenantDailyBreakdown(UUID tenantId, int days) {
         Instant from = Instant.now().minus(days, ChronoUnit.DAYS).truncatedTo(ChronoUnit.DAYS);

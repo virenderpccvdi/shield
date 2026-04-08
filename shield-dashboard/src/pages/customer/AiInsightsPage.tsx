@@ -7,7 +7,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar,
+  ResponsiveContainer, BarChart, Bar, Cell,
 } from 'recharts';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
@@ -371,7 +371,7 @@ function WeeklyReportCard({ weekly, insights }: { weekly: WeeklyDigest; insights
 
 // ─── No-data empty state ──────────────────────────────────────────────────────
 
-function NoDataEmptyState({ profileName }: { profileName?: string }) {
+function NoDataEmptyState({ profileName, onRefresh }: { profileName?: string; onRefresh?: () => void }) {
   return (
     <Card sx={{ textAlign: 'center', p: 4 }}>
       <CardContent>
@@ -383,11 +383,11 @@ function NoDataEmptyState({ profileName }: { profileName?: string }) {
           <HourglassEmptyIcon sx={{ fontSize: 44, color: '#9C27B0' }} />
         </Box>
         <Typography variant="h6" fontWeight={700} gutterBottom>
-          Collecting Data…
+          AI is Analyzing Your Data
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 380, mx: 'auto', lineHeight: 1.6 }}>
-          AI insights for{profileName ? ` ${profileName}` : ' this profile'} will be available
-          after 24 hours of usage. Make sure the child's device is connected to Shield DNS.
+        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420, mx: 'auto', lineHeight: 1.6 }}>
+          AI is analyzing{profileName ? ` ${profileName}'s` : " this profile's"} data patterns.
+          This may take a few minutes. Make sure the child's device is connected to Shield DNS.
         </Typography>
         <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 3 }} flexWrap="wrap" useFlexGap>
           {['Device connected to Shield DNS', 'Active browsing detected', 'Check back after ~24h'].map((hint, i) => (
@@ -401,6 +401,16 @@ function NoDataEmptyState({ profileName }: { profileName?: string }) {
             />
           ))}
         </Stack>
+        {onRefresh && (
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={onRefresh}
+            sx={{ mt: 3, borderRadius: 2, fontWeight: 600, textTransform: 'none' }}
+          >
+            Refresh Analysis
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -698,9 +708,29 @@ export default function AiInsightsPage() {
     queryKey: ['ai-insights', profileId],
     queryFn: () => api.get(`/ai/${profileId}/insights`).then(r => {
       const d = r.data?.data ?? r.data;
-      return d as InsightsData;
+      // API returns `indicators` not `anomalies` — normalise here
+      return {
+        ...d,
+        anomalies: d?.anomalies ?? d?.indicators ?? [],
+      } as InsightsData;
     }),
     enabled: !!profileId,
+    refetchInterval: 60_000,
+  });
+
+  // Separate analytics query for weekly trend (insights API doesn't return weeklyTrend)
+  const { data: weeklyAnalytics } = useQuery({
+    queryKey: ['ai-weekly-analytics', profileId],
+    queryFn: () => api.get(`/analytics/${profileId}/daily?days=7`).then(r => {
+      const raw = r.data?.data ?? r.data ?? [];
+      return (raw as any[]).map(d => ({
+        date: d.date,
+        allowed: (d.totalQueries ?? 0) - (d.blockedQueries ?? d.totalBlocks ?? d.blocked ?? 0),
+        blocked: d.blockedQueries ?? d.totalBlocks ?? d.blocked ?? 0,
+      })) as DayTrend[];
+    }).catch(() => [] as DayTrend[]),
+    enabled: !!profileId,
+    refetchInterval: 60_000,
   });
 
   const { data: weekly, isLoading: loadingWeekly } = useQuery({
@@ -746,9 +776,9 @@ export default function AiInsightsPage() {
 
   const isLoading = loadingInsights || loadingWeekly;
 
-  // Build weekly trend chart data — prefer real data from insights
-  const rawTrend = insights?.weeklyTrend ?? [];
-  const weeklyChartData = rawTrend.length >= 7
+  // Build weekly trend chart data — use real analytics data
+  const rawTrend = weeklyAnalytics ?? insights?.weeklyTrend ?? [];
+  const weeklyChartData = rawTrend.length > 0
     ? rawTrend.map(d => ({
         day: shortDate(d.date),
         allowed: d.allowed,
@@ -849,7 +879,7 @@ export default function AiInsightsPage() {
             </Grid>
           </Grid>
         ) : showNoData ? (
-          <NoDataEmptyState profileName={selectedChildObj?.name} />
+          <NoDataEmptyState profileName={selectedChildObj?.name} onRefresh={handleRefreshAnalysis} />
         ) : (
         <Grid container spacing={2.5}>
 
@@ -1063,6 +1093,31 @@ export default function AiInsightsPage() {
                         size="small"
                         sx={{ bgcolor: 'rgba(229,57,53,0.08)', color: 'error.main', fontWeight: 700 }}
                       />
+                    </Box>
+                    {/* Anomaly severity distribution chart */}
+                    <Box sx={{ mb: 2, height: 120 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={[
+                            { name: 'HIGH', value: insights!.anomalies.filter(a => a.severity === 'HIGH').length },
+                            { name: 'MED', value: insights!.anomalies.filter(a => a.severity === 'MEDIUM').length },
+                            { name: 'LOW', value: insights!.anomalies.filter(a => a.severity === 'LOW').length },
+                          ]}
+                          margin={{ top: 5, right: 10, bottom: 5, left: 10 }}
+                        >
+                          <Bar dataKey="value" fill="#8884d8">
+                            {[
+                              { fill: '#E53935' },
+                              { fill: '#FB8C00' },
+                              { fill: '#FDD835' },
+                            ].map((entry, index) => (
+                              <Cell key={index} fill={entry.fill} />
+                            ))}
+                          </Bar>
+                          <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                          <Tooltip />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </Box>
                     <Stack spacing={1.5}>
                       {insights!.anomalies.map((ev, i) => (

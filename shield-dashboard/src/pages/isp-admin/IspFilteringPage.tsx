@@ -223,6 +223,7 @@ export default function IspFilteringPage() {
           catLoading ? (
             <LoadingPage />
           ) : (
+            <Box sx={{ overflowX: 'auto' }}>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -258,6 +259,7 @@ export default function IspFilteringPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            </Box>
           )
         )}
 
@@ -363,6 +365,7 @@ export default function IspFilteringPage() {
 
 function DomainTable({ entries, onDelete, color, bg }: { entries: DomainEntry[]; onDelete: (e: DomainEntry) => void; color: string; bg: string }) {
   return (
+    <Box sx={{ overflowX: 'auto' }}>
     <TableContainer>
       <Table size="small">
         <TableHead>
@@ -396,5 +399,6 @@ function DomainTable({ entries, onDelete, color, bg }: { entries: DomainEntry[];
         </TableBody>
       </Table>
     </TableContainer>
+    </Box>
   );
 }

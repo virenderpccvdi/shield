@@ -31,8 +31,8 @@ class _Tile {
 
 const _sections = [
   _Section('Internet Controls', [
-    _Tile(Icons.dns,           'DNS Rules',      'dns-rules',     color: Color(0xFF1565C0)),
-    _Tile(Icons.filter_list,   'Safe Filters',   'safe-filters',  color: Color(0xFF0288D1)),
+    _Tile(Icons.dns,           'DNS Rules',      'dns-rules',     color: Color(0xFF2563EB)),
+    _Tile(Icons.filter_list,   'Safe Filters',   'safe-filters',  color: Color(0xFF1E40AF)),
     _Tile(Icons.apps_outlined, 'App Blocking',   'app-blocking',  color: Color(0xFF7B1FA2)),
     _Tile(Icons.history_edu,   'Browsing History','browsing',     color: Color(0xFF00695C)),
   ]),
@@ -43,13 +43,13 @@ const _sections = [
     _Tile(Icons.school,        'Homework Mode',  'homework-mode', color: Color(0xFF1B5E20)),
   ]),
   _Section('Location', [
-    _Tile(Icons.map,            'Live Map',          'map',               color: Color(0xFF0277BD)),
+    _Tile(Icons.map,            'Live Map',          'map',               color: Color(0xFF2563EB)),
     _Tile(Icons.history,        'Location History',  'location-history',  color: Color(0xFF37474F)),
     _Tile(Icons.fence,          'Geofences',         'geofences',         color: Color(0xFFE65100)),
   ]),
   _Section('Activity & Insights', [
     _Tile(Icons.phone_android,  'App Usage',       'app-usage',    color: Color(0xFF6A1B9A)),
-    _Tile(Icons.psychology,     'AI Insights',     'ai-insights',  color: Color(0xFF0D47A1)),
+    _Tile(Icons.psychology,     'AI Insights',     'ai-insights',  color: Color(0xFF1E40AF)),
   ]),
   _Section('Rewards & Tasks', [
     _Tile(Icons.star,           'Rewards',          'rewards',      color: Color(0xFFF9A825)),
@@ -99,7 +99,7 @@ class ChildDetailScreen extends ConsumerWidget {
           background: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF1565C0), Color(0xFF0288D1)],
+                colors: [Color(0xFF1E40AF), Color(0xFF1E40AF), Color(0xFF2563EB)],
                 begin: Alignment.topLeft, end: Alignment.bottomRight,
               ),
             ),
@@ -131,7 +131,7 @@ class ChildDetailScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           child: Row(children: [
             Expanded(child: _quickBtn(
-              context, 'Live Map', Icons.map, const Color(0xFF0277BD),
+              context, 'Live Map', Icons.map, const Color(0xFF2563EB),
               () => context.push('/parent/family/$profileId/map'),
             )),
             const SizedBox(width: 8),

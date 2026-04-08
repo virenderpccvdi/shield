@@ -1,0 +1,258 @@
+name: Shield QA Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'QA suite to run (fast/standard/full)'
+        required: false
+        default: 'standard'
+  schedule:
+    # Daily at 2:00 AM UTC (7:30 AM IST) — offset from server's 3:00 AM systemd timer
+    - cron: '0 2 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '21'
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '20'
+
+jobs:
+
+  # ── Job 1: Static analysis (fast, parallel) ─────────────────────────────
+  static-checks:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: shield-dashboard/package-lock.json
+
+      - name: Dashboard TypeScript check
+        working-directory: shield-dashboard
+        run: |
+          npm ci --prefer-offline
+          npx tsc --noEmit
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.0'
+          channel: 'stable'
+
+      - name: Flutter analyze
+        working-directory: shield-app
+        run: flutter analyze --no-fatal-infos
+
+  # ── Job 2: Fast API QA (critical-path, ~2 min) ──────────────────────────
+  api-qa-fast:
+    name: Fast API QA Gate
+    runs-on: ubuntu-latest
+    needs: []  # runs in parallel with static-checks
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: shield_db
+          POSTGRES_USER: shield
+          POSTGRES_PASSWORD: Shield@2026#Secure
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Python QA dependencies
+        run: pip install requests psycopg2-binary dnspython redis
+
+      - name: Build all services (skip tests)
+        run: mvn package -DskipTests -q --no-transfer-progress
+
+      - name: Start services
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          # Start each service in background
+          for svc in shield-eureka shield-config shield-auth shield-tenant shield-profile shield-dns shield-analytics shield-admin shield-gateway; do
+            JAR=$(ls $svc/target/*.jar 2>/dev/null | head -1)
+            if [ -n "$JAR" ]; then
+              java -jar "$JAR" \
+                --spring.profiles.active=ci \
+                --server.port=$(grep "port" $svc/src/main/resources/application.yml | head -1 | awk '{print $2}') \
+                > /tmp/$svc.log 2>&1 &
+              echo "Started $svc (PID $!)"
+            fi
+          done
+          # Wait for gateway to be healthy
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:8280/actuator/health > /dev/null 2>&1; then
+              echo "Gateway ready after ${i}s"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run fast QA gate
+        working-directory: qa
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python shield_qa_agent.py --suites health,auth,dns,security
+        continue-on-error: false
+
+      - name: Upload QA reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-reports-fast-${{ github.run_number }}
+          path: |
+            qa/reports/
+            qa/logs/
+          retention-days: 14
+
+  # ── Job 3: Full QA (main branch only, ~10 min) ──────────────────────────
+  api-qa-full:
+    name: Full QA Suite
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.suite == 'full')
+    needs: [static-checks, api-qa-fast]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: shield_db
+          POSTGRES_USER: shield
+          POSTGRES_PASSWORD: Shield@2026#Secure
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js (for Playwright)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install -y k6
+
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
+
+      - name: Install Python QA dependencies
+        run: pip install requests psycopg2-binary dnspython redis
+
+      - name: Build all services
+        run: mvn package -DskipTests -q --no-transfer-progress
+
+      - name: Start services and wait for readiness
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: bash qa/ci/start_services.sh
+
+      - name: Run full QA suite
+        working-directory: qa
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python shield_qa_agent.py \
+            --suites health,auth,rbac,dns,analytics,billing,db,workflows,performance,security,owasp_extended,playwright_ui,ai_gap_analysis
+
+      - name: Upload full QA reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-reports-full-${{ github.run_number }}
+          path: |
+            qa/reports/
+            qa/screenshots/
+            qa/logs/
+          retention-days: 30
+
+      - name: Comment PR with QA summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const logs = fs.readdirSync('qa/logs/').filter(f => f.endsWith('.log'));
+            if (!logs.length) return;
+            const logContent = fs.readFileSync(`qa/logs/${logs[logs.length-1]}`, 'utf8');
+            const passMatch = logContent.match(/Pass rate\s*:\s*[\d.]+%/);
+            const passRate = passMatch ? passMatch[0] : 'unknown';
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🛡 Shield QA Results\n\n**${passRate}**\n\nFull report available in workflow artifacts.`
+            });
+
+  # ── Notify on failure ────────────────────────────────────────────────────
+  notify-failure:
+    name: Notify on QA Failure
+    runs-on: ubuntu-latest
+    needs: [api-qa-fast]
+    if: failure() && github.ref == 'refs/heads/main'
+    steps:
+      - name: Send failure notification
+        run: |
+          echo "QA gate failed on main branch — requires immediate attention"
+          # Add Slack/email notification here:
+          # curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+          #   -H 'Content-type: application/json' \
+          #   --data '{"text":"🚨 Shield QA gate FAILED on main: ${{ github.run_url }}"}'

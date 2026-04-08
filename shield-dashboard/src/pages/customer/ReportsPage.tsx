@@ -3,7 +3,7 @@ import {
   Box, Grid, Card, CardContent, Typography, CircularProgress, Alert,
   Tabs, Tab, Chip, Table, TableHead, TableRow, TableCell, TableBody,
   Stack, Divider, LinearProgress, Button, Snackbar, TextField, Tooltip as MuiTooltip,
-  TablePagination,
+  TablePagination, Link,
 } from '@mui/material';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -26,6 +26,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import api from '../../api/axios';
+import { useAuthStore } from '../../store/auth.store';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
@@ -111,22 +112,12 @@ interface ReportsPageProps {
   profileId?: string;
 }
 
-// ─── Gauge (block rate) custom label ────────────────────────────────────────
-const GaugeCenterLabel = ({ cx, cy, value }: { cx: number; cy: number; value: number }) => (
-  <>
-    <text x={cx} y={cy - 6} textAnchor="middle" dominantBaseline="central" style={{ fontSize: 28, fontWeight: 700, fill: '#1565C0' }}>
-      {value.toFixed(1)}%
-    </text>
-    <text x={cx} y={cy + 20} textAnchor="middle" dominantBaseline="central" style={{ fontSize: 12, fill: '#78909C' }}>
-      block rate
-    </text>
-  </>
-);
 
 export default function ReportsPage({ profileId: profileIdProp }: ReportsPageProps) {
   const { profileId: profileIdParam } = useParams<{ profileId: string }>();
   const profileId = profileIdProp ?? profileIdParam;
   const queryClient = useQueryClient();
+  const accessToken = useAuthStore(s => s.accessToken);
 
   const [period, setPeriod] = useState<Period>('WEEK');
   const [chartTab, setChartTab] = useState(0);
@@ -135,6 +126,14 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
   const [histRowsPerPage, setHistRowsPerPage] = useState(20);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
   const [hoveredHour, setHoveredHour] = useState<{ hour: number; count: number } | null>(null);
+
+  // Profile metadata (for PDF filename)
+  const { data: profileMeta } = useQuery({
+    queryKey: ['profile-meta', profileId],
+    queryFn: () => api.get(`/profiles/children/${profileId}`).then(r => (r.data?.data ?? r.data) as { id: string; name: string }),
+    enabled: !!profileId,
+    staleTime: 60_000,
+  });
 
   // Date range state (used when period === 'CUSTOM' or as override for preset periods)
   const [startDate, setStartDate] = useState<string>(defaultStartDate);
@@ -168,21 +167,40 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
     queryClient.invalidateQueries({ queryKey: ['report-hourly', profileId] });
   }
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!profileId) return;
     setPdfLoading(true);
-    // Backend returns print-friendly HTML — open in new tab and trigger print dialog
-    const url = `/api/v1/analytics/${profileId}/report/pdf?period=${apiPeriod}`;
-    const win = window.open(url, '_blank');
-    if (win) {
-      win.addEventListener('load', () => {
-        win.print();
+    try {
+      const url = `/api/v1/analytics/${profileId}/report/pdf?period=${apiPeriod}${profileMeta?.name ? `&profileName=${encodeURIComponent(profileMeta.name)}` : ''}`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
-      setSnackbar({ open: true, message: 'Report opened — use browser print to save as PDF', severity: 'success' });
-    } else {
-      setSnackbar({ open: true, message: 'Please allow popups to open the report', severity: 'error' });
+      if (!res.ok) {
+        const err = await res.text();
+        setSnackbar({ open: true, message: `Report error: ${res.status} — ${err.slice(0, 100)}`, severity: 'error' });
+        return;
+      }
+      const html = await res.text();
+      const blob = new Blob([html], { type: 'text/html' });
+      const blobUrl = URL.createObjectURL(blob);
+      const win = window.open(blobUrl, '_blank');
+      if (win) {
+        win.addEventListener('load', () => { win.print(); URL.revokeObjectURL(blobUrl); });
+        setSnackbar({ open: true, message: 'Report opened — use browser print to save as PDF', severity: 'success' });
+      } else {
+        // fallback: download as .html file
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `shield-report-${profileMeta?.name ?? profileId}.html`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        setSnackbar({ open: true, message: 'Report downloaded as HTML — open and print to PDF', severity: 'success' });
+      }
+    } catch (e: any) {
+      setSnackbar({ open: true, message: `Failed to download report: ${e.message}`, severity: 'error' });
+    } finally {
+      setPdfLoading(false);
     }
-    setPdfLoading(false);
   };
 
   // ── CSV Export ──────────────────────────────────────────────────────────────
@@ -664,25 +682,27 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                     Percentage of queries blocked
                   </Typography>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <RadialBarChart
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="60%"
-                      outerRadius="100%"
-                      startAngle={180}
-                      endAngle={0}
-                      data={gaugeData}
-                      barSize={18}
-                    >
-                      <RadialBar
-                        dataKey="value"
-                        cornerRadius={8}
-                        background={{ fill: '#F1F5F9' }}
-                      />
-                      <GaugeCenterLabel cx={0} cy={0} value={blockRateNum} />
-                    </RadialBarChart>
-                  </ResponsiveContainer>
+                  <Box sx={{ position: 'relative', height: 200 }}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <RadialBarChart
+                        cx="50%" cy="60%"
+                        innerRadius="55%" outerRadius="95%"
+                        startAngle={180} endAngle={0}
+                        data={gaugeData} barSize={18}
+                      >
+                        <RadialBar dataKey="value" cornerRadius={8} background={{ fill: '#F1F5F9' }} />
+                      </RadialBarChart>
+                    </ResponsiveContainer>
+                    <Box sx={{
+                      position: 'absolute', bottom: '18%', left: 0, right: 0,
+                      textAlign: 'center', pointerEvents: 'none',
+                    }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#1565C0', lineHeight: 1 }}>
+                        {blockRateNum.toFixed(1)}%
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">block rate</Typography>
+                    </Box>
+                  </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mt: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                       <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#1565C0' }} />
@@ -1136,9 +1156,15 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                                 }}
                               >
                                 <TableCell>
-                                  <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 240 }}>
+                                  <Link
+                                    href={`https://${ev.domain}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    underline="hover"
+                                    sx={{ fontWeight: 600, fontSize: 14, color: 'text.primary', display: 'block', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                  >
                                     {ev.domain}
-                                  </Typography>
+                                  </Link>
                                 </TableCell>
                                 <TableCell>
                                   <Chip
@@ -1155,6 +1181,7 @@ export default function ReportsPage({ profileId: profileIdProp }: ReportsPagePro
                                     size="small"
                                     label={ev.action}
                                     color={ev.action === 'BLOCKED' ? 'error' : 'success'}
+                                    variant="outlined"
                                     sx={{ height: 22, fontSize: 11, fontWeight: 700 }}
                                   />
                                 </TableCell>

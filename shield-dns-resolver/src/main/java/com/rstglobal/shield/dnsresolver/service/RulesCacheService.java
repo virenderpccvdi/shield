@@ -40,12 +40,16 @@ public class RulesCacheService {
     private static final String PROFILE_KEY = PREFIX + "profile:";
 
     // Categories always blocked regardless of filter level
-    private static final Set<String> ALWAYS_BLOCKED = Set.of("adult", "gambling", "malware", "phishing");
+    private static final Set<String> ALWAYS_BLOCKED = Set.of(
+        "adult", "gambling", "malware", "phishing",
+        "piracy", "hate_speech", "weapons", "csam", "drugs"
+    );
 
     // Categories blocked in strict mode
     private static final Set<String> STRICT_BLOCKED = Set.of(
         "social_media", "gaming", "streaming", "music", "live_streaming",
-        "vpn_proxy", "messaging", "dating", "drugs", "online_gaming", "esports"
+        "vpn_proxy", "messaging", "dating", "online_gaming", "esports",
+        "tor", "crypto", "chat"
     );
 
     // Categories blocked in moderate mode
@@ -66,18 +70,38 @@ public class RulesCacheService {
 
     /**
      * Check whether a domain should be blocked for a given profile.
+     * Checks both the root domain and the original full domain against the blocklist/allowlist.
      */
     public Mono<BlockDecision> check(String profileId, String domain, String category) {
+        return check(profileId, domain, domain, category);
+    }
+
+    public Mono<BlockDecision> check(String profileId, String rootDomain, String originalDomain, String category) {
         String baseKey = PROFILE_KEY + profileId;
 
-        // 1. Check allowlist first (always overrides)
-        return redisTemplate.opsForSet().isMember(baseKey + ":allowlist", domain)
+        // 1. Check allowlist first (always overrides) — check both root and full domain
+        return redisTemplate.opsForSet().isMember(baseKey + ":allowlist", rootDomain)
             .flatMap(allowed -> {
-                if (Boolean.TRUE.equals(allowed)) {
+                if (Boolean.TRUE.equals(allowed)) return Mono.just(BlockDecision.allowed());
+                if (!rootDomain.equals(originalDomain)) {
+                    return redisTemplate.opsForSet().isMember(baseKey + ":allowlist", originalDomain);
+                }
+                return Mono.just(false);
+            })
+            .flatMap(allowed -> {
+                if (allowed instanceof Boolean b && Boolean.TRUE.equals(b)) {
                     return Mono.just(BlockDecision.allowed());
                 }
-                // 2. Check custom blocklist
-                return redisTemplate.opsForSet().isMember(baseKey + ":blocklist", domain);
+                if (allowed instanceof BlockDecision bd) return Mono.just(bd);
+                // 2. Check custom blocklist — check root domain first, then full domain
+                return redisTemplate.opsForSet().isMember(baseKey + ":blocklist", rootDomain)
+                    .flatMap(blocked -> {
+                        if (Boolean.TRUE.equals(blocked)) return Mono.just(Boolean.TRUE);
+                        if (!rootDomain.equals(originalDomain)) {
+                            return redisTemplate.opsForSet().isMember(baseKey + ":blocklist", originalDomain);
+                        }
+                        return Mono.just(Boolean.FALSE);
+                    });
             })
             .flatMap(result -> {
                 if (result instanceof BlockDecision bd) {

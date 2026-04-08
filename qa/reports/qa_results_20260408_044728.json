@@ -1,0 +1,147 @@
+{
+  "meta": {
+    "started_at": "2026-04-08T04:47:28.312624+00:00",
+    "elapsed_seconds": 0.5729331970214844,
+    "version": "2.1.4",
+    "base_url": "http://localhost:8280",
+    "suites_run": [
+      "health"
+    ],
+    "total": 12,
+    "passed": 12
+  },
+  "results": [
+    {
+      "suite": "health",
+      "name": "gateway (8280)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "gateway (8280) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "auth (8281)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "auth (8281) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "tenant (8282)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "tenant (8282) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "profile (8283)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "profile (8283) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "dns (8284)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "dns (8284) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "location (8285)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "location (8285) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "notification (8286)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "notification (8286) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "rewards (8287)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "rewards (8287) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "analytics (8289)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "analytics (8289) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "admin (8290)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "admin (8290) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "ai (8291)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "ai (8291) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "dns_resolver (8292)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "dns_resolver (8292) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    }
+  ]
+}

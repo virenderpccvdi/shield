@@ -107,6 +107,7 @@ export default function IspBlocklistPage() {
             description="Add domains to block for all customers in your tenant"
           />
         ) : (
+          <Box sx={{ overflowX: 'auto' }}>
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -141,6 +142,7 @@ export default function IspBlocklistPage() {
               </TableBody>
             </Table>
           </TableContainer>
+          </Box>
         )}
       </Card>
 

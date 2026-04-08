@@ -24,8 +24,8 @@ management:
         include: health,info,prometheus
 
 dns:
-  upstream-doh: https://1.1.1.1/dns-query
-  upstream-fallback: https://8.8.8.8/dns-query
+  upstream-dns: 1.1.1.1
+  upstream-fallback-dns: 8.8.8.8
   rules-ttl-seconds: 300
   query-timeout-ms: 2000
 

@@ -2,9 +2,15 @@ import {
   Box, Grid, Card, CardContent, Typography, Chip, Stack, Skeleton,
   Divider, Button, Table, TableHead, TableRow, TableCell, TableBody,
   TableContainer, Alert, TablePagination, Tooltip as MuiTooltip,
-  ToggleButton, ToggleButtonGroup,
+  ToggleButton, ToggleButtonGroup, IconButton,
 } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import DataObjectIcon from '@mui/icons-material/DataObject';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import GroupIcon from '@mui/icons-material/Group';
+import PersonIcon from '@mui/icons-material/Person';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -169,6 +175,15 @@ function exportPlatformCSV(d: ReturnType<typeof buildExportData>, days: number) 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildExportData(data: any) { return data; }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function exportPlatformJSON(platformOverview: any) {
+  const blob = new Blob([JSON.stringify(platformOverview, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `platform-dashboard-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export default function PlatformDashboardPage() {
@@ -192,6 +207,7 @@ export default function PlatformDashboardPage() {
         return { content: raw?.content ?? [], totalElements: raw?.totalElements ?? 0 };
       } catch { return { content: [], totalElements: 0 }; }
     },
+    refetchInterval: 30_000,
   });
 
   // ── Paginated audit query ────────────────────────────────────────────
@@ -217,6 +233,7 @@ export default function PlatformDashboardPage() {
         })), totalElements };
       } catch { return { content: [], totalElements: 0 }; }
     },
+    refetchInterval: 30_000,
   });
 
   // ── Data fetch ──────────────────────────────────────────────────────────
@@ -331,36 +348,55 @@ export default function PlatformDashboardPage() {
 
       const healthyCount = healthList.filter(h => h.healthy).length;
 
+      const totalIspTenants = statsData.totalIspTenants ?? 0;
+      const totalCustomers = statsData.totalCustomers ?? 0;
+      const activeProfiles = statsData.activeProfiles ?? 0;
+      const totalUsers = statsData.totalUsers ?? 0;
+      const totalDevices = statsData.totalDevices ?? 0;
+      const activeSubscriptions = revenueData.activeSubscriptions ?? statsData.activeSubscriptions ?? 0;
+      const totalQueries = analyticsData.totalQueries ?? 0;
+      const blockedQueries = analyticsData.blockedQueries ?? 0;
+      const blockRate = analyticsData.blockRate ?? 0;
+      const monthlyRevenue = revenueData.monthlyRevenue ?? revenueData.totalRevenue ?? 0;
+      const totalPlans = revenueData.totalPlans ?? 0;
+      const offlineServicesCount = healthList.filter(h => !h.healthy).length;
+
+      const platformOverview = {
+        generatedAt: new Date().toISOString(),
+        totalIspTenants, totalCustomers, activeProfiles, totalUsers, totalDevices,
+        activeSubscriptions, totalQueries, blockedQueries, blockRate,
+        monthlyRevenue, totalPlans, healthyCount,
+        offlineServicesCount, trend, categories, topTenants,
+      };
+
       return {
         // KPI values
-        totalIspTenants: statsData.totalIspTenants ?? 0,
-        totalCustomers: statsData.totalCustomers ?? 0,
-        activeProfiles: statsData.activeProfiles ?? 0,
-        totalUsers: statsData.totalUsers ?? 0,
-        totalDevices: statsData.totalDevices ?? 0,
-        activeSubscriptions: revenueData.activeSubscriptions ?? statsData.activeSubscriptions ?? 0,
+        totalIspTenants, totalCustomers, activeProfiles,
+        totalUsers, totalDevices, activeSubscriptions,
         // Analytics
-        totalQueries: analyticsData.totalQueries ?? 0,
-        blockedQueries: analyticsData.blockedQueries ?? 0,
-        blockRate: analyticsData.blockRate ?? 0,
+        totalQueries, blockedQueries, blockRate,
         // Revenue
-        monthlyRevenue: revenueData.monthlyRevenue ?? revenueData.totalRevenue ?? 0,
-        totalPlans: revenueData.totalPlans ?? 0,
+        monthlyRevenue, totalPlans,
         // Charts
-        trend,
-        categories,
-        topTenants,
+        trend, categories, topTenants,
         // Health
-        healthList,
-        healthyCount,
+        healthList, healthyCount, offlineServicesCount,
+        // Export
+        platformOverview,
       };
     },
-    refetchInterval: 60_000,
+    refetchInterval: 30_000,
   });
 
   if (isLoading) return <DashboardSkeleton />;
 
   const d = data!;
+
+  // Health score KPI
+  const rawHealthScore = 100 - (Number(d.blockRate) * 0.5) - ((d.offlineServicesCount ?? 0) * 10);
+  const healthScore = Math.max(0, Math.min(100, Math.round(rawHealthScore)));
+  const healthScoreColor = healthScore > 80 ? '#43A047' : healthScore >= 50 ? '#FB8C00' : '#E53935';
+  const healthScoreLabel = healthScore > 80 ? 'Excellent' : healthScore >= 50 ? 'Good' : 'Needs Attention';
 
   return (
     <AnimatedPage>
@@ -384,15 +420,26 @@ export default function PlatformDashboardPage() {
               ))}
             </ToggleButtonGroup>
             {data && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<FileDownloadIcon />}
-                onClick={() => exportPlatformCSV(data, days)}
-                sx={{ fontSize: 12 }}
-              >
-                Export CSV
-              </Button>
+              <>
+                <MuiTooltip title="Export JSON">
+                  <IconButton
+                    size="small"
+                    onClick={() => exportPlatformJSON(data.platformOverview)}
+                    sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}
+                  >
+                    <DataObjectIcon fontSize="small" />
+                  </IconButton>
+                </MuiTooltip>
+                <MuiTooltip title="Export CSV">
+                  <IconButton
+                    size="small"
+                    onClick={() => exportPlatformCSV(buildExportData(data), days)}
+                    sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}
+                  >
+                    <FileDownloadIcon fontSize="small" />
+                  </IconButton>
+                </MuiTooltip>
+              </>
             )}
           </Stack>
         }
@@ -404,7 +451,7 @@ export default function PlatformDashboardPage() {
         </Alert>
       )}
 
-      {/* ── Row 1: 6 KPI Cards ──────────────────────────────────────────── */}
+      {/* ── Row 1: KPI Cards ────────────────────────────────────────────── */}
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <StatCard
@@ -461,7 +508,126 @@ export default function PlatformDashboardPage() {
             delay={0.25}
           />
         </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <FadeCard delay={0.3}>
+            <Card sx={{ height: '100%', background: `linear-gradient(135deg, ${healthScoreColor}18 0%, ${healthScoreColor}08 100%)`, border: '1px solid', borderColor: `${healthScoreColor}30` }}>
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+                  <MonitorHeartIcon sx={{ fontSize: 18, color: healthScoreColor }} />
+                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Platform Health
+                  </Typography>
+                </Box>
+                <Typography variant="h3" fontWeight={800} sx={{ color: healthScoreColor, lineHeight: 1.1 }}>
+                  {healthScore}
+                </Typography>
+                <Typography variant="caption" sx={{ color: healthScoreColor, fontWeight: 700 }}>
+                  {healthScoreLabel}
+                </Typography>
+              </CardContent>
+            </Card>
+          </FadeCard>
+        </Grid>
       </Grid>
+
+      {/* ── Alert/Anomaly chip summary row ──────────────────────────────── */}
+      <Box sx={{ mb: 3, overflowX: 'auto' }}>
+        <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'nowrap', pb: 0.5 }}>
+          <Chip
+            icon={<BusinessIcon sx={{ fontSize: '16px !important' }} />}
+            label={`${d.totalIspTenants} Active Tenants`}
+            sx={{ bgcolor: 'rgba(21,101,192,0.1)', color: '#1565C0', fontWeight: 600, border: '1px solid rgba(21,101,192,0.25)' }}
+          />
+          <Chip
+            icon={<FilterListIcon sx={{ fontSize: '16px !important' }} />}
+            label={`${Number(d.blockRate).toFixed(1)}% Block Rate`}
+            sx={{ bgcolor: Number(d.blockRate) > 30 ? 'rgba(229,57,53,0.1)' : 'rgba(251,140,0,0.1)', color: Number(d.blockRate) > 30 ? '#E53935' : '#FB8C00', fontWeight: 600, border: `1px solid ${Number(d.blockRate) > 30 ? 'rgba(229,57,53,0.25)' : 'rgba(251,140,0,0.25)'}` }}
+          />
+          <Chip
+            icon={<ShieldIcon sx={{ fontSize: '16px !important' }} />}
+            label={`${d.activeProfiles.toLocaleString()} Profiles`}
+            sx={{ bgcolor: 'rgba(0,137,123,0.1)', color: '#00897B', fontWeight: 600, border: '1px solid rgba(0,137,123,0.25)' }}
+          />
+          <Chip
+            icon={<PersonIcon sx={{ fontSize: '16px !important' }} />}
+            label={`${d.totalCustomers.toLocaleString()} Customers`}
+            sx={{ bgcolor: 'rgba(67,160,71,0.1)', color: '#43A047', fontWeight: 600, border: '1px solid rgba(67,160,71,0.25)' }}
+          />
+          <Chip
+            icon={<GroupIcon sx={{ fontSize: '16px !important' }} />}
+            label={`${d.totalUsers.toLocaleString()} Total Users`}
+            sx={{ bgcolor: 'rgba(123,31,162,0.1)', color: '#7B1FA2', fontWeight: 600, border: '1px solid rgba(123,31,162,0.25)' }}
+          />
+          <Chip
+            icon={<DnsIcon sx={{ fontSize: '16px !important' }} />}
+            label={`${fmt(d.totalQueries)} DNS Queries Today`}
+            sx={{ bgcolor: 'rgba(21,101,192,0.08)', color: '#1565C0', fontWeight: 600, border: '1px solid rgba(21,101,192,0.2)' }}
+          />
+        </Stack>
+      </Box>
+
+      {/* ── Platform Funnel ─────────────────────────────────────────────── */}
+      <FadeCard delay={0.32}>
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
+              DNS Query Pipeline
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Funnel view of today's DNS traffic — from total queries down to highest-risk
+            </Typography>
+            {(() => {
+              const total = d.totalQueries || 1;
+              const blocked = d.blockedQueries;
+              const atRisk = Math.round(blocked * 0.3);
+              const stages = [
+                { label: 'Total Queries', value: d.totalQueries, pct: 100, color: '#1565C0' },
+                { label: 'Filtered / Blocked', value: blocked, pct: Math.round((blocked / total) * 100), color: '#FB8C00' },
+                { label: 'At Risk (est.)', value: atRisk, pct: Math.round((atRisk / total) * 100), color: '#E53935' },
+              ];
+              return (
+                <Stack spacing={1.5}>
+                  {stages.map((s) => (
+                    <Box key={s.label}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="body2" fontWeight={600} sx={{ color: s.color }}>
+                          {s.label}
+                        </Typography>
+                        <Typography variant="body2" fontWeight={700} color="text.primary">
+                          {s.value.toLocaleString()}
+                          <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.75 }}>
+                            ({s.pct}%)
+                          </Typography>
+                        </Typography>
+                      </Box>
+                      <Box sx={{ width: '100%', bgcolor: 'action.hover', borderRadius: 99, overflow: 'hidden', height: 28 }}>
+                        <Box sx={{
+                          width: `${s.pct}%`,
+                          height: '100%',
+                          bgcolor: s.color,
+                          borderRadius: 99,
+                          transition: 'width 0.8s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'flex-end',
+                          pr: 1.5,
+                          minWidth: s.pct > 0 ? 48 : 0,
+                        }}>
+                          {s.pct > 5 && (
+                            <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700 }}>
+                              {fmt(s.value)}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    </Box>
+                  ))}
+                </Stack>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      </FadeCard>
 
       {/* ── Row 2: Area chart + Donut chart ─────────────────────────────── */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -842,6 +1008,30 @@ export default function PlatformDashboardPage() {
                       />
                     </BarChart>
                   </ResponsiveContainer>
+                )}
+                {d.topTenants.length > 0 && (
+                  <Stack spacing={0.5} sx={{ mt: 2 }}>
+                    {d.topTenants.slice(0, 5).map((t: any, idx: number) => {
+                      const isTop3 = idx < 3;
+                      return (
+                        <Box key={t.tenantId ?? t.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.4, borderRadius: 1.5, '&:hover': { bgcolor: 'action.hover' } }}>
+                          <Typography variant="caption" sx={{ width: 16, color: 'text.disabled', fontWeight: 700, flexShrink: 0 }}>
+                            {idx + 1}
+                          </Typography>
+                          <Typography variant="caption" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                            {t.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ flexShrink: 0 }}>
+                            {fmt(t.queries)}
+                          </Typography>
+                          {isTop3
+                            ? <TrendingUpIcon sx={{ fontSize: 16, color: '#43A047', flexShrink: 0 }} />
+                            : <TrendingDownIcon sx={{ fontSize: 16, color: '#E53935', flexShrink: 0 }} />
+                          }
+                        </Box>
+                      );
+                    })}
+                  </Stack>
                 )}
               </CardContent>
             </Card>

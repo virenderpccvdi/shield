@@ -78,6 +78,9 @@ public interface DnsQueryLogRepository extends JpaRepository<DnsQueryLog, UUID> 
 
     long countByActionAndQueriedAtBetween(String action, Instant from, Instant to);
 
+    @Query(value = "SELECT COUNT(DISTINCT profile_id) FROM analytics.dns_query_logs WHERE queried_at >= :from AND queried_at <= :to AND profile_id IS NOT NULL", nativeQuery = true)
+    long countDistinctActiveProfiles(@Param("from") Instant from, @Param("to") Instant to);
+
     @Query(value = """
             SELECT DATE(queried_at) AS query_date,
                    COUNT(*) AS total,

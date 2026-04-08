@@ -194,10 +194,20 @@ public class AuthService {
         return login(req, null);
     }
 
+    // Dummy hash used to run bcrypt even when the email doesn't exist,
+    // ensuring constant-time response and preventing user enumeration.
+    private static final String DUMMY_HASH =
+        "$2b$12$8K1p/a0dR1xqM2LnvwBFMeS5DJmN3oZ7rL0vXkYtP4hGcQmUA8iwq";
+
     @Transactional
     public AuthResponse login(LoginRequest req, String ipAddress) {
-        User user = userRepository.findByEmail(req.getEmail().toLowerCase())
-                .orElseThrow(() -> new ShieldException("UNAUTHORIZED", "Invalid credentials", HttpStatus.UNAUTHORIZED));
+        java.util.Optional<User> userOpt = userRepository.findByEmail(req.getEmail().toLowerCase());
+        if (userOpt.isEmpty()) {
+            // Always run bcrypt to prevent timing-based user enumeration attacks
+            passwordEncoder.matches(req.getPassword(), DUMMY_HASH);
+            throw new ShieldException("UNAUTHORIZED", "Invalid credentials", HttpStatus.UNAUTHORIZED);
+        }
+        User user = userOpt.get();
 
         if (!user.isActive()) {
             throw ShieldException.forbidden("Account is disabled");

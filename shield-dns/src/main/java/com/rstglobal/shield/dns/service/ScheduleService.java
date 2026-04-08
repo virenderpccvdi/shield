@@ -1,7 +1,6 @@
 package com.rstglobal.shield.dns.service;
 
 import com.rstglobal.shield.common.exception.ShieldException;
-import com.rstglobal.shield.dns.client.AdGuardClient;
 import com.rstglobal.shield.dns.dto.request.ScheduleOverrideRequest;
 import com.rstglobal.shield.dns.dto.request.UpdateScheduleRequest;
 import com.rstglobal.shield.dns.dto.response.ScheduleResponse;
@@ -34,7 +33,6 @@ public class ScheduleService {
 
     private final ScheduleRepository scheduleRepo;
     private final DnsRulesRepository dnsRulesRepo;
-    private final AdGuardClient adGuard;
     private final BudgetTrackingService budgetTracking;
 
     @Transactional
@@ -192,8 +190,6 @@ public class ScheduleService {
                     dnsRulesRepo.save(rules);
                     log.info("Schedule enforcement: profileId={} day={} hour={} blocked={} (budgetExhausted={})",
                             profileId, dayKey, hour, finalShouldBlock, budgetExhausted);
-                    // Sync to AdGuard so the change takes effect immediately
-                    syncScheduleToAdGuard(rules, finalShouldBlock);
                 }
             });
 
@@ -282,33 +278,4 @@ public class ScheduleService {
                 .build();
     }
 
-    /**
-     * Notify AdGuard of schedule enforcement change (best-effort, errors are swallowed).
-     * When {@code blocked} is true, all filtering is disabled (= internet blocked).
-     * When false, normal filtering is restored.
-     */
-    private void syncScheduleToAdGuard(DnsRules rules, boolean blocked) {
-        String clientId = rules.getDnsClientId();
-        if (clientId == null || clientId.isBlank()) return;
-        try {
-            if (blocked) {
-                adGuard.updateClient(clientId, clientId, new AdGuardClient.AdGuardClientData(
-                        false, false, false,
-                        Map.of("enabled", false, "google", false, "bing", false,
-                                "duckduckgo", false, "youtube", false),
-                        List.of()
-                ));
-            } else {
-                // Restore normal filtering — re-enable with default safe settings
-                adGuard.updateClient(clientId, clientId, new AdGuardClient.AdGuardClientData(
-                        true, true, true,
-                        Map.of("enabled", true, "google", true, "bing", true,
-                                "duckduckgo", true, "youtube", Boolean.TRUE.equals(rules.getYoutubeRestricted())),
-                        List.of()
-                ));
-            }
-        } catch (Exception e) {
-            log.warn("Schedule AdGuard sync failed for profileId={}: {}", rules.getProfileId(), e.getMessage());
-        }
-    }
 }

@@ -13,7 +13,7 @@
 
     <artifactId>shield-dns-resolver</artifactId>
     <name>Shield DNS Resolver</name>
-    <description>Custom DNS-over-HTTPS resolver — replaces AdGuard Home</description>
+    <description>Shield DNS Gateway — Java-based DNS filtering and resolution</description>
 
     <dependencies>
         <!-- WebFlux (Netty HTTP server) -->

@@ -1,6 +1,5 @@
 package com.rstglobal.shield.dns.service;
 
-import com.rstglobal.shield.dns.client.AdGuardClient;
 import com.rstglobal.shield.dns.entity.DnsRules;
 import com.rstglobal.shield.dns.repository.DnsRulesRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +16,6 @@ public class ProfileProvisionService {
 
     private final DnsRulesService rulesService;
     private final ScheduleService scheduleService;
-    private final AdGuardClient adGuardClient;
     private final DnsRulesRepository rulesRepo;
 
     @Transactional
@@ -27,9 +25,6 @@ public class ProfileProvisionService {
         if (dnsClientId != null && !dnsClientId.isBlank()) {
             rules.setDnsClientId(dnsClientId);
             rulesRepo.save(rules);
-            // Create AdGuard client, then immediately sync current category rules
-            // (createClient sets blocked_services=[] — syncRules pushes the real filter config)
-            adGuardClient.createClient(dnsClientId, profileName != null ? profileName : dnsClientId, profileId.toString());
             rulesService.syncRules(profileId);
         }
         scheduleService.initSchedule(tenantId, profileId);

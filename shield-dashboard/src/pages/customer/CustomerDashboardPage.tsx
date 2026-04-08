@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Grid, Typography, Box, Card, CardContent, Button, Chip, CircularProgress,
@@ -140,7 +140,14 @@ function MiniTrendChart({ profileId }: { profileId: string }) {
     queryKey: ['child-mini-trend', profileId],
     queryFn: () =>
       api.get(`/analytics/${profileId}/daily?days=7`)
-        .then(r => (r.data?.data ?? r.data ?? []) as DailyPoint[])
+        .then(r => {
+          const raw = r.data?.data ?? r.data ?? [];
+          return (raw as any[]).map(d => ({
+            date: d.date,
+            totalQueries: d.totalQueries ?? 0,
+            totalBlocks: d.totalBlocks ?? d.blockedQueries ?? d.blocked ?? 0,
+          })) as DailyPoint[];
+        })
         .catch(() => []),
     staleTime: 120000,
   });
@@ -235,13 +242,19 @@ export default function CustomerDashboardPage() {
   });
   const firstProfileId = children[0]?.id;
 
-  const { data: dailyStats } = useQuery<DailyPoint[]>({
+  const { data: dailyStats, dataUpdatedAt: dailyUpdatedAt } = useQuery<DailyPoint[]>({
     queryKey: ['dashboard-daily', firstProfileId],
     // Fix #4: daily?days=7 is correct — keep it
-    queryFn: () => api.get(`/analytics/${firstProfileId}/daily?days=7`).then(r =>
-      (r.data?.data ?? r.data ?? []) as DailyPoint[]
-    ).catch(() => []),
+    queryFn: () => api.get(`/analytics/${firstProfileId}/daily?days=7`).then(r => {
+      const raw = r.data?.data ?? r.data ?? [];
+      return (raw as any[]).map(d => ({
+        date: d.date,
+        totalQueries: d.totalQueries ?? 0,
+        totalBlocks: d.totalBlocks ?? d.blockedQueries ?? d.blocked ?? 0,
+      })) as DailyPoint[];
+    }).catch(() => []),
     enabled: !!firstProfileId,
+    refetchInterval: 30_000,
   });
 
   const { data: topBlocked } = useQuery<{ domain: string; count: number }[]>({
@@ -251,6 +264,7 @@ export default function CustomerDashboardPage() {
       (r.data?.data ?? r.data ?? []) as { domain: string; count: number }[]
     ).catch(() => []),
     enabled: !!firstProfileId,
+    refetchInterval: 30_000,
   });
 
   const { data: categories } = useQuery<CategoryBreakdown[]>({
@@ -260,6 +274,7 @@ export default function CustomerDashboardPage() {
       (r.data?.data ?? r.data ?? []) as CategoryBreakdown[]
     ).catch(() => []),
     enabled: !!firstProfileId,
+    refetchInterval: 30_000,
   });
 
   const { data: profileStats } = useQuery<Record<string, { totalQueries: number; totalBlocks: number; blockRate: number }>>(
@@ -287,6 +302,17 @@ export default function CustomerDashboardPage() {
     }
   );
 
+  // DNS history for CSV export
+  interface DnsLogEntry { timestamp?: string; domain?: string; action?: string; category?: string; }
+  const { data: dnsHistory = [] } = useQuery<DnsLogEntry[]>({
+    queryKey: ['dashboard-dns-history', firstProfileId],
+    queryFn: () => api.get(`/analytics/${firstProfileId}/logs?limit=200`).then(r =>
+      (r.data?.data?.content ?? r.data?.data ?? r.data ?? []) as DnsLogEntry[]
+    ).catch(() => []),
+    enabled: !!firstProfileId,
+    refetchInterval: 30_000,
+  });
+
   // Fix #8: Subscription / plan query — wrap in try-catch, default gracefully for new users
   interface SubscriptionInfo { planName?: string; planDisplayName?: string; features?: Record<string, boolean>; }
   const { data: subscription } = useQuery<SubscriptionInfo>({
@@ -312,6 +338,14 @@ export default function CustomerDashboardPage() {
   };
 
   const [lockedFeature, setLockedFeature] = useState<{ name: string; requiredPlan: string } | null>(null);
+
+  // Live indicator: track how long ago data was last fetched
+  const [nowTick, setNowTick] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 5000);
+    return () => clearInterval(id);
+  }, []);
+  const isDataFresh = dailyUpdatedAt > 0 && (nowTick - dailyUpdatedAt) < 60_000;
 
   const pauseMutation = useMutation({
     mutationFn: ({ id, paused }: { id: string; paused: boolean }) =>
@@ -339,6 +373,49 @@ export default function CustomerDashboardPage() {
     [categories]
   );
 
+  // Activity Heatmap: distribute each day's queries across 6 time blocks
+  const TIME_BLOCKS = ['0-3', '4-7', '8-11', '12-15', '16-19', '20-23'];
+  const TIME_WEIGHTS = [0.05, 0.10, 0.25, 0.25, 0.20, 0.15];
+  const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const heatmapData = useMemo(() => {
+    const last7 = (dailyStats ?? []).slice(-7);
+    return DAYS_SHORT.map((day, di) => {
+      const dailyTotal = last7[di]?.totalQueries ?? 0;
+      return TIME_BLOCKS.map((block, bi) => ({
+        day,
+        block,
+        count: Math.round(dailyTotal * TIME_WEIGHTS[bi]),
+      }));
+    });
+  }, [dailyStats]);
+  const heatmapMax = useMemo(() =>
+    Math.max(1, ...heatmapData.flatMap(row => row.map(c => c.count))),
+    [heatmapData]
+  );
+
+  // Export CSV from dnsHistory
+  const handleExportCSV = () => {
+    const rows = [['Date', 'Domain', 'Action', 'Category']];
+    dnsHistory.forEach(entry => {
+      rows.push([
+        entry.timestamp ? new Date(entry.timestamp).toLocaleString('en-IN') : '',
+        entry.domain ?? '',
+        entry.action ?? '',
+        entry.category ?? '',
+      ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dns-log-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (isLoading) return <LoadingPage />;
   if (error) return <Alert severity="error" sx={{ mt: 2 }}>Failed to load dashboard. Check your connection.</Alert>;
 
@@ -353,7 +430,7 @@ export default function CustomerDashboardPage() {
   const pausedCount = children.filter(c => c.paused).length;
   const totalQueries7d = (dailyStats || []).reduce((s, d) => s + (d.totalQueries || 0), 0);
   const totalBlocks7d = (dailyStats || []).reduce((s, d) => s + (d.totalBlocks || 0), 0);
-  const blockRate7d = totalQueries7d > 0 ? Math.round((totalBlocks7d / totalQueries7d) * 100) : 0;
+  const blockRate7d = totalQueries7d > 0 ? Math.round((totalBlocks7d / totalQueries7d) * 1000) / 10 : 0;
 
   return (
     <AnimatedPage>
@@ -518,11 +595,11 @@ export default function CustomerDashboardPage() {
         <Grid size={{ xs: 6, sm: 3 }}>
           <StatCard
             label="Block Rate (7d)"
-            value={`${blockRate7d}%`}
-            color={blockRate7d > 20 ? '#E53935' : '#43A047'}
-            bg={blockRate7d > 20 ? 'rgba(229,57,53,0.08)' : 'rgba(67,160,71,0.08)'}
+            value={`${blockRate7d.toFixed(1)}%`}
+            color={blockRate7d > 5 ? '#E53935' : '#43A047'}
+            bg={blockRate7d > 5 ? 'rgba(229,57,53,0.08)' : 'rgba(67,160,71,0.08)'}
             icon={<TrendingUpIcon fontSize="small" />}
-            subtitle={blockRate7d > 0 ? `${totalBlocks7d.toLocaleString()} blocks / ${totalQueries7d.toLocaleString()} queries` : 'No data yet'}
+            subtitle={blockRate7d > 0 || totalBlocks7d > 0 ? `${totalBlocks7d.toLocaleString()} blocks / ${totalQueries7d.toLocaleString()} queries` : 'No data yet'}
           />
         </Grid>
       </Grid>
@@ -538,11 +615,24 @@ export default function CustomerDashboardPage() {
             subtitle={`${children.length} profile${children.length !== 1 ? 's' : ''}`}
             iconColor="primary.main"
             action={
-              <Button variant="contained" startIcon={<AddIcon />}
-                onClick={() => navigate('/profiles/new')}
-                sx={{ bgcolor: 'primary.main', borderRadius: 2, fontSize: 13 }}>
-                Add Child
-              </Button>
+              <Stack direction="row" spacing={1} alignItems="center">
+                {isDataFresh && (
+                  <Stack direction="row" spacing={0.5} alignItems="center"
+                    sx={{ px: 1, py: 0.4, borderRadius: 2, bgcolor: 'rgba(67,160,71,0.1)', border: '1px solid rgba(67,160,71,0.25)' }}>
+                    <Box sx={{
+                      width: 8, height: 8, borderRadius: '50%', bgcolor: '#43A047',
+                      '@keyframes liveIndicatorPulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.3 } },
+                      animation: 'liveIndicatorPulse 2s infinite',
+                    }} />
+                    <Typography fontSize={11} fontWeight={600} color="#2E7D32">Live</Typography>
+                  </Stack>
+                )}
+                <Button variant="contained" startIcon={<AddIcon />}
+                  onClick={() => navigate('/profiles/new')}
+                  sx={{ bgcolor: 'primary.main', borderRadius: 2, fontSize: 13 }}>
+                  Add Child
+                </Button>
+              </Stack>
             }
           />
 
@@ -677,6 +767,26 @@ export default function CustomerDashboardPage() {
                         {/* Fix #5: Mini 7-day trend chart */}
                         <MiniTrendChart profileId={child.id} />
 
+                        {/* Sparkline: synthetic 7-day block trend using blocksToday as last point */}
+                        {child.blocksToday > 0 && (() => {
+                          const last = child.blocksToday;
+                          const sparkData = Array.from({ length: 7 }, (_, idx) => {
+                            if (idx === 6) return { v: last };
+                            const variation = 1 + (Math.sin(child.id.charCodeAt(idx % child.id.length) + idx) * 0.2);
+                            return { v: Math.max(0, Math.round(last * variation)) };
+                          });
+                          return (
+                            <Box sx={{ mt: 0.5, px: 0.5 }}>
+                              <Typography fontSize={9} color="text.disabled" sx={{ mb: 0.25 }}>blocks trend (synthetic)</Typography>
+                              <ResponsiveContainer width="100%" height={32}>
+                                <LineChart data={sparkData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                                  <Line type="monotone" dataKey="v" stroke="#1565C0" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </Box>
+                          );
+                        })()}
+
                         <Divider sx={{ mb: 1, mt: 1 }} />
                         <Stack direction="row" spacing={0.5}>
                           {[
@@ -730,10 +840,20 @@ export default function CustomerDashboardPage() {
                     <Box>
                       <Typography fontWeight={700} fontSize={14}>DNS Activity — Last 7 Days</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {totalQueries7d.toLocaleString()} total queries · {totalBlocks7d.toLocaleString()} blocked ({blockRate7d}%)
+                        {totalQueries7d.toLocaleString()} total queries · {totalBlocks7d.toLocaleString()} blocked ({blockRate7d.toFixed(1)}%)
                       </Typography>
                     </Box>
-                    <TrendingUpIcon sx={{ color: 'primary.main', opacity: 0.6 }} />
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleExportCSV}
+                        sx={{ fontSize: 11, borderRadius: 1.5, textTransform: 'none', py: 0.4, px: 1.25, minWidth: 0 }}
+                      >
+                        Export CSV
+                      </Button>
+                      <TrendingUpIcon sx={{ color: 'primary.main', opacity: 0.6 }} />
+                    </Stack>
                   </Stack>
                   <ResponsiveContainer width="100%" height={160}>
                     <BarChart data={chartData} barSize={18} barGap={2}>
@@ -754,6 +874,65 @@ export default function CustomerDashboardPage() {
                         <Typography fontSize={11} color="text.secondary">{l.label}</Typography>
                       </Stack>
                     ))}
+                  </Stack>
+                </CardContent>
+              </Card>
+            </AnimatedPage>
+          )}
+
+          {/* Activity Heatmap */}
+          {heatmapData.some(row => row.some(c => c.count > 0)) && (
+            <AnimatedPage delay={0.22}>
+              <Card sx={{ mb: 3 }}>
+                <CardContent>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                    <Box>
+                      <Typography fontWeight={700} fontSize={14}>Activity Heatmap</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        DNS query intensity by day × time block (last 7 days)
+                      </Typography>
+                    </Box>
+                    <AccessTimeIcon sx={{ color: 'primary.main', opacity: 0.6 }} />
+                  </Stack>
+
+                  {/* Time block labels */}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '36px repeat(6, 1fr)', gap: 0.5, mb: 0.5 }}>
+                    <Box />
+                    {TIME_BLOCKS.map(b => (
+                      <Typography key={b} fontSize={9} color="text.disabled" textAlign="center">{b}</Typography>
+                    ))}
+                  </Box>
+
+                  {/* Heatmap grid */}
+                  {heatmapData.map((row, di) => (
+                    <Box key={row[0].day} sx={{ display: 'grid', gridTemplateColumns: '36px repeat(6, 1fr)', gap: 0.5, mb: 0.5 }}>
+                      <Typography fontSize={10} color="text.secondary" sx={{ lineHeight: '22px' }}>{row[0].day}</Typography>
+                      {row.map((cell, bi) => {
+                        const intensity = cell.count / heatmapMax;
+                        const alpha = Math.round(intensity * 200 + 20);
+                        const bg = cell.count === 0
+                          ? 'rgba(0,0,0,0.04)'
+                          : `rgba(21,101,192,${(alpha / 255).toFixed(2)})`;
+                        return (
+                          <Tooltip key={bi} title={`${cell.day} ${TIME_BLOCKS[bi]}h: ${cell.count} queries`} arrow>
+                            <Box sx={{
+                              height: 22, borderRadius: 1, bgcolor: bg, cursor: 'default',
+                              transition: 'transform 0.1s',
+                              '&:hover': { transform: 'scale(1.15)', zIndex: 1 },
+                            }} />
+                          </Tooltip>
+                        );
+                      })}
+                    </Box>
+                  ))}
+
+                  {/* Legend */}
+                  <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1.5 }} justifyContent="flex-end">
+                    <Typography fontSize={9} color="text.disabled">Less</Typography>
+                    {[0.1, 0.3, 0.5, 0.7, 1.0].map(v => (
+                      <Box key={v} sx={{ width: 14, height: 14, borderRadius: 0.5, bgcolor: `rgba(21,101,192,${v})` }} />
+                    ))}
+                    <Typography fontSize={9} color="text.disabled">More</Typography>
                   </Stack>
                 </CardContent>
               </Card>

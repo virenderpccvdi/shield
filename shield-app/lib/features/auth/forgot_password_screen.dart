@@ -46,7 +46,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   Widget _formView() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
     const SizedBox(height: 24),
-    const Icon(Icons.lock_reset, size: 64, color: Color(0xFF1565C0)),
+    const Icon(Icons.lock_reset, size: 64, color: Color(0xFF2563EB)),
     const SizedBox(height: 16),
     const Text('Forgot your password?',
         style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),

@@ -9,7 +9,7 @@ final _geofencesProvider =
   final resp = await ApiClient.instance.get(Endpoints.geofences(pid));
   final raw = resp.data as List? ??
       (resp.data as Map<String, dynamic>?)?['content'] as List? ?? [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });
 
 class GeofencesScreen extends ConsumerWidget {

@@ -2,7 +2,6 @@ package com.rstglobal.shield.dns.service;
 
 import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.common.service.FeatureGateService;
-import com.rstglobal.shield.dns.client.AdGuardClient;
 import com.rstglobal.shield.dns.config.ContentCategories;
 import com.rstglobal.shield.dns.dto.request.DomainActionRequest;
 import com.rstglobal.shield.dns.dto.request.UpdateCategoriesRequest;
@@ -30,7 +29,6 @@ public class DnsRulesService {
 
     private final DnsRulesRepository rulesRepo;
     private final PlatformDefaultsRepository platformRepo;
-    private final AdGuardClient adGuard;
     private final FeatureGateService featureGate;
     private final DnsBroadcastService dnsBroadcast;
     private final RulesAuditLogRepository auditLogRepo;
@@ -73,7 +71,6 @@ public class DnsRulesService {
         cats.putAll(req.getCategories());
         rules.setEnabledCategories(cats);
         DnsRules saved = rulesRepo.save(rules);
-        syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         audit(profileId, tenantId, null, "CATEGORIES_CHANGED",
                 "Categories updated: " + req.getCategories().keySet());
@@ -86,7 +83,6 @@ public class DnsRulesService {
         DnsRules rules = findOrInit(profileId, tenantId);
         rules.setCustomAllowlist(req.getDomains());
         DnsRules saved = rulesRepo.save(rules);
-        syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         audit(profileId, tenantId, null, "ALLOWLIST_CHANGED",
                 req.getDomains().size() + " domains in allowlist");
@@ -99,7 +95,6 @@ public class DnsRulesService {
         DnsRules rules = findOrInit(profileId, tenantId);
         rules.setCustomBlocklist(req.getDomains());
         DnsRules saved = rulesRepo.save(rules);
-        syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         audit(profileId, tenantId, null, "BLOCKLIST_CHANGED",
                 req.getDomains().size() + " domains in blocklist");
@@ -113,7 +108,6 @@ public class DnsRulesService {
         if (blocklist != null) rules.setCustomBlocklist(blocklist);
         if (allowlist != null) rules.setCustomAllowlist(allowlist);
         DnsRules saved = rulesRepo.save(rules);
-        syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         return toResponse(saved);
     }
@@ -141,7 +135,6 @@ public class DnsRulesService {
         rules.setEnabledCategories(cats);
         rules.setFilterLevel(filterLevel.toUpperCase());
         DnsRules saved = rulesRepo.save(rules);
-        syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         audit(profileId, tenantId, null, "FILTER_LEVEL_CHANGED", "Filter level set to " + filterLevel);
         return toResponse(saved);
@@ -169,7 +162,6 @@ public class DnsRulesService {
             rules.setCustomAllowlist(allow);
         }
         DnsRules saved = rulesRepo.save(rules);
-        syncToAdGuard(saved);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         return toResponse(saved);
     }
@@ -281,53 +273,22 @@ public class DnsRulesService {
                 .orElseGet(() -> findOrInit(profileId, tenantId));
     }
 
-    /** Fetch DNS query log from AdGuard filtered by clientId. */
+    /**
+     * Fetch recent DNS query activity for a client from the browsing history table.
+     * Returns an empty list — full query history is available via BrowsingHistoryService.
+     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getActivity(String clientId, int limit) {
-        // Fetch more entries to account for filtering
-        List<Map<String, Object>> raw = adGuard.getQueryLog(null, Math.min(limit * 5, 500));
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Map<String, Object> entry : raw) {
-            // client_id is set when client connects via DoH URL /dns-query/{clientId}
-            String entryClientId = String.valueOf(entry.getOrDefault("client_id", ""));
-            String entryClient   = String.valueOf(entry.getOrDefault("client", ""));
-            if (clientId != null && !clientId.isBlank()) {
-                if (!clientId.equals(entryClientId) && !entryClient.contains(clientId)) continue;
-            }
-
-            Map<String, Object> item = new java.util.LinkedHashMap<>();
-            @SuppressWarnings("unchecked")
-            Map<String, Object> question = (Map<String, Object>) entry.get("question");
-            String domain = question != null ? String.valueOf(question.getOrDefault("name", "")) : "";
-            // Remove trailing dot from domain
-            if (domain.endsWith(".")) domain = domain.substring(0, domain.length() - 1);
-            String reason = String.valueOf(entry.getOrDefault("reason", ""));
-            String time   = String.valueOf(entry.getOrDefault("time", ""));
-
-            item.put("domain", domain);
-            item.put("action", reason.startsWith("Filtered") ? "BLOCKED" : "ALLOWED");
-            item.put("reason", reason);
-            item.put("timestamp", time);
-            // Extract block rule if present (rules is a List in AdGuard log)
-            Object rulesObj = entry.get("rules");
-            if (rulesObj instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> rulesList = (List<Map<String, Object>>) rulesObj;
-                if (!rulesList.isEmpty()) {
-                    item.put("rule", rulesList.get(0).getOrDefault("text", ""));
-                }
-            }
-            result.add(item);
-            if (result.size() >= limit) break;
-        }
-        return result;
+        // DNS query history is stored in dns.browsing_history via shield-dns-resolver's async logger.
+        // Use BrowsingHistoryService/BrowsingHistoryController for query log access.
+        return List.of();
     }
 
     /** Force-push current DB rules to AdGuard for a profile. */
     @Transactional
     public DnsRulesResponse forceSync(UUID profileId, UUID tenantId) {
         DnsRules rules = findOrInit(profileId, tenantId);
-        syncToAdGuard(rules);
+        dnsBroadcast.broadcastRulesChanged(rules.getProfileId(), tenantId);
         return toResponse(rules);
     }
 
@@ -337,7 +298,9 @@ public class DnsRulesService {
      */
     @Transactional(readOnly = true)
     public void syncRules(UUID profileId) {
-        rulesRepo.findByProfileId(profileId).ifPresent(this::syncToAdGuard);
+        // Rules are synced to shield-dns-resolver via Redis cache — no external sync needed.
+        rulesRepo.findByProfileId(profileId).ifPresent(r ->
+            dnsBroadcast.broadcastRulesChanged(r.getProfileId(), r.getTenantId()));
     }
 
     /**
@@ -350,7 +313,7 @@ public class DnsRulesService {
         int synced = 0;
         for (DnsRules rules : all) {
             if (rules.getDnsClientId() != null && !rules.getDnsClientId().isBlank()) {
-                syncToAdGuard(rules);
+                dnsBroadcast.broadcastRulesChanged(rules.getProfileId(), rules.getTenantId());
                 synced++;
             }
         }
@@ -383,121 +346,6 @@ public class DnsRulesService {
                     log.info("DNS rules not found for profileId={}, auto-initializing with MODERATE defaults", profileId);
                     return initRules(tenantId, profileId, "MODERATE");
                 });
-    }
-
-    /** Fire-and-forget AdGuard sync — runs in background so API returns immediately. */
-    private void syncToAdGuard(DnsRules rules) {
-        java.util.concurrent.CompletableFuture.runAsync(() -> syncToAdGuardInternal(rules));
-    }
-
-    private void syncToAdGuardInternal(DnsRules rules) {
-        String clientId = rules.getDnsClientId();
-        if (clientId == null || clientId.isBlank()) {
-            log.warn("syncToAdGuard: no dnsClientId on rules for profileId={} — skipping AdGuard sync", rules.getProfileId());
-            return;
-        }
-
-        try {
-
-        Map<String, Boolean> cats = Optional.ofNullable(rules.getEnabledCategories()).orElse(Map.of());
-
-        // If schedule enforcement, budget exhaustion, bedtime lock, OR pause flag is active,
-        // disable filtering entirely (filteringEnabled=false in AdGuard blocks ALL DNS for the client)
-        boolean scheduleBlocked = Boolean.TRUE.equals(cats.get(ScheduleService.SCHEDULE_BLOCKED_KEY));
-        boolean budgetExhausted = Boolean.TRUE.equals(cats.get(BudgetEnforcementService.BUDGET_EXHAUSTED_KEY));
-        boolean bedtimeLocked   = Boolean.TRUE.equals(cats.get(BedtimeLockService.BEDTIME_LOCKED_KEY));
-        boolean paused = Boolean.TRUE.equals(cats.get("__paused__"));
-        if (scheduleBlocked || budgetExhausted || bedtimeLocked || paused) {
-            AdGuardClient.AdGuardClientData data = new AdGuardClient.AdGuardClientData(
-                    false, false, false,
-                    Map.of("enabled", false, "google", false, "bing", false,
-                            "duckduckgo", false, "youtube", false),
-                    List.of()
-            );
-            log.info("AdGuard sync: profileId={} clientId={} — BLOCKED (scheduleBlocked={} budgetExhausted={} bedtimeLocked={} paused={})",
-                    rules.getProfileId(), clientId, scheduleBlocked, budgetExhausted, bedtimeLocked, paused);
-            adGuard.updateClient(clientId, clientId, data);
-            return;
-        }
-
-        // Determine blocked services from categories
-        // Maps internal category slug → AdGuard service IDs (verified against AdGuard Home service list)
-        List<String> blocked = new ArrayList<>();
-        java.util.List<String[]> serviceMapping = java.util.List.of(
-            // Social media (both legacy "social" slug and current "social_media")
-            new String[]{"social_media", "instagram", "facebook", "twitter", "tiktok", "snapchat",
-                         "reddit", "pinterest", "vk", "tumblr", "bluesky", "linkedin", "mastodon"},
-            new String[]{"social",       "instagram", "facebook", "twitter", "tiktok", "snapchat", "reddit"},
-            new String[]{"tiktok",       "tiktok"},
-            // Streaming
-            new String[]{"streaming",    "youtube", "netflix", "amazon_streaming", "hulu", "disneyplus",
-                         "twitch", "max", "crunchyroll", "peacock_tv", "paramountplus",
-                         "apple_streaming", "dailymotion", "vimeo"},
-            new String[]{"live_streaming","twitch", "youtube", "bigo_live", "dailymotion"},
-            new String[]{"music",        "spotify", "soundcloud", "deezer", "tidal"},
-            new String[]{"youtube",      "youtube"},
-            // Gaming
-            new String[]{"gaming",       "twitch", "steam", "roblox", "minecraft",
-                         "battle_net", "epic_games", "nintendo", "xboxlive", "playstation",
-                         "leagueoflegends", "riot_games", "valorant", "electronic_arts"},
-            new String[]{"online_gaming","twitch", "steam", "roblox", "riot_games",
-                         "leagueoflegends", "valorant", "battle_net"},
-            new String[]{"game_stores",  "steam", "playstore", "nintendo", "epic_games"},
-            // Gambling
-            new String[]{"gambling",     "betway", "betano", "betfair"},
-            // Messaging / chat
-            new String[]{"messaging",    "whatsapp", "telegram", "viber", "signal", "line", "kakaotalk"},
-            new String[]{"chat",         "discord", "telegram", "whatsapp", "wechat", "kik", "slack"},
-            // Dating
-            new String[]{"dating",       "tinder", "plenty_of_fish"},
-            // Adult / explicit
-            new String[]{"adult",        "onlyfans"},
-            new String[]{"pornography",  "onlyfans"},
-            // Privacy bypass (icloud_private_relay, proton VPN, privacy.com)
-            new String[]{"vpn_proxy",    "icloud_private_relay", "proton", "privacy"},
-            // AI tools
-            new String[]{"ai_tools",     "chatgpt", "gemini", "copilot", "claude", "grok",
-                         "deepseek", "perplexity", "manus", "meta_ai"}
-        );
-        for (String[] entry : serviceMapping) {
-            String category = entry[0];
-            if (Boolean.FALSE.equals(cats.get(category))) {
-                for (int i = 1; i < entry.length; i++) {
-                    String svc = entry[i];
-                    if (!blocked.contains(svc)) blocked.add(svc);
-                }
-            }
-        }
-
-        boolean safesearch = Boolean.TRUE.equals(rules.getSafesearchEnabled());
-        boolean ytRestricted = Boolean.TRUE.equals(rules.getYoutubeRestricted());
-        Map<String, Object> safeSearchMap = new java.util.LinkedHashMap<>();
-        safeSearchMap.put("enabled", safesearch);
-        safeSearchMap.put("google", safesearch);
-        safeSearchMap.put("bing", safesearch);
-        safeSearchMap.put("duckduckgo", safesearch);
-        safeSearchMap.put("youtube", ytRestricted);
-        safeSearchMap.put("yandex", safesearch);
-        safeSearchMap.put("pixabay", false);
-        safeSearchMap.put("ecosia", false);
-        AdGuardClient.AdGuardClientData data = new AdGuardClient.AdGuardClientData(
-                true,
-                true,
-                true,
-                safeSearchMap,
-                blocked
-        );
-        log.debug("AdGuard sync: profileId={} clientId={} blockedServices={}", rules.getProfileId(), clientId, blocked);
-        adGuard.updateClient(clientId, clientId, data);
-
-        // PC-05: YouTube Safe Mode — DNS CNAME rewrites
-        applyYoutubeRewrites(rules.isYoutubeSafeMode());
-        // PC-06: Safe Search — DNS CNAME rewrites
-        applySafeSearchRewrites(rules.isSafeSearch());
-
-        } catch (Exception e) {
-            log.warn("AdGuard sync failed for profile={} clientId={} — DB saved, sync skipped: {}", rules.getProfileId(), clientId, e.getMessage());
-        }
     }
 
     private DnsRulesResponse toResponse(DnsRules r) {
@@ -540,7 +388,6 @@ public class DnsRulesService {
                 .orElseThrow(() -> ShieldException.notFound("dns-rules", profileId.toString()));
         rules.setYoutubeSafeMode(enabled);
         rules = rulesRepo.save(rules);
-        applyYoutubeRewrites(enabled);
         log.info("YouTube safe mode {} for profile={}", enabled ? "ENABLED" : "DISABLED", profileId);
         return toResponse(rules);
     }
@@ -557,7 +404,6 @@ public class DnsRulesService {
                 .orElseThrow(() -> ShieldException.notFound("dns-rules", profileId.toString()));
         rules.setSafeSearch(enabled);
         rules = rulesRepo.save(rules);
-        applySafeSearchRewrites(enabled);
         log.info("Safe search {} for profile={}", enabled ? "ENABLED" : "DISABLED", profileId);
         return toResponse(rules);
     }
@@ -580,15 +426,15 @@ public class DnsRulesService {
             default -> throw ShieldException.badRequest("Unknown platform: " + platform + ". Supported: facebook, instagram, tiktok");
         }
         rules = rulesRepo.save(rules);
-        applySocialBlockToAdGuard(rules);
+        applySocialBlock(rules);
         log.info("Social block {} {} for profile={}", platform, enabled ? "ENABLED" : "DISABLED", profileId);
         audit(profileId, null, null, "SOCIAL_BLOCK_CHANGED",
                 platform + " blocking " + (enabled ? "enabled" : "disabled"));
         return toResponse(rules);
     }
 
-    private void applySocialBlockToAdGuard(DnsRules rules) {
-        // Use the existing category-blocked logic via custom blocklist injection
+    private void applySocialBlock(DnsRules rules) {
+        // Enforce social media blocks via custom blocklist (picked up by shield-dns-resolver)
         // Facebook: facebook.com, www.facebook.com, m.facebook.com, fb.com
         List<String> block = new ArrayList<>(Optional.ofNullable(rules.getCustomBlocklist()).orElse(List.of()));
         List<String> allow = new ArrayList<>(Optional.ofNullable(rules.getCustomAllowlist()).orElse(List.of()));
@@ -603,7 +449,6 @@ public class DnsRulesService {
         rules.setCustomBlocklist(block);
         rules.setCustomAllowlist(allow);
         rulesRepo.save(rules);
-        syncToAdGuard(rules);
     }
 
     private void applyDomainBlock(List<String> block, List<String> allow, boolean blocked, List<String> domains) {
@@ -614,34 +459,6 @@ public class DnsRulesService {
             }
         } else {
             block.removeAll(domains);
-        }
-    }
-
-    // ── DNS Rewrite helpers ───────────────────────────────────────────────────
-
-    private void applyYoutubeRewrites(boolean enable) {
-        if (enable) {
-            adGuard.setDnsRewrite("youtube.com", "restrict.youtube.com");
-            adGuard.setDnsRewrite("www.youtube.com", "restrict.youtube.com");
-            adGuard.setDnsRewrite("m.youtube.com", "restrict.youtube.com");
-        } else {
-            adGuard.removeDnsRewrite("youtube.com", "restrict.youtube.com");
-            adGuard.removeDnsRewrite("www.youtube.com", "restrict.youtube.com");
-            adGuard.removeDnsRewrite("m.youtube.com", "restrict.youtube.com");
-        }
-    }
-
-    private void applySafeSearchRewrites(boolean enable) {
-        if (enable) {
-            adGuard.setDnsRewrite("www.google.com", "forcesafesearch.google.com");
-            adGuard.setDnsRewrite("google.com", "forcesafesearch.google.com");
-            adGuard.setDnsRewrite("www.bing.com", "strict.bing.com");
-            adGuard.setDnsRewrite("duckduckgo.com", "safe.duckduckgo.com");
-        } else {
-            adGuard.removeDnsRewrite("www.google.com", "forcesafesearch.google.com");
-            adGuard.removeDnsRewrite("google.com", "forcesafesearch.google.com");
-            adGuard.removeDnsRewrite("www.bing.com", "strict.bing.com");
-            adGuard.removeDnsRewrite("duckduckgo.com", "safe.duckduckgo.com");
         }
     }
 

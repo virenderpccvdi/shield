@@ -1,6 +1,5 @@
 package com.rstglobal.shield.dns.service;
 
-import com.rstglobal.shield.dns.client.AdGuardClient;
 import com.rstglobal.shield.dns.entity.BudgetUsage;
 import com.rstglobal.shield.dns.entity.DnsRules;
 import com.rstglobal.shield.dns.repository.BudgetUsageRepository;
@@ -57,19 +56,16 @@ public class BudgetEnforcementService {
     private final BudgetUsageRepository usageRepo;
     private final StringRedisTemplate redis;
     private final DiscoveryClient discoveryClient;
-    private final AdGuardClient adGuard;
     private final RestClient restClient;
 
     public BudgetEnforcementService(DnsRulesRepository rulesRepo,
                                     BudgetUsageRepository usageRepo,
                                     StringRedisTemplate redis,
-                                    DiscoveryClient discoveryClient,
-                                    AdGuardClient adGuard) {
+                                    DiscoveryClient discoveryClient) {
         this.rulesRepo = rulesRepo;
         this.usageRepo = usageRepo;
         this.redis = redis;
         this.discoveryClient = discoveryClient;
-        this.adGuard = adGuard;
         this.restClient = RestClient.builder().build();
     }
 
@@ -182,8 +178,6 @@ public class BudgetEnforcementService {
                             sendBudgetNotification(profileId, rules.getTenantId(), "total",
                                     totalUsed.intValue(), totalLimitMinutes, true);
                         }
-                        // Cut off internet via AdGuard + invalidate DNS resolver cache
-                        syncBudgetExhaustedToAdGuard(rules, true);
                         // Invalidate DNS resolver Redis cache for immediate enforcement
                         redis.delete(List.of(
                             "shield:dns:profile:" + profileId + ":categories",
@@ -193,7 +187,6 @@ public class BudgetEnforcementService {
                                 profileId, totalUsed, totalLimitMinutes);
                     } else {
                         // Budget was restored (parent extended the limit mid-day)
-                        syncBudgetExhaustedToAdGuard(rules, false);
                         redis.delete(List.of(
                             "shield:dns:profile:" + profileId + ":categories",
                             "shield:dns:profile:" + profileId + ":level"
@@ -337,44 +330,11 @@ public class BudgetEnforcementService {
             log.info("Daily reset: re-enabled budget-blocked categories for profile {} (wasExhausted={})",
                     rules.getProfileId(), wasExhausted);
             if (wasExhausted) {
-                // Restore internet access via AdGuard
-                syncBudgetExhaustedToAdGuard(rules, false);
+                log.info("Budget RESTORED for profileId={}", rules.getProfileId());
             }
         }
     }
 
-    /**
-     * Notify AdGuard of budget-exhausted state change (best-effort).
-     * When {@code exhausted} is true, all DNS filtering is disabled (= internet blocked).
-     * When false, normal filtering is restored.
-     */
-    private void syncBudgetExhaustedToAdGuard(DnsRules rules, boolean exhausted) {
-        String clientId = rules.getDnsClientId();
-        if (clientId == null || clientId.isBlank()) return;
-        try {
-            if (exhausted) {
-                adGuard.updateClient(clientId, clientId, new AdGuardClient.AdGuardClientData(
-                        false, false, false,
-                        Map.of("enabled", false, "google", false, "bing", false,
-                                "duckduckgo", false, "youtube", false),
-                        List.of()
-                ));
-            } else {
-                // Restore normal filtering with safe defaults
-                adGuard.updateClient(clientId, clientId, new AdGuardClient.AdGuardClientData(
-                        true, true, true,
-                        Map.of("enabled", true, "google", true, "bing", true,
-                                "duckduckgo", true, "youtube",
-                                Boolean.TRUE.equals(rules.getYoutubeRestricted())),
-                        List.of()
-                ));
-            }
-            log.info("Budget AdGuard sync: profileId={} clientId={} exhausted={}",
-                    rules.getProfileId(), clientId, exhausted);
-        } catch (Exception e) {
-            log.warn("Budget AdGuard sync failed for profileId={}: {}", rules.getProfileId(), e.getMessage());
-        }
-    }
 
     private void sendBudgetNotification(UUID profileId, UUID tenantId,
                                          String category, int usedMinutes, int limitMinutes,

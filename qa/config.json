@@ -1,0 +1,101 @@
+{
+  "app_name": "Shield Platform",
+  "version": "2.1.4",
+  "base_url": "http://localhost:8280",
+  "public_url": "https://shield.rstglobal.in",
+  "services": {
+    "gateway":      { "port": 8280, "name": "shield-gateway" },
+    "auth":         { "port": 8281, "name": "shield-auth" },
+    "tenant":       { "port": 8282, "name": "shield-tenant" },
+    "profile":      { "port": 8283, "name": "shield-profile" },
+    "dns":          { "port": 8284, "name": "shield-dns" },
+    "location":     { "port": 8285, "name": "shield-location" },
+    "notification": { "port": 8286, "name": "shield-notification" },
+    "rewards":      { "port": 8287, "name": "shield-rewards" },
+    "analytics":    { "port": 8289, "name": "shield-analytics" },
+    "admin":        { "port": 8290, "name": "shield-admin" },
+    "ai":           { "port": 8291, "name": "shield-ai" },
+    "dns_resolver": { "port": 8292, "name": "shield-dns-resolver" }
+  },
+  "db": {
+    "host": "localhost",
+    "port": 5432,
+    "dbname": "shield_db",
+    "user": "shield",
+    "password": "Shield@2026#Secure"
+  },
+  "redis": {
+    "host": "localhost",
+    "port": 6379
+  },
+  "roles": {
+    "global_admin": {
+      "email": "admin@rstglobal.in",
+      "password": "Shield@Admin2026#",
+      "role": "GLOBAL_ADMIN"
+    },
+    "isp_admin": {
+      "email": "",
+      "password": "",
+      "role": "ISP_ADMIN",
+      "note": "Set ISP admin credentials for Playwright ISP tests"
+    },
+    "customer": {
+      "email": "",
+      "password": "",
+      "role": "CUSTOMER",
+      "note": "Set customer credentials for Playwright customer tests"
+    }
+  },
+  "dns_resolver_url": "http://localhost:8292/dns-query",
+  "dns_host_suffix": ".dns.shield.rstglobal.in",
+  "reports_dir": "/var/www/ai/FamilyShield/qa/reports",
+  "logs_dir": "/var/www/ai/FamilyShield/qa/logs",
+  "thresholds": {
+    "api_p95_ms": 2000,
+    "dns_p95_ms": 500,
+    "concurrent_users": 50,
+    "min_pass_rate": 95.0,
+    "k6_auth_p95_ms": 12000,
+    "k6_dns_p95_ms": 5000,
+    "k6_api_p95_ms": 15000,
+    "k6_error_rate_pct": 5.0
+  },
+  "playwright": {
+    "dashboard_url": "https://shield.rstglobal.in/app/",
+    "headless": true,
+    "timeout_ms": 15000,
+    "screenshot_on_fail": true
+  },
+  "ai_gap_analysis": {
+    "enabled": true,
+    "anthropic_api_key": "${ANTHROPIC_API_KEY}",
+    "model": "claude-sonnet-4-6",
+    "max_tokens": 4096,
+    "include_in_report": true
+  },
+  "test_suites": [
+    "health",
+    "auth",
+    "rbac",
+    "dns",
+    "analytics",
+    "ai_insights",
+    "billing",
+    "dashboard",
+    "db",
+    "workflows",
+    "performance",
+    "security",
+    "owasp_extended",
+    "playwright_ui",
+    "k6_performance",
+    "ai_gap_analysis",
+    "reporting_analytics"
+  ],
+  "ci_suites": {
+    "fast": ["health", "auth", "dns", "security"],
+    "standard": ["health", "auth", "rbac", "dns", "analytics", "billing", "db", "workflows", "security"],
+    "full": ["health", "auth", "rbac", "dns", "analytics", "ai_insights", "billing", "dashboard", "db", "workflows", "performance", "security", "owasp_extended", "playwright_ui", "k6_performance", "ai_gap_analysis", "reporting_analytics"]
+  }
+}

@@ -27,7 +27,7 @@ class _HomeworkModeState extends ConsumerState<HomeworkModeScreen> {
       final d = (raw['data'] as Map<String, dynamic>?) ?? raw;
       setState(() {
         _enabled  = d['active'] as bool? ?? d['enabled'] as bool? ?? false;
-        _duration = (d['minutesRemaining'] as int?) ?? (d['durationMinutes'] as int?) ?? 60;
+        _duration = (d['minutesRemaining'] as num?)?.toInt() ?? (d['durationMinutes'] as num?)?.toInt() ?? 60;
         _loading  = false;
       });
     } catch (_) { setState(() => _loading = false); }

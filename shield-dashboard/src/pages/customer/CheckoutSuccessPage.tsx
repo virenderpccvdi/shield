@@ -24,7 +24,7 @@ export default function CheckoutSuccessPage() {
     <AnimatedPage>
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <Card sx={{ maxWidth: 480, textAlign: 'center' }}>
-          <CardContent sx={{ py: 6, px: 4 }}>
+          <CardContent sx={{ py: { xs: 4, md: 6 }, px: { xs: 2, md: 4 } }}>
             <CheckCircleIcon sx={{ fontSize: 80, color: '#43A047', mb: 2 }} />
             <Typography variant="h5" fontWeight={700} gutterBottom>Payment Successful!</Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>

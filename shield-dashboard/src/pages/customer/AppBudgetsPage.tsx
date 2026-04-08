@@ -215,7 +215,7 @@ export default function AppBudgetsPage() {
                   <Box key={budget.id}>
                     {i > 0 && <Divider />}
                     <Box sx={{ px: 2.5, py: 2 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'flex-start' }} sx={{ mb: 1.5 }}>
                         <Stack direction="row" spacing={1.5} alignItems="center">
                           <Box sx={{
                             width: 40, height: 40, borderRadius: '10px', bgcolor: 'rgba(245,127,23,0.1)',

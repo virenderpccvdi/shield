@@ -1,6 +1,5 @@
 package com.rstglobal.shield.dns.service;
 
-import com.rstglobal.shield.dns.client.AdGuardClient;
 import com.rstglobal.shield.dns.entity.DnsRules;
 import com.rstglobal.shield.dns.repository.DnsRulesRepository;
 import lombok.RequiredArgsConstructor;
@@ -69,7 +68,6 @@ public class BudgetTrackingService {
 
     private final DnsRulesRepository rulesRepo;
     private final StringRedisTemplate redis;
-    private final AdGuardClient adGuard;
 
     // ──────────────────────────────────────────────────────────────────────────
     //  Public API — called by DNS query logging
@@ -140,8 +138,6 @@ public class BudgetTrackingService {
                 rules.setEnabledCategories(cats);
                 rulesRepo.save(rules);
 
-                syncToAdGuard(rules, nowExhausted);
-
                 if (nowExhausted) {
                     log.info("Budget EXHAUSTED (daily_budget_minutes): profileId={} used={}min limit={}min",
                             profileId, usedMinutes, limitMinutes);
@@ -189,7 +185,6 @@ public class BudgetTrackingService {
                 cats.put(BUDGET_BLOCKED_KEY, false);
                 rules.setEnabledCategories(cats);
                 rulesRepo.save(rules);
-                syncToAdGuard(rules, false);
                 log.info("Budget reset (daily_budget_minutes): profileId={} flag cleared", profileId);
             }
         });
@@ -209,34 +204,4 @@ public class BudgetTrackingService {
         return USAGE_PREFIX + profileId + LAST_SEEN_SUFFIX;
     }
 
-    /**
-     * Notify AdGuard of budget enforcement state change (best-effort).
-     * When {@code blocked} is true all DNS filtering is disabled (internet cut off).
-     * When false, normal filtering is restored.
-     */
-    private void syncToAdGuard(DnsRules rules, boolean blocked) {
-        String clientId = rules.getDnsClientId();
-        if (clientId == null || clientId.isBlank()) return;
-        try {
-            if (blocked) {
-                adGuard.updateClient(clientId, clientId, new AdGuardClient.AdGuardClientData(
-                        false, false, false,
-                        Map.of("enabled", false, "google", false, "bing", false,
-                                "duckduckgo", false, "youtube", false),
-                        List.of()
-                ));
-            } else {
-                adGuard.updateClient(clientId, clientId, new AdGuardClient.AdGuardClientData(
-                        true, true, true,
-                        Map.of("enabled", true, "google", true, "bing", true,
-                                "duckduckgo", true, "youtube",
-                                Boolean.TRUE.equals(rules.getYoutubeRestricted())),
-                        List.of()
-                ));
-            }
-        } catch (Exception e) {
-            log.warn("BudgetTrackingService AdGuard sync failed for profileId={}: {}",
-                    rules.getProfileId(), e.getMessage());
-        }
-    }
 }

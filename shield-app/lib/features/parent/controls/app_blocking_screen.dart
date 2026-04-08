@@ -8,7 +8,7 @@ final _appsProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic
   (ref, pid) async {
     final resp = await ApiClient.instance.get(Endpoints.appsByProfile(pid));
     final raw = resp.data as List? ?? [];
-    return raw.cast<Map<String, dynamic>>();
+    return raw.whereType<Map<String, dynamic>>().toList();
   },
 );
 

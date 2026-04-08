@@ -21,7 +21,7 @@ import java.time.Instant;
  * 2. Extract domain name
  * 3. Enrich domain (app name, category)
  * 4. Check rules (allowlist → blocklist → category → schedule)
- * 5. Block (return 0.0.0.0) or forward to upstream DoH
+ * 5. Block (return 0.0.0.0) or forward to upstream DNS (pure Java UDP)
  * 6. Log query asynchronously
  */
 @Slf4j
@@ -107,7 +107,7 @@ public class DnsResolutionService {
             .flatMap(profileId ->
                 // Ensure rules are cached
                 rulesCacheService.loadRulesIfMissing(profileId)
-                    .then(rulesCacheService.check(profileId, info.getRootDomain(), info.getCategory()))
+                    .then(rulesCacheService.check(profileId, info.getRootDomain(), info.getOriginalDomain(), info.getCategory()))
                     .flatMap(decision -> {
                         long latencyMs = System.currentTimeMillis() - startTime;
 

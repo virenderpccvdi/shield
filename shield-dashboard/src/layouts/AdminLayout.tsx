@@ -44,6 +44,8 @@ import PersonIcon from '@mui/icons-material/Person';
 import { useAuthStore } from '../store/auth.store';
 import { useThemeStore } from '../store/theme.store';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { alpha } from '@mui/material/styles';
+import { brand } from '../theme/theme';
 
 const DRAWER_EXPANDED = 240;
 const DRAWER_COLLAPSED = 56;
@@ -118,7 +120,9 @@ export default function AdminLayout() {
 
   const drawer = (
     <Box sx={{
-      height: '100%', bgcolor: 'background.paper', color: 'text.primary',
+      height: '100%',
+      background: brand.primaryDark,
+      color: '#fff',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
       transition: 'width 0.25s ease',
@@ -131,37 +135,36 @@ export default function AdminLayout() {
         alignItems: 'center',
         gap: collapsed && !isMobile ? 0 : 1.5,
         minHeight: 64,
-        bgcolor: 'background.paper',
+        bgcolor: brand.primaryDark,
         borderBottom: '1px solid',
-        borderColor: 'divider',
+        borderColor: 'rgba(255,255,255,0.12)',
         justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
       }}>
-        <ShieldIcon sx={{ color: 'primary.main', fontSize: 26, flexShrink: 0 }} />
+        <ShieldIcon sx={{ color: '#BFDBFE', fontSize: 26, flexShrink: 0 }} />
         {(!collapsed || isMobile) && (
           <Box>
-            <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 800, lineHeight: 1.1, letterSpacing: -0.3 }}>
-              Shield
+            <Typography variant="subtitle1" sx={{ color: '#FFFFFF', fontWeight: 800, lineHeight: 1.1, letterSpacing: -0.3 }}>
+              Shield Admin
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-              Global Admin
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+              Global Control
             </Typography>
           </Box>
         )}
       </Box>
 
-      <Divider />
-
       {/* Scrollable nav */}
       <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', py: 1,
+        bgcolor: brand.bg,
         '&::-webkit-scrollbar': { width: 4 },
-        '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 },
+        '&::-webkit-scrollbar-thumb': { bgcolor: brand.border, borderRadius: 2 },
       }}>
         <List disablePadding sx={{ px: collapsed && !isMobile ? 0.5 : 1 }}>
           {sections.map((section, si) => {
             const isExpanded = expandedSections[section.title] ?? true;
             return (
               <Box key={section.title}>
-                {si > 0 && <Box sx={{ my: 0.5, mx: 1 }}><Divider /></Box>}
+                {si > 0 && <Box sx={{ my: 0.5, mx: 1 }}><Divider sx={{ borderColor: brand.border }} /></Box>}
                 {(!collapsed || isMobile) && (
                   <Box
                     onClick={() => toggleSection(section.title)}
@@ -169,16 +172,16 @@ export default function AdminLayout() {
                       px: 2, py: 0.5,
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       cursor: 'pointer', borderRadius: 1, mx: 0.5,
-                      '&:hover': { bgcolor: 'action.hover' },
+                      '&:hover': { bgcolor: alpha(brand.primary, 0.05) },
                     }}
                   >
                     <Typography variant="overline" sx={{
-                      color: section.color, fontSize: 10, fontWeight: 700,
+                      color: brand.subtle, fontSize: 10, fontWeight: 700,
                       letterSpacing: 1.5, lineHeight: 1.8,
                     }}>
                       {section.title}
                     </Typography>
-                    <Box sx={{ color: 'text.disabled', display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ color: brand.subtle, display: 'flex', alignItems: 'center' }}>
                       {isExpanded ? <ExpandLessIcon sx={{ fontSize: 14 }} /> : <ExpandMoreIcon sx={{ fontSize: 14 }} />}
                     </Box>
                   </Box>
@@ -186,7 +189,6 @@ export default function AdminLayout() {
                 <Collapse in={collapsed || isMobile ? true : isExpanded} timeout={150}>
                   {section.items.map((item) => {
                     const active = isActive(item.path);
-                    const itemColor = item.color;
                     const btn = (
                       <ListItemButton
                         key={item.label}
@@ -198,7 +200,7 @@ export default function AdminLayout() {
                           minHeight: 40,
                           px: collapsed && !isMobile ? 1 : 1.5,
                           justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
-                          color: 'text.secondary',
+                          color: brand.muted,
                           position: 'relative',
                           overflow: 'hidden',
                           transition: 'all 0.18s ease',
@@ -206,26 +208,25 @@ export default function AdminLayout() {
                             content: '""',
                             position: 'absolute', left: 0, top: '20%',
                             width: 3, height: active ? '60%' : 0,
-                            bgcolor: itemColor, borderRadius: '0 3px 3px 0',
+                            bgcolor: '#2563EB', borderRadius: '0 3px 3px 0',
                             transition: 'height 0.2s ease',
                           },
                           '&.Mui-selected': {
-                            bgcolor: `${itemColor}18`,
-                            color: itemColor,
-                            '& .MuiListItemIcon-root': { color: itemColor },
-                            '&:hover': { bgcolor: `${itemColor}28` },
+                            bgcolor: brand.primaryChip,
+                            color: brand.primaryDark,
+                            '& .MuiListItemIcon-root': { color: brand.primaryDark },
+                            '&:hover': { bgcolor: '#BFDBFE' },
                           },
-                          '&.Mui-selected:hover': { bgcolor: `${itemColor}28` },
                           '&:hover': {
-                            bgcolor: `${itemColor}10`,
-                            color: itemColor,
-                            '& .MuiListItemIcon-root': { color: itemColor, transform: 'scale(1.15)' },
+                            bgcolor: '#EFF6FF',
+                            color: brand.primaryDark,
+                            '& .MuiListItemIcon-root': { color: brand.primaryDark },
                           },
-                          '& .MuiListItemIcon-root': { transition: 'transform 0.18s ease, color 0.15s ease' },
+                          '& .MuiListItemIcon-root': { color: brand.muted, transition: 'color 0.16s' },
                         }}
                       >
                         <ListItemIcon sx={{
-                          color: itemColor,
+                          color: active ? brand.primaryDark : brand.muted,
                           minWidth: collapsed && !isMobile ? 0 : 36,
                           mr: collapsed && !isMobile ? 0 : 1,
                           justifyContent: 'center',
@@ -256,7 +257,7 @@ export default function AdminLayout() {
         </List>
       </Box>
 
-      <Divider />
+      <Divider sx={{ borderColor: brand.border }} />
 
       {/* User section */}
       <Box sx={{
@@ -266,11 +267,13 @@ export default function AdminLayout() {
         alignItems: 'center',
         gap: collapsed && !isMobile ? 0 : 1.5,
         justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
+        bgcolor: brand.card,
+        borderTop: `1px solid ${brand.border}`,
       }}>
         {collapsed && !isMobile ? (
           <Tooltip title={`${user?.name ?? ''} — Sign out`} placement="right" arrow>
             <Avatar
-              sx={{ width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              sx={{ width: 32, height: 32, bgcolor: brand.primary, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
               onClick={() => { logout(); navigate('/login'); }}
             >
               {user?.name?.charAt(0)?.toUpperCase() ?? 'A'}
@@ -278,19 +281,19 @@ export default function AdminLayout() {
           </Tooltip>
         ) : (
           <>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: brand.primary, color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
               {user?.name?.charAt(0)?.toUpperCase() ?? 'A'}
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600, fontSize: 12.5, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <Typography variant="body2" sx={{ color: brand.text, fontWeight: 600, fontSize: 12.5, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.name ?? 'Admin'}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+              <Typography variant="caption" sx={{ color: brand.muted, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
                 {user?.email ?? ''}
               </Typography>
             </Box>
             <Tooltip title="Sign out">
-              <IconButton size="small" onClick={() => { logout(); navigate('/login'); }} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
+              <IconButton size="small" onClick={() => { logout(); navigate('/login'); }} sx={{ color: brand.muted, '&:hover': { color: brand.danger } }}>
                 <LogoutIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -301,13 +304,13 @@ export default function AdminLayout() {
       {/* Collapse toggle — only on desktop */}
       {!isMobile && (
         <>
-          <Divider />
-          <Box sx={{ display: 'flex', justifyContent: collapsed ? 'center' : 'flex-end', px: 1, py: 0.75 }}>
+          <Divider sx={{ borderColor: brand.border }} />
+          <Box sx={{ display: 'flex', justifyContent: collapsed ? 'center' : 'flex-end', px: 1, py: 0.75, bgcolor: brand.card }}>
             <Tooltip title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} placement="right">
               <IconButton
                 size="small"
                 onClick={() => setCollapsed(c => !c)}
-                sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main', bgcolor: 'action.hover' } }}
+                sx={{ color: brand.subtle, '&:hover': { color: brand.primary, bgcolor: alpha(brand.primary, 0.07) } }}
               >
                 {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
               </IconButton>
@@ -337,7 +340,7 @@ export default function AdminLayout() {
           open={mobileOpen}
           onClose={() => setMobileOpen(false)}
           ModalProps={{ keepMounted: true }}
-          sx={{ '& .MuiDrawer-paper': { width: DRAWER_EXPANDED, boxSizing: 'border-box', border: 'none' } }}
+          sx={{ '& .MuiDrawer-paper': { width: DRAWER_EXPANDED, boxSizing: 'border-box', border: 'none', background: brand.primaryDark } }}
         >
           {drawer}
         </Drawer>
@@ -354,6 +357,7 @@ export default function AdminLayout() {
               border: 'none',
               transition: 'width 0.25s ease',
               overflowX: 'hidden',
+              background: brand.primaryDark,
             },
           }}
         >
@@ -362,7 +366,7 @@ export default function AdminLayout() {
       )}
 
       <Box sx={{ flexGrow: 1, ml: isMobile ? 0 : `${drawerWidth}px`, transition: 'margin-left 0.25s ease' }}>
-        <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider', backdropFilter: 'blur(8px)' }}>
+        <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: '1px solid', borderColor: brand.border, backdropFilter: 'blur(8px)', bgcolor: brand.card }}>
           <Toolbar sx={{ minHeight: 60, gap: 0.5, px: { xs: 1.5, md: 2.5 } }}>
             {isMobile && (
               <IconButton edge="start" onClick={() => setMobileOpen(true)} aria-label="Open navigation" sx={{ mr: 0.5 }}>

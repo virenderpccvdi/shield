@@ -2,6 +2,7 @@ import { Box, Card, CardContent, Typography } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import type { ReactNode } from 'react';
+import SparklineChart from './SparklineChart';
 
 interface StatCardProps {
   title: string;
@@ -11,9 +12,10 @@ interface StatCardProps {
   gradient?: string; // CSS linear-gradient
   trend?: number; // percentage change, positive = up
   delay?: number; // animation delay in seconds
+  sparklineData?: number[]; // optional sparkline below the value
 }
 
-export default function StatCard({ title, value, unit, icon, gradient, trend, delay = 0 }: StatCardProps) {
+export default function StatCard({ title, value, unit, icon, gradient, trend, delay = 0, sparklineData }: StatCardProps) {
   const isGradient = !!gradient;
   return (
     <Card sx={{
@@ -54,6 +56,15 @@ export default function StatCard({ title, value, unit, icon, gradient, trend, de
               {Math.abs(trend).toFixed(1)}%
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.6 }}>vs last week</Typography>
+          </Box>
+        )}
+        {sparklineData && sparklineData.length > 0 && (
+          <Box sx={{ mt: 1, opacity: isGradient ? 0.8 : 1 }}>
+            <SparklineChart
+              data={sparklineData}
+              color={isGradient ? 'rgba(255,255,255,0.9)' : '#1565C0'}
+              height={40}
+            />
           </Box>
         )}
       </CardContent>

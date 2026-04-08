@@ -231,7 +231,7 @@ export default function FamilyMembersPage() {
       {loading ? (
         <LoadingPage />
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2, md: 3 }}>
 
           {/* ── Info banner ────────────────────────────────────────────── */}
           <Grid size={12}>

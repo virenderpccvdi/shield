@@ -36,7 +36,7 @@ final _adminDailyProvider = FutureProvider.autoDispose<List<Map<String, dynamic>
     final raw  = resp.data is List
         ? resp.data as List
         : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-    return raw.cast<Map<String, dynamic>>();
+    return raw.whereType<Map<String, dynamic>>().toList();
   } catch (_) {
     return [];
   }
@@ -49,7 +49,7 @@ final _recentAlertsAdminProvider = FutureProvider.autoDispose<List<Map<String, d
         ? resp.data as List
         : (resp.data as Map<String, dynamic>?)?['content'] as List?
             ?? (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-    return raw.cast<Map<String, dynamic>>();
+    return raw.whereType<Map<String, dynamic>>().toList();
   } catch (_) {
     return [];
   }
@@ -80,15 +80,15 @@ class AdminDashboardScreen extends ConsumerWidget {
             expandedHeight: 150,
             pinned: true,
             backgroundColor: auth.isGlobalAdmin
-                ? const Color(0xFF1A237E)
-                : const Color(0xFF0D47A1),
+                ? const Color(0xFF1E40AF)
+                : const Color(0xFF1E40AF),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: auth.isGlobalAdmin
-                        ? [const Color(0xFF0D0E3F), const Color(0xFF1A237E)]
-                        : [const Color(0xFF0D1B4B), const Color(0xFF1565C0)],
+                        ? [const Color(0xFF0D0E3F), const Color(0xFF1E40AF)]
+                        : [const Color(0xFF1E40AF), const Color(0xFF2563EB)],
                     begin: Alignment.topLeft,
                     end:   Alignment.bottomRight,
                   ),

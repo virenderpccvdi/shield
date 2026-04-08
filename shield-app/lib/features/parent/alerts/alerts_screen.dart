@@ -83,7 +83,7 @@ class _AlertCard extends StatelessWidget {
       isThreeLine: alert.childName != null,
       subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (alert.childName != null)
-          Text(alert.childName!, style: const TextStyle(color: Color(0xFF1565C0), fontSize: 12)),
+          Text(alert.childName!, style: const TextStyle(color: Color(0xFF2563EB), fontSize: 12)),
         Text(alert.message, maxLines: 2, overflow: TextOverflow.ellipsis),
       ]),
       trailing: Text(

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress,
   Chip, Stack, Alert, Button, LinearProgress, Divider, IconButton, Tooltip,
@@ -143,12 +143,20 @@ export default function AdminAiInsightsPage() {
     .sort(([, a], [, b]) => b - a)
     .map(([type, count]) => ({ type: type.replace(/_/g, ' '), count }));
 
-  // Simulated daily alert trend (based on actual alerts bucketed by day)
-  const alertTrendData = DAYS.map(day => ({
-    day,
-    alerts: Math.floor(Math.random() * 8),
-    anomalies: Math.floor(Math.random() * 4),
-  }));
+  // Real alert trend derived from actual alerts bucketed by day of week
+  const alertTrendData = useMemo(() => {
+    const dayMap: Record<string, { alerts: number; anomalies: number }> = {};
+    DAYS.forEach(d => { dayMap[d] = { alerts: 0, anomalies: 0 }; });
+    alerts.forEach(a => {
+      const d = new Date(a.detectedAt);
+      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+      if (dayMap[dayName]) {
+        dayMap[dayName].alerts++;
+        if (a.score > 0.5) dayMap[dayName].anomalies++;
+      }
+    });
+    return DAYS.map(day => ({ day, ...dayMap[day] }));
+  }, [alerts]);
 
   // Top at-risk profiles
   const profileAlertMap: Record<string, { count: number; maxScore: number; severity: string; types: Set<string> }> = {};
@@ -355,7 +363,11 @@ export default function AdminAiInsightsPage() {
                   Alert Severity
                 </Typography>
                 {riskDistData.length === 0 ? (
-                  <EmptyState title="No alerts" description="No AI alerts generated yet" />
+                  <Box sx={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1 }}>
+                    <CheckCircleIcon sx={{ fontSize: 48, color: '#43A047' }} />
+                    <Typography variant="body2" color="text.secondary">No anomalies detected</Typography>
+                    <Typography variant="caption" color="text.secondary">System appears healthy</Typography>
+                  </Box>
                 ) : (
                   <Box sx={{ height: 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -460,7 +472,9 @@ export default function AdminAiInsightsPage() {
                   Top At-Risk Profiles
                 </Typography>
                 {topProfiles.length === 0 ? (
-                  <EmptyState title="No flagged profiles" description="All profiles within normal parameters" />
+                  <Box sx={{ py: 4, textAlign: 'center' }}>
+                    <Typography color="text.secondary" variant="body2">No at-risk profiles detected</Typography>
+                  </Box>
                 ) : (
                   <Stack spacing={1}>
                     {topProfiles.map(([profileId, info]) => (

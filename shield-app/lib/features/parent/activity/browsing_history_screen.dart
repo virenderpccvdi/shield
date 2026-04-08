@@ -12,7 +12,7 @@ final _browsingProvider =
   final raw = resp.data is List
       ? resp.data as List
       : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });
 
 class BrowsingHistoryScreen extends ConsumerStatefulWidget {

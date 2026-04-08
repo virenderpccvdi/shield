@@ -238,8 +238,8 @@ class _Body extends StatelessWidget {
     final domain    = tenant['domain']?.toString() ?? '';
     final active    = tenant['isActive'] as bool?  ?? true;
     final plan      = tenant['plan']?.toString()   ?? 'Standard';
-    final customers = tenant['customerCount'] as int? ?? 0;
-    final maxCust   = tenant['maxCustomers']  as int? ?? 0;
+    final customers = (tenant['customerCount'] as num?)?.toInt() ?? 0;
+    final maxCust   = (tenant['maxCustomers']  as num?)?.toInt() ?? 0;
     final created   = _parseDate(tenant['createdAt']?.toString());
 
     return RefreshIndicator(
@@ -251,7 +251,7 @@ class _Body extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF0D1B4B), Color(0xFF1565C0)],
+              colors: [Color(0xFF1E40AF), Color(0xFF2563EB)],
               begin: Alignment.topLeft, end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(18),

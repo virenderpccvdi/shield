@@ -14,7 +14,7 @@ class ChildRewardsScreen extends ConsumerWidget {
     final points = ref.watch(_pointsProvider(pid));
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B4B),
+      backgroundColor: const Color(0xFF1E40AF),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
@@ -74,7 +74,7 @@ class ChildRewardsScreen extends ConsumerWidget {
 
 final _pointsProvider = FutureProvider.autoDispose.family<int, String>((ref, pid) async {
   final resp = await ApiClient.instance.get(Endpoints.points(pid));
-  return (resp.data as Map<String, dynamic>?)?['points'] as int? ?? 0;
+  return ((resp.data as Map<String, dynamic>?)?['points'] as num?)?.toInt() ?? 0;
 });
 
 class _AchievementsSection extends ConsumerWidget {
@@ -133,5 +133,5 @@ final _achievementsProvider =
   final raw = resp.data is List
       ? resp.data as List
       : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });

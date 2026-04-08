@@ -1,0 +1,16 @@
+[Unit]
+Description=Shield Autonomous QA Agent
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/var/www/ai/FamilyShield/qa
+EnvironmentFile=/var/www/ai/FamilyShield/.env
+ExecStart=/usr/bin/python3 /var/www/ai/FamilyShield/qa/shield_qa_agent.py
+StandardOutput=append:/var/www/ai/FamilyShield/qa/logs/qa.log
+StandardError=append:/var/www/ai/FamilyShield/qa/logs/qa.log
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

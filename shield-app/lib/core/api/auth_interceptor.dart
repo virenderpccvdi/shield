@@ -100,6 +100,15 @@ class AuthInterceptor extends Interceptor {
 
       final retryDio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl));
       final retryResp = await retryDio.fetch(retryOptions);
+
+      // Manually unwrap { "data": X, "success": true } since interceptor
+      // is not attached to this temporary Dio instance
+      if (retryResp.data is Map<String, dynamic>) {
+        final body = retryResp.data as Map<String, dynamic>;
+        if (body['success'] == true && body.containsKey('data')) {
+          retryResp.data = body['data'];
+        }
+      }
       handler.resolve(retryResp);
     } catch (_) {
       debugPrint('[Auth] Refresh failed → clearing parent session');

@@ -1,0 +1,125 @@
+{
+  "meta": {
+    "started_at": "2026-04-08T05:20:14.308371+00:00",
+    "elapsed_seconds": 2.1763672828674316,
+    "version": "2.1.4",
+    "base_url": "http://localhost:8280",
+    "suites_run": [
+      "owasp_extended"
+    ],
+    "total": 10,
+    "passed": 7
+  },
+  "results": [
+    {
+      "suite": "owasp_extended",
+      "name": "JWT alg:none attack rejected",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "JWT alg:none attack rejected \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "Ensure JJWT is configured with explicit allowed algorithms: JwtParserBuilder.requireSignedWith(...)"
+    },
+    {
+      "suite": "owasp_extended",
+      "name": "JWT stripped signature rejected",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "JWT stripped signature rejected \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "JWT parser must require a valid non-empty signature"
+    },
+    {
+      "suite": "owasp_extended",
+      "name": "CSP header present on app/",
+      "passed": false,
+      "severity": "MEDIUM",
+      "message": "Missing Content-Security-Policy on React app",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "Add CSP header in nginx: add_header Content-Security-Policy \"default-src 'self';...\""
+    },
+    {
+      "suite": "owasp_extended",
+      "name": "Clickjacking protection (X-Frame-Options or CSP frame-ancestors)",
+      "passed": true,
+      "severity": "MEDIUM",
+      "message": "Clickjacking protection (X-Frame-Options or CSP frame-ancestors) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "Add: add_header X-Frame-Options DENY in nginx config"
+    },
+    {
+      "suite": "owasp_extended",
+      "name": "Sensitive path not publicly accessible: /actuator",
+      "passed": false,
+      "severity": "HIGH",
+      "message": "/actuator is publicly accessible without auth!",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "Block /actuator in gateway's PUBLIC_PREFIXES or nginx config"
+    },
+    {
+      "suite": "owasp_extended",
+      "name": "Sensitive path not publicly accessible: /actuator/env",
+      "passed": true,
+      "severity": "HIGH",
+      "message": "Sensitive path not publicly accessible: /actuator/env \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "Block /actuator/env in gateway's PUBLIC_PREFIXES or nginx config"
+    },
+    {
+      "suite": "owasp_extended",
+      "name": "Sensitive path not publicly accessible: /actuator/beans",
+      "passed": true,
+      "severity": "HIGH",
+      "message": "Sensitive path not publicly accessible: /actuator/beans \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "Block /actuator/beans in gateway's PUBLIC_PREFIXES or nginx config"
+    },
+    {
+      "suite": "owasp_extended",
+      "name": "Sensitive path not publicly accessible: /h2-console",
+      "passed": true,
+      "severity": "HIGH",
+      "message": "Sensitive path not publicly accessible: /h2-console \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "Block /h2-console in gateway's PUBLIC_PREFIXES or nginx config"
+    },
+    {
+      "suite": "owasp_extended",
+      "name": "Sensitive path not publicly accessible: /swagger-ui.html",
+      "passed": true,
+      "severity": "HIGH",
+      "message": "Sensitive path not publicly accessible: /swagger-ui.html \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "Block /swagger-ui.html in gateway's PUBLIC_PREFIXES or nginx config"
+    },
+    {
+      "suite": "owasp_extended",
+      "name": "Auth timing consistent (diff=347ms)",
+      "passed": false,
+      "severity": "LOW",
+      "message": "Auth timing differs by 347ms \u2014 possible user enumeration",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "Use constant-time comparison; always run bcrypt.check() even for non-existent users"
+    }
+  ]
+}

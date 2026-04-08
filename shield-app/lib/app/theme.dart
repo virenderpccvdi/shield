@@ -5,42 +5,55 @@ import 'package:flutter/services.dart';
 // ShieldTheme — complete design system
 //
 // Palette (8-px grid, WCAG AA compliant):
-//   Primary     #1565C0  Shield blue
-//   Secondary   #0288D1  Sky blue
-//   Accent      #00ACC1  Cyan (charts, highlights)
-//   Success     #2E7D32
-//   Warning     #F57F17
-//   Error       #C62828
-//   Surface L   #F4F6FA  Page background (light)
-//   Surface D   #0F172A  Page background (dark)
-//   Card L      #FFFFFF
-//   Card D      #1E293B
+//   Primary     #2563EB  Blue
+//   PrimaryDark #1E40AF  Dark Blue
+//   Secondary   #374151  Slate
+//   Accent      #0EA5E9  Sky
+//   Warning     #D97706  Amber
+//   Danger      #DC2626  Red
+//   Background  #F8FAFC  Slate White
+//   Card        #FFFFFF  White
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ShieldTheme {
   ShieldTheme._();
 
-  // ── Brand tokens ─────────────────────────────────────────────────────────────
-  static const Color primary    = Color(0xFF1565C0);
-  static const Color secondary  = Color(0xFF0288D1);
-  static const Color accent     = Color(0xFF00ACC1);
-  static const Color success    = Color(0xFF2E7D32);
-  static const Color warning    = Color(0xFFF57F17);
-  static const Color danger     = Color(0xFFC62828);
+  // ── Core palette ─────────────────────────────────────────────────────────────
+  static const Color primary      = Color(0xFF2563EB);
+  static const Color primaryDark  = Color(0xFF1E40AF);
+  static const Color primaryLight = Color(0xFF3B82F6);
+  static const Color primaryChip  = Color(0xFFDBEAFE);
+  static const Color secondary    = Color(0xFF374151);
+  static const Color accent       = Color(0xFF0EA5E9);
+  static const Color accentDark   = Color(0xFF0284C7);
+  static const Color warning      = Color(0xFFD97706);
+  static const Color danger       = Color(0xFFDC2626);
+  static const Color success      = Color(0xFF16A34A);
 
-  static const Color surfaceLight = Color(0xFFF4F6FA);
+  // ── Surfaces ─────────────────────────────────────────────────────────────────
+  static const Color background   = Color(0xFFF8FAFC);
+  static const Color card         = Color(0xFFFFFFFF);
+  static const Color surfaceLight = Color(0xFFF8FAFC);
   static const Color surfaceDark  = Color(0xFF0F172A);
   static const Color cardLight    = Color(0xFFFFFFFF);
   static const Color cardDark     = Color(0xFF1E293B);
 
-  // Chart colours (consistent across themes)
+  // ── Text ─────────────────────────────────────────────────────────────────────
+  static const Color text         = Color(0xFF0F172A);
+  static const Color muted        = Color(0xFF64748B);
+  static const Color subtle       = Color(0xFF94A3B8);
+  static const Color border       = Color(0xFFE2E8F0);
+
+  // ── Chart palette ─────────────────────────────────────────────────────────────
   static const List<Color> chartPalette = [
-    Color(0xFF1565C0),
-    Color(0xFF00ACC1),
-    Color(0xFF2E7D32),
-    Color(0xFFF57F17),
-    Color(0xFF9C27B0),
-    Color(0xFFC62828),
+    Color(0xFF2563EB),  // Primary blue
+    Color(0xFF16A34A),  // Green
+    Color(0xFF3B82F6),  // Blue light
+    Color(0xFFD97706),  // Amber
+    Color(0xFF7C3AED),  // Purple
+    Color(0xFFDC2626),  // Red
+    Color(0xFF0284C7),  // Green
+    Color(0xFF6366F1),  // Indigo
   ];
 
   // ── Light theme ───────────────────────────────────────────────────────────────
@@ -55,22 +68,48 @@ class ShieldTheme {
       seedColor:  primary,
       brightness: brightness,
       surface:    isDark ? surfaceDark  : surfaceLight,
-      onSurface:  isDark ? Colors.white : const Color(0xFF1A1A2E),
+      onSurface:  isDark ? const Color(0xFFF9FAFB) : text,
     );
 
     return ThemeData(
-      useMaterial3:           true,
-      colorScheme:            colorScheme,
-      brightness:             brightness,
+      useMaterial3:            true,
+      colorScheme:             colorScheme,
+      brightness:              brightness,
       scaffoldBackgroundColor: isDark ? surfaceDark : surfaceLight,
+
+      // ── Typography ──────────────────────────────────────────────────────────
+      textTheme: TextTheme(
+        displayLarge: TextStyle(
+          fontWeight: FontWeight.w800,
+          letterSpacing: -1.0,
+          color: isDark ? Colors.white : text,
+        ),
+        headlineMedium: const TextStyle(
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
+        ),
+        titleLarge: const TextStyle(
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+        ),
+        titleMedium: const TextStyle(
+          fontWeight: FontWeight.w600,
+        ),
+        bodyLarge:  const TextStyle(fontSize: 15.0),
+        bodyMedium: const TextStyle(fontSize: 13.5),
+        labelLarge: const TextStyle(
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        ),
+      ),
 
       // ── AppBar ──────────────────────────────────────────────────────────────
       appBarTheme: AppBarTheme(
-        backgroundColor:   isDark ? const Color(0xFF1E293B) : primary,
-        foregroundColor:   Colors.white,
-        elevation:         0,
-        centerTitle:       false,
-        titleTextStyle:    const TextStyle(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : primaryDark,
+        foregroundColor: Colors.white,
+        elevation:       0,
+        centerTitle:     false,
+        titleTextStyle:  const TextStyle(
           fontSize: 18, fontWeight: FontWeight.w600,
           color: Colors.white, letterSpacing: -0.2,
         ),
@@ -83,11 +122,11 @@ class ShieldTheme {
 
       // ── Cards ───────────────────────────────────────────────────────────────
       cardTheme: CardThemeData(
-        color:     isDark ? cardDark : cardLight,
-        elevation: isDark ? 0 : 1,
-        shadowColor: Colors.black12,
-        shape:     RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+        color:       isDark ? cardDark : card,
+        elevation:   isDark ? 0 : 1,
+        shadowColor: Colors.black.withOpacity(0.05),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
           side: isDark
               ? const BorderSide(color: Color(0xFF334155), width: 1)
               : BorderSide.none,
@@ -102,7 +141,7 @@ class ShieldTheme {
           foregroundColor: Colors.white,
           minimumSize:     const Size.fromHeight(52),
           elevation:       0,
-          shape:  RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(
               fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.2),
         ),
@@ -113,8 +152,8 @@ class ShieldTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: primary,
           minimumSize:     const Size.fromHeight(52),
-          shape:  RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          side:   const BorderSide(color: primary, width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: const BorderSide(color: primary, width: 1.5),
         ),
       ),
 
@@ -125,8 +164,8 @@ class ShieldTheme {
 
       // ── Input fields ────────────────────────────────────────────────────────
       inputDecorationTheme: InputDecorationTheme(
-        filled:     true,
-        fillColor:  isDark ? const Color(0xFF263044) : Colors.white,
+        filled:    true,
+        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
@@ -134,7 +173,7 @@ class ShieldTheme {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFDDE1EA)),
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -147,51 +186,53 @@ class ShieldTheme {
 
       // ── Navigation bar (Material 3) ─────────────────────────────────────────
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor:      isDark ? const Color(0xFF1E293B) : Colors.white,
-        indicatorColor:       primary.withOpacity(0.15),
-        iconTheme:            WidgetStateProperty.resolveWith((states) {
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        indicatorColor:  primary.withOpacity(0.12),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return const IconThemeData(color: primary, size: 24);
           }
           return IconThemeData(
-              color: isDark ? Colors.white38 : Colors.black38, size: 22);
+              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+              size: 22);
         }),
-        labelTextStyle:       WidgetStateProperty.resolveWith((states) {
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(color: primary, fontSize: 11,
-                fontWeight: FontWeight.w600);
+            return const TextStyle(
+                color: primary, fontSize: 11, fontWeight: FontWeight.w600);
           }
           return TextStyle(
-              color: isDark ? Colors.white38 : Colors.black38,
+              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
               fontSize: 11);
         }),
-        elevation:            8,
-        shadowColor:          Colors.black26,
-        labelBehavior:        NavigationDestinationLabelBehavior.alwaysShow,
+        elevation:     8,
+        shadowColor:   Colors.black26,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
 
       // ── List tiles ──────────────────────────────────────────────────────────
       listTileTheme: ListTileThemeData(
-        tileColor:    Colors.transparent,
-        iconColor:    isDark ? Colors.white60 : Colors.black54,
+        tileColor:      Colors.transparent,
+        iconColor:      isDark ? Colors.white60 : const Color(0xFF64748B),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       ),
 
       // ── Divider ─────────────────────────────────────────────────────────────
       dividerTheme: DividerThemeData(
-        color:  isDark ? Colors.white10 : Colors.black12,
-        space:  1,
-        indent: 20, endIndent: 20,
+        color:     isDark ? Colors.white10 : const Color(0xFFE2E8F0),
+        space:     1,
+        indent:    20,
+        endIndent: 20,
       ),
 
       // ── Chip ────────────────────────────────────────────────────────────────
       chipTheme: ChipThemeData(
-        backgroundColor: isDark ? const Color(0xFF263044) : const Color(0xFFF0F4FF),
+        backgroundColor: isDark ? const Color(0xFF1E40AF) : const Color(0xFFDBEAFE),
         labelStyle: TextStyle(
             fontSize: 12,
-            color: isDark ? Colors.white70 : Colors.black87),
-        side: BorderSide.none,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            color: isDark ? Colors.white70 : primaryDark),
+        side:    BorderSide.none,
+        shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       ),
 
@@ -200,7 +241,7 @@ class ShieldTheme {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation:       3,
-        shape:  RoundedRectangleBorder(
+        shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(16))),
       ),
 
@@ -216,10 +257,10 @@ class ShieldTheme {
 
       // ── Bottom sheet ─────────────────────────────────────────────────────────
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor:   isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        elevation:         8,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        elevation: 8,
       ),
 
       // ── Dialog ──────────────────────────────────────────────────────────────
@@ -233,7 +274,7 @@ class ShieldTheme {
       snackBarTheme: SnackBarThemeData(
         behavior:         SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        backgroundColor:  isDark ? const Color(0xFF334155) : const Color(0xFF1A1A2E),
+        backgroundColor:  isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
         contentTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
       ),
     );

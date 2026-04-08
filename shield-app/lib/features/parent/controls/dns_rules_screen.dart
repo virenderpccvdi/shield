@@ -84,7 +84,13 @@ class _DnsRulesBodyState extends ConsumerState<_DnsRulesBody> {
 
   void _addDomain(bool toBlocklist) {
     final domain = _domainCtrl.text.trim().toLowerCase();
-    if (domain.isEmpty || !domain.contains('.')) return;
+    final validDomain = RegExp(
+        r'^(\*\.)?([a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$');
+    if (domain.isEmpty || !validDomain.hasMatch(domain)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Enter a valid domain (e.g. youtube.com or *.tiktok.com)')));
+      return;
+    }
     setState(() {
       if (toBlocklist) { if (!_blocklist.contains(domain)) _blocklist.add(domain); }
       else             { if (!_allowlist.contains(domain)) _allowlist.add(domain); }

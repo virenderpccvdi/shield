@@ -1,0 +1,10 @@
+[Unit]
+Description=Shield QA Agent — daily at 03:00
+Requires=shield-qa.service
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

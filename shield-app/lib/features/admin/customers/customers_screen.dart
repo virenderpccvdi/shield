@@ -16,7 +16,7 @@ final customersProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>
       ? resp.data as List
       : (resp.data as Map<String, dynamic>?)?['content'] as List?
           ?? (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -229,7 +229,7 @@ class _CustomerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final name      = customer['name']?.toString() ?? 'Unknown';
     final email     = customer['email']?.toString() ?? '';
-    final children  = customer['childCount'] as int? ?? 0;
+    final children  = customer['childCount'] as num? ?? 0;
     final active    = customer['isActive'] as bool? ?? true;
 
     return Card(

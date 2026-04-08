@@ -9,7 +9,7 @@ export default function CheckoutCancelPage() {
     <AnimatedPage>
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <Card sx={{ maxWidth: 480, textAlign: 'center' }}>
-          <CardContent sx={{ py: 6, px: 4 }}>
+          <CardContent sx={{ py: { xs: 4, md: 6 }, px: { xs: 2, md: 4 } }}>
             <CancelIcon sx={{ fontSize: 80, color: '#E53935', mb: 2 }} />
             <Typography variant="h5" fontWeight={700} gutterBottom>Payment Cancelled</Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>

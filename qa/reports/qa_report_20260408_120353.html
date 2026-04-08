@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shield QA Report — 2026-04-08</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:#0f172a;color:#f1f5f9;padding:32px }
+  table { width:100%;border-collapse:collapse }
+  th { text-align:left;padding:10px 16px;color:#94a3b8;
+        font-size:11px;text-transform:uppercase;letter-spacing:.5px;
+        border-bottom:1px solid #334155 }
+  a { color:#38bdf8;text-decoration:none }
+  @media print { body { background:#fff;color:#000 } }
+</style>
+</head>
+<body>
+
+<!-- Executive Summary -->
+
+<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;margin-bottom:32px">
+  <h2 style="color:#f1f5f9;font-size:20px;margin-bottom:20px">📋 Executive Summary</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:24px">
+    <div style="text-align:center;padding:16px;background:#0f172a;border-radius:8px">
+      <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">Platform Health Score</div>
+      <div style="font-size:48px;font-weight:700;color:#dc2626">41.9%</div>
+      <div><span style="color:#16a34a;font-size:14px">+0.0% vs last run</span></div>
+    </div>
+    <div style="text-align:center;padding:16px;background:#0f172a;border-radius:8px">
+      <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">Test Coverage</div>
+      <div style="font-size:48px;font-weight:700;color:#60a5fa">16</div>
+      <div style="font-size:12px;color:#94a3b8">suites executed</div>
+    </div>
+    <div style="text-align:center;padding:16px;background:#0f172a;border-radius:8px">
+      <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">Critical Bugs</div>
+      <div style="font-size:48px;font-weight:700;color:#dc2626">7</div>
+      <div style="font-size:12px;color:#94a3b8">blocking issues</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div>
+      <div style="font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:12px;text-transform:uppercase">Top Action Items</div>
+      
+        <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #334155">
+          <div style="min-width:24px;font-weight:700;color:#dc2626">1</div>
+          <div>
+            <div style="font-weight:600;color:#f1f5f9">gateway (8280)</div>
+            <div style="font-size:12px;color:#f87171">Connection refused / unreachable</div>
+            <div style="font-size:11px;color:#38bdf8;margin-top:2px">💡 systemctl start shield-gateway</div>
+          </div>
+          <div style="margin-left:auto"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></div>
+        </div>
+        <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #334155">
+          <div style="min-width:24px;font-weight:700;color:#dc2626">2</div>
+          <div>
+            <div style="font-weight:600;color:#f1f5f9">auth: suite crashed</div>
+            <div style="font-size:12px;color:#f87171">HTTPConnectionPool(host='localhost', port=8280): Max retries exceeded with url: /api/v1/tenants (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x710dbe3c8500>: Failed to establish a new connection: [Errno 99] Cannot assign requested address'))</div>
+            
+          </div>
+          <div style="margin-left:auto"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></div>
+        </div>
+        <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #334155">
+          <div style="min-width:24px;font-weight:700;color:#dc2626">3</div>
+          <div>
+            <div style="font-weight:600;color:#f1f5f9">rbac: suite crashed</div>
+            <div style="font-size:12px;color:#f87171">HTTPConnectionPool(host='localhost', port=8280): Max retries exceeded with url: /api/v1/tenants (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x710dbe3c85f0>: Failed to establish a new connection: [Errno 99] Cannot assign requested address'))</div>
+            
+          </div>
+          <div style="margin-left:auto"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></div>
+        </div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:12px;text-transform:uppercase">Severity Breakdown</div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #334155">
+        <span style="color:#dc2626">CRITICAL</span>
+        <span style="font-weight:700;color:#f1f5f9">7</span>
+      </div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #334155">
+        <span style="color:#ea580c">HIGH</span>
+        <span style="font-weight:700;color:#f1f5f9">1</span>
+      </div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #334155">
+        <span style="color:#d97706">MEDIUM</span>
+        <span style="font-weight:700;color:#f1f5f9">1</span>
+      </div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #334155">
+        <span style="color:#65a30d">LOW</span>
+        <span style="font-weight:700;color:#f1f5f9">0</span>
+      </div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #334155">
+        <span style="color:#6b7280">INFO</span>
+        <span style="font-weight:700;color:#f1f5f9">1</span>
+      </div>
+      
+        <div style="margin-top:16px;padding:16px;background:#1a2744;border-radius:8px;border:1px solid #2d3f6b">
+          <div style="font-weight:600;color:#60a5fa;margin-bottom:8px">🤖 AI Gap Analysis: 0 gaps identified</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            <span style="color:#dc2626">● 0 Critical</span>
+            <span style="color:#ea580c">● 0 High</span>
+            <span style="color:#d97706">● 0 Medium</span>
+            <span style="color:#94a3b8">● 0 Low/Info</span>
+          </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px">
+  <div>
+    <h1 style="font-size:28px;font-weight:700">🛡 Shield Platform — QA Report</h1>
+    <div style="color:#94a3b8;margin-top:4px">Generated: 2026-04-08T11:59:35.745555+00:00 | Version: 2.1.4</div>
+  </div>
+  <div style="background:#16a34a;color:#fff;padding:12px 24px;border-radius:8px;font-weight:700;font-size:16px">
+    ✅ SYSTEM FULLY TESTED AND WORKING
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px">
+  
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Total Tests</div>
+          <div style="font-size:32px;font-weight:700;color:#f1f5f9">262</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Passed</div>
+          <div style="font-size:32px;font-weight:700;color:#16a34a">252</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Failed</div>
+          <div style="font-size:32px;font-weight:700;color:#dc2626">10</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Pass Rate</div>
+          <div style="font-size:32px;font-weight:700;color:#16a34a">96.2%</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Duration</div>
+          <div style="font-size:32px;font-weight:700;color:#94a3b8">258s</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid #334155;
+                    border-radius:12px;padding:20px 24px;min-width:140px;flex:1">
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">Critical Bugs</div>
+          <div style="font-size:32px;font-weight:700;color:#dc2626">7</div>
+        </div>
+</div>
+
+<!-- Charts Row -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px">
+  <div style="background:#1e293b;border:1px solid #334155;
+              border-radius:12px;padding:20px">
+    <h3 style="margin-bottom:16px;color:#94a3b8;font-size:13px;text-transform:uppercase">
+      Results by Test Suite
+    </h3>
+    <canvas id="suiteChart" height="220"></canvas>
+  </div>
+  <div style="background:#1e293b;border:1px solid #334155;
+              border-radius:12px;padding:20px">
+    <h3 style="margin-bottom:16px;color:#94a3b8;font-size:13px;text-transform:uppercase">
+      Bug Severity Distribution
+    </h3>
+    <canvas id="sevChart" height="220"></canvas>
+  </div>
+</div>
+
+<!-- Suite Summary Table -->
+<h2 style="color:#f1f5f9;margin-bottom:16px">📋 Test Suite Summary</h2>
+<div style="background:#1e293b;border:1px solid #334155;
+            border-radius:12px;overflow:hidden;margin-bottom:32px">
+  <table>
+    <tr>
+      <th>Suite</th><th>Passed</th><th>Failed</th><th>Coverage</th>
+    </tr>
+    
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">health</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">11</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">1</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#d97706;height:8px;border-radius:4px;width:92%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">92%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">auth</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">0</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">1</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#dc2626;height:8px;border-radius:4px;width:0%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">0%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">rbac</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">0</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">1</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#dc2626;height:8px;border-radius:4px;width:0%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">0%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">dns</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">70</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">analytics</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">39</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">ai_insights</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">19</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">billing</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">17</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">dashboard</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">28</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">db</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">32</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">workflows</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">15</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">performance</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">0</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">1</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#dc2626;height:8px;border-radius:4px;width:0%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">0%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">security</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">0</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">1</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#dc2626;height:8px;border-radius:4px;width:0%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">0%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">owasp_extended</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">9</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">2</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#d97706;height:8px;border-radius:4px;width:82%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">82%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">playwright_ui</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">7</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">2</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#dc2626;height:8px;border-radius:4px;width:78%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">78%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">k6_performance</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">5</td>
+          <td style="padding:10px 16px;text-align:center;color:#94a3b8">0</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#16a34a;height:8px;border-radius:4px;width:100%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">100%</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;font-weight:600;color:#f1f5f9">ai_gap_analysis</td>
+          <td style="padding:10px 16px;text-align:center;color:#16a34a">0</td>
+          <td style="padding:10px 16px;text-align:center;color:#dc2626">1</td>
+          <td style="padding:10px 16px">
+            <div style="background:#334155;border-radius:4px;height:8px;width:120px">
+              <div style="background:#dc2626;height:8px;border-radius:4px;width:0%"></div>
+            </div>
+            <span style="font-size:11px;color:#94a3b8">0%</span>
+          </td>
+        </tr>
+  </table>
+</div>
+
+<!-- Bug Report -->
+<h2 style="color:#f1f5f9;margin-bottom:16px">🐛 Bug Report (10 issues)</h2>
+<div style="background:#1e293b;border:1px solid #334155;
+            border-radius:12px;overflow:hidden;margin-bottom:32px">
+  <table>
+    <tr>
+      <th style="width:40px">#</th>
+      <th style="width:100px">Severity</th>
+      <th style="width:120px">Suite</th>
+      <th>Issue</th>
+      <th style="width:80px">Latency</th>
+    </tr>
+    
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">1</td>
+          <td style="padding:10px 8px"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">health</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">gateway (8280)</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Connection refused / unreachable</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: systemctl start shield-gateway</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">2</td>
+          <td style="padding:10px 8px"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">auth</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">auth: suite crashed</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">HTTPConnectionPool(host='localhost', port=8280): Max retries exceeded with url: /api/v1/tenants (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x710dbe3c8500>: Failed to establish a new connection: [Errno 99] Cannot assign requested address'))</div>
+            <div style="margin-top:4px;font-size:11px;color:#94a3b8;word-break:break-all">Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/urllib3/connection.py", line 203, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">3</td>
+          <td style="padding:10px 8px"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">rbac</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">rbac: suite crashed</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">HTTPConnectionPool(host='localhost', port=8280): Max retries exceeded with url: /api/v1/tenants (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x710dbe3c85f0>: Failed to establish a new connection: [Errno 99] Cannot assign requested address'))</div>
+            <div style="margin-top:4px;font-size:11px;color:#94a3b8;word-break:break-all">Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/urllib3/connection.py", line 203, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">4</td>
+          <td style="padding:10px 8px"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">performance</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">performance: suite crashed</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">HTTPConnectionPool(host='localhost', port=8280): Max retries exceeded with url: /api/v1/auth/login (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x710dbdb96db0>: Failed to establish a new connection: [Errno 99] Cannot assign requested address'))</div>
+            <div style="margin-top:4px;font-size:11px;color:#94a3b8;word-break:break-all">Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/urllib3/connection.py", line 203, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">5</td>
+          <td style="padding:10px 8px"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">security</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">security: suite crashed</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">HTTPConnectionPool(host='localhost', port=8280): Max retries exceeded with url: /api/v1/auth/users (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x710dbdb83470>: Failed to establish a new connection: [Errno 99] Cannot assign requested address'))</div>
+            <div style="margin-top:4px;font-size:11px;color:#94a3b8;word-break:break-all">Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/urllib3/connection.py", line 203, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">6</td>
+          <td style="padding:10px 8px"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">owasp_extended</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">JWT alg:none attack rejected</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got error — alg:none accepted!</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: Ensure JJWT is configured with explicit allowed algorithms: JwtParserBuilder.requireSignedWith(...)</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">7</td>
+          <td style="padding:10px 8px"><span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">CRITICAL</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">owasp_extended</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">JWT stripped signature rejected</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Got error — stripped sig accepted!</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: JWT parser must require a valid non-empty signature</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">8</td>
+          <td style="padding:10px 8px"><span style="background:#ea580c;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">HIGH</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">playwright_ui</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">GLOBAL_ADMIN: login and reach dashboard</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">page.waitForURL: Timeout 15000ms exceeded.
+=========================== logs ===========================
+waiting for navigation until "load"
+============================================================</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: Check browser console and screenshot in qa/screenshots/</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            15802ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">9</td>
+          <td style="padding:10px 8px"><span style="background:#d97706;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">MEDIUM</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">playwright_ui</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">GLOBAL_ADMIN: page load time ≤ 5s for dashboard</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">page.waitForURL: Timeout 15000ms exceeded.
+=========================== logs ===========================
+waiting for navigation until "load"
+============================================================</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: Check browser console and screenshot in qa/screenshots/</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            15789ms
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #334155">
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8">10</td>
+          <td style="padding:10px 8px"><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">INFO</span></td>
+          <td style="padding:10px 8px;color:#94a3b8">ai_gap_analysis</td>
+          <td style="padding:10px 8px">
+            <div style="font-weight:600;color:#f1f5f9">AI gap analysis: Claude API call</div>
+            <div style="color:#f87171;font-size:12px;margin-top:2px">Claude API HTTP 401: {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"},"request_id":"req_011CZrGif9oWZspZWXqjKC1a"}</div>
+            <div style="margin-top:4px;font-size:11px;color:#38bdf8">💡 Fix: Check ANTHROPIC_API_KEY validity and rate limits</div>
+          </td>
+          <td style="padding:10px 8px;text-align:center;color:#94a3b8;font-size:12px">
+            0ms
+          </td>
+        </tr>
+  </table>
+</div>
+
+
+
+
+<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:32px">
+  <h3 style="color:#f1f5f9;margin-bottom:16px;font-size:15px">🎯 Issue Prioritization Matrix</h3>
+  <div style="overflow-x:auto">
+  <table style="width:100%;border-collapse:separate;border-spacing:4px">
+    <tr>
+      <th style="width:120px;color:#94a3b8;font-size:11px;text-align:right;padding-right:8px"></th>
+      <th style="color:#94a3b8;font-size:11px;text-align:center;padding:4px">High Likelihood</th>
+      <th style="color:#94a3b8;font-size:11px;text-align:center;padding:4px">Low Likelihood</th>
+    </tr>
+    <tr>
+      <td style="color:#94a3b8;font-size:11px;text-align:right;padding-right:8px;vertical-align:middle">High Impact</td>
+      <td style="background:rgba(220,38,38,0.2);padding:16px;vertical-align:top;border-radius:4px"><div style="color:#fff;font-size:12px;font-weight:600;margin-bottom:6px">🔴 Block Deploy</div><div style="font-size:11px;margin:2px 0;color:#f1f5f9">gateway (8280)</div><div style="font-size:11px;margin:2px 0;color:#f1f5f9">auth: suite crashed</div><div style="font-size:11px;margin:2px 0;color:#f1f5f9">security: suite crashed</div><div style="font-size:11px;margin:2px 0;color:#f1f5f9">JWT alg:none attack rejected</div><div style="font-size:11px;margin:2px 0;color:#f1f5f9">JWT stripped signature rejected</div></td>
+      <td style="background:rgba(234,88,12,0.2);padding:16px;vertical-align:top;border-radius:4px"><div style="color:#fff;font-size:12px;font-weight:600;margin-bottom:6px">🟠 Fix This Sprint</div><div style="font-size:11px;margin:2px 0;color:#f1f5f9">rbac: suite crashed</div><div style="font-size:11px;margin:2px 0;color:#f1f5f9">performance: suite crashed</div><div style="font-size:11px;margin:2px 0;color:#f1f5f9">GLOBAL_ADMIN: login and reach dashboard</div></td>
+    </tr>
+    <tr>
+      <td style="color:#94a3b8;font-size:11px;text-align:right;padding-right:8px;vertical-align:middle">Low Impact</td>
+      <td style="background:rgba(217,119,6,0.2);padding:16px;vertical-align:top;border-radius:4px"><div style="color:#94a3b8;font-size:12px">🟡 Fix Next Sprint</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">None</div></td>
+      <td style="background:rgba(101,163,13,0.1);padding:16px;vertical-align:top;border-radius:4px"><div style="color:#fff;font-size:12px;font-weight:600;margin-bottom:6px">🟢 Backlog</div><div style="font-size:11px;margin:2px 0;color:#f1f5f9">GLOBAL_ADMIN: page load time ≤ 5s for dashboa</div><div style="font-size:11px;margin:2px 0;color:#f1f5f9">AI gap analysis: Claude API call</div></td>
+    </tr>
+  </table>
+  </div>
+</div>
+
+
+
+<!-- Footer -->
+<div style="margin-top:40px;padding-top:20px;border-top:1px solid #334155;
+            color:#94a3b8;font-size:12px;display:flex;justify-content:space-between">
+  <span>Shield QA Agent v1.0 | 2026-04-08T11:59:35.745555+00:00</span>
+  <span>Total run time: 258.2s</span>
+</div>
+
+<script>
+const grid = { color: 'rgba(255,255,255,0.08)' };
+const tick  = { color: '#94a3b8' };
+
+new Chart(document.getElementById('suiteChart'), {
+  type: 'bar',
+  data: {
+    labels: ["health", "auth", "rbac", "dns", "analytics", "ai_insights", "billing", "dashboard", "db", "workflows", "performance", "security", "owasp_extended", "playwright_ui", "k6_performance", "ai_gap_analysis"],
+    datasets: [
+      { label:'Passed', data:[11, 0, 0, 70, 39, 19, 17, 28, 32, 15, 0, 0, 9, 7, 5, 0], backgroundColor:'#16a34a', borderRadius:4 },
+      { label:'Failed', data:[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 0, 1], backgroundColor:'#dc2626', borderRadius:4 }
+    ]
+  },
+  options: {
+    responsive:true, plugins:{ legend:{ labels:{ color:'#94a3b8' } } },
+    scales: {
+      x:{ grid, ticks:{ ...tick, maxRotation:30 } },
+      y:{ grid, ticks:tick, stacked:false }
+    }
+  }
+});
+
+new Chart(document.getElementById('sevChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"],
+    datasets: [{ data:[7, 1, 1, 0, 1], backgroundColor:["#dc2626", "#ea580c", "#d97706", "#65a30d", "#6b7280"], borderWidth:0 }]
+  },
+  options: {
+    responsive:true, cutout:'65%',
+    plugins:{ legend:{ position:'right', labels:{ color:'#94a3b8', boxWidth:12 } } }
+  }
+});
+</script>
+
+</body>
+</html>

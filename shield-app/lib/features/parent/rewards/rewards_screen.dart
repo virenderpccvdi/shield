@@ -10,13 +10,13 @@ final _tasksProvider =
   final raw = resp.data is List
       ? resp.data as List
       : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });
 
 final _pointsProvider =
     FutureProvider.autoDispose.family<int, String>((ref, pid) async {
   final resp = await ApiClient.instance.get(Endpoints.points(pid));
-  return (resp.data as Map<String, dynamic>?)?['points'] as int? ?? 0;
+  return ((resp.data as Map<String, dynamic>?)?['points'] as num?)?.toInt() ?? 0;
 });
 
 class RewardsScreen extends ConsumerWidget {
@@ -130,7 +130,8 @@ class _TaskTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final done = task['isCompleted'] as bool? ?? false;
+    final status = task['status']?.toString() ?? 'PENDING';
+    final done = status == 'APPROVED';
     return Card(
       child: ListTile(
         leading: CircleAvatar(
@@ -143,9 +144,12 @@ class _TaskTile extends StatelessWidget {
                 decoration: done ? TextDecoration.lineThrough : null,
                 color:      done ? Colors.black38 : null)),
         subtitle: Text('${task['points'] ?? 0} pts'),
-        trailing: Text(done ? 'Done' : 'Pending',
+        trailing: Text(
+            done ? 'Done' : status == 'SUBMITTED' ? 'Review' : status == 'REJECTED' ? 'Rejected' : 'Pending',
             style: TextStyle(
-                color: done ? Colors.green : Colors.orange,
+                color: done ? Colors.green :
+                       status == 'SUBMITTED' ? Colors.blue :
+                       status == 'REJECTED' ? Colors.red : Colors.orange,
                 fontWeight: FontWeight.w600)),
       ),
     );

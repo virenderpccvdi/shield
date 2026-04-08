@@ -39,7 +39,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFF1565C0),
+    backgroundColor: const Color(0xFF2563EB),
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(

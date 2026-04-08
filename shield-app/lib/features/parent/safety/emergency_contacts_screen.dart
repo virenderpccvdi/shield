@@ -10,7 +10,7 @@ final _contactsProvider =
   final raw = resp.data is List
       ? resp.data as List
       : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });
 
 class EmergencyContactsScreen extends ConsumerWidget {
@@ -48,7 +48,7 @@ class EmergencyContactsScreen extends ConsumerWidget {
                     ),
                     title:    Text(list[i]['name']?.toString() ?? ''),
                     subtitle: Text(list[i]['phone']?.toString() ?? ''),
-                    trailing: const Icon(Icons.phone, color: Color(0xFF1565C0)),
+                    trailing: const Icon(Icons.phone, color: Color(0xFF2563EB)),
                   ),
                 ),
               ),

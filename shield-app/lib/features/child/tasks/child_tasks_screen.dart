@@ -12,7 +12,7 @@ final _childTasksProvider = FutureProvider.autoDispose<List<Map<String, dynamic>
   final raw = resp.data is List
       ? resp.data as List
       : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });
 
 class ChildTasksScreen extends ConsumerWidget {
@@ -23,7 +23,7 @@ class ChildTasksScreen extends ConsumerWidget {
     final tasks = ref.watch(_childTasksProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B4B),
+      backgroundColor: const Color(0xFF1E40AF),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
@@ -54,26 +54,46 @@ class ChildTasksScreen extends ConsumerWidget {
               Text('No tasks yet!', style: TextStyle(color: Colors.white54, fontSize: 16)),
             ]));
           }
-          final pending   = list.where((t) => t['isCompleted'] != true).toList();
-          final completed = list.where((t) => t['isCompleted'] == true).toList();
+          final pending   = list.where((t) => t['status'] == 'PENDING').toList();
+          final submitted = list.where((t) => t['status'] == 'SUBMITTED').toList();
+          final completed = list.where((t) => t['status'] == 'APPROVED').toList();
+          final rejected  = list.where((t) => t['status'] == 'REJECTED').toList();
           return ListView(children: [
             if (pending.isNotEmpty) ...[
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text('To Do', style: TextStyle(color: Colors.white54,
+                child: Text('TO DO', style: TextStyle(color: Colors.white54,
                     fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
               ),
               ...pending.map((t) => _TaskCard(task: t, onComplete: () {
                 _complete(context, ref, t);
               })),
             ],
+            if (submitted.isNotEmpty) ...[
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text('WAITING FOR APPROVAL', style: TextStyle(color: Colors.white54,
+                    fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
+              ),
+              ...submitted.map((t) => _TaskCard(task: t, onComplete: null)),
+            ],
             if (completed.isNotEmpty) ...[
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text('Completed', style: TextStyle(color: Colors.white30,
+                child: Text('COMPLETED', style: TextStyle(color: Colors.white30,
                     fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
               ),
               ...completed.map((t) => _TaskCard(task: t, onComplete: null)),
+            ],
+            if (rejected.isNotEmpty) ...[
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text('REJECTED', style: TextStyle(color: Colors.red,
+                    fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
+              ),
+              ...rejected.map((t) => _TaskCard(task: t, onComplete: () {
+                _complete(context, ref, t);
+              })),
             ],
           ]);
         },
@@ -111,7 +131,9 @@ class _TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final done = task['isCompleted'] == true;
+    final status = task['status']?.toString() ?? 'PENDING';
+    final done = status == 'APPROVED';
+    final submitted = status == 'SUBMITTED';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Container(
@@ -122,8 +144,11 @@ class _TaskCard extends StatelessWidget {
         ),
         child: ListTile(
           leading: Icon(
-            done ? Icons.check_circle : Icons.radio_button_unchecked,
-            color: done ? Colors.green : Colors.white54,
+            done ? Icons.check_circle :
+            submitted ? Icons.hourglass_top :
+            Icons.radio_button_unchecked,
+            color: done ? Colors.green :
+                   submitted ? Colors.amber : Colors.white54,
           ),
           title: Text(task['title']?.toString() ?? '',
               style: TextStyle(

@@ -38,6 +38,9 @@ class ParentShell extends ConsumerWidget {
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: current,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? null
+            : const Color(0xFFFFFFFF),
         onDestinationSelected: (i) {
           if (i != current) context.go(_tabs[i].path);
         },

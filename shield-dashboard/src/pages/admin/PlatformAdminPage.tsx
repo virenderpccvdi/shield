@@ -346,6 +346,7 @@ export default function PlatformAdminPage() {
               <Typography variant="body1" color="text.secondary">No tenants found</Typography>
             </Box>
           ) : (
+            <Box sx={{ overflowX: 'auto' }}>
             <TableContainer component={Paper} elevation={0}>
               <Table size="small">
                 <TableHead>
@@ -423,6 +424,7 @@ export default function PlatformAdminPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            </Box>
           )}
 
           {/* Pagination */}

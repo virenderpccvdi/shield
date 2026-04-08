@@ -207,6 +207,7 @@ public class AnalyticsController {
     public ResponseEntity<String> getPdfReport(
             @PathVariable UUID profileId,
             @RequestParam(defaultValue = "week") String period,
+            @RequestParam(required = false) String profileName,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
@@ -221,7 +222,8 @@ public class AnalyticsController {
 
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
-        html.append("<title>Shield DNS Report — ").append(profileId).append("</title>");
+        String displayName = (profileName != null && !profileName.isBlank()) ? profileName : "Profile " + profileId.toString().substring(0, 8);
+        html.append("<title>Shield DNS Report — ").append(displayName).append("</title>");
         html.append("<style>");
         html.append("@media print { body { margin: 0; } }");
         html.append("body { font-family: 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1a1a2e; }");
@@ -238,7 +240,7 @@ public class AnalyticsController {
         html.append("</style></head><body>");
 
         html.append("<h1>Shield DNS Filtering Report</h1>");
-        html.append("<p><strong>Profile:</strong> ").append(profileId)
+        html.append("<p><strong>Profile:</strong> ").append(displayName)
             .append(" &nbsp;|&nbsp; <strong>Period:</strong> ").append(period)
             .append(" &nbsp;|&nbsp; <strong>Generated:</strong> ").append(java.time.LocalDate.now()).append("</p>");
 

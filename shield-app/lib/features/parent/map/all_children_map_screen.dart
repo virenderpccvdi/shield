@@ -17,8 +17,12 @@ final _allLocationsProvider = FutureProvider.autoDispose<List<Map<String, dynami
   for (final c in children) {
     try {
       final resp = await ApiClient.instance.get(Endpoints.locationLatest(c.id));
-      final d = resp.data as Map<String, dynamic>?;
-      if (d != null && d['latitude'] != null) {
+      // Handle both wrapped {data: {...}} and direct responses
+      final raw = resp.data;
+      final d = (raw is Map<String, dynamic> && raw.containsKey('latitude'))
+          ? raw
+          : (raw is Map<String, dynamic> ? raw['data'] as Map<String, dynamic>? : null);
+      if (d != null && d['latitude'] != null && d['longitude'] != null) {
         locations.add({...d, 'childName': c.name, 'childId': c.id});
       }
     } catch (_) {}
@@ -57,19 +61,29 @@ class _AllChildrenMapState extends ConsumerState<AllChildrenMapScreen> {
                 target: LatLng(20.5937, 78.9629), zoom: 5),
             onMapCreated: (c) => _ctrl = c,
           ),
-          const Center(child: Card(child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Could not load locations'),
+          Center(child: Card(child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Could not load locations'),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: () => ref.invalidate(_allLocationsProvider),
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Retry'),
+              ),
+            ]),
           ))),
         ]),
         data: (list) {
-          final markers = list.map((l) {
+          final markers = list
+              .where((l) => l['latitude'] != null && l['longitude'] != null)
+              .map((l) {
             final lat = (l['latitude'] as num).toDouble();
             final lng = (l['longitude'] as num).toDouble();
             return Marker(
-              markerId:    MarkerId(l['childId'].toString()),
+              markerId:    MarkerId(l['childId']?.toString() ?? lat.toString()),
               position:    LatLng(lat, lng),
-              infoWindow:  InfoWindow(title: l['childName'].toString()),
+              infoWindow:  InfoWindow(title: l['childName']?.toString() ?? 'Child'),
             );
           }).toSet();
 

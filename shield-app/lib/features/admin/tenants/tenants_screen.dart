@@ -17,7 +17,7 @@ final tenantsProvider =
       : (resp.data as Map<String, dynamic>?)?['content'] as List? ??
           (resp.data as Map<String, dynamic>?)?['data'] as List? ??
           [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -249,7 +249,7 @@ class _TenantTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final name      = tenant['name']?.toString()        ?? 'Unknown';
     final domain    = tenant['domain']?.toString()      ?? '';
-    final customers = tenant['customerCount'] as int?   ?? 0;
+    final customers = (tenant['customerCount'] as num?)?.toInt() ?? 0;
     final active    = tenant['isActive']  as bool?      ?? true;
     final plan      = tenant['plan']?.toString()        ?? 'Standard';
 

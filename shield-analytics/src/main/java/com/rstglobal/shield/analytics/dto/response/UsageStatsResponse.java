@@ -19,4 +19,6 @@ public class UsageStatsResponse {
     private long blockedQueries;
     private long allowedQueries;
     private double blockRate;
+    private long totalProfiles;
+    private long activeProfiles;
 }

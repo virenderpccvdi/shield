@@ -317,6 +317,39 @@ public class DomainEnrichmentService {
         m.put("nytimes.com","news"); m.put("reuters.com","news");
         m.put("ndtv.com","news"); m.put("indiatoday.in","news");
         m.put("thehindu.com","news"); m.put("hindustantimes.com","news");
+        m.put("bbc.co.uk","news"); m.put("apnews.com","news");
+        m.put("theguardian.com","news"); m.put("medium.com","news");
+        // ── Sports ──
+        m.put("espn.com","sports"); m.put("espncdn.com","sports");
+        m.put("cricbuzz.com","sports"); m.put("cricinfo.com","sports");
+        m.put("nba.com","sports"); m.put("nfl.com","sports");
+        m.put("fifa.com","sports"); m.put("mlb.com","sports");
+        m.put("bcci.tv","sports"); m.put("iplt20.com","sports");
+        // ── Drugs ──
+        m.put("erowid.org","drugs"); m.put("drugs-forum.com","drugs");
+        m.put("bluelight.org","drugs"); m.put("weedmaps.com","drugs");
+        m.put("leafly.com","drugs"); m.put("shroomery.org","drugs");
+        m.put("pillreports.net","drugs"); m.put("marijuana.com","drugs");
+        m.put("cannabis.com","drugs"); m.put("420magazine.com","drugs");
+        m.put("drugpolicy.org","drugs"); m.put("drugfree.org","drugs");
+        // ── Piracy ──
+        m.put("thepiratebay.org","piracy"); m.put("1337x.to","piracy");
+        m.put("fmovies.io","piracy"); m.put("123movies.com","piracy");
+        m.put("putlocker.com","piracy"); m.put("soap2day.to","piracy");
+        m.put("yify-torrent.org","piracy"); m.put("yts.mx","piracy");
+        m.put("rarbg.to","piracy"); m.put("kickasstorrents.to","piracy");
+        m.put("limetorrents.info","piracy"); m.put("torrentz2.eu","piracy");
+        // ── Hate Speech ──
+        m.put("stormfront.org","hate_speech"); m.put("dailystormer.name","hate_speech");
+        m.put("4chan.org","hate_speech"); m.put("8kun.top","hate_speech");
+        m.put("4channel.org","hate_speech");
+        // ── Weapons ──
+        m.put("gunsamerica.com","weapons"); m.put("armslist.com","weapons");
+        m.put("budsgunshop.com","weapons"); m.put("grabagun.com","weapons");
+        m.put("gunbroker.com","weapons"); m.put("cheaperthandirt.com","weapons");
+        // ── Malware / Phishing ──
+        m.put("malware.wicar.org","malware"); m.put("eicar.org","malware");
+        m.put("wicar.org","malware");
         CATEGORY_MAP = java.util.Collections.unmodifiableMap(m);
     }
 

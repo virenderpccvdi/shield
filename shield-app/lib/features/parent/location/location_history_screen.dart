@@ -35,7 +35,7 @@ class LocationHistoryScreen extends ConsumerWidget {
               return ListTile(
                 leading: const CircleAvatar(
                   backgroundColor: Color(0xFFE3F2FD),
-                  child: Icon(Icons.location_on, color: Color(0xFF1565C0), size: 18),
+                  child: Icon(Icons.location_on, color: Color(0xFF2563EB), size: 18),
                 ),
                 title: Text(
                   item['address']?.toString() ?? '${item['latitude']}, ${item['longitude']}',
@@ -59,5 +59,5 @@ final _historyProvider =
       params: {'limit': '50'});
   final raw = resp.data as List? ??
       (resp.data as Map<String, dynamic>?)?['content'] as List? ?? [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });

@@ -189,6 +189,7 @@ export default function GlobalCustomersPage() {
                 description={search || ispFilter ? 'Try adjusting your filters' : 'No customers registered on the platform yet'}
               />
             ) : (
+              <Box sx={{ overflowX: 'auto' }}>
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#F8FAFC' }}>
@@ -278,6 +279,7 @@ export default function GlobalCustomersPage() {
                   })}
                 </TableBody>
               </Table>
+              </Box>
             )}
             {!isLoading && totalElements > 0 && (
               <TablePagination

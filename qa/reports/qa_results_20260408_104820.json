@@ -1,0 +1,324 @@
+{
+  "meta": {
+    "started_at": "2026-04-08T10:48:17.815532+00:00",
+    "elapsed_seconds": 2.342278003692627,
+    "version": "2.1.4",
+    "base_url": "http://localhost:8280",
+    "suites_run": [
+      "health",
+      "auth"
+    ],
+    "total": 28,
+    "passed": 27
+  },
+  "results": [
+    {
+      "suite": "health",
+      "name": "gateway (8280)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "gateway (8280) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "auth (8281)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "auth (8281) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "tenant (8282)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "tenant (8282) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "profile (8283)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "profile (8283) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "dns (8284)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "dns (8284) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "location (8285)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "location (8285) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "notification (8286)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "notification (8286) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "rewards (8287)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "rewards (8287) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "analytics (8289)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "analytics (8289) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "admin (8290)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "admin (8290) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "ai (8291)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "ai (8291) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "health",
+      "name": "dns_resolver (8292)",
+      "passed": true,
+      "severity": "INFO",
+      "message": "dns_resolver (8292) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "Valid login returns 200",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "Valid login returns 200 \u2014 OK",
+      "detail": "",
+      "latency_ms": 385,
+      "steps": [],
+      "fix": "Check auth service logs; verify DB user is_active=true"
+    },
+    {
+      "suite": "auth",
+      "name": "JWT token returned",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "JWT token returned \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "JWT uses HS512",
+      "passed": true,
+      "severity": "HIGH",
+      "message": "JWT uses HS512 \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "JWT contains sub (userId)",
+      "passed": true,
+      "severity": "HIGH",
+      "message": "JWT contains sub (userId) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "JWT contains role",
+      "passed": true,
+      "severity": "HIGH",
+      "message": "JWT contains role \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "JWT contains email",
+      "passed": true,
+      "severity": "MEDIUM",
+      "message": "JWT contains email \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "Admin has GLOBAL_ADMIN role",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "Admin has GLOBAL_ADMIN role \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "Token not expired",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "Token not expired \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "Token TTL reasonable (>5min)",
+      "passed": true,
+      "severity": "LOW",
+      "message": "Token TTL reasonable (>5min) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "Wrong password returns 401",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "Wrong password returns 401 \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "AuthService must reject invalid credentials"
+    },
+    {
+      "suite": "auth",
+      "name": "Unknown email returns 401",
+      "passed": true,
+      "severity": "HIGH",
+      "message": "Unknown email returns 401 \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "Empty creds rejected (400 or 401)",
+      "passed": "<Response [400]>",
+      "severity": "MEDIUM",
+      "message": "Got no response",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "Malformed JSON handled (400/415)",
+      "passed": true,
+      "severity": "MEDIUM",
+      "message": "Malformed JSON handled (400/415) \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "Re-login issues fresh token",
+      "passed": true,
+      "severity": "MEDIUM",
+      "message": "Re-login issues fresh token \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    },
+    {
+      "suite": "auth",
+      "name": "No token \u2192 401",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "No token \u2192 401 \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": "JwtAuthenticationFilter must reject missing Authorization header"
+    },
+    {
+      "suite": "auth",
+      "name": "Invalid token \u2192 401/403",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "Invalid token \u2192 401/403 \u2014 OK",
+      "detail": "",
+      "latency_ms": 0,
+      "steps": [],
+      "fix": ""
+    }
+  ]
+}

@@ -10,7 +10,7 @@ final _approvalsProvider =
   final raw = resp.data is List
       ? resp.data as List
       : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });
 
 class ApprovalRequestsScreen extends ConsumerWidget {
@@ -29,11 +29,11 @@ class ApprovalRequestsScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(_approvalsProvider(profileId)),
         ),
         data: (list) {
-          final pending = list.where((r) => r['status'] == 'PENDING').toList();
+          final pending = list.where((r) => r['status'] == 'SUBMITTED').toList();
           if (pending.isEmpty) {
             return const EmptyView(
               icon:    Icons.thumb_up_outlined,
-              message: 'No pending approval requests',
+              message: 'No tasks waiting for approval',
             );
           }
           return ListView.builder(

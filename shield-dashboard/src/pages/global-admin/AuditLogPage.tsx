@@ -400,6 +400,7 @@ export default function AuditLogPage() {
         </Card>
       ) : (
         <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <Box sx={{ overflowX: 'auto' }}>
           <TableContainer component={Paper} elevation={0}>
             <Table size="small" stickyHeader>
               <TableHead>
@@ -423,6 +424,7 @@ export default function AuditLogPage() {
               </TableBody>
             </Table>
           </TableContainer>
+          </Box>
 
           <TablePagination
             component="div"

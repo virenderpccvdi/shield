@@ -56,6 +56,10 @@ public class ChildProfileController {
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role,
             @PathVariable UUID id) {
+        // GLOBAL_ADMIN and ISP_ADMIN bypass customer ownership check
+        if ("GLOBAL_ADMIN".equals(role) || "ISP_ADMIN".equals(role)) {
+            return ApiResponse.ok(childProfileService.getByIdAdmin(id));
+        }
         UUID customerId = resolveCustomerId(userId, role);
         return ApiResponse.ok(childProfileService.getById(id, customerId));
     }
@@ -103,8 +107,8 @@ public class ChildProfileController {
     }
 
     private UUID resolveCustomerId(UUID userId, String role) {
-        if (!"CUSTOMER".equals(role)) {
-            throw ShieldException.forbidden("CUSTOMER role required");
+        if (!"CUSTOMER".equals(role) && !"GLOBAL_ADMIN".equals(role) && !"ISP_ADMIN".equals(role)) {
+            throw ShieldException.forbidden("Access denied");
         }
         return customerRepository.findByUserId(userId)
                 .orElseGet(() -> {

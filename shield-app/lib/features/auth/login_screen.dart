@@ -204,7 +204,7 @@ class _BrandHeader extends StatelessWidget {
     height: 220,
     decoration: const BoxDecoration(
       gradient: LinearGradient(
-        colors: [Color(0xFF0D1B4B), Color(0xFF1565C0), Color(0xFF0288D1)],
+        colors: [Color(0xFF1E40AF), Color(0xFF1E40AF), Color(0xFF2563EB)],
         begin: Alignment.topLeft, end: Alignment.bottomRight,
       ),
       borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),

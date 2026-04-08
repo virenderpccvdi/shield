@@ -32,7 +32,7 @@ class AiInsightsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Card(
-              color: const Color(0xFF0D47A1),
+              color: const Color(0xFF1E40AF),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

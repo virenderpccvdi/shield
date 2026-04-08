@@ -32,10 +32,35 @@ final _dashAlertsProvider = FutureProvider.autoDispose<List<AlertModel>>((ref) a
 
 final _dashActivityProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   try {
-    final resp = await ApiClient.instance.get('/analytics/platform/overview');
-    return resp.data is Map<String, dynamic>
-        ? resp.data as Map<String, dynamic>
-        : <String, dynamic>{};
+    // Fetch children first to get the first profile's ID
+    final childrenResp = await ApiClient.instance.get(Endpoints.children);
+    final rawChildren = childrenResp.data is List
+        ? childrenResp.data as List
+        : (childrenResp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
+    if (rawChildren.isEmpty) return <String, dynamic>{};
+
+    final firstId = (rawChildren.first as Map<String, dynamic>)['id']?.toString();
+    if (firstId == null) return <String, dynamic>{};
+
+    // Fetch 7-day daily stats for this profile
+    final dailyResp = await ApiClient.instance.get(
+      '/analytics/$firstId/daily', params: {'days': '7'});
+    final daily = dailyResp.data is List
+        ? dailyResp.data as List
+        : (dailyResp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
+
+    int totalBlocked = 0;
+    int totalQueries = 0;
+    for (final d in daily) {
+      final m = d as Map<String, dynamic>;
+      totalBlocked += ((m['totalBlocks'] ?? m['blockedQueries'] ?? m['blocked'] ?? 0) as num).toInt();
+      totalQueries += ((m['totalQueries'] ?? 0) as num).toInt();
+    }
+    return {
+      'blockedRequests': totalBlocked,
+      'totalRequests':   totalQueries,
+      'daily':           daily,
+    };
   } catch (_) {
     return <String, dynamic>{};
   }
@@ -178,7 +203,7 @@ class _HeroHeader extends StatelessWidget {
       background: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0D1B4B), Color(0xFF1565C0), Color(0xFF0288D1)],
+            colors: [Color(0xFF1E40AF), Color(0xFF1E40AF), Color(0xFF2563EB)],
             begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
         ),
@@ -197,7 +222,7 @@ class _HeroHeader extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.notifications_outlined,
                       color: Colors.white),
-                  onPressed: () {},
+                  onPressed: () => context.push('/parent/alerts'),
                 ),
               ]),
               const SizedBox(height: 12),
@@ -348,15 +373,22 @@ class _ActivityChart extends StatelessWidget {
     final isDark    = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? ShieldTheme.cardDark : Colors.white;
 
-    // Build 7-day fake trend from overview data, or use sample
     final blocked  = (data['blockedRequests'] as num?)?.toDouble() ?? 0;
-    final allowed  = (data['totalRequests']   as num?)?.toDouble() ?? 0;
 
-    // 7-day spot data (real endpoint would supply this)
-    final spots = List.generate(7, (i) => FlSpot(
-      i.toDouble(),
-      (i == 6 ? blocked : (blocked * (0.5 + i * 0.08))).clamp(0, double.infinity),
-    ));
+    // Use real daily breakdown when available, otherwise fallback to single bar
+    final dailyList = (data['daily'] as List?)
+        ?.whereType<Map<String, dynamic>>()
+        .toList() ?? [];
+    final spots = dailyList.length >= 2
+        ? List<FlSpot>.generate(dailyList.length, (i) {
+            final val = ((dailyList[i]['totalBlocks']
+                ?? dailyList[i]['blockedQueries']
+                ?? dailyList[i]['blocked']
+                ?? 0) as num).toDouble();
+            return FlSpot(i.toDouble(), val);
+          })
+        : List<FlSpot>.generate(7, (i) => FlSpot(i.toDouble(),
+            i == 6 ? blocked : (blocked * (0.5 + i * 0.07)).clamp(0, double.infinity)));
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -564,7 +596,7 @@ class _AlertTile extends StatelessWidget {
   Color get _iconColor {
     if (alert.isCritical)          return Colors.red;
     if (alert.type == 'BATTERY')   return Colors.orange;
-    if (alert.type == 'GEOFENCE')  return Colors.blue;
+    if (alert.type == 'GEOFENCE')  return const Color(0xFF2563EB);
     return Colors.grey;
   }
 

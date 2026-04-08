@@ -157,6 +157,7 @@ export default function GlobalBlocklistPage() {
           />
         ) : (
           <>
+            <Box sx={{ overflowX: 'auto' }}>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -228,6 +229,7 @@ export default function GlobalBlocklistPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            </Box>
             {!search && total > size && (
               <TablePagination
                 component="div"

@@ -40,7 +40,7 @@ class AdminSettingsScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF0D1B4B), Color(0xFF1565C0)],
+              colors: [Color(0xFF1E40AF), Color(0xFF2563EB)],
               begin: Alignment.topLeft, end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(18),

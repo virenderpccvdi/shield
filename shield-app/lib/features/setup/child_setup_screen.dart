@@ -290,17 +290,17 @@ class _ChildSetupScreenState extends ConsumerState<ChildSetupScreen> {
       return Row(children: [
         _stepDot(1, 'Select\nChild'),
         Expanded(child: Container(height: 2,
-            color: _step >= 3 ? const Color(0xFF1565C0) : Colors.grey.shade300)),
+            color: _step >= 3 ? const Color(0xFF2563EB) : Colors.grey.shade300)),
         _stepDot(3, 'Done'),
       ]);
     }
     return Row(children: [
       _stepDot(0, 'Parent\nLogin'),
       Expanded(child: Container(height: 2,
-          color: _step >= 1 ? const Color(0xFF1565C0) : Colors.grey.shade300)),
+          color: _step >= 1 ? const Color(0xFF2563EB) : Colors.grey.shade300)),
       _stepDot(1, 'Select\nChild'),
       Expanded(child: Container(height: 2,
-          color: _step >= 3 ? const Color(0xFF1565C0) : Colors.grey.shade300)),
+          color: _step >= 3 ? const Color(0xFF2563EB) : Colors.grey.shade300)),
       _stepDot(3, 'Done'),
     ]);
   }
@@ -308,7 +308,7 @@ class _ChildSetupScreenState extends ConsumerState<ChildSetupScreen> {
   Widget _stepDot(int idx, String label) {
     final done    = _step > idx;
     final active  = _step == idx;
-    final color   = done || active ? const Color(0xFF1565C0) : Colors.grey.shade300;
+    final color   = done || active ? const Color(0xFF2563EB) : Colors.grey.shade300;
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Container(
         width: 32, height: 32,
@@ -317,7 +317,7 @@ class _ChildSetupScreenState extends ConsumerState<ChildSetupScreen> {
             size: 16, color: Colors.white),
       ),
       const SizedBox(height: 4),
-      Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFF1565C0) : Colors.black45),
+      Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFF2563EB) : Colors.black45),
           textAlign: TextAlign.center),
     ]);
   }
@@ -325,7 +325,7 @@ class _ChildSetupScreenState extends ConsumerState<ChildSetupScreen> {
   // ── Step 0: Parent login ───────────────────────────────────────────────────
 
   Widget _stepLogin() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-    const Icon(Icons.shield, size: 56, color: Color(0xFF1565C0)),
+    const Icon(Icons.shield, size: 56, color: Color(0xFF2563EB)),
     const SizedBox(height: 16),
     const Text('Parent Authentication',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
@@ -380,11 +380,11 @@ class _ChildSetupScreenState extends ConsumerState<ChildSetupScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: _selected?.id == child.id
-                ? const Color(0xFF1565C0).withOpacity(0.08)
+                ? const Color(0xFF2563EB).withOpacity(0.08)
                 : Colors.white,
             border: Border.all(
               color: _selected?.id == child.id
-                  ? const Color(0xFF1565C0)
+                  ? const Color(0xFF2563EB)
                   : Colors.grey.shade300,
               width: _selected?.id == child.id ? 2 : 1,
             ),
@@ -392,9 +392,9 @@ class _ChildSetupScreenState extends ConsumerState<ChildSetupScreen> {
           ),
           child: Row(children: [
             CircleAvatar(
-              backgroundColor: const Color(0xFF1565C0).withOpacity(0.15),
+              backgroundColor: const Color(0xFF2563EB).withOpacity(0.15),
               child: Text(child.initials,
-                  style: const TextStyle(color: Color(0xFF1565C0),
+                  style: const TextStyle(color: Color(0xFF2563EB),
                       fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 12),
@@ -409,7 +409,7 @@ class _ChildSetupScreenState extends ConsumerState<ChildSetupScreen> {
                     style: const TextStyle(color: Colors.black45, fontSize: 12)),
             ])),
             if (_selected?.id == child.id)
-              const Icon(Icons.check_circle, color: Color(0xFF1565C0)),
+              const Icon(Icons.check_circle, color: Color(0xFF2563EB)),
           ]),
         ),
       ),

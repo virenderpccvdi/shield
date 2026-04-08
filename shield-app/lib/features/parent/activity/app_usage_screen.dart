@@ -10,7 +10,7 @@ final _appUsageProvider =
   final raw = resp.data is List
       ? resp.data as List
       : (resp.data as Map<String, dynamic>?)?['data'] as List? ?? [];
-  return raw.cast<Map<String, dynamic>>();
+  return raw.whereType<Map<String, dynamic>>().toList();
 });
 
 class AppUsageScreen extends ConsumerWidget {
@@ -49,7 +49,7 @@ class AppUsageScreen extends ConsumerWidget {
                     const Text('Total Today', style: TextStyle(color: Colors.black45)),
                     Text(_formatMins(total),
                         style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold,
-                            color: Color(0xFF1565C0))),
+                            color: Color(0xFF2563EB))),
                   ]),
                 ),
               ),

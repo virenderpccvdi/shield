@@ -94,8 +94,8 @@ public class FamilyController {
     }
 
     private void requireCustomer(String role) {
-        if (!"CUSTOMER".equals(role)) {
-            throw ShieldException.forbidden("CUSTOMER role required");
+        if (!"CUSTOMER".equals(role) && !"GLOBAL_ADMIN".equals(role) && !"ISP_ADMIN".equals(role)) {
+            throw ShieldException.forbidden("Access denied");
         }
     }
 }

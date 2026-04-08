@@ -101,7 +101,7 @@
           "priceCurrency": "USD"
         },
         "downloadUrl": "https://shield.rstglobal.in/static/shield-app.apk",
-        "version": "2.1.4",
+        "version": "2.1.5",
         "softwareVersion": "1.2.0",
         "description": "Complete parental control app with DNS filtering, screen time limits, GPS tracking, and real-time alerts.",
         "screenshot": "https://shield.rstglobal.in/og-image.svg",
@@ -928,7 +928,7 @@
       </div>
 
       <div class="download-note">
-        Android 8.0+ · v2.1.4 · 125M · 7 Apr 2026 &nbsp;&nbsp;|&nbsp;&nbsp; Windows 10/11 64-bit · Agent v1.0.0 · 8.0 MB · Right-click → Run as Administrator
+        Android 8.0+ · v2.1.5 · 125M · 8 Apr 2026 &nbsp;&nbsp;|&nbsp;&nbsp; Windows 10/11 64-bit · Agent v1.0.0 · 8.0 MB · Right-click → Run as Administrator
       </div>
     </div>
 
@@ -1003,14 +1003,14 @@
       <div class="release-info-card">
         <div class="release-version-badge">
           <span class="release-dot"></span>
-          Latest Release &nbsp;·&nbsp; v2.1.4 &nbsp;·&nbsp; 7 Apr 2026
+          Latest Release &nbsp;·&nbsp; v2.1.5 &nbsp;·&nbsp; 8 Apr 2026
 
         </div>
-        <h3 class="release-title">What's New in v2.1.4</h3>
+        <h3 class="release-title">What's New in v2.1.5</h3>
 
         <!-- ── Category filter pills ── -->
         <div class="rn-filters" id="rnFilters">
-          <button class="rn-pill active" onclick="rnFilter(this,'all')">All <span class="rn-pcount">73</span></button>
+          <button class="rn-pill active" onclick="rnFilter(this,'all')">All <span class="rn-pcount">76</span></button>
           <button class="rn-pill" onclick="rnFilter(this,'safety')">🛡 Safety &amp; SOS</button>
           <button class="rn-pill" onclick="rnFilter(this,'controls')">⚙ Parental Controls</button>
           <button class="rn-pill" onclick="rnFilter(this,'child')">🧒 Child App</button>
@@ -1019,6 +1019,31 @@
 
         <!-- ── Feature cards grid ── -->
         <div class="rn-grid" id="rnGrid">
+
+          <!-- v2.1.5 — QA Fixes: Task Status, Type Safety, Settings — 8 Apr 2026 -->
+          <div class="rn-item" data-cat="child">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Child Tasks — Status Tracking Now Correct <span class="rn-badge-new">v2.1.5</span></div>
+              <p class="rn-idesc">Fixed a critical bug where all child tasks appeared as "To Do" forever — the app was checking a non-existent <code>isCompleted</code> boolean instead of the API's <code>status</code> field (<code>PENDING → SUBMITTED → APPROVED</code>). Tasks now show four states with proper icons: To Do, Waiting for Approval (hourglass), Completed (green tick), and Rejected (re-doable). The parent Rewards screen and Approval Requests screen now correctly show tasks awaiting review.</p>
+            </div>
+          </div>
+
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Type Safety — No More Runtime CastError Crashes <span class="rn-badge-new">v2.1.5</span></div>
+              <p class="rn-idesc">Fixed 16 screens using unsafe <code>raw.cast&lt;Map&gt;()</code> — replaced with safe <code>whereType&lt;Map&gt;().toList()</code> that skips bad elements instead of crashing. Fixed 10+ <code>as int?</code> casts on API-returned numbers (JSON can return <code>2.0</code> as a double, causing <code>type 'double' is not a subtype of 'int'</code> crashes) — now uses <code>(as num?)?.toInt()</code> throughout: points, threshold, screen time, duration, customer count, and domain visit count.</p>
+            </div>
+          </div>
+
+          <div class="rn-item" data-cat="controls">
+            <span class="rn-iicon ri-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+            <div class="rn-ibody">
+              <div class="rn-ititle">Settings &amp; Data — Clear History, PIN Validation Fixed <span class="rn-badge-new">v2.1.5</span></div>
+              <p class="rn-idesc">Clear Browsing History now actually calls the API and deletes data for all children's profiles (was a no-op before). Parent PIN now validates digits-only with specific error messages. Privacy Policy, Terms of Service, and Help links now open in the browser. Fixed a crash in the token refresh retry path where the response envelope was not unwrapped for the retried request.</p>
+            </div>
+          </div>
 
           <!-- v2.1.4 — DNS VPN Loop Fix — 7 Apr 2026 -->
           <div class="rn-item" data-cat="controls">
@@ -1641,7 +1666,7 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <a href="/static/shield-app.apk" class="btn btn-primary btn-download-inline" download>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Android v2.1.4
+            Android v2.1.5
           </a>
           <a href="/static/ShieldAgent.exe" class="btn btn-windows-inline" download>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 12V6.75l6-1.32v6.57H3zm17 0V5.25L11 3.75V12h9zm0 .75v6.75L11 20.25V12.75h9zM3 18V12.75h6v6.57L3 18z"/></svg>

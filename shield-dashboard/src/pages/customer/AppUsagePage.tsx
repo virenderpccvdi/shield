@@ -290,6 +290,7 @@ export default function AppUsagePage() {
               </Typography>
             </Box>
           ) : (
+            <Box sx={{ overflowX: 'auto' }}>
             <TableContainer component={Paper} elevation={0}>
               <Table size="small">
                 <TableHead>
@@ -383,6 +384,7 @@ export default function AppUsagePage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            </Box>
           )}
         </CardContent>
       </Card>

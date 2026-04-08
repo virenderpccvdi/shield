@@ -14,7 +14,7 @@ export default function NotFoundPage() {
         minHeight: '100vh',
         bgcolor: '#F8FAFC',
         gap: 2,
-        p: 4,
+        p: { xs: 2, md: 4 },
       }}
     >
       <ShieldIcon sx={{ fontSize: 64, color: '#1565C0', opacity: 0.4 }} />

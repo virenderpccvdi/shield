@@ -41,8 +41,8 @@ class _TimeLimitsState extends ConsumerState<TimeLimitsScreen> {
       setState(() {
         final limit = data['dailyBudgetMinutes'];
         _noLimit      = (limit == null || limit == 0);
-        _dailyMinutes = _noLimit ? 240 : (limit as int);
-        _usedToday    = (data['usedMinutesToday'] as int?) ?? 0;
+        _dailyMinutes = _noLimit ? 240 : ((limit as num).toInt());
+        _usedToday    = ((data['usedMinutesToday'] as num?) ?? 0).toInt();
         _loading      = false;
       });
     } catch (_) {

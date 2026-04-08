@@ -190,7 +190,7 @@ export default function BatteryAlertsPage() {
                   <CircularProgress />
                 </Box>
               ) : (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
                   <BatteryIcon pct={settings?.lastBatteryPct ?? null} />
                   <Box>
                     <Typography
@@ -273,7 +273,7 @@ export default function BatteryAlertsPage() {
 
               <Divider sx={{ my: 3 }} />
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                 <Typography variant="body2" color="text.secondary">
                   Current saved threshold:{' '}
                   <strong style={{ color: THEME_COLOR }}>

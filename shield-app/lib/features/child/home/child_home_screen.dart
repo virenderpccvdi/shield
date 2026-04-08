@@ -87,7 +87,7 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
       try {
         final resp = await ApiClient.instance.get(Endpoints.points(pid));
         final pts  = resp.data is Map
-            ? (resp.data as Map<String, dynamic>)['points'] as int? ?? 0
+            ? ((resp.data as Map<String, dynamic>)['points'] as num?)?.toInt() ?? 0
             : 0;
         if (mounted) setState(() => _points = pts);
       } catch (_) {}
@@ -112,15 +112,17 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
   }
 
   void _sendHeartbeat() async {
-    try { await ApiClient.instance.post(Endpoints.heartbeat); } catch (_) {}
+    try {
+      await ApiClient.instance.post(Endpoints.heartbeat,
+          data: {'batteryLevel': _batteryLevel});
+    } catch (_) {}
   }
 
   void _reportBattery() async {
-    final pid = ref.read(authProvider).childProfileId;
-    if (pid == null) return;
+    // Battery level is included in the heartbeat POST payload
     try {
-      await ApiClient.instance.post('/profiles/devices/battery',
-          data: {'profileId': pid, 'batteryLevel': _batteryLevel});
+      await ApiClient.instance.post(Endpoints.heartbeat,
+          data: {'batteryLevel': _batteryLevel});
     } catch (_) {}
   }
 
@@ -299,7 +301,7 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF0D1B4B), Color(0xFF0D47A1), Color(0xFF1565C0)],
+              colors: [Color(0xFF1E40AF), Color(0xFF1E40AF), Color(0xFF2563EB)],
               begin: Alignment.topCenter, end: Alignment.bottomCenter,
             ),
           ),
@@ -368,7 +370,7 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
                   label: const Text('Check In with Parent'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF0D1B4B),
+                    foregroundColor: const Color(0xFF1E40AF),
                     minimumSize: const Size.fromHeight(52),
                     elevation: 0,
                     shape: RoundedRectangleBorder(

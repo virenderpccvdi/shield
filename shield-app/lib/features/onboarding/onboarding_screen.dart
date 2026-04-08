@@ -17,7 +17,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   static const _slides = [
     _Slide(
-      gradient:   [Color(0xFF0D1B4B), Color(0xFF1565C0)],
+      gradient:   [Color(0xFF1E40AF), Color(0xFF2563EB)],
       icon:       Icons.shield,
       iconColor:  Color(0xFF4FC3F7),
       title:      'Smart Family Protection',
@@ -33,7 +33,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   'Healthy digital habits built right in.',
     ),
     _Slide(
-      gradient:   [Color(0xFF1A237E), Color(0xFF283593)],
+      gradient:   [Color(0xFF1E40AF), Color(0xFF283593)],
       icon:       Icons.location_on,
       iconColor:  Color(0xFF9FA8DA),
       title:      'Always Know Where They Are',
@@ -177,7 +177,7 @@ class _BottomControls extends StatelessWidget {
           onPressed: onNext,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFF1565C0),
+            foregroundColor: const Color(0xFF2563EB),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14)),
             elevation: 0,
