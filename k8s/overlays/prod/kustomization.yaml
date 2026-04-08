@@ -1,0 +1,84 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: shield-prod
+
+resources:
+  - ../../base/eureka
+  - ../../base/gateway
+  - ../../base/auth
+  - ../../base/tenant
+  - ../../base/profile
+  - ../../base/dns
+  - ../../base/location
+  - ../../base/notification
+  - ../../base/rewards
+  - ../../base/analytics
+  - ../../base/admin
+  - ../../base/ai
+  - ../../base/configmap.yaml
+
+images:
+  # CI pipeline sets these via: kustomize edit set image REGISTRY/shield-gateway=<acr>.azurecr.io/shield-gateway:<sha>
+  - name: REGISTRY/shield-eureka
+    newName: __ACR_LOGIN_SERVER__/shield-eureka
+    newTag: latest
+  - name: REGISTRY/shield-gateway
+    newName: __ACR_LOGIN_SERVER__/shield-gateway
+    newTag: latest
+  - name: REGISTRY/shield-auth
+    newName: __ACR_LOGIN_SERVER__/shield-auth
+    newTag: latest
+  - name: REGISTRY/shield-tenant
+    newName: __ACR_LOGIN_SERVER__/shield-tenant
+    newTag: latest
+  - name: REGISTRY/shield-profile
+    newName: __ACR_LOGIN_SERVER__/shield-profile
+    newTag: latest
+  - name: REGISTRY/shield-dns
+    newName: __ACR_LOGIN_SERVER__/shield-dns
+    newTag: latest
+  - name: REGISTRY/shield-location
+    newName: __ACR_LOGIN_SERVER__/shield-location
+    newTag: latest
+  - name: REGISTRY/shield-notification
+    newName: __ACR_LOGIN_SERVER__/shield-notification
+    newTag: latest
+  - name: REGISTRY/shield-rewards
+    newName: __ACR_LOGIN_SERVER__/shield-rewards
+    newTag: latest
+  - name: REGISTRY/shield-analytics
+    newName: __ACR_LOGIN_SERVER__/shield-analytics
+    newTag: latest
+  - name: REGISTRY/shield-admin
+    newName: __ACR_LOGIN_SERVER__/shield-admin
+    newTag: latest
+  - name: REGISTRY/shield-ai
+    newName: __ACR_LOGIN_SERVER__/shield-ai
+    newTag: latest
+
+patches:
+  # Prod: 2 replicas for gateway + auth
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: shield-gateway
+      spec:
+        replicas: 2
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: shield-auth
+      spec:
+        replicas: 2
+  # Prod config overrides
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: shield-config
+      data:
+        LOG_LEVEL: "WARN"
+        SPRING_PROFILES_ACTIVE: "kubernetes,prod"

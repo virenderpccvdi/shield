@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shield-tenant
+  labels:
+    app: shield-tenant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shield-tenant
+  template:
+    metadata:
+      labels:
+        app: shield-tenant
+    spec:
+      containers:
+        - name: shield-tenant
+          image: REGISTRY/shield-tenant:TAG
+          ports:
+            - containerPort: 8282
+          envFrom:
+            - configMapRef:
+                name: shield-config
+            - secretRef:
+                name: shield-secrets
+          env:
+            - name: SERVER_PORT
+              value: "8282"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://shield-eureka:8261/eureka/"
+            - name: EUREKA_INSTANCE_PREFERIPADDRESS
+              value: "true"
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8282
+            initialDelaySeconds: 40
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8282
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            failureThreshold: 3

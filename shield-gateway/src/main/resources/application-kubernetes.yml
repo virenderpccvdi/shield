@@ -1,0 +1,32 @@
+# Spring profile active in Kubernetes (SPRING_PROFILES_ACTIVE=kubernetes)
+# Overrides: disables Config Server pull, sets Eureka to K8s service DNS
+
+spring:
+  config:
+    import: "optional:"  # don't pull from Config Server — use env vars
+
+  # Redis — Azure Cache for Redis uses SSL on port 6380
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${REDIS_SSL:true}
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://shield-eureka:8261/eureka/
+    fetchRegistry: true
+    registerWithEureka: true
+  instance:
+    preferIpAddress: true
+    # Use pod IP (not hostname) for Eureka registration
+    ipAddress: ${POD_IP:127.0.0.1}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

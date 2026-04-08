@@ -1,0 +1,270 @@
+# Shield Platform — Azure DevOps CI/CD Pipeline
+#
+# Triggers:
+#   - Push to 'main'    → build + deploy to shield-prod (requires manual approval)
+#   - Push to 'develop' → build + deploy to shield-dev (auto)
+#
+# Required Azure DevOps Variable Groups (Library → Variable Groups):
+#   shield-aks-vars:
+#     ACR_LOGIN_SERVER       e.g. shieldacr1234.azurecr.io
+#     AKS_RESOURCE_GROUP     e.g. shield-rg
+#     AKS_CLUSTER_NAME       e.g. shield-aks
+#     AZURE_SUBSCRIPTION_ID  your Azure subscription ID
+#
+# Required Service Connections (Project Settings → Service Connections):
+#   shield-azure-rm    → Azure Resource Manager (subscription scope)
+#   shield-acr         → Docker Registry → Azure Container Registry
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+variables:
+  - group: shield-aks-vars
+  - name: MAVEN_OPTS
+    value: "-Xmx1024m"
+  - name: IMAGE_TAG
+    value: $(Build.SourceVersion)   # full git SHA
+  - name: isDevelop
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/develop')]
+  - name: isMain
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+
+stages:
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STAGE 1: BUILD — Maven compile + Docker push (parallel per service)
+# ══════════════════════════════════════════════════════════════════════════════
+- stage: Build
+  displayName: 'Build & Push Images'
+  jobs:
+
+  # ── Java services: build all in one job (monorepo) ──────────────────────────
+  - job: BuildJava
+    displayName: 'Maven Build + Docker Push (Java)'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+
+    - task: JavaToolInstaller@0
+      inputs:
+        versionSpec: '21'
+        jdkArchitectureOption: 'x64'
+        jdkSourceOption: 'PreInstalled'
+
+    - task: Cache@2
+      displayName: Cache Maven packages
+      inputs:
+        key: 'maven | "$(Agent.OS)" | **/pom.xml'
+        restoreKeys: 'maven | "$(Agent.OS)"'
+        path: $(HOME)/.m2
+
+    - task: Maven@4
+      displayName: 'Maven Build (all Java services)'
+      inputs:
+        mavenPomFile: 'pom.xml'
+        goals: 'package'
+        options: '-DskipTests -T 4 -q'  # 4 parallel threads, quiet output
+        publishJUnitResults: false
+
+    - task: Docker@2
+      displayName: 'Login to ACR'
+      inputs:
+        command: login
+        containerRegistry: shield-acr
+
+    # Build and push each Java service image in parallel using a script
+    - script: |
+        set -e
+        SERVICES="eureka gateway auth tenant profile dns location notification rewards analytics admin"
+        for svc in $SERVICES; do
+          echo "##[section]Building shield-${svc}..."
+          docker build \
+            -t $(ACR_LOGIN_SERVER)/shield-${svc}:$(IMAGE_TAG) \
+            -t $(ACR_LOGIN_SERVER)/shield-${svc}:latest \
+            -f shield-${svc}/Dockerfile \
+            shield-${svc}/ &
+        done
+        # Wait for all background builds to complete
+        wait
+        echo "##[section]All images built. Pushing..."
+        for svc in $SERVICES; do
+          docker push $(ACR_LOGIN_SERVER)/shield-${svc}:$(IMAGE_TAG) &
+          docker push $(ACR_LOGIN_SERVER)/shield-${svc}:latest &
+        done
+        wait
+        echo "##[section]All images pushed successfully."
+      displayName: 'Build & Push Java service images'
+
+  # ── Python AI service ────────────────────────────────────────────────────────
+  - job: BuildAI
+    displayName: 'Docker Push (shield-ai Python)'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: Docker@2
+      displayName: 'Login to ACR'
+      inputs:
+        command: login
+        containerRegistry: shield-acr
+    - task: Docker@2
+      displayName: 'Build & Push shield-ai'
+      inputs:
+        command: buildAndPush
+        repository: shield-ai
+        dockerfile: shield-ai/Dockerfile
+        containerRegistry: shield-acr
+        buildContext: shield-ai/
+        tags: |
+          $(IMAGE_TAG)
+          latest
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STAGE 2: TEST (optional — runs unit tests on PR)
+# ══════════════════════════════════════════════════════════════════════════════
+- stage: Test
+  displayName: 'Unit Tests'
+  condition: eq(variables['Build.Reason'], 'PullRequest')
+  dependsOn: []   # run in parallel with Build on PRs
+  jobs:
+  - job: UnitTests
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: JavaToolInstaller@0
+      inputs:
+        versionSpec: '21'
+        jdkArchitectureOption: 'x64'
+        jdkSourceOption: 'PreInstalled'
+    - task: Cache@2
+      inputs:
+        key: 'maven | "$(Agent.OS)" | **/pom.xml'
+        restoreKeys: 'maven | "$(Agent.OS)"'
+        path: $(HOME)/.m2
+    - task: Maven@4
+      inputs:
+        mavenPomFile: 'pom.xml'
+        goals: 'test'
+        options: '-T 4'
+        publishJUnitResults: true
+        testResultsFiles: '**/surefire-reports/TEST-*.xml'
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STAGE 3: DEPLOY DEV — auto on develop branch push
+# ══════════════════════════════════════════════════════════════════════════════
+- stage: DeployDev
+  displayName: 'Deploy → shield-dev'
+  dependsOn: Build
+  condition: and(succeeded('Build'), eq(variables.isDevelop, 'true'))
+  jobs:
+  - deployment: DeployDev
+    displayName: 'kubectl apply (dev namespace)'
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: 'shield-dev'   # creates Environment in Azure DevOps for history
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'Get AKS credentials'
+            inputs:
+              azureSubscription: shield-azure-rm
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az aks get-credentials \
+                  --resource-group $(AKS_RESOURCE_GROUP) \
+                  --name $(AKS_CLUSTER_NAME) \
+                  --overwrite-existing
+
+          - script: |
+              curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+              sudo mv kustomize /usr/local/bin/
+            displayName: 'Install kustomize'
+
+          - script: |
+              cd k8s/overlays/dev
+              # Update all image tags to current build SHA
+              SERVICES="eureka gateway auth tenant profile dns location notification rewards analytics admin ai"
+              for svc in $SERVICES; do
+                kustomize edit set image REGISTRY/shield-${svc}=$(ACR_LOGIN_SERVER)/shield-${svc}:$(IMAGE_TAG)
+              done
+              # Apply
+              kustomize build . | kubectl apply -f -
+              # Wait for rollout
+              kubectl rollout status deployment/shield-gateway -n shield-dev --timeout=180s
+              kubectl rollout status deployment/shield-auth -n shield-dev --timeout=180s
+            displayName: 'Deploy to shield-dev namespace'
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STAGE 4: DEPLOY PROD — manual approval required on main branch push
+# ══════════════════════════════════════════════════════════════════════════════
+- stage: DeployProd
+  displayName: 'Deploy → shield-prod'
+  dependsOn: Build
+  condition: and(succeeded('Build'), eq(variables.isMain, 'true'))
+  jobs:
+  - deployment: DeployProd
+    displayName: 'kubectl apply (prod namespace)'
+    pool:
+      vmImage: 'ubuntu-latest'
+    # ↓ This environment has an Approval gate configured in Azure DevOps UI
+    # Project Settings → Environments → shield-prod → Approvals and checks → Add → Approvals
+    environment: 'shield-prod'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'Get AKS credentials'
+            inputs:
+              azureSubscription: shield-azure-rm
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az aks get-credentials \
+                  --resource-group $(AKS_RESOURCE_GROUP) \
+                  --name $(AKS_CLUSTER_NAME) \
+                  --overwrite-existing
+
+          - script: |
+              curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+              sudo mv kustomize /usr/local/bin/
+            displayName: 'Install kustomize'
+
+          - script: |
+              cd k8s/overlays/prod
+              SERVICES="eureka gateway auth tenant profile dns location notification rewards analytics admin ai"
+              for svc in $SERVICES; do
+                kustomize edit set image REGISTRY/shield-${svc}=$(ACR_LOGIN_SERVER)/shield-${svc}:$(IMAGE_TAG)
+              done
+              kustomize build . | kubectl apply -f -
+              # Rolling restart wait — each service one at a time
+              for svc in gateway auth tenant profile dns location notification rewards analytics admin; do
+                echo "Waiting for shield-${svc}..."
+                kubectl rollout status deployment/shield-${svc} -n shield-prod --timeout=300s
+              done
+              echo "Prod deployment complete."
+            displayName: 'Deploy to shield-prod namespace'
+
+          - script: |
+              echo "## Prod Deploy Summary" >> $(Build.ArtifactStagingDirectory)/deploy-summary.md
+              echo "- Image tag: $(IMAGE_TAG)" >> $(Build.ArtifactStagingDirectory)/deploy-summary.md
+              echo "- Deployed at: $(date -u)" >> $(Build.ArtifactStagingDirectory)/deploy-summary.md
+              kubectl get pods -n shield-prod >> $(Build.ArtifactStagingDirectory)/deploy-summary.md
+            displayName: 'Capture deploy summary'
+          - publish: $(Build.ArtifactStagingDirectory)/deploy-summary.md
+            artifact: deploy-summary

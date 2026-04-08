@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shield-gateway
+  labels:
+    app: shield-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shield-gateway
+  template:
+    metadata:
+      labels:
+        app: shield-gateway
+    spec:
+      containers:
+        - name: shield-gateway
+          image: REGISTRY/shield-gateway:TAG
+          ports:
+            - containerPort: 8280
+          envFrom:
+            - configMapRef:
+                name: shield-config
+            - secretRef:
+                name: shield-secrets
+          env:
+            - name: SERVER_PORT
+              value: "8280"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://shield-eureka:8261/eureka/"
+            - name: EUREKA_INSTANCE_PREFERIPADDRESS
+              value: "true"
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8280
+            initialDelaySeconds: 40
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8280
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            failureThreshold: 3

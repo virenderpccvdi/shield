@@ -1,0 +1,35 @@
+# Shared non-secret configuration for all Shield services
+# Secrets (DB password, JWT, etc.) go in shield-secrets Secret
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shield-config
+data:
+  # Service discovery — Eureka running in same namespace
+  EUREKA_HOST: "shield-eureka"
+  EUREKA_PORT: "8261"
+  EUREKA_ZONE: "http://shield-eureka:8261/eureka/"
+
+  # Logging
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  LOG_LEVEL: "INFO"
+
+  # Disable Config Server import (use env vars instead)
+  SPRING_CONFIG_IMPORT: "optional:"
+
+  # PostgreSQL pool settings
+  DB_POOL_SIZE: "5"
+  DB_MIN_IDLE: "2"
+
+  # Redis (SSL for Azure Cache)
+  REDIS_SSL: "true"
+
+  # App URLs
+  APP_DOMAIN: "shield.rstglobal.in"
+  GATEWAY_URL: "http://shield-gateway:8280"
+
+  # AdGuard (disabled in K8s — use DNS rules service instead)
+  ADGUARD_ENABLED: "false"
+
+  # Timezone
+  TZ: "Asia/Kolkata"

@@ -1,0 +1,87 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: shield-dev
+
+resources:
+  - ../../base/eureka
+  - ../../base/gateway
+  - ../../base/auth
+  - ../../base/tenant
+  - ../../base/profile
+  - ../../base/dns
+  - ../../base/location
+  - ../../base/notification
+  - ../../base/rewards
+  - ../../base/analytics
+  - ../../base/admin
+  - ../../base/ai
+  - ../../base/configmap.yaml
+
+images:
+  - name: REGISTRY/shield-eureka
+    newName: __ACR_LOGIN_SERVER__/shield-eureka
+    newTag: dev-latest
+  - name: REGISTRY/shield-gateway
+    newName: __ACR_LOGIN_SERVER__/shield-gateway
+    newTag: dev-latest
+  - name: REGISTRY/shield-auth
+    newName: __ACR_LOGIN_SERVER__/shield-auth
+    newTag: dev-latest
+  - name: REGISTRY/shield-tenant
+    newName: __ACR_LOGIN_SERVER__/shield-tenant
+    newTag: dev-latest
+  - name: REGISTRY/shield-profile
+    newName: __ACR_LOGIN_SERVER__/shield-profile
+    newTag: dev-latest
+  - name: REGISTRY/shield-dns
+    newName: __ACR_LOGIN_SERVER__/shield-dns
+    newTag: dev-latest
+  - name: REGISTRY/shield-location
+    newName: __ACR_LOGIN_SERVER__/shield-location
+    newTag: dev-latest
+  - name: REGISTRY/shield-notification
+    newName: __ACR_LOGIN_SERVER__/shield-notification
+    newTag: dev-latest
+  - name: REGISTRY/shield-rewards
+    newName: __ACR_LOGIN_SERVER__/shield-rewards
+    newTag: dev-latest
+  - name: REGISTRY/shield-analytics
+    newName: __ACR_LOGIN_SERVER__/shield-analytics
+    newTag: dev-latest
+  - name: REGISTRY/shield-admin
+    newName: __ACR_LOGIN_SERVER__/shield-admin
+    newTag: dev-latest
+  - name: REGISTRY/shield-ai
+    newName: __ACR_LOGIN_SERVER__/shield-ai
+    newTag: dev-latest
+
+patches:
+  # Dev: all services 1 replica, reduced resource limits (saves ~40% RAM)
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: shield-gateway
+      spec:
+        template:
+          spec:
+            containers:
+              - name: shield-gateway
+                resources:
+                  requests:
+                    memory: "128Mi"
+                    cpu: "50m"
+                  limits:
+                    memory: "384Mi"
+                    cpu: "300m"
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: shield-config
+      data:
+        LOG_LEVEL: "DEBUG"
+        SPRING_PROFILES_ACTIVE: "kubernetes,dev"
+        DB_POOL_SIZE: "2"
+        DB_MIN_IDLE: "1"

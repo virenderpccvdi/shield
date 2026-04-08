@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shield-admin
+  labels:
+    app: shield-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shield-admin
+  template:
+    metadata:
+      labels:
+        app: shield-admin
+    spec:
+      containers:
+        - name: shield-admin
+          image: REGISTRY/shield-admin:TAG
+          ports:
+            - containerPort: 8290
+          envFrom:
+            - configMapRef:
+                name: shield-config
+            - secretRef:
+                name: shield-secrets
+          env:
+            - name: SERVER_PORT
+              value: "8290"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://shield-eureka:8261/eureka/"
+            - name: EUREKA_INSTANCE_PREFERIPADDRESS
+              value: "true"
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8290
+            initialDelaySeconds: 40
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8290
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            failureThreshold: 3

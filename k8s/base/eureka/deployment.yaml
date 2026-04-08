@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shield-eureka
+  labels:
+    app: shield-eureka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shield-eureka
+  template:
+    metadata:
+      labels:
+        app: shield-eureka
+    spec:
+      containers:
+        - name: shield-eureka
+          image: REGISTRY/shield-eureka:TAG
+          ports:
+            - containerPort: 8261
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            # Standalone mode — no peer replication needed in K8s
+            - name: EUREKA_CLIENT_REGISTERWITHEUREKA
+              value: "false"
+            - name: EUREKA_CLIENT_FETCHREGISTRY
+              value: "false"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "384Mi"
+              cpu: "300m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8261
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8261
+            initialDelaySeconds: 60
+            periodSeconds: 20
