@@ -29,7 +29,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/tenants")
+@RequestMapping({"/api/v1/tenants", "/api/v1/tenant/tenants"})
 @RequiredArgsConstructor
 @Tag(name = "Tenants", description = "ISP tenant management (GLOBAL_ADMIN only)")
 public class TenantController {

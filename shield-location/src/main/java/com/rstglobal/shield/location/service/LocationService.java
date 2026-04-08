@@ -68,12 +68,10 @@ public class LocationService {
     }
 
     @Transactional(readOnly = true)
-    public LocationResponse getLatestLocation(UUID profileId, UUID tenantId) {
+    public Optional<LocationResponse> getLatestLocation(UUID profileId, UUID tenantId) {
         requireFeature(tenantId, "gps_tracking");
         return locationPointRepository.findFirstByProfileIdOrderByRecordedAtDesc(profileId)
-                .map(this::toResponse)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No location data found for profile: " + profileId));
+                .map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

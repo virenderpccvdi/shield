@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/profiles/{profileId}/emergency-contacts")
+@RequestMapping("/api/v1/profiles/children/{profileId}/emergency-contacts")
 @RequiredArgsConstructor
 public class EmergencyContactController {
 

@@ -20,6 +20,7 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -40,19 +41,23 @@ public class LocationController {
             @RequestHeader(value = "X-User-Id", required = false) UUID userId,
             @RequestHeader(value = "X-User-Role", required = false) String role,
             @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
-        LocationResponse response = locationService.getLatestLocation(profileId, tenantId);
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        Optional<LocationResponse> response = locationService.getLatestLocation(profileId, tenantId);
+        return response
+                .map(r -> ResponseEntity.ok(ApiResponse.ok(r)))
+                .orElse(ResponseEntity.ok(ApiResponse.ok(null, "No location data yet")));
     }
 
     @GetMapping("/{profileId}/history")
     public ResponseEntity<ApiResponse<Page<LocationResponse>>> getLocationHistory(
             @PathVariable UUID profileId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
             @PageableDefault(size = 100) Pageable pageable,
             @RequestHeader(value = "X-User-Id", required = false) UUID userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
-        Page<LocationResponse> response = locationService.getLocationHistory(profileId, tenantId, from, to, pageable);
+        OffsetDateTime effectiveFrom = from != null ? from : OffsetDateTime.now().minusDays(7);
+        OffsetDateTime effectiveTo   = to   != null ? to   : OffsetDateTime.now();
+        Page<LocationResponse> response = locationService.getLocationHistory(profileId, tenantId, effectiveFrom, effectiveTo, pageable);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 

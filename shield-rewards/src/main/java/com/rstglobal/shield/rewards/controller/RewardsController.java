@@ -43,6 +43,34 @@ public class RewardsController {
     }
 
     /**
+     * Parent creates a task for a specific child profile (profileId from URL path).
+     * Supports Flutter's field names: "points" (maps to rewardPoints), "title", "description".
+     */
+    @PostMapping("/tasks/{profileId}")
+    public ResponseEntity<TaskResponse> createTaskForProfile(
+            @PathVariable UUID profileId,
+            @RequestBody java.util.Map<String, Object> body,
+            @RequestHeader("X-User-Id") UUID createdBy,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
+        CreateTaskRequest req = new CreateTaskRequest();
+        req.setProfileId(profileId);
+        if (body.get("title") != null) req.setTitle(body.get("title").toString());
+        if (body.get("description") != null) req.setDescription(body.get("description").toString());
+        // Flutter sends "points"; API field is "rewardPoints"
+        Object pts = body.getOrDefault("points", body.get("rewardPoints"));
+        if (pts != null) req.setRewardPoints(((Number) pts).intValue());
+        Object mins = body.get("rewardMinutes");
+        if (mins != null) req.setRewardMinutes(((Number) mins).intValue());
+        if (body.get("dueDate") != null) {
+            try { req.setDueDate(java.time.LocalDate.parse(body.get("dueDate").toString())); }
+            catch (Exception ignored) {}
+        }
+        log.info("Creating task for profile {} by parent {} via path", profileId, createdBy);
+        TaskResponse response = taskService.createTask(req, createdBy, tenantId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
      * List tasks for the calling user (parent). Returns all tasks created by this user.
      * Optionally filter by profileId and/or status via query params.
      */

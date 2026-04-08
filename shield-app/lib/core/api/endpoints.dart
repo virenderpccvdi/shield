@@ -36,8 +36,8 @@ class Endpoints {
   static const String syncApps         = '/profiles/apps/sync';
 
   // ── Tenant (Global Admin view) ────────────────────────────────────────────
-  static const String tenants           = '/tenant/tenants';
-  static String tenantById(String id)   => '/tenant/tenants/$id';
+  static const String tenants           = '/tenants';
+  static String tenantById(String id)   => '/tenants/$id';
 
   // ── DNS ───────────────────────────────────────────────────────────────────
   static String dnsRules(String profileId)       => '/dns/rules/$profileId';

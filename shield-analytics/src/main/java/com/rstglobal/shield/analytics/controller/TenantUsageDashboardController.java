@@ -40,15 +40,17 @@ public class TenantUsageDashboardController {
      * today's query counts, top blocked domains/categories, and bandwidth saved.
      *
      * <p>GET /api/v1/analytics/tenant/overview?tenantId={uuid}
+     * <p>OR GET /api/v1/analytics/tenant/overview  (tenantId from X-Tenant-Id header)
      */
     @GetMapping("/overview")
     public ResponseEntity<ApiResponse<TenantOverviewResponse>> getTenantOverview(
-            @RequestParam UUID tenantId,
+            @RequestParam(required = false) UUID tenantId,
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @RequestHeader(value = "X-Tenant-Id", required = false) String headerTenantId) {
 
-        requireTenantAccess(userRole, headerTenantId, tenantId);
-        TenantOverviewResponse overview = dashboardService.getTenantOverview(tenantId);
+        UUID resolvedTenantId = resolvetenantId(tenantId, headerTenantId);
+        requireTenantAccess(userRole, headerTenantId, resolvedTenantId);
+        TenantOverviewResponse overview = dashboardService.getTenantOverview(resolvedTenantId);
         return ResponseEntity.ok(ApiResponse.ok(overview));
     }
 
@@ -60,12 +62,13 @@ public class TenantUsageDashboardController {
      */
     @GetMapping("/customers")
     public ResponseEntity<ApiResponse<List<CustomerActivityItem>>> getCustomerActivity(
-            @RequestParam UUID tenantId,
+            @RequestParam(required = false) UUID tenantId,
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @RequestHeader(value = "X-Tenant-Id", required = false) String headerTenantId) {
 
-        requireTenantAccess(userRole, headerTenantId, tenantId);
-        List<CustomerActivityItem> activity = dashboardService.getCustomerActivity(tenantId);
+        UUID resolvedTenantId = resolvetenantId(tenantId, headerTenantId);
+        requireTenantAccess(userRole, headerTenantId, resolvedTenantId);
+        List<CustomerActivityItem> activity = dashboardService.getCustomerActivity(resolvedTenantId);
         return ResponseEntity.ok(ApiResponse.ok(activity));
     }
 
@@ -77,13 +80,26 @@ public class TenantUsageDashboardController {
      */
     @GetMapping("/hourly")
     public ResponseEntity<ApiResponse<List<HourlyCount>>> getHourlyBreakdown(
-            @RequestParam UUID tenantId,
+            @RequestParam(required = false) UUID tenantId,
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @RequestHeader(value = "X-Tenant-Id", required = false) String headerTenantId) {
 
-        requireTenantAccess(userRole, headerTenantId, tenantId);
-        List<HourlyCount> breakdown = dashboardService.getHourlyBreakdown(tenantId);
+        UUID resolvedTenantId = resolvetenantId(tenantId, headerTenantId);
+        requireTenantAccess(userRole, headerTenantId, resolvedTenantId);
+        List<HourlyCount> breakdown = dashboardService.getHourlyBreakdown(resolvedTenantId);
         return ResponseEntity.ok(ApiResponse.ok(breakdown));
+    }
+
+    private UUID resolvetenantId(UUID param, String headerTenantId) {
+        if (param != null) return param;
+        if (headerTenantId != null && !headerTenantId.isBlank()) {
+            try { return UUID.fromString(headerTenantId); }
+            catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid X-Tenant-Id header");
+            }
+        }
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "tenantId required (query param or X-Tenant-Id header)");
     }
 
     // ── access helpers ────────────────────────────────────────────────────────

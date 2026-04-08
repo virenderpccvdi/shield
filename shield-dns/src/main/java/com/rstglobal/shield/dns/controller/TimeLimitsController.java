@@ -58,10 +58,8 @@ public class TimeLimitsController {
         Integer limitMinutes = rules.getDailyBudgetMinutes();
         int usedMinutes = budgetTracking.getUsedMinutesToday(profileId);
 
-        boolean exhausted = Boolean.TRUE.equals(
-                rules.getEnabledCategories() != null
-                        ? rules.getEnabledCategories().get(BudgetEnforcementService.BUDGET_EXHAUSTED_KEY)
-                        : false);
+        boolean exhausted = rules.getEnabledCategories() != null
+                && Boolean.TRUE.equals(rules.getEnabledCategories().get(BudgetEnforcementService.BUDGET_EXHAUSTED_KEY));
 
         int remaining;
         if (limitMinutes == null || limitMinutes <= 0) {

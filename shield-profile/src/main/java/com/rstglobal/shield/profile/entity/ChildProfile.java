@@ -42,4 +42,12 @@ public class ChildProfile extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
+
+    @Column(name = "battery_alert_enabled", nullable = false)
+    @Builder.Default
+    private boolean batteryAlertEnabled = true;
+
+    @Column(name = "battery_alert_threshold", nullable = false)
+    @Builder.Default
+    private int batteryAlertThreshold = 20;
 }

@@ -315,6 +315,24 @@ public class AnalyticsController {
 
     // ── tenant-scoped (ISP admin) ─────────────────────────────────────────────
 
+    /** GET /api/v1/analytics/tenant/daily  (tenantId from X-Tenant-Id header or ?tenantId=) */
+    @GetMapping("/tenant/daily")
+    public ResponseEntity<List<DailyUsagePoint>> getTenantDailyFromHeader(
+            @RequestParam(required = false) UUID tenantId,
+            @RequestParam(defaultValue = "7") int days,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String headerTenantId) {
+        UUID resolved = tenantId;
+        if (resolved == null && headerTenantId != null && !headerTenantId.isBlank()) {
+            try { resolved = UUID.fromString(headerTenantId); } catch (IllegalArgumentException ignored) {}
+        }
+        if (resolved == null) {
+            return ResponseEntity.ok(analyticsService.getPlatformDailyBreakdown(Math.min(days, 365)));
+        }
+        requireAdminOrMatchingTenant(userRole, headerTenantId, resolved);
+        return ResponseEntity.ok(analyticsService.getTenantDailyBreakdown(resolved, Math.min(days, 365)));
+    }
+
     /** GET /api/v1/analytics/tenant/{tenantId}/overview */
     @GetMapping("/tenant/{tenantId}/overview")
     public ResponseEntity<UsageStatsResponse> getTenantOverview(

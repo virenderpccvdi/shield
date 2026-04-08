@@ -5,6 +5,8 @@ import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.profile.dto.request.CreateChildProfileRequest;
 import com.rstglobal.shield.profile.dto.request.UpdateChildProfileRequest;
 import com.rstglobal.shield.profile.dto.response.ChildProfileResponse;
+import com.rstglobal.shield.profile.entity.ChildProfile;
+import com.rstglobal.shield.profile.repository.ChildProfileRepository;
 import com.rstglobal.shield.profile.repository.CustomerRepository;
 import com.rstglobal.shield.profile.service.ChildProfileService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -27,6 +31,7 @@ public class ChildProfileController {
 
     private final ChildProfileService childProfileService;
     private final CustomerRepository customerRepository;
+    private final ChildProfileRepository childProfileRepository;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -104,6 +109,49 @@ public class ChildProfileController {
             @PathVariable UUID id) {
         UUID customerId = resolveCustomerId(userId, role);
         return ApiResponse.ok(childProfileService.getDohUrl(id, customerId));
+    }
+
+    // ── Battery alert settings ────────────────────────────────────────────────
+
+    @GetMapping("/{id}/battery-alerts")
+    @Operation(summary = "Get battery alert settings for a child profile")
+    public ApiResponse<Map<String, Object>> getBatteryAlerts(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role,
+            @PathVariable UUID id) {
+        resolveCustomerId(userId, role);
+        ChildProfile profile = childProfileRepository.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("child-profile", id.toString()));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("profileId", id);
+        body.put("enabled",   profile.isBatteryAlertEnabled());
+        body.put("threshold", profile.getBatteryAlertThreshold());
+        return ApiResponse.ok(body);
+    }
+
+    @PutMapping("/{id}/battery-alerts")
+    @Operation(summary = "Update battery alert settings for a child profile")
+    public ApiResponse<Map<String, Object>> updateBatteryAlerts(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role,
+            @PathVariable UUID id,
+            @RequestBody Map<String, Object> req) {
+        resolveCustomerId(userId, role);
+        ChildProfile profile = childProfileRepository.findById(id)
+                .orElseThrow(() -> ShieldException.notFound("child-profile", id.toString()));
+        if (req.containsKey("enabled")) {
+            profile.setBatteryAlertEnabled(Boolean.TRUE.equals(req.get("enabled")));
+        }
+        if (req.containsKey("threshold") && req.get("threshold") instanceof Number n) {
+            int t = n.intValue();
+            profile.setBatteryAlertThreshold(Math.max(5, Math.min(95, t)));
+        }
+        childProfileRepository.save(profile);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("profileId", id);
+        body.put("enabled",   profile.isBatteryAlertEnabled());
+        body.put("threshold", profile.getBatteryAlertThreshold());
+        return ApiResponse.ok(body);
     }
 
     private UUID resolveCustomerId(UUID userId, String role) {
