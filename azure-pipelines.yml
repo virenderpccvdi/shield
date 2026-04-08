@@ -60,7 +60,7 @@ stages:
         path: $(HOME)/.m2
 
     - script: |
-        export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+        export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
         export PATH=$JAVA_HOME/bin:$PATH
         echo "Java: $(java -version 2>&1 | head -1)"
         echo "Maven: $(/usr/share/maven/bin/mvn -version 2>&1 | head -1)"
@@ -70,6 +70,8 @@ stages:
 
     - script: |
         set -e
+        export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+        export PATH=$JAVA_HOME/bin:$PATH
         ACR=$(ACR_LOGIN_SERVER)
         TAG=$(IMAGE_TAG)
         echo "Logging in to ACR: $ACR"
