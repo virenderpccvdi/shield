@@ -59,8 +59,8 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import { alpha } from '@mui/material/styles';
 import { brand } from '../theme/theme';
 
-const DRAWER_EXPANDED = 240;
-const DRAWER_COLLAPSED = 56;
+const DRAWER_EXPANDED = 260;
+const DRAWER_COLLAPSED = 68;
 
 
 const sections = [
@@ -156,76 +156,104 @@ export default function CustomerLayout() {
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
 
+  const isDark = muiTheme.palette.mode === 'dark';
+
+  const sidebarBg    = isDark ? '#1E293B' : '#FFFFFF';
+  const sidebarBorder = isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB';
+  const navTextColor = isDark ? '#94A3B8' : brand.muted;
+  const activeTextColor = isDark ? '#A5B4FC' : brand.primaryDark;
+  const activeBg    = isDark ? alpha(brand.primary, 0.18) : brand.primaryChip;
+  const hoverBg     = isDark ? alpha(brand.primary, 0.08) : alpha(brand.primary, 0.05);
+
   const drawer = (
     <Box sx={{
-      height: '100%', background: 'inherit', color: '#fff',
+      height: '100%',
+      bgcolor: sidebarBg,
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
     }}>
       {/* Logo */}
       <Box sx={{
-        px: collapsed && !isMobile ? 1 : 2.5,
-        py: 2,
+        px: collapsed && !isMobile ? 0 : 2.5,
+        py: 0,
         display: 'flex',
         alignItems: 'center',
         gap: collapsed && !isMobile ? 0 : 1.5,
         minHeight: 64,
-        bgcolor: brand.primaryDark,
-        borderBottom: '1px solid',
-        borderColor: 'rgba(255,255,255,0.12)',
+        borderBottom: `1px solid ${sidebarBorder}`,
         justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
+        flexShrink: 0,
       }}>
-        <ShieldIcon sx={{ color: '#BFDBFE', fontSize: 26, flexShrink: 0 }} />
+        <Box sx={{
+          width: 34, height: 34, borderRadius: '10px', flexShrink: 0,
+          background: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: `0 2px 8px ${alpha(brand.primary, 0.35)}`,
+        }}>
+          <ShieldIcon sx={{ color: '#fff', fontSize: 20 }} />
+        </Box>
         {(!collapsed || isMobile) && (
           <Box>
-            <Typography variant="subtitle1" sx={{ color: '#FFFFFF', fontWeight: 800, lineHeight: 1.1, letterSpacing: -0.3 }}>
+            <Typography variant="subtitle1" sx={{
+              fontWeight: 800, lineHeight: 1.1, letterSpacing: -0.3,
+              color: isDark ? '#F9FAFB' : brand.text,
+            }}>
               Shield
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            <Typography variant="caption" sx={{
+              fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase',
+              color: brand.subtle,
+            }}>
               Family Dashboard
             </Typography>
           </Box>
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)' }} />
-
       {/* Scrollable nav */}
       <Box sx={{
-        flex: 1, overflowY: 'auto', overflowX: 'hidden', py: 1,
-        bgcolor: brand.bg,
+        flex: 1, overflowY: 'auto', overflowX: 'hidden', py: 1.5,
         '&::-webkit-scrollbar': { width: 4 },
-        '&::-webkit-scrollbar-thumb': { bgcolor: brand.border, borderRadius: 2 },
+        '&::-webkit-scrollbar-thumb': { bgcolor: sidebarBorder, borderRadius: 2 },
       }}>
-        <List disablePadding sx={{ px: collapsed && !isMobile ? 0.5 : 1 }}>
+        <List disablePadding sx={{ px: collapsed && !isMobile ? 0.75 : 1.25 }}>
           {sections.map((section, si) => {
             const isExpanded = expandedSections[section.title] ?? true;
             return (
               <Box key={section.title}>
-                {si > 0 && <Box sx={{ my: 0.5, mx: 1 }}><Divider sx={{ borderColor: brand.border }} /></Box>}
+                {si > 0 && (
+                  <Box sx={{ my: 1, mx: 0.5 }}>
+                    <Divider sx={{ borderColor: sidebarBorder }} />
+                  </Box>
+                )}
                 {/* Section header — only shown when sidebar is expanded */}
                 {(!collapsed || isMobile) && (
                   <Box
                     onClick={() => toggleSection(section.title)}
                     sx={{
-                      px: 2, py: 0.5,
+                      px: 1.5, py: 0.5,
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       cursor: 'pointer',
-                      borderRadius: 1,
-                      mx: 0.5,
-                      '&:hover': { bgcolor: alpha(brand.primary, 0.05) },
+                      borderRadius: 1.5,
+                      mx: 0.25,
+                      mb: 0.25,
+                      '&:hover': { bgcolor: hoverBg },
                     }}
                   >
-                    <Typography variant="overline" sx={{
-                      color: brand.subtle, fontSize: 10, fontWeight: 700,
-                      letterSpacing: 1.5, lineHeight: 1.8,
+                    <Typography sx={{
+                      color: brand.subtle,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      lineHeight: 1.8,
                     }}>
                       {section.title}
                     </Typography>
                     <Box sx={{ color: brand.subtle, display: 'flex', alignItems: 'center' }}>
                       {isExpanded
-                        ? <ExpandLessIcon sx={{ fontSize: 14 }} />
-                        : <ExpandMoreIcon sx={{ fontSize: 14 }} />}
+                        ? <ExpandLessIcon sx={{ fontSize: 13 }} />
+                        : <ExpandMoreIcon sx={{ fontSize: 13 }} />}
                     </Box>
                   </Box>
                 )}
@@ -243,38 +271,33 @@ export default function CustomerLayout() {
                           borderRadius: '8px',
                           mb: 0.25,
                           minHeight: 40,
-                          px: collapsed && !isMobile ? 1 : 1.5,
+                          px: collapsed && !isMobile ? 0 : 1.5,
                           justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
-                          color: brand.muted,
-                          position: 'relative',
-                          overflow: 'hidden',
+                          color: active ? activeTextColor : navTextColor,
                           transition: 'all 0.18s ease',
-                          '&::before': {
-                            content: '""',
-                            position: 'absolute', left: 0, top: '20%',
-                            width: 3, height: active ? '60%' : 0,
-                            bgcolor: '#2563EB', borderRadius: '0 3px 3px 0',
-                            transition: 'height 0.2s ease',
-                          },
                           '&.Mui-selected': {
-                            bgcolor: brand.primaryChip,
-                            color: brand.primaryDark,
-                            '& .MuiListItemIcon-root': { color: brand.primaryDark },
-                            '&:hover': { bgcolor: '#BFDBFE' },
+                            bgcolor: activeBg,
+                            color: activeTextColor,
+                            '& .MuiListItemIcon-root': { color: activeTextColor },
+                            '&:hover': { bgcolor: activeBg },
                           },
-                          '&:hover': {
-                            bgcolor: '#EFF6FF',
-                            color: brand.primaryDark,
-                            '& .MuiListItemIcon-root': { color: brand.primaryDark },
+                          '&:hover:not(.Mui-selected)': {
+                            bgcolor: hoverBg,
+                            color: isDark ? '#E2E8F0' : brand.text,
+                            '& .MuiListItemIcon-root': { color: isDark ? '#E2E8F0' : brand.text },
                           },
-                          '& .MuiListItemIcon-root': { color: brand.muted, transition: 'color 0.16s' },
+                          '& .MuiListItemIcon-root': {
+                            color: active ? activeTextColor : navTextColor,
+                            transition: 'color 0.16s',
+                          },
                         }}
                       >
                         <ListItemIcon sx={{
-                          color: active ? brand.primaryDark : brand.muted,
-                          minWidth: collapsed && !isMobile ? 0 : 36,
+                          color: 'inherit',
+                          minWidth: collapsed && !isMobile ? 0 : 34,
                           mr: collapsed && !isMobile ? 0 : 1,
                           justifyContent: 'center',
+                          '& svg': { fontSize: 19 },
                         }}>
                           {isAlerts && unreadCount > 0 ? (
                             <Badge badgeContent={unreadCount} color="error" sx={{ '& .MuiBadge-badge': { fontSize: 9, minWidth: 16, height: 16 } }}>
@@ -285,7 +308,7 @@ export default function CustomerLayout() {
                         {(!collapsed || isMobile) && (
                           <ListItemText
                             primary={item.label}
-                            primaryTypographyProps={{ fontSize: 13.5, fontWeight: active ? 700 : 500, color: 'inherit' }}
+                            primaryTypographyProps={{ fontSize: 13.5, fontWeight: active ? 600 : 450, color: 'inherit', lineHeight: 1.3 }}
                             secondary={isAlerts && unreadCount > 0 ? `${unreadCount} unread` : undefined}
                             secondaryTypographyProps={{ fontSize: 10.5, color: 'error.light' }}
                           />
@@ -313,23 +336,25 @@ export default function CustomerLayout() {
         </List>
       </Box>
 
-      <Divider sx={{ borderColor: brand.border }} />
+      <Divider sx={{ borderColor: sidebarBorder }} />
 
       {/* User section */}
       <Box sx={{
-        px: collapsed && !isMobile ? 0.5 : 1.5,
-        py: 1.5,
+        px: collapsed && !isMobile ? 0.75 : 1.5,
+        py: 1.25,
         display: 'flex',
         alignItems: 'center',
-        gap: collapsed && !isMobile ? 0 : 1.5,
+        gap: collapsed && !isMobile ? 0 : 1.25,
         justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
-        bgcolor: brand.card,
-        borderTop: `1px solid ${brand.border}`,
       }}>
         {collapsed && !isMobile ? (
           <Tooltip title={`${user?.name ?? ''} — Sign out`} placement="right" arrow>
             <Avatar
-              sx={{ width: 32, height: 32, bgcolor: brand.primary, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              sx={{
+                width: 34, height: 34,
+                background: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
+                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              }}
               onClick={() => { logout(); navigate('/login'); }}
             >
               {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
@@ -337,20 +362,34 @@ export default function CustomerLayout() {
           </Tooltip>
         ) : (
           <>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: brand.primary, color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+            <Avatar sx={{
+              width: 34, height: 34,
+              background: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
+              fontSize: 13, fontWeight: 700, flexShrink: 0,
+            }}>
               {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" sx={{ color: brand.text, fontWeight: 600, fontSize: 12.5, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <Typography sx={{
+                fontWeight: 600, fontSize: 12.5, lineHeight: 1.2,
+                color: isDark ? '#F1F5F9' : brand.text,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
                 {user?.name ?? 'User'}
               </Typography>
-              <Typography variant="caption" sx={{ color: brand.muted, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+              <Typography sx={{
+                fontSize: 10.5, color: brand.subtle, lineHeight: 1.2,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block',
+              }}>
                 {user?.email ?? ''}
               </Typography>
             </Box>
             <Tooltip title="Sign out">
-              <IconButton size="small" onClick={() => { logout(); navigate('/login'); }} sx={{ color: brand.muted, '&:hover': { color: brand.danger } }}>
-                <LogoutIcon fontSize="small" />
+              <IconButton size="small" onClick={() => { logout(); navigate('/login'); }} sx={{
+                color: brand.subtle,
+                '&:hover': { color: brand.danger, bgcolor: alpha(brand.danger, 0.08) },
+              }}>
+                <LogoutIcon sx={{ fontSize: 17 }} />
               </IconButton>
             </Tooltip>
           </>
@@ -360,8 +399,8 @@ export default function CustomerLayout() {
       {/* Collapse toggle */}
       {!isMobile && (
         <>
-          <Divider sx={{ borderColor: brand.border }} />
-          <Box sx={{ display: 'flex', justifyContent: collapsed ? 'center' : 'flex-end', px: 1, py: 0.75, bgcolor: brand.card }}>
+          <Divider sx={{ borderColor: sidebarBorder }} />
+          <Box sx={{ display: 'flex', justifyContent: collapsed ? 'center' : 'flex-end', px: 1, py: 0.75 }}>
             <Tooltip title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} placement="right">
               <IconButton
                 size="small"
@@ -390,7 +429,8 @@ export default function CustomerLayout() {
               '& .MuiDrawer-paper': {
                 width: DRAWER_EXPANDED,
                 border: 'none',
-                background: brand.primaryDark,
+                borderRight: `1px solid ${sidebarBorder}`,
+                bgcolor: sidebarBg,
               },
             }}
           >
@@ -403,9 +443,10 @@ export default function CustomerLayout() {
               '& .MuiDrawer-paper': {
                 width: drawerWidth,
                 border: 'none',
+                borderRight: `1px solid ${sidebarBorder}`,
                 transition: 'width 0.25s ease',
                 overflowX: 'hidden',
-                background: brand.primaryDark,
+                bgcolor: sidebarBg,
               },
             }}
           >
@@ -415,7 +456,12 @@ export default function CustomerLayout() {
       </Box>
 
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minWidth: 0, transition: 'all 0.25s ease' }}>
-        <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: '1px solid', borderColor: brand.border, backdropFilter: 'blur(8px)', bgcolor: brand.card }}>
+        <AppBar position="static" color="inherit" elevation={0} sx={{
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          backdropFilter: 'blur(8px)',
+        }}>
           <Toolbar sx={{ minHeight: 60, gap: 0.5, px: { xs: 1.5, md: 2.5 } }}>
             {isMobile && (
               <IconButton edge="start" onClick={() => setMobileOpen(true)} aria-label="Open navigation menu" sx={{ mr: 0.5 }}>
@@ -424,12 +470,30 @@ export default function CustomerLayout() {
             )}
 
             {/* Search bar */}
-            <Box className="search-bar" sx={{ display: { xs: 'none', sm: 'flex' }, mr: 1, width: { sm: 180, md: 260 } }}>
-              <SearchIcon sx={{ fontSize: 17, color: 'text.disabled', flexShrink: 0 }} />
+            <Box sx={{
+              display: { xs: 'none', sm: 'flex' },
+              alignItems: 'center',
+              gap: 1,
+              mr: 1,
+              width: { sm: 200, md: 280 },
+              bgcolor: isDark ? alpha('#fff', 0.05) : '#F3F4F6',
+              border: '1px solid',
+              borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB',
+              borderRadius: '8px',
+              px: 1.5,
+              py: 0.6,
+              transition: 'all 0.18s ease',
+              '&:focus-within': {
+                borderColor: brand.primary,
+                bgcolor: isDark ? alpha(brand.primary, 0.08) : '#EEF2FF',
+                boxShadow: `0 0 0 3px ${alpha(brand.primary, 0.1)}`,
+              },
+            }}>
+              <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', flexShrink: 0 }} />
               <InputBase
                 placeholder="Search…"
                 inputProps={{ 'aria-label': 'global search' }}
-                sx={{ fontSize: 13.5, flex: 1 }}
+                sx={{ fontSize: 13.5, flex: 1, '& input': { py: 0 } }}
               />
             </Box>
 
@@ -450,9 +514,19 @@ export default function CustomerLayout() {
             </Tooltip>
 
             <Tooltip title={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ''}`}>
-              <IconButton size="small" onClick={() => navigate('/alerts')} aria-label={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ''}`}>
+              <IconButton
+                size="small"
+                onClick={() => navigate('/alerts')}
+                aria-label={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ''}`}
+                sx={{
+                  position: 'relative',
+                  color: unreadCount > 0 ? brand.primary : 'text.secondary',
+                  bgcolor: unreadCount > 0 ? alpha(brand.primary, 0.08) : 'transparent',
+                  '&:hover': { bgcolor: alpha(brand.primary, 0.1) },
+                }}
+              >
                 <Badge badgeContent={unreadCount || 0} color="error" max={99}>
-                  <NotificationsIcon fontSize="small" />
+                  {unreadCount > 0 ? <NotificationsActiveIcon fontSize="small" /> : <NotificationsIcon fontSize="small" />}
                 </Badge>
               </IconButton>
             </Tooltip>
@@ -462,12 +536,21 @@ export default function CustomerLayout() {
               onClick={(e) => setAnchorEl(e.currentTarget)}
               sx={{
                 display: 'flex', alignItems: 'center', gap: 1, ml: 0.5, px: 1, py: 0.5,
-                borderRadius: 2, cursor: 'pointer', border: '1px solid',
-                borderColor: 'divider', transition: 'all 0.15s ease',
-                '&:hover': { bgcolor: 'action.hover' },
+                borderRadius: '8px', cursor: 'pointer',
+                border: '1px solid',
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB',
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  bgcolor: isDark ? alpha('#fff', 0.06) : alpha(brand.primary, 0.04),
+                  borderColor: isDark ? alpha(brand.primary, 0.3) : '#C7D2FE',
+                },
               }}
             >
-              <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.main', fontSize: 12, fontWeight: 700 }}>
+              <Avatar sx={{
+                width: 28, height: 28,
+                background: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
+                fontSize: 12, fontWeight: 700,
+              }}>
                 {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
               </Avatar>
               <Box sx={{ display: { xs: 'none', md: 'block' } }}>

@@ -53,11 +53,11 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-const filterColors: Record<string, { bg: string; text: string }> = {
-  STRICT: { bg: '#FFEBEE', text: '#C62828' },
-  MODERATE: { bg: '#FFF8E1', text: '#F57F17' },
-  RELAXED: { bg: '#E8F5E9', text: '#2E7D32' },
-  CUSTOM: { bg: '#E3F2FD', text: '#1565C0' },
+const filterColors: Record<string, { bg: string; text: string; border: string }> = {
+  STRICT: { bg: '#FEF2F2', text: '#DC2626', border: '#FECACA' },
+  MODERATE: { bg: '#FFFBEB', text: '#D97706', border: '#FDE68A' },
+  RELAXED: { bg: '#F0FDF4', text: '#16A34A', border: '#BBF7D0' },
+  CUSTOM: { bg: '#EEF2FF', text: '#4F46E5', border: '#C7D2FE' },
 };
 
 function getInitials(name: string) {
@@ -132,9 +132,9 @@ function ScheduleTab({ profileId }: { profileId: string }) {
   }
 
   const presets = [
-    { label: 'School Hours', icon: <SchoolIcon sx={{ fontSize: 16 }} />, color: '#1565C0', key: 'SCHOOL' },
-    { label: 'Bedtime', icon: <BedtimeIcon sx={{ fontSize: 16 }} />, color: '#7B1FA2', key: 'BEDTIME' },
-    { label: 'Weekend', icon: <WeekendIcon sx={{ fontSize: 16 }} />, color: '#FB8C00', key: 'WEEKEND' },
+    { label: 'School Hours', icon: <SchoolIcon sx={{ fontSize: 16 }} />, color: '#4F46E5', key: 'SCHOOL' },
+    { label: 'Bedtime', icon: <BedtimeIcon sx={{ fontSize: 16 }} />, color: '#7C3AED', key: 'BEDTIME' },
+    { label: 'Weekend', icon: <WeekendIcon sx={{ fontSize: 16 }} />, color: '#D97706', key: 'WEEKEND' },
   ];
 
   return (
@@ -167,44 +167,49 @@ function ScheduleTab({ profileId }: { profileId: string }) {
         ))}
         <Button size="small" variant="outlined" startIcon={<PauseCircleIcon />}
           onClick={() => setOverrideDialog(true)}
-          sx={{ borderRadius: 2, borderColor: '#E5393540', color: '#E53935', '&:hover': { borderColor: '#E53935' } }}>
+          sx={{ borderRadius: '8px', borderColor: 'rgba(220,38,38,0.35)', color: '#DC2626', '&:hover': { borderColor: '#DC2626', bgcolor: 'rgba(220,38,38,0.04)' } }}>
           Override
         </Button>
       </Box>
-      <Card>
+      <Card sx={{ border: '1px solid rgba(79,70,229,0.08)' }}>
         <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <Box sx={{ width: 14, height: 14, borderRadius: 1, bgcolor: '#C8E6C9', border: '1px solid #A5D6A7' }} />
-              <Typography variant="caption" color="text.secondary">Allowed</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <Box sx={{ width: 14, height: 14, borderRadius: 1, bgcolor: '#FFCDD2', border: '1px solid #EF9A9A' }} />
-              <Typography variant="caption" color="text.secondary">Blocked</Typography>
+          <Box sx={{ display: 'flex', gap: 3, mb: 2.5, alignItems: 'center' }}>
+            <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: 11 }}>
+              Weekly Schedule
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: '#D1FAE5', border: '1.5px solid #6EE7B7' }} />
+                <Typography variant="caption" color="text.secondary" fontWeight={500}>Allowed</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: '#FEE2E2', border: '1.5px solid #FCA5A5' }} />
+                <Typography variant="caption" color="text.secondary" fontWeight={500}>Blocked</Typography>
+              </Box>
             </Box>
           </Box>
           <Box sx={{ overflowX: 'auto' }}>
             <Box sx={{ minWidth: 700 }}>
               <Box sx={{ display: 'flex', mb: 1, ml: '52px' }}>
                 {HOURS.map(h => (
-                  <Box key={h} sx={{ width: 28, textAlign: 'center', fontSize: 10, fontWeight: 600, color: (h >= 22 || h < 6) ? '#9E9E9E' : '#546E7A' }}>{h}</Box>
+                  <Box key={h} sx={{ width: 28, textAlign: 'center', fontSize: 10, fontWeight: 600, color: (h >= 22 || h < 6) ? '#CBD5E1' : '#94A3B8' }}>{h}</Box>
                 ))}
               </Box>
               {DAYS.map((day, d) => {
                 const dayKey = DAY_KEYS[d];
                 return (
                 <Box key={day} sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
-                  <Typography sx={{ width: 48, fontSize: 12, fontWeight: 700, color: d >= 5 ? '#FB8C00' : '#546E7A', pr: 1 }}>{day}</Typography>
+                  <Typography sx={{ width: 48, fontSize: 12, fontWeight: 700, color: d >= 5 ? '#D97706' : '#64748B', pr: 1 }}>{day}</Typography>
                   {HOURS.map(h => {
                     const val = grid[dayKey]?.[h] ?? 1;
                     return (
-                      <Tooltip key={h} title={`${day} ${h}:00 - ${val === 1 ? 'Allowed' : 'Blocked'}`} arrow>
+                      <Tooltip key={h} title={`${day} ${h}:00 — ${val === 1 ? 'Allowed' : 'Blocked'}`} arrow>
                         <Box onClick={() => toggle(dayKey, h)} sx={{
-                          width: 26, height: 28, borderRadius: '6px', mr: 0.25, cursor: 'pointer',
-                          bgcolor: val === 0 ? '#FFCDD2' : '#C8E6C9',
-                          border: '1.5px solid', borderColor: val === 0 ? '#EF9A9A' : '#A5D6A7',
-                          transition: 'all 0.15s ease',
-                          '&:hover': { transform: 'scale(1.15)', zIndex: 1 },
+                          width: 26, height: 28, borderRadius: '5px', mr: 0.25, cursor: 'pointer',
+                          bgcolor: val === 0 ? '#FEE2E2' : '#D1FAE5',
+                          border: '1.5px solid', borderColor: val === 0 ? '#FCA5A5' : '#6EE7B7',
+                          transition: 'all 0.12s ease',
+                          '&:hover': { transform: 'scale(1.18)', zIndex: 1, boxShadow: val === 0 ? '0 2px 8px rgba(220,38,38,0.3)' : '0 2px 8px rgba(16,185,129,0.3)' },
                         }} />
                       </Tooltip>
                     );
@@ -217,7 +222,12 @@ function ScheduleTab({ profileId }: { profileId: string }) {
           <Box sx={{ mt: 3 }}>
             <Button variant="contained" startIcon={<SaveIcon />}
               onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
-              sx={{ background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)', borderRadius: 2, px: 3 }}>
+              sx={{
+                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                borderRadius: '10px', px: 3, fontWeight: 700, textTransform: 'none',
+                boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
+                '&:hover': { background: 'linear-gradient(135deg, #4338CA 0%, #6D28D9 100%)', boxShadow: '0 6px 18px rgba(79,70,229,0.4)' },
+              }}>
               {saveMutation.isPending ? 'Saving...' : 'Save Schedule'}
             </Button>
           </Box>
@@ -317,7 +327,12 @@ function BudgetsTab({ profileId }: { profileId: string }) {
           <Box sx={{ mt: 3 }}>
             <Button variant="contained" startIcon={<SaveIcon />}
               onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
-              sx={{ background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)', borderRadius: 2, px: 3 }}>
+              sx={{
+                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                borderRadius: '10px', px: 3, fontWeight: 700, textTransform: 'none',
+                boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
+                '&:hover': { background: 'linear-gradient(135deg, #4338CA 0%, #6D28D9 100%)' },
+              }}>
               {saveMutation.isPending ? 'Saving...' : 'Save Budgets'}
             </Button>
           </Box>
@@ -378,66 +393,114 @@ function RulesTab({ profileId }: { profileId: string }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      <Card>
+      <Card sx={{ border: '1px solid rgba(79,70,229,0.1)' }}>
         <CardContent>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Content Categories</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2.5 }}>
+            <Box>
+              <Typography variant="subtitle1" fontWeight={700} letterSpacing="-0.3px">Content Categories</Typography>
+              <Typography variant="caption" color="text.secondary">Toggle categories to block on this profile</Typography>
+            </Box>
+            <Chip
+              size="small"
+              label={`${Object.values(categories).filter(Boolean).length} blocked`}
+              sx={{ bgcolor: 'rgba(220,38,38,0.08)', color: '#DC2626', fontWeight: 700, fontSize: 11 }}
+            />
+          </Box>
           <Grid container spacing={1}>
             {catEntries.map(([slug, label]) => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={slug}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  p: 1.5, borderRadius: 2, bgcolor: categories[slug] ? '#FFEBEE' : '#F5F5F5', transition: 'all 0.2s' }}>
-                  <Typography variant="body2" fontWeight={500}>{label as string}</Typography>
-                  <Switch size="small" checked={!!categories[slug]}
-                    onChange={(_, checked) => setCategories(c => ({ ...c, [slug]: checked }))} color="error" />
+                <Box
+                  onClick={() => setCategories(c => ({ ...c, [slug]: !c[slug] }))}
+                  sx={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    p: 1.5, borderRadius: '10px', cursor: 'pointer',
+                    bgcolor: categories[slug] ? 'rgba(220,38,38,0.06)' : '#F8FAFC',
+                    border: '1px solid', borderColor: categories[slug] ? 'rgba(220,38,38,0.2)' : '#E2E8F0',
+                    transition: 'all 0.18s ease',
+                    '&:hover': { borderColor: categories[slug] ? '#DC2626' : '#94A3B8', bgcolor: categories[slug] ? 'rgba(220,38,38,0.09)' : '#F1F5F9' },
+                  }}
+                >
+                  <Typography variant="body2" fontWeight={600} sx={{ color: categories[slug] ? '#DC2626' : '#374151', fontSize: 13 }}>
+                    {label as string}
+                  </Typography>
+                  <Switch
+                    size="small"
+                    checked={!!categories[slug]}
+                    onChange={(_, checked) => setCategories(c => ({ ...c, [slug]: checked }))}
+                    onClick={e => e.stopPropagation()}
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': { color: '#DC2626' },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#DC2626' },
+                    }}
+                  />
                 </Box>
               </Grid>
             ))}
           </Grid>
           <Button variant="contained" startIcon={<SaveIcon />}
             onClick={() => saveCatMutation.mutate()} disabled={saveCatMutation.isPending}
-            sx={{ mt: 2, background: 'linear-gradient(135deg, #E53935 0%, #C62828 100%)', borderRadius: 2 }}>
+            sx={{
+              mt: 2.5, borderRadius: '10px', textTransform: 'none', fontWeight: 700,
+              background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+              boxShadow: '0 4px 12px rgba(220,38,38,0.25)',
+              '&:hover': { background: 'linear-gradient(135deg, #B91C1C 0%, #991B1B 100%)' },
+            }}>
             Save Categories
           </Button>
         </CardContent>
       </Card>
-      <Card>
+      <Card sx={{ border: '1px solid rgba(220,38,38,0.1)' }}>
         <CardContent>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Custom Blocklist</Typography>
+          <Typography variant="subtitle1" fontWeight={700} letterSpacing="-0.3px" sx={{ mb: 0.5 }}>Custom Blocklist</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>Domains added here will always be blocked</Typography>
           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
             <TextField size="small" placeholder="domain.com" value={newDomain}
-              onChange={e => setNewDomain(e.target.value)} sx={{ flex: 1 }} />
+              onChange={e => setNewDomain(e.target.value)}
+              sx={{ flex: 1, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }} />
             <Button variant="outlined" startIcon={<AddIcon />}
-              onClick={() => { if (newDomain.trim()) { setBlocklist(l => [...l, newDomain.trim()]); setNewDomain(''); } }}>Add</Button>
+              onClick={() => { if (newDomain.trim()) { setBlocklist(l => [...l, newDomain.trim()]); setNewDomain(''); } }}
+              sx={{ borderRadius: '8px', borderColor: 'rgba(220,38,38,0.4)', color: '#DC2626', '&:hover': { borderColor: '#DC2626', bgcolor: 'rgba(220,38,38,0.04)' }, textTransform: 'none' }}>
+              Add
+            </Button>
           </Box>
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 2 }}>
             {blocklist.map((d, i) => (
               <Chip key={i} label={d} size="small" onDelete={() => setBlocklist(l => l.filter((_, j) => j !== i))}
-                sx={{ bgcolor: '#FFEBEE', color: '#C62828' }} />
+                sx={{ bgcolor: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA', fontWeight: 500 }} />
             ))}
+            {blocklist.length === 0 && <Typography variant="caption" color="text.disabled">No domains blocked</Typography>}
           </Box>
-          <Button variant="outlined" color="error" startIcon={<SaveIcon />}
-            onClick={() => saveBlockMutation.mutate()} disabled={saveBlockMutation.isPending} sx={{ mt: 2, borderRadius: 2 }}>
+          <Button variant="outlined" startIcon={<SaveIcon />}
+            onClick={() => saveBlockMutation.mutate()} disabled={saveBlockMutation.isPending}
+            sx={{ borderRadius: '8px', borderColor: 'rgba(220,38,38,0.4)', color: '#DC2626', textTransform: 'none', fontWeight: 600, '&:hover': { borderColor: '#DC2626', bgcolor: 'rgba(220,38,38,0.04)' } }}>
             Save Blocklist
           </Button>
         </CardContent>
       </Card>
-      <Card>
+      <Card sx={{ border: '1px solid rgba(22,163,74,0.1)' }}>
         <CardContent>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Custom Allowlist</Typography>
+          <Typography variant="subtitle1" fontWeight={700} letterSpacing="-0.3px" sx={{ mb: 0.5 }}>Custom Allowlist</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>Domains here will never be blocked</Typography>
           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
             <TextField size="small" placeholder="domain.com" value={newDomain}
-              onChange={e => setNewDomain(e.target.value)} sx={{ flex: 1 }} />
+              onChange={e => setNewDomain(e.target.value)}
+              sx={{ flex: 1, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }} />
             <Button variant="outlined" color="success" startIcon={<AddIcon />}
-              onClick={() => { if (newDomain.trim()) { setAllowlist(l => [...l, newDomain.trim()]); setNewDomain(''); } }}>Add</Button>
+              onClick={() => { if (newDomain.trim()) { setAllowlist(l => [...l, newDomain.trim()]); setNewDomain(''); } }}
+              sx={{ borderRadius: '8px', textTransform: 'none' }}>
+              Add
+            </Button>
           </Box>
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 2 }}>
             {allowlist.map((d, i) => (
               <Chip key={i} label={d} size="small" onDelete={() => setAllowlist(l => l.filter((_, j) => j !== i))}
-                sx={{ bgcolor: '#E8F5E9', color: '#2E7D32' }} />
+                sx={{ bgcolor: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0', fontWeight: 500 }} />
             ))}
+            {allowlist.length === 0 && <Typography variant="caption" color="text.disabled">No domains allowed</Typography>}
           </Box>
           <Button variant="outlined" color="success" startIcon={<SaveIcon />}
-            onClick={() => saveAllowMutation.mutate()} disabled={saveAllowMutation.isPending} sx={{ mt: 2, borderRadius: 2 }}>
+            onClick={() => saveAllowMutation.mutate()} disabled={saveAllowMutation.isPending}
+            sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}>
             Save Allowlist
           </Button>
         </CardContent>
@@ -571,35 +634,91 @@ export default function ChildProfilePage() {
   return (
     <AnimatedPage>
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/profiles')}
-        sx={{ mb: 2, color: 'text.secondary', '&:hover': { bgcolor: '#F8FAFC' } }}>
+        sx={{ mb: 2.5, color: '#64748B', fontWeight: 600, textTransform: 'none', borderRadius: '8px',
+          '&:hover': { bgcolor: 'rgba(79,70,229,0.06)', color: '#4F46E5' } }}>
         Back to Child Profiles
       </Button>
       <AnimatedPage delay={0.1}>
-        <Card sx={{ mb: 3, overflow: 'hidden' }}>
-          <Box sx={{ height: 6, background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)' }} />
-          <CardContent sx={{ pt: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
-              <Avatar sx={{ width: 64, height: 64, background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)',
-                fontWeight: 700, fontSize: 22, boxShadow: '0 4px 14px rgba(21,101,192,0.3)' }}>
-                {getInitials(profile.name)}
-              </Avatar>
-              <Box sx={{ flex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                  <Typography variant="h5" fontWeight={700}>{profile.name}</Typography>
+        <Card sx={{ mb: 3, overflow: 'hidden', border: '1px solid rgba(79,70,229,0.1)', boxShadow: '0 4px 20px rgba(79,70,229,0.08)' }}>
+          {/* Gradient header bar */}
+          <Box sx={{ height: 5, background: 'linear-gradient(90deg, #4F46E5 0%, #7C3AED 50%, #06B6D4 100%)' }} />
+          <CardContent sx={{ pt: 3, pb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+              {/* Avatar with colored initials */}
+              <Box sx={{ position: 'relative', flexShrink: 0 }}>
+                <Avatar sx={{
+                  width: 72, height: 72,
+                  background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                  fontWeight: 800, fontSize: 24,
+                  boxShadow: '0 6px 20px rgba(79,70,229,0.35)',
+                  border: '3px solid white',
+                }}>
+                  {getInitials(profile.name)}
+                </Avatar>
+                {/* Filter level indicator dot */}
+                <Box sx={{
+                  position: 'absolute', bottom: 2, right: 2,
+                  width: 14, height: 14, borderRadius: '50%',
+                  bgcolor: fc.text, border: '2px solid white',
+                }} />
+              </Box>
+
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 1 }}>
+                  <Typography variant="h5" fontWeight={800} letterSpacing="-0.5px" sx={{ color: '#0F172A' }}>
+                    {profile.name}
+                  </Typography>
                   <LiveCheckinButton profileId={profile.id} profileName={profile.name} />
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                  <Chip size="small" label={profile.ageGroup} sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#E3F2FD', color: '#1565C0' }} />
-                  <Chip size="small" label={profile.filterLevel} sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: fc.bg, color: fc.text }} />
-                  <Chip size="small" icon={<DnsIcon sx={{ fontSize: 14 }} />} label={profile.dnsClientId} sx={{ height: 22, fontSize: 11, fontFamily: 'monospace' }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  {/* Age group badge */}
+                  <Chip
+                    size="small"
+                    label={profile.ageGroup}
+                    sx={{
+                      height: 24, fontSize: 11, fontWeight: 700,
+                      bgcolor: '#EEF2FF', color: '#4F46E5',
+                      border: '1px solid #C7D2FE',
+                    }}
+                  />
+                  {/* Filter level badge */}
+                  <Chip
+                    size="small"
+                    label={profile.filterLevel}
+                    sx={{
+                      height: 24, fontSize: 11, fontWeight: 700,
+                      bgcolor: fc.bg, color: fc.text,
+                      border: `1px solid ${fc.border}`,
+                    }}
+                  />
+                  {/* DNS ID */}
+                  <Chip
+                    size="small"
+                    icon={<DnsIcon sx={{ fontSize: 13 }} />}
+                    label={profile.dnsClientId}
+                    sx={{ height: 24, fontSize: 11, fontFamily: 'monospace', bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}
+                  />
                 </Box>
               </Box>
             </Box>
           </CardContent>
-          <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto"
-            sx={{ borderTop: '1px solid #E8EDF2',
-              '& .MuiTab-root': { fontWeight: 600, fontSize: 13, textTransform: 'none', minHeight: 48 },
-              '& .Mui-selected': { color: '#1565C0' } }}>
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              borderTop: '1px solid #E8EDF2',
+              px: 1,
+              '& .MuiTab-root': {
+                fontWeight: 600, fontSize: 13, textTransform: 'none',
+                minHeight: 50, color: '#64748B',
+                '&:hover': { color: '#4F46E5', bgcolor: 'rgba(79,70,229,0.04)', borderRadius: '8px' },
+              },
+              '& .Mui-selected': { color: '#4F46E5', fontWeight: 700 },
+              '& .MuiTabs-indicator': { bgcolor: '#4F46E5', borderRadius: '4px 4px 0 0', height: 3 },
+            }}
+          >
             {tabs.map(t => <Tab key={t.label} label={t.label} icon={t.icon} iconPosition="start" />)}
           </Tabs>
         </Card>

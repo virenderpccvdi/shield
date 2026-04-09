@@ -2,22 +2,27 @@ import { useState, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Box, TextField, Button, Typography, Alert, CircularProgress,
-  InputAdornment, IconButton, Divider,
+  InputAdornment, IconButton, Divider, Stack,
 } from '@mui/material';
 import ShieldIcon from '@mui/icons-material/Shield';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EmailIcon from '@mui/icons-material/Email';
+import LockIcon from '@mui/icons-material/Lock';
+import SecurityIcon from '@mui/icons-material/Security';
+import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { useAuthStore } from '../../store/auth.store';
 import api from '../../api/axios';
 
 const FEATURES = [
-  'Real-time DNS activity monitoring',
-  'AI-powered threat detection',
-  'Screen time & schedule controls',
-  'Location tracking & geo-fencing',
-  'Rewards & gamification system',
+  { icon: <SecurityIcon sx={{ fontSize: 18, color: '#A5B4FC' }} />, text: 'Real-time DNS activity monitoring' },
+  { icon: <PsychologyIcon sx={{ fontSize: 18, color: '#A5B4FC' }} />, text: 'AI-powered threat detection' },
+  { icon: <LockIcon sx={{ fontSize: 18, color: '#A5B4FC' }} />, text: 'Screen time & schedule controls' },
+  { icon: <LocationOnIcon sx={{ fontSize: 18, color: '#A5B4FC' }} />, text: 'Location tracking & geo-fencing' },
+  { icon: <FamilyRestroomIcon sx={{ fontSize: 18, color: '#A5B4FC' }} />, text: 'Rewards & gamification system' },
 ];
 
 function maskEmail(email: string): string {
@@ -147,81 +152,136 @@ export default function LoginPage() {
     <Box sx={{
       display: 'flex', minHeight: '100vh',
       '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } },
-      '@keyframes slideUp': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
-      '@keyframes float': { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-8px)' } },
-      animation: 'fadeIn 0.6s ease-out',
+      '@keyframes slideUp': { from: { opacity: 0, transform: 'translateY(24px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+      '@keyframes float': { '0%,100%': { transform: 'translateY(0px)' }, '50%': { transform: 'translateY(-10px)' } },
+      '@keyframes shimmer': { '0%': { backgroundPosition: '200% center' }, '100%': { backgroundPosition: '-200% center' } },
+      animation: 'fadeIn 0.5s ease-out',
     }}>
-      {/* LEFT — Brand Panel */}
+      {/* LEFT — Brand Panel (60% on desktop, hidden on mobile) */}
       <Box
         sx={{
-          width: { xs: 0, md: '420px' },
+          width: { xs: 0, md: '60%' },
           flexShrink: 0,
           display: { xs: 'none', md: 'flex' },
           flexDirection: 'column',
           justifyContent: 'center',
-          px: 5,
-          py: 6,
-          background: 'linear-gradient(160deg, #0a2e6e 0%, #1565C0 55%, #0277BD 100%)',
+          px: { md: 6, lg: 10 },
+          py: 8,
+          background: 'linear-gradient(145deg, #4F46E5 0%, #6D28D9 45%, #7C3AED 100%)',
           color: 'white',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Decorative circles */}
-        <Box sx={{ position: 'absolute', top: -80, right: -80, width: 300, height: 300, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.05)' }} />
-        <Box sx={{ position: 'absolute', bottom: -60, left: -60, width: 240, height: 240, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.05)' }} />
+        {/* Decorative orbs */}
+        <Box sx={{ position: 'absolute', top: -100, right: -100, width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(167,139,250,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <Box sx={{ position: 'absolute', bottom: -80, left: -80, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <Box sx={{ position: 'absolute', top: '40%', right: '10%', width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
         {/* Logo */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 5, animation: 'slideUp 0.6s ease-out 0.2s both' }}>
-          <Box sx={{ width: 48, height: 48, bgcolor: 'rgba(255,255,255,0.15)', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'float 3s ease-in-out infinite' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 6, animation: 'slideUp 0.6s ease-out 0.1s both' }}>
+          <Box sx={{
+            width: 52, height: 52, bgcolor: 'rgba(255,255,255,0.15)', borderRadius: '14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+            animation: 'float 4s ease-in-out infinite',
+            backdropFilter: 'blur(4px)',
+            border: '1px solid rgba(255,255,255,0.2)',
+          }}>
             <ShieldIcon sx={{ fontSize: 30, color: 'white' }} />
           </Box>
           <Box>
-            <Typography variant="h5" fontWeight={800} lineHeight={1.1}>Shield</Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>Family Internet Protection</Typography>
+            <Typography variant="h5" fontWeight={800} letterSpacing="-0.5px" lineHeight={1.1}>Shield</Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: 10 }}>
+              Family Internet Protection
+            </Typography>
           </Box>
         </Box>
 
-        <Typography variant="h4" fontWeight={700} sx={{ mb: 1, lineHeight: 1.3, animation: 'slideUp 0.6s ease-out 0.3s both' }}>
-          Keep your family<br />safe online
+        {/* Headline */}
+        <Typography variant="h3" fontWeight={800} sx={{
+          mb: 2, lineHeight: 1.2, letterSpacing: '-1px',
+          animation: 'slideUp 0.6s ease-out 0.2s both',
+          background: 'linear-gradient(135deg, #ffffff 30%, rgba(196,181,253,0.9) 100%)',
+          backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+        }}>
+          Protect what<br />matters most
         </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.7)', mb: 4, fontSize: 15, animation: 'slideUp 0.6s ease-out 0.4s both' }}>
-          Powerful parental controls backed by AI-driven DNS filtering.
+        <Typography sx={{ color: 'rgba(255,255,255,0.65)', mb: 5, fontSize: 16, lineHeight: 1.6, maxWidth: 420, animation: 'slideUp 0.6s ease-out 0.3s both' }}>
+          AI-powered DNS filtering and parental controls that keep your family safe online — in real time.
         </Typography>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, animation: 'slideUp 0.6s ease-out 0.5s both' }}>
+        {/* Feature list */}
+        <Stack spacing={2.5} sx={{ animation: 'slideUp 0.6s ease-out 0.4s both' }}>
           {FEATURES.map((f, i) => (
-            <Box key={f} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, animation: `slideUp 0.4s ease-out ${0.6 + i * 0.1}s both` }}>
-              <CheckCircleIcon sx={{ fontSize: 18, color: '#90CAF9' }} />
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)' }}>{f}</Typography>
+            <Box key={f.text} sx={{ display: 'flex', alignItems: 'center', gap: 2, animation: `slideUp 0.4s ease-out ${0.5 + i * 0.08}s both` }}>
+              <Box sx={{
+                width: 34, height: 34, borderRadius: '10px', flexShrink: 0,
+                bgcolor: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}>
+                {f.icon}
+              </Box>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.88)', fontWeight: 500, fontSize: 14 }}>{f.text}</Typography>
             </Box>
           ))}
-        </Box>
+        </Stack>
 
-        <Box sx={{ mt: 5, p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.15)', animation: 'slideUp 0.6s ease-out 1.1s both' }}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', mb: 0.5 }}>Trusted by families worldwide</Typography>
-          <Typography variant="body2" fontWeight={600}>No credit card · No subscription · No limits</Typography>
+        {/* Trust badge */}
+        <Box sx={{
+          mt: 6, p: 2.5, borderRadius: '14px',
+          bgcolor: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          backdropFilter: 'blur(8px)',
+          animation: 'slideUp 0.6s ease-out 0.9s both',
+        }}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <CheckCircleIcon sx={{ fontSize: 20, color: '#86EFAC' }} />
+            <Box>
+              <Typography variant="body2" fontWeight={700} sx={{ color: 'white', lineHeight: 1.3 }}>Trusted by 10,000+ families</Typography>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)' }}>No credit card required · Free forever plan</Typography>
+            </Box>
+          </Stack>
         </Box>
       </Box>
 
-      {/* RIGHT — Form Panel */}
-      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', p: { xs: 3, sm: 4 } }}>
-        <Box sx={{ width: '100%', maxWidth: 440, animation: 'slideUp 0.6s ease-out 0.3s both' }}>
+      {/* RIGHT — Form Panel (40% on desktop, full on mobile) */}
+      <Box sx={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: '#F9FAFB',
+        p: { xs: 3, sm: 5 },
+      }}>
+        <Box sx={{ width: '100%', maxWidth: 420, animation: 'slideUp 0.6s ease-out 0.2s both' }}>
           {/* Mobile logo */}
-          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1, mb: 4 }}>
-            <ShieldIcon sx={{ color: '#1565C0', fontSize: 28 }} />
-            <Typography fontWeight={800} fontSize={20} color="#1565C0">Shield</Typography>
+          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1.5, mb: 5 }}>
+            <Box sx={{ width: 40, height: 40, borderRadius: '10px', background: 'linear-gradient(135deg, #4F46E5, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShieldIcon sx={{ color: 'white', fontSize: 22 }} />
+            </Box>
+            <Typography fontWeight={800} fontSize={20} sx={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Shield
+            </Typography>
           </Box>
 
           {!mfaStep ? (
             /* ── Credential Step ───────────────────────────────────────── */
             <>
-              <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>Welcome back</Typography>
-              <Typography color="text.secondary" sx={{ mb: 4 }}>Sign in to your Shield dashboard</Typography>
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h4" fontWeight={800} sx={{ mb: 0.75, letterSpacing: '-0.5px', color: '#0F172A' }}>
+                  Welcome back
+                </Typography>
+                <Typography color="text.secondary" fontSize={15}>
+                  Sign in to your Shield dashboard
+                </Typography>
+              </Box>
 
-              {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+              {error && (
+                <Alert severity="error" sx={{ mb: 3, borderRadius: '10px' }}>{error}</Alert>
+              )}
 
-              <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                 <TextField
                   fullWidth
                   label="Email address"
@@ -231,6 +291,13 @@ export default function LoginPage() {
                   required
                   autoComplete="email"
                   variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '10px',
+                      '&:hover fieldset': { borderColor: '#4F46E5' },
+                      '&.Mui-focused fieldset': { borderColor: '#4F46E5' },
+                    },
+                  }}
                 />
                 <TextField
                   fullWidth
@@ -240,6 +307,13 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '10px',
+                      '&:hover fieldset': { borderColor: '#4F46E5' },
+                      '&.Mui-focused fieldset': { borderColor: '#4F46E5' },
+                    },
+                  }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -251,7 +325,7 @@ export default function LoginPage() {
                   }}
                 />
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -1 }}>
-                  <Link to="/forgot-password" style={{ fontSize: 13, color: '#1565C0', textDecoration: 'none' }}>
+                  <Link to="/forgot-password" style={{ fontSize: 13, color: '#4F46E5', textDecoration: 'none', fontWeight: 500 }}>
                     Forgot password?
                   </Link>
                 </Box>
@@ -261,43 +335,74 @@ export default function LoginPage() {
                   variant="contained"
                   size="large"
                   disabled={loading}
-                  sx={{ py: 1.5, mt: 1, fontSize: 15, fontWeight: 600, bgcolor: '#1565C0', '&:hover': { bgcolor: '#0D47A1' } }}
+                  sx={{
+                    py: 1.6, mt: 0.5, fontSize: 15, fontWeight: 700,
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                    boxShadow: '0 4px 15px rgba(79,70,229,0.35)',
+                    textTransform: 'none',
+                    letterSpacing: '0.2px',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #4338CA 0%, #6D28D9 100%)',
+                      boxShadow: '0 6px 20px rgba(79,70,229,0.45)',
+                      transform: 'translateY(-1px)',
+                    },
+                    '&:active': { transform: 'translateY(0)' },
+                    transition: 'all 0.2s ease',
+                  }}
                 >
                   {loading ? <CircularProgress size={22} color="inherit" /> : 'Sign In'}
                 </Button>
               </Box>
 
-              <Divider sx={{ my: 3 }} />
+              <Divider sx={{ my: 3.5, '&::before, &::after': { borderColor: '#E5E7EB' } }}>
+                <Typography variant="caption" color="text.disabled" sx={{ px: 1.5 }}>or</Typography>
+              </Divider>
               <Typography variant="body2" textAlign="center" color="text.secondary">
-                Don't have an account?{' '}
-                <Link to="/register" style={{ color: '#1565C0', fontWeight: 600, textDecoration: 'none' }}>
-                  Create one free
+                New to Shield?{' '}
+                <Link to="/register" style={{ color: '#4F46E5', fontWeight: 700, textDecoration: 'none' }}>
+                  Create a free account
                 </Link>
               </Typography>
             </>
           ) : (
             /* ── OTP / MFA Step ────────────────────────────────────────── */
             <>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <EmailIcon sx={{ fontSize: 52, color: 'primary.main', mb: 1.5 }} />
-                <Typography variant="h5" fontWeight={700} sx={{ mb: 0.5 }}>Check Your Email</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  We sent a 6-digit code to{' '}
-                  <Typography component="span" variant="body2" fontWeight={600} color="text.primary">
+              <Box sx={{ textAlign: 'center', mb: 3.5 }}>
+                <Box sx={{
+                  width: 72, height: 72, borderRadius: '50%', margin: '0 auto 16px',
+                  background: 'linear-gradient(135deg, rgba(79,70,229,0.12), rgba(124,58,237,0.12))',
+                  border: '1.5px solid rgba(79,70,229,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <EmailIcon sx={{ fontSize: 36, color: '#4F46E5' }} />
+                </Box>
+                <Typography variant="h5" fontWeight={800} sx={{ mb: 0.75, letterSpacing: '-0.5px', color: '#0F172A' }}>
+                  Check your email
+                </Typography>
+                <Typography variant="body2" color="text.secondary" lineHeight={1.6}>
+                  We sent a 6-digit verification code to{' '}
+                  <Typography component="span" variant="body2" fontWeight={700} color="text.primary">
                     {maskEmail(email)}
                   </Typography>
                 </Typography>
               </Box>
 
-              {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+              {error && <Alert severity="error" sx={{ mb: 2.5, borderRadius: '10px' }}>{error}</Alert>}
 
               <TextField
-                label="Enter OTP"
+                label="6-digit code"
                 value={otp}
                 onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                inputProps={{ maxLength: 6, style: { letterSpacing: 12, fontSize: 26, textAlign: 'center', fontWeight: 700 } }}
+                inputProps={{ maxLength: 6, style: { letterSpacing: 16, fontSize: 28, textAlign: 'center', fontWeight: 800 } }}
                 fullWidth
-                sx={{ mb: 2 }}
+                sx={{
+                  mb: 2.5,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '10px',
+                    '&.Mui-focused fieldset': { borderColor: '#4F46E5' },
+                  },
+                }}
                 autoFocus
                 placeholder="000000"
               />
@@ -308,36 +413,42 @@ export default function LoginPage() {
                 size="large"
                 onClick={handleVerifyOtp}
                 disabled={otp.length !== 6 || otpLoading}
-                sx={{ py: 1.5, fontSize: 15, fontWeight: 600, bgcolor: '#1565C0', '&:hover': { bgcolor: '#0D47A1' } }}
+                sx={{
+                  py: 1.6, fontSize: 15, fontWeight: 700, borderRadius: '10px', textTransform: 'none',
+                  background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                  boxShadow: '0 4px 15px rgba(79,70,229,0.35)',
+                  '&:hover': { background: 'linear-gradient(135deg, #4338CA 0%, #6D28D9 100%)', boxShadow: '0 6px 20px rgba(79,70,229,0.45)' },
+                  transition: 'all 0.2s ease',
+                }}
               >
-                {otpLoading ? <CircularProgress size={22} color="inherit" /> : 'Verify'}
+                {otpLoading ? <CircularProgress size={22} color="inherit" /> : 'Verify Code'}
               </Button>
 
-              <Box sx={{ mt: 2.5, textAlign: 'center' }}>
+              <Box sx={{ mt: 3, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
                   Didn't receive the code?{' '}
                   {resendCooldown > 0 ? (
-                    <Typography component="span" variant="body2" color="text.disabled">
+                    <Typography component="span" variant="body2" color="text.disabled" fontWeight={600}>
                       Resend in {resendCooldown}s
                     </Typography>
                   ) : (
                     <Typography
                       component="span"
                       variant="body2"
-                      sx={{ color: '#1565C0', fontWeight: 600, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                      sx={{ color: '#4F46E5', fontWeight: 700, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
                       onClick={handleResendOtp}
                     >
-                      Resend OTP
+                      Resend code
                     </Typography>
                   )}
                 </Typography>
               </Box>
 
-              <Divider sx={{ my: 3 }} />
+              <Divider sx={{ my: 3, '&::before, &::after': { borderColor: '#E5E7EB' } }} />
               <Box sx={{ textAlign: 'center' }}>
                 <Typography
                   variant="body2"
-                  sx={{ color: '#1565C0', cursor: 'pointer', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}
+                  sx={{ color: '#4F46E5', cursor: 'pointer', fontWeight: 700, '&:hover': { textDecoration: 'underline' } }}
                   onClick={() => { setMfaStep(false); setOtp(''); setError(''); }}
                 >
                   Back to sign in

@@ -22,11 +22,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
-import StatCard from '../../components/StatCard';
-import { gradients } from '../../theme/theme';
 import { useAuthStore } from '../../store/auth.store';
 
-const PIE_COLORS = ['#E53935', '#7B1FA2', '#FB8C00', '#1565C0', '#78909C', '#00897B'];
+const PIE_COLORS = ['#EF4444', '#7C3AED', '#F59E0B', '#4F46E5', '#64748B', '#06B6D4'];
 
 function PlatformSosBanner() {
   const navigate = useNavigate();
@@ -84,7 +82,7 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-const INITIAL_COLORS = ['#00897B', '#1565C0', '#7B1FA2', '#FB8C00', '#E53935'];
+const INITIAL_COLORS = ['#06B6D4', '#4F46E5', '#7C3AED', '#F59E0B', '#EF4444'];
 
 interface RecentCustomer {
   id: string;
@@ -138,6 +136,7 @@ function exportDashboardCSV(
 }
 
 export default function IspDashboardPage() {
+  const navigate = useNavigate();
   const tenantId = useAuthStore(s => s.user?.tenantId);
   const tId = tenantId || '';
   const [days, setDays] = useState<7 | 14 | 30>(7);
@@ -248,18 +247,18 @@ export default function IspDashboardPage() {
         icon={<BusinessIcon />}
         title="ISP Dashboard"
         subtitle="Monitor your customers and DNS infrastructure"
-        iconColor="#00897B"
+        iconColor="#4F46E5"
         action={
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1.5} alignItems="center">
             <ToggleButtonGroup
               value={days}
               exclusive
               size="small"
               onChange={(_, v) => { if (v) setDays(v); }}
-              sx={{ bgcolor: 'background.paper' }}
+              sx={{ bgcolor: 'background.paper', '& .MuiToggleButton-root': { borderRadius: '8px', fontWeight: 600, fontSize: 12 }, '& .Mui-selected': { bgcolor: 'rgba(79,70,229,0.1)', color: '#4F46E5', borderColor: 'rgba(79,70,229,0.2)' } }}
             >
               {([7, 14, 30] as const).map(d => (
-                <ToggleButton key={d} value={d} sx={{ px: 1.5, fontSize: 12, fontWeight: 600 }}>
+                <ToggleButton key={d} value={d} sx={{ px: 1.5 }}>
                   {d}D
                 </ToggleButton>
               ))}
@@ -269,7 +268,7 @@ export default function IspDashboardPage() {
               size="small"
               startIcon={<FileDownloadIcon />}
               onClick={() => exportDashboardCSV(trend, customerCount, profileCount, blockRate, days)}
-              sx={{ borderColor: '#00897B', color: '#00897B', '&:hover': { bgcolor: '#E0F2F1' }, fontSize: 12 }}
+              sx={{ borderColor: 'rgba(79,70,229,0.3)', color: '#4F46E5', borderRadius: '8px', fontSize: 12, textTransform: 'none', '&:hover': { bgcolor: 'rgba(79,70,229,0.04)', borderColor: '#4F46E5' } }}
             >
               Export CSV
             </Button>
@@ -334,52 +333,146 @@ export default function IspDashboardPage() {
         </AnimatedPage>
       )}
 
-      {/* Stat Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Total Customers" value={customerCount} icon={<PeopleIcon />} gradient={gradients.teal} delay={0.1} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Active Profiles" value={profileCount} icon={<ShieldIcon />} gradient={gradients.blue} delay={0.2} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title={`DNS Queries (${days}d)`} value={formatK(totalQueries)} icon={<DnsIcon />} gradient={gradients.purple} delay={0.3} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Block Rate" value={`${Number(blockRate).toFixed(1)}%`} icon={<BlockIcon />} gradient={gradients.orange} delay={0.4} />
-        </Grid>
+      {/* Stat Cards — redesigned with new design system */}
+      <Grid container spacing={2.5} sx={{ mb: 4 }}>
+        {[
+          {
+            title: 'Total Customers', value: customerCount, color: '#06B6D4',
+            icon: <PeopleIcon sx={{ fontSize: 22 }} />, subtitle: 'registered accounts',
+            trend: customerCount > 0 ? 'active' : 'none',
+          },
+          {
+            title: 'Active Profiles', value: profileCount, color: '#4F46E5',
+            icon: <ShieldIcon sx={{ fontSize: 22 }} />, subtitle: 'child profiles protected',
+            trend: profileCount > 0 ? 'active' : 'none',
+          },
+          {
+            title: `DNS Queries (${days}d)`, value: formatK(totalQueries), color: '#7C3AED',
+            icon: <DnsIcon sx={{ fontSize: 22 }} />, subtitle: 'queries processed',
+            trend: totalQueries > 1000 ? 'high' : 'normal',
+          },
+          {
+            title: 'Block Rate', value: `${Number(blockRate).toFixed(1)}%`, color: blockRate > 15 ? '#EF4444' : '#10B981',
+            icon: <BlockIcon sx={{ fontSize: 22 }} />, subtitle: blockRate > 15 ? 'elevated — review rules' : 'healthy range',
+            trend: blockRate > 15 ? 'high' : 'low',
+          },
+        ].map((card, i) => (
+          <Grid key={card.title} size={{ xs: 12, sm: 6, md: 3 }}>
+            <AnimatedPage delay={0.1 + i * 0.08}>
+              <Card sx={{
+                height: '100%', overflow: 'hidden', position: 'relative',
+                border: '1px solid', borderColor: `${card.color}18`,
+                transition: 'all 0.2s ease',
+                '&:hover': { transform: 'translateY(-3px)', boxShadow: `0 10px 28px ${card.color}20` },
+              }}>
+                <Box sx={{ height: 4, background: `linear-gradient(90deg, ${card.color}, ${card.color}80)` }} />
+                <Box sx={{ p: 2.5 }}>
+                  <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                    <Box sx={{
+                      width: 44, height: 44, borderRadius: '12px',
+                      background: `linear-gradient(135deg, ${card.color}15, ${card.color}25)`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: `0 4px 12px ${card.color}20`,
+                    }}>
+                      <Box sx={{ color: card.color }}>{card.icon}</Box>
+                    </Box>
+                    <Chip
+                      size="small"
+                      label={card.trend === 'high' ? 'High' : card.trend === 'active' ? 'Active' : card.trend === 'low' ? 'Low' : 'Normal'}
+                      sx={{
+                        height: 20, fontSize: 10, fontWeight: 700,
+                        bgcolor: card.trend === 'high' ? 'rgba(239,68,68,0.08)' : card.trend === 'active' ? 'rgba(16,185,129,0.08)' : 'rgba(107,114,128,0.08)',
+                        color: card.trend === 'high' ? '#DC2626' : card.trend === 'active' ? '#059669' : '#6B7280',
+                      }}
+                    />
+                  </Stack>
+                  <Typography variant="h4" fontWeight={800} sx={{ color: card.color, lineHeight: 1, mb: 0.5 }}>{card.value}</Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary" fontSize={13}>{card.title}</Typography>
+                  <Typography variant="caption" color="text.disabled" fontSize={11}>{card.subtitle}</Typography>
+                </Box>
+              </Card>
+            </AnimatedPage>
+          </Grid>
+        ))}
       </Grid>
+
+      {/* Quick Actions Row */}
+      <AnimatedPage delay={0.25}>
+        <Card sx={{ mb: 3, border: '1px solid rgba(79,70,229,0.08)' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+              <Typography fontWeight={700} fontSize={13} letterSpacing="-0.2px" sx={{ mr: 1 }}>Quick Actions</Typography>
+              {[
+                { label: 'Add Customer', icon: <PersonAddIcon sx={{ fontSize: 16 }} />, color: '#4F46E5', bg: 'rgba(79,70,229,0.08)', path: '/isp/customers' },
+                { label: 'DNS Config', icon: <RouterIcon sx={{ fontSize: 16 }} />, color: '#06B6D4', bg: 'rgba(6,182,212,0.08)', path: '/isp/dns' },
+                { label: 'View Alerts', icon: <WarningAmberIcon sx={{ fontSize: 16 }} />, color: '#D97706', bg: 'rgba(245,158,11,0.08)', path: '/isp/alerts' },
+                { label: 'Billing', icon: <TrendingUpIcon sx={{ fontSize: 16 }} />, color: '#7C3AED', bg: 'rgba(124,58,237,0.08)', path: '/isp/billing' },
+                { label: 'Reports', icon: <FileDownloadIcon sx={{ fontSize: 16 }} />, color: '#10B981', bg: 'rgba(16,185,129,0.08)', path: '/isp/reports' },
+              ].map(action => (
+                <Button
+                  key={action.label}
+                  size="small"
+                  startIcon={action.icon}
+                  onClick={() => navigate(action.path)}
+                  sx={{
+                    borderRadius: '10px', bgcolor: action.bg, color: action.color,
+                    fontWeight: 600, fontSize: 12, textTransform: 'none',
+                    border: '1px solid', borderColor: `${action.color}20`,
+                    px: 2, py: 0.75,
+                    '&:hover': { bgcolor: action.bg, borderColor: action.color, transform: 'translateY(-1px)', boxShadow: `0 4px 10px ${action.color}20` },
+                    transition: 'all 0.18s ease',
+                  }}
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
+      </AnimatedPage>
 
       <Grid container spacing={3}>
         {/* DNS Query Trend Chart */}
         <Grid size={{ xs: 12, md: 8 }}>
           <AnimatedPage delay={0.3}>
-            <Card>
+            <Card sx={{ border: '1px solid rgba(79,70,229,0.08)' }}>
               <CardContent>
-                <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
-                  {days}-Day DNS Query Trend
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Total queries processed across all customers
-                </Typography>
+                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 2.5 }}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={700} letterSpacing="-0.3px">
+                      DNS Query Trend
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" fontSize={13}>
+                      Last {days} days · {formatK(totalQueries)} total queries
+                    </Typography>
+                  </Box>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'rgba(79,70,229,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <DnsIcon sx={{ color: '#4F46E5', fontSize: 18 }} />
+                  </Box>
+                </Stack>
                 {trend.length === 0 ? (
-                  <Typography color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>No DNS query data available yet.</Typography>
+                  <Box sx={{ py: 8, textAlign: 'center' }}>
+                    <Typography color="text.secondary">No DNS query data available yet.</Typography>
+                  </Box>
                 ) : (
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={trend} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                       <defs>
                         <linearGradient id="ispDashGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#00897B" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#00897B" stopOpacity={0.02} />
+                          <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.01} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                      <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                      <YAxis tickFormatter={formatK} tick={{ fontSize: 12 }} />
-                      <Tooltip formatter={(v: number) => [formatK(v), 'Queries']} />
-                      <Area type="monotone" dataKey="queries" stroke="#00897B" strokeWidth={2.5}
-                        fill="url(#ispDashGrad)" dot={{ r: 4, fill: '#00897B', strokeWidth: 2, stroke: '#fff' }}
-                        activeDot={{ r: 6, stroke: '#00897B', strokeWidth: 2 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                      <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                      <YAxis tickFormatter={formatK} tick={{ fontSize: 12, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: 10, border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', fontSize: 12 }}
+                        formatter={(v: number) => [formatK(v), 'Queries']}
+                      />
+                      <Area type="monotone" dataKey="queries" stroke="#4F46E5" strokeWidth={2.5}
+                        fill="url(#ispDashGrad)" dot={{ r: 4, fill: '#4F46E5', strokeWidth: 2, stroke: '#fff' }}
+                        activeDot={{ r: 6, stroke: '#4F46E5', strokeWidth: 2, fill: '#fff' }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
@@ -391,37 +484,63 @@ export default function IspDashboardPage() {
         {/* Recent Signups */}
         <Grid size={{ xs: 12, md: 4 }}>
           <AnimatedPage delay={0.4}>
-            <Card sx={{ height: '100%' }}>
+            <Card sx={{ height: '100%', border: '1px solid rgba(79,70,229,0.08)' }}>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5 }}>
-                  <PersonAddIcon sx={{ color: '#00897B', fontSize: 20 }} />
-                  <Typography variant="subtitle1" fontWeight={600}>Recent Signups</Typography>
-                </Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'rgba(79,70,229,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <PersonAddIcon sx={{ color: '#4F46E5', fontSize: 18 }} />
+                    </Box>
+                    <Typography variant="subtitle1" fontWeight={700} letterSpacing="-0.3px">Recent Customers</Typography>
+                  </Box>
+                  <Chip size="small" label={`${recentSignups.length} shown`} sx={{ height: 20, fontSize: 10, bgcolor: 'rgba(79,70,229,0.08)', color: '#4F46E5', fontWeight: 600 }} />
+                </Stack>
                 {recentSignups.length === 0 ? (
-                  <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>No customers yet.</Typography>
+                  <Box sx={{ py: 5, textAlign: 'center' }}>
+                    <Box sx={{ width: 48, height: 48, borderRadius: '12px', bgcolor: 'rgba(79,70,229,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5 }}>
+                      <PeopleIcon sx={{ color: '#4F46E5', fontSize: 24 }} />
+                    </Box>
+                    <Typography color="text.secondary" fontSize={14}>No customers yet</Typography>
+                    <Typography variant="caption" color="text.disabled">Add customers to get started</Typography>
+                  </Box>
                 ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {recentSignups.map((signup, i) => (
-                      <Box key={signup.id} sx={{
-                        display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: 2,
-                        transition: 'all 0.2s ease', '&:hover': { bgcolor: 'action.hover', transform: 'translateX(4px)' },
-                        '@keyframes fadeInRight': { from: { opacity: 0, transform: 'translateX(-10px)' }, to: { opacity: 1, transform: 'translateX(0)' } },
-                        animation: `fadeInRight 0.4s ease ${0.5 + i * 0.1}s both`,
-                      }}>
-                        <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, bgcolor: INITIAL_COLORS[i % INITIAL_COLORS.length] }}>
-                          {signup.name ? getInitials(signup.name) : (signup.userId?.slice(0, 2).toUpperCase() ?? 'C')}
-                        </Avatar>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography variant="body2" fontWeight={600} noWrap>{signup.name || `Customer ${i + 1}`}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {(signup.createdAt || signup.joinedAt) ? new Date(signup.createdAt || signup.joinedAt || '').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : (signup.email || '')}
-                          </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {recentSignups.map((signup, i) => {
+                      const profileCnt = signup.profileCount || signup.profiles || 0;
+                      return (
+                        <Box key={signup.id} sx={{
+                          display: 'flex', alignItems: 'center', gap: 1.5,
+                          p: 1.5, borderRadius: '10px', border: '1px solid #F1F5F9',
+                          transition: 'all 0.18s ease',
+                          '&:hover': { bgcolor: 'rgba(79,70,229,0.03)', borderColor: 'rgba(79,70,229,0.12)', transform: 'translateX(3px)' },
+                          '@keyframes fadeInRight': { from: { opacity: 0, transform: 'translateX(-12px)' }, to: { opacity: 1, transform: 'translateX(0)' } },
+                          animation: `fadeInRight 0.4s ease ${0.5 + i * 0.08}s both`,
+                        }}>
+                          <Avatar sx={{
+                            width: 38, height: 38, fontSize: 13, fontWeight: 800,
+                            background: `linear-gradient(135deg, ${INITIAL_COLORS[i % INITIAL_COLORS.length]}, ${INITIAL_COLORS[(i + 1) % INITIAL_COLORS.length]})`,
+                            boxShadow: `0 4px 10px ${INITIAL_COLORS[i % INITIAL_COLORS.length]}35`,
+                          }}>
+                            {signup.name ? getInitials(signup.name) : (signup.userId?.slice(0, 2).toUpperCase() ?? 'C')}
+                          </Avatar>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="body2" fontWeight={700} noWrap fontSize={13}>{signup.name || `Customer ${i + 1}`}</Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              {(signup.createdAt || signup.joinedAt) ? new Date(signup.createdAt || signup.joinedAt || '').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : (signup.email || 'No email')}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                            <Chip size="small"
+                              label={profileCnt > 0 ? `${profileCnt} profile${profileCnt !== 1 ? 's' : ''}` : 'No profiles'}
+                              sx={{ height: 20, fontSize: 10, fontWeight: 700,
+                                bgcolor: profileCnt > 0 ? 'rgba(16,185,129,0.08)' : 'rgba(107,114,128,0.08)',
+                                color: profileCnt > 0 ? '#059669' : '#6B7280' }} />
+                            <Chip size="small" label="Active"
+                              sx={{ height: 18, fontSize: 9, fontWeight: 700, bgcolor: 'rgba(6,182,212,0.08)', color: '#0891B2' }} />
+                          </Box>
                         </Box>
-                        <Chip size="small"
-                          label={`${signup.profileCount || signup.profiles || 0} profile${(signup.profileCount || signup.profiles || 0) !== 1 ? 's' : ''}`}
-                          sx={{ height: 22, fontSize: 11, bgcolor: 'success.light', color: 'success.dark' }} />
-                      </Box>
-                    ))}
+                      );
+                    })}
                   </Box>
                 )}
               </CardContent>
@@ -461,24 +580,35 @@ export default function IspDashboardPage() {
           </Grid>
           <Grid size={{ xs: 12, md: 7 }}>
             <AnimatedPage delay={0.6}>
-              <Card>
+              <Card sx={{ border: '1px solid rgba(79,70,229,0.08)' }}>
                 <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <TrendingUpIcon sx={{ color: '#00897B', fontSize: 20 }} />
-                    <Typography variant="subtitle1" fontWeight={600}>Customer Summary</Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {customerCount} total customers with {profileCount} active profiles
-                  </Typography>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
+                        <TrendingUpIcon sx={{ color: '#4F46E5', fontSize: 18 }} />
+                        <Typography variant="subtitle1" fontWeight={700} letterSpacing="-0.3px">Customer Summary</Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {customerCount} customers · {profileCount} profiles protected
+                      </Typography>
+                    </Box>
+                    <Stack direction="row" spacing={1}>
+                      <Chip size="small" label={`${customerCount} customers`} sx={{ height: 22, fontSize: 11, bgcolor: 'rgba(6,182,212,0.08)', color: '#0891B2', fontWeight: 600 }} />
+                      <Chip size="small" label={`${profileCount} profiles`} sx={{ height: 22, fontSize: 11, bgcolor: 'rgba(79,70,229,0.08)', color: '#4F46E5', fontWeight: 600 }} />
+                    </Stack>
+                  </Stack>
                   {trend.length > 0 && (
                     <ResponsiveContainer width="100%" height={200}>
                       <LineChart data={trend} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                        <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                        <YAxis tickFormatter={formatK} tick={{ fontSize: 12 }} />
-                        <Tooltip formatter={(v: number) => [formatK(v), 'Queries']} />
-                        <Line type="monotone" dataKey="queries" stroke="#00897B" strokeWidth={2.5}
-                          dot={{ r: 4, fill: '#00897B', strokeWidth: 2, stroke: '#fff' }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                        <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                        <YAxis tickFormatter={formatK} tick={{ fontSize: 12, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: 10, border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', fontSize: 12 }}
+                          formatter={(v: number) => [formatK(v), 'Queries']}
+                        />
+                        <Line type="monotone" dataKey="queries" stroke="#4F46E5" strokeWidth={2.5}
+                          dot={{ r: 4, fill: '#4F46E5', strokeWidth: 2, stroke: '#fff' }} />
                       </LineChart>
                     </ResponsiveContainer>
                   )}
