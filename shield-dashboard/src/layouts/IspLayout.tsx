@@ -140,7 +140,7 @@ export default function IspLayout() {
       }}>
         <Box sx={{
           width: 34, height: 34, borderRadius: '10px', flexShrink: 0,
-          background: `linear-gradient(135deg, ${brand.secondaryLight} 0%, ${brand.secondary} 100%)`,
+          background: `linear-gradient(135deg, ${brand.secondaryDark} 0%, #0E7490 100%)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: `0 2px 8px ${alpha(brand.secondary, 0.35)}`,
         }}>
@@ -283,7 +283,7 @@ export default function IspLayout() {
             <Avatar
               sx={{
                 width: 34, height: 34,
-                background: `linear-gradient(135deg, ${brand.secondaryLight} 0%, ${brand.secondary} 100%)`,
+                background: `linear-gradient(135deg, ${brand.secondaryDark} 0%, #0E7490 100%)`,
                 fontSize: 13, fontWeight: 700, cursor: 'pointer',
               }}
               onClick={() => { logout(); navigate('/login'); }}
@@ -295,7 +295,7 @@ export default function IspLayout() {
           <>
             <Avatar sx={{
               width: 34, height: 34,
-              background: `linear-gradient(135deg, ${brand.secondaryLight} 0%, ${brand.secondary} 100%)`,
+              background: `linear-gradient(135deg, ${brand.secondaryDark} 0%, #0E7490 100%)`,
               fontSize: 13, fontWeight: 700, flexShrink: 0,
             }}>
               {user?.name?.charAt(0)?.toUpperCase() ?? 'I'}
@@ -463,7 +463,7 @@ export default function IspLayout() {
             >
               <Avatar sx={{
                 width: 28, height: 28,
-                background: `linear-gradient(135deg, ${brand.secondaryLight} 0%, ${brand.secondary} 100%)`,
+                background: `linear-gradient(135deg, ${brand.secondaryDark} 0%, #0E7490 100%)`,
                 fontSize: 12, fontWeight: 700,
               }}>
                 {user?.name?.charAt(0)?.toUpperCase() ?? 'I'}

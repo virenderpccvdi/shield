@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:battery_plus/battery_plus.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
@@ -150,7 +151,13 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
 
   void _triggerSOS() async {
     final pid = ref.read(authProvider).childProfileId;
-    if (pid == null) return;
+    if (pid == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile not found. Please re-setup this device.')));
+      }
+      return;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -172,7 +179,7 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -186,24 +193,58 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
       ),
     );
 
-    if (confirmed == true) {
-      try {
-        await ApiClient.instance.post(Endpoints.sos(pid));
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Emergency alert sent to your parent.'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 5),
-              behavior: SnackBarBehavior.floating,
-            ));
-        }
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Failed to send SOS. Check your connection.')));
-        }
+    if (confirmed != true) return;
+
+    // Try to get current GPS location to include in the SOS
+    double? lat;
+    double? lng;
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse) {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 8),
+          ),
+        );
+        lat = pos.latitude;
+        lng = pos.longitude;
+      }
+    } catch (_) {
+      // Location unavailable — SOS still sent without coordinates
+    }
+
+    try {
+      // POST /location/child/panic  body: { profileId, latitude?, longitude? }
+      await ApiClient.instance.post(
+        Endpoints.childPanic,
+        data: {
+          'profileId': pid,
+          if (lat != null) 'latitude':  lat,
+          if (lng != null) 'longitude': lng,
+          'message': 'Child triggered emergency SOS from Shield app',
+        },
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Emergency alert sent to your parent.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to send SOS. Check your connection.'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
@@ -454,7 +495,7 @@ class _StatusBar extends StatelessWidget {
         ),
         const SizedBox(width: 2),
         Text('$batteryLevel%',
-            style: const TextStyle(color: Colors.white54, fontSize: 11)),
+            style: const TextStyle(color: Colors.white70, fontSize: 11)),
       ]),
     ]),
   );

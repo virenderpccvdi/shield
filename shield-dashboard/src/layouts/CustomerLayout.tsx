@@ -186,7 +186,7 @@ export default function CustomerLayout() {
       }}>
         <Box sx={{
           width: 34, height: 34, borderRadius: '10px', flexShrink: 0,
-          background: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
+          background: `linear-gradient(135deg, ${brand.primaryDark} 0%, #2E27A3 100%)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: `0 2px 8px ${alpha(brand.primary, 0.35)}`,
         }}>
@@ -352,7 +352,7 @@ export default function CustomerLayout() {
             <Avatar
               sx={{
                 width: 34, height: 34,
-                background: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
+                background: `linear-gradient(135deg, ${brand.primaryDark} 0%, #2E27A3 100%)`,
                 fontSize: 13, fontWeight: 700, cursor: 'pointer',
               }}
               onClick={() => { logout(); navigate('/login'); }}
@@ -364,7 +364,7 @@ export default function CustomerLayout() {
           <>
             <Avatar sx={{
               width: 34, height: 34,
-              background: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
+              background: `linear-gradient(135deg, ${brand.primaryDark} 0%, #2E27A3 100%)`,
               fontSize: 13, fontWeight: 700, flexShrink: 0,
             }}>
               {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
@@ -548,7 +548,7 @@ export default function CustomerLayout() {
             >
               <Avatar sx={{
                 width: 28, height: 28,
-                background: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
+                background: `linear-gradient(135deg, ${brand.primaryDark} 0%, #2E27A3 100%)`,
                 fontSize: 12, fontWeight: 700,
               }}>
                 {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}

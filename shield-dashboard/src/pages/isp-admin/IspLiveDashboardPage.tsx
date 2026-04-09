@@ -117,7 +117,7 @@ function sparklineData(customer: CustomerActivity): { v: number }[] {
 function StatusChip({ status }: { status: CustomerActivity['status'] }) {
   const cfg = {
     active: { label: 'Active', color: '#2E7D32', bg: '#E8F5E9' },
-    idle: { label: 'Idle', color: '#E65100', bg: '#FFF3E0' },
+    idle: { label: 'Idle', color: '#7C4700', bg: '#FFF3E0' },
     offline: { label: 'Offline', color: '#616161', bg: '#F5F5F5' },
   }[status];
 
@@ -151,24 +151,29 @@ interface LiveStatCardProps {
 function LiveStatCard({ title, value, sub, icon, gradient, delay = 0 }: LiveStatCardProps) {
   return (
     <Card sx={{
-      background: gradient,
-      color: '#fff',
+      // !important overrides MuiCard.styleOverrides.root backgroundColor:surface (white)
+      background: `${gradient} !important`,
+      backgroundColor: 'transparent !important',
+      border: 'none !important',
       position: 'relative',
       overflow: 'hidden',
       transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-      '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 30px rgba(0,0,0,0.15)' },
+      '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 30px rgba(0,0,0,0.20)' },
       '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
       animation: `fadeInUp 0.5s ease ${delay}s both`,
+      // Force all MUI typography inside to use white
+      '& .MuiTypography-root': { color: '#fff !important' },
     }}>
-      <Box sx={{ position: 'absolute', top: -18, right: -18, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-      <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography variant="body2" sx={{ opacity: 0.85, fontWeight: 500, fontSize: 13 }}>{title}</Typography>
-          <Box sx={{ opacity: 0.7 }}>{icon}</Box>
+      <Box sx={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+      <Box sx={{ position: 'absolute', bottom: -30, left: -15, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+      <CardContent sx={{ position: 'relative', zIndex: 1, p: '20px !important' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+          <Typography sx={{ color: 'rgba(255,255,255,0.85) !important', fontWeight: 500, fontSize: 13, lineHeight: 1.3 }}>{title}</Typography>
+          <Box sx={{ color: 'rgba(255,255,255,0.75)', display: 'flex' }}>{icon}</Box>
         </Box>
-        <Typography variant="h4" fontWeight={800} sx={{ mb: 0.25 }}>{value}</Typography>
+        <Typography sx={{ color: '#fff !important', fontWeight: 800, fontSize: 32, lineHeight: 1.1, mb: 0.5 }}>{value}</Typography>
         {sub && (
-          <Typography variant="caption" sx={{ opacity: 0.8, fontWeight: 500 }}>{sub}</Typography>
+          <Typography sx={{ color: 'rgba(255,255,255,0.80) !important', fontSize: 12, fontWeight: 500 }}>{sub}</Typography>
         )}
       </CardContent>
     </Card>
@@ -363,7 +368,7 @@ export default function IspLiveDashboardPage() {
       const url = tenantId
         ? `/analytics/tenant/${tenantId}/overview`
         : '/analytics/platform/overview';
-      const r = await api.get(url, { params: { period: 'today' } });
+      const r = await api.get(url, { params: { period: 'week' } });
       return r.data?.data ?? r.data;
     },
     refetchOnWindowFocus: false,
@@ -412,7 +417,7 @@ export default function IspLiveDashboardPage() {
 
       // For each profile, fetch today's stats
       const statsResults = await Promise.allSettled(
-        allProfiles.map(p => api.get(`/analytics/${p.id}/stats`, { params: { period: 'today' } })
+        allProfiles.map(p => api.get(`/analytics/${p.id}/stats`, { params: { period: 'week' } })
           .then(r => ({ profileId: p.id, ...(r.data?.data ?? r.data) }))
           .catch(() => ({ profileId: p.id, totalQueries: 0, blockedQueries: 0 })))
       );
@@ -637,7 +642,7 @@ export default function IspLiveDashboardPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <LiveStatCard
-            title="Queries Today"
+            title="Queries (7d)"
             value={formatK(totalQueries)}
             sub="DNS lookups processed"
             icon={<DnsIcon />}
@@ -647,7 +652,7 @@ export default function IspLiveDashboardPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <LiveStatCard
-            title="Blocked Today"
+            title="Blocked (7d)"
             value={formatK(blockedQueries)}
             sub={`${blockedPctStr}% of all queries`}
             icon={<BlockIcon />}

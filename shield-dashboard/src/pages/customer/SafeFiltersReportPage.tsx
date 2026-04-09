@@ -101,10 +101,13 @@ function StatCard({
   return (
     <Card sx={{
       flex: 1, minWidth: 0,
-      background: gradient,
+      background: `${gradient} !important`,
+      backgroundColor: 'transparent !important',
+      border: 'none !important',
       color: '#fff',
       position: 'relative',
       overflow: 'hidden',
+      '& .MuiTypography-root': { color: '#fff !important' },
     }}>
       <Box sx={{
         position: 'absolute', top: -20, right: -20,

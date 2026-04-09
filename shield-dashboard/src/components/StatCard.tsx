@@ -25,9 +25,13 @@ export default function StatCard({ title, value, unit, icon, gradient, trend, de
     <Card sx={{
       '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
       animation: `fadeInUp 0.45s ease ${delay}s both`,
-      background: gradient || undefined,
-      color: isGradient ? '#fff' : 'inherit',
-      border: isGradient ? 'none' : undefined,
+      // !important needed to override MuiCard.styleOverrides.root backgroundColor:surface
+      ...(isGradient ? {
+        background: `${gradient} !important`,
+        backgroundColor: 'transparent !important',
+        border: 'none !important',
+        color: '#fff',
+      } : {}),
       position: 'relative',
       overflow: 'hidden',
       transition: 'transform 0.22s ease, box-shadow 0.22s ease',
@@ -107,7 +111,7 @@ export default function StatCard({ title, value, unit, icon, gradient, trend, de
             <Typography component="span" sx={{
               fontSize: '1rem',
               fontWeight: 500,
-              opacity: 0.65,
+              opacity: isGradient ? 0.82 : 0.7,
               ml: 0.5,
               letterSpacing: 0,
             }}>
@@ -142,7 +146,7 @@ export default function StatCard({ title, value, unit, icon, gradient, trend, de
                 {Math.abs(trend).toFixed(1)}%
               </Typography>
             </Box>
-            <Typography sx={{ fontSize: 11.5, opacity: 0.55, color: isGradient ? '#fff' : 'text.secondary' }}>
+            <Typography sx={{ fontSize: 11.5, opacity: isGradient ? 0.82 : 0.7, color: isGradient ? '#fff' : 'text.secondary' }}>
               vs last week
             </Typography>
           </Box>

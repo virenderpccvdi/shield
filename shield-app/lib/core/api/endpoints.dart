@@ -93,7 +93,9 @@ class Endpoints {
   static String streaks(String pid)      => '/rewards/$pid/streaks';
 
   // ── Emergency / SOS ───────────────────────────────────────────────────────
-  static String sos(String pid)               => '/location/$pid/sos';
+  /// Child panic button → POST /location/child/panic with body {profileId, ...}
+  static const String childPanic              = '/location/child/panic';
+  static String sos(String pid)               => '/location/$pid/sos'; // GET (parent reads events)
   static String emergencyContacts(String pid) =>
       '/profiles/children/$pid/emergency-contacts';
 }

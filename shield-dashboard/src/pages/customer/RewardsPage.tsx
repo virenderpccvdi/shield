@@ -128,7 +128,7 @@ export default function RewardsPage({ profileId: profileIdProp }: RewardsPagePro
 
       {/* Reward Bank Card */}
       <AnimatedPage delay={0.1}>
-        <Card sx={{ mb: 3, background: gradients.orange, color: '#fff', position: 'relative', overflow: 'hidden' }}>
+        <Card sx={{ mb: 3, background: `${gradients.orange} !important`, backgroundColor: 'transparent !important', border: 'none !important', color: '#fff', position: 'relative', overflow: 'hidden', '& .MuiTypography-root': { color: '#fff !important' } }}>
           <Box sx={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
           <CardContent sx={{ position: 'relative', zIndex: 1, py: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>

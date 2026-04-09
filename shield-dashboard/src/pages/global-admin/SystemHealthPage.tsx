@@ -158,7 +158,8 @@ export default function SystemHealthPage() {
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 4 }}>
           <Card sx={{
-            background: gradients.green, color: '#fff', border: 'none',
+            background: `${gradients.green} !important`, backgroundColor: 'transparent !important', border: 'none !important', color: '#fff',
+            '& .MuiTypography-root': { color: '#fff !important' },
             '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
             animation: 'fadeInUp 0.5s ease 0.1s both',
             transition: 'transform 0.2s ease', '&:hover': { transform: 'translateY(-4px)' },
@@ -172,8 +173,10 @@ export default function SystemHealthPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
           <Card sx={{
-            background: downCount > 0 ? gradients.red : 'linear-gradient(135deg, #78909C 0%, #546E7A 100%)',
-            color: '#fff', border: 'none',
+            background: `${downCount > 0 ? gradients.red : 'linear-gradient(135deg, #78909C 0%, #546E7A 100%)'} !important`,
+            backgroundColor: 'transparent !important',
+            color: '#fff', border: 'none !important',
+            '& .MuiTypography-root': { color: '#fff !important' },
             '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
             animation: 'fadeInUp 0.5s ease 0.2s both',
             transition: 'transform 0.2s ease', '&:hover': { transform: 'translateY(-4px)' },
@@ -187,7 +190,8 @@ export default function SystemHealthPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
           <Card sx={{
-            background: gradients.blue, color: '#fff', border: 'none',
+            background: `${gradients.blue} !important`, backgroundColor: 'transparent !important', color: '#fff', border: 'none !important',
+            '& .MuiTypography-root': { color: '#fff !important' },
             '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
             animation: 'fadeInUp 0.5s ease 0.3s both',
             transition: 'transform 0.2s ease', '&:hover': { transform: 'translateY(-4px)' },

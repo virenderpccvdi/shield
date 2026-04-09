@@ -185,12 +185,15 @@ function TopCard({ title, value, icon, gradient, loading }: TopCardProps) {
   return (
     <Card
       sx={{
-        background: gradient,
+        background: `${gradient} !important`,
+        backgroundColor: 'transparent !important',
+        border: 'none !important',
         color: '#fff',
         position: 'relative',
         overflow: 'hidden',
         transition: 'transform 0.2s',
         '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 8px 24px rgba(0,0,0,0.18)' },
+        '& .MuiTypography-root': { color: '#fff !important' },
       }}
     >
       <Box

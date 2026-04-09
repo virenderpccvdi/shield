@@ -152,7 +152,7 @@ export function getShieldTheme(mode: 'light' | 'dark') {
             '&:active': { transform: 'translateY(0)' },
           },
           contained: {
-            background: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${primary} 100%)`,
+            background: `linear-gradient(135deg, ${brand.primaryDark} 0%, ${primary} 100%)`,
             boxShadow: `0 2px 8px ${alpha(primary, 0.32)}`,
             '&:hover': {
               background: `linear-gradient(135deg, ${primary} 0%, ${brand.primaryDark} 100%)`,
@@ -367,7 +367,7 @@ export function getShieldTheme(mode: 'light' | 'dark') {
       MuiLinearProgress: {
         styleOverrides: {
           root: { borderRadius: 99, height: 5, backgroundColor: alpha(primary, 0.1) },
-          bar:  { borderRadius: 99, background: `linear-gradient(90deg, ${primary} 0%, ${brand.secondaryLight} 100%)` },
+          bar:  { borderRadius: 99, background: `linear-gradient(90deg, ${primary} 0%, ${brand.secondaryDark} 100%)` },
         },
       },
       MuiSwitch: {
@@ -384,7 +384,7 @@ export function getShieldTheme(mode: 'light' | 'dark') {
         styleOverrides: {
           root: {
             fontWeight: 700,
-            background: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${primary} 100%)`,
+            background: `linear-gradient(135deg, ${brand.primaryDark} 0%, ${primary} 100%)`,
             color: '#fff',
           },
         },
@@ -399,29 +399,30 @@ export const darkTheme  = getShieldTheme('dark');
 export const shieldTheme = lightTheme;
 
 export const gradients = {
-  indigo:   `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
-  indigoDark:`linear-gradient(135deg, ${brand.primary} 0%, ${brand.primaryDark} 100%)`,
-  cyan:     `linear-gradient(135deg, ${brand.secondaryLight} 0%, ${brand.secondary} 100%)`,
-  cyanDark: `linear-gradient(135deg, ${brand.secondary} 0%, ${brand.secondaryDark} 100%)`,
+  // NOTE: All gradients use dark-enough start colors so white text stays legible (≥4.5:1)
+  indigo:    `linear-gradient(135deg, ${brand.primary} 0%, ${brand.primaryDark} 100%)`,
+  indigoDark:`linear-gradient(135deg, ${brand.primaryDark} 0%, #2E27A3 100%)`,
+  cyan:      `linear-gradient(135deg, ${brand.secondary} 0%, ${brand.secondaryDark} 100%)`,
+  cyanDark:  `linear-gradient(135deg, ${brand.secondaryDark} 0%, #0E7490 100%)`,
   // semantic
-  blue:     `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
-  navy:     `linear-gradient(135deg, ${brand.primary} 0%, ${brand.primaryDark} 100%)`,
-  sky:      `linear-gradient(135deg, ${brand.secondaryLight} 0%, ${brand.secondary} 100%)`,
-  teal:     `linear-gradient(135deg, ${brand.secondaryLight} 0%, ${brand.secondary} 100%)`,
-  tealSoft: `linear-gradient(135deg, ${brand.primaryLight} 0%, ${brand.primary} 100%)`,
-  green:    `linear-gradient(135deg, #34D399 0%, ${brand.success} 100%)`,
-  emerald:  `linear-gradient(135deg, #10B981 0%, #059669 100%)`,
-  amber:    `linear-gradient(135deg, #FCD34D 0%, ${brand.warning} 100%)`,
-  orange:   `linear-gradient(135deg, #FCD34D 0%, ${brand.warning} 100%)`,
-  red:      `linear-gradient(135deg, #F87171 0%, ${brand.danger} 100%)`,
-  coral:    `linear-gradient(135deg, #F87171 0%, ${brand.danger} 100%)`,
-  purple:   `linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)`,
-  lavender: `linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)`,
-  dark:     `linear-gradient(135deg, #1E293B 0%, #334155 100%)`,
-  hero:     `linear-gradient(135deg, ${brand.primaryDark} 0%, ${brand.primary} 60%, ${brand.primaryLight} 100%)`,
-  pink:     `linear-gradient(135deg, #F9A8D4 0%, #EC4899 100%)`,
-  sage:     `linear-gradient(135deg, #34D399 0%, ${brand.success} 100%)`,
-  ivory:    `linear-gradient(135deg, #F9FAFB 0%, ${brand.bg} 100%)`,
+  blue:      `linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)`,
+  navy:      `linear-gradient(135deg, ${brand.primaryDark} 0%, #1E1B7A 100%)`,
+  sky:       `linear-gradient(135deg, ${brand.secondary} 0%, ${brand.secondaryDark} 100%)`,
+  teal:      `linear-gradient(135deg, #00838F 0%, #006064 100%)`,
+  tealSoft:  `linear-gradient(135deg, ${brand.primary} 0%, ${brand.primaryDark} 100%)`,
+  green:     `linear-gradient(135deg, #10B981 0%, #059669 100%)`,
+  emerald:   `linear-gradient(135deg, #10B981 0%, #059669 100%)`,
+  amber:     `linear-gradient(135deg, #D97706 0%, #B45309 100%)`,
+  orange:    `linear-gradient(135deg, #EA580C 0%, #C2410C 100%)`,
+  red:       `linear-gradient(135deg, #EF4444 0%, #DC2626 100%)`,
+  coral:     `linear-gradient(135deg, #E53935 0%, #C62828 100%)`,
+  purple:    `linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)`,
+  lavender:  `linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)`,
+  dark:      `linear-gradient(135deg, #1E293B 0%, #334155 100%)`,
+  hero:      `linear-gradient(135deg, ${brand.primaryDark} 0%, ${brand.primary} 100%)`,
+  pink:      `linear-gradient(135deg, #DB2777 0%, #BE185D 100%)`,
+  sage:      `linear-gradient(135deg, #059669 0%, #047857 100%)`,
+  ivory:     `linear-gradient(135deg, #4B5563 0%, #374151 100%)`,
 } as const;
 
 export const shadows = {

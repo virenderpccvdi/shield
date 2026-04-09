@@ -181,7 +181,7 @@ class ShieldTheme {
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        labelStyle: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
+        labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
       ),
 
       // ── Navigation bar (Material 3) ─────────────────────────────────────────
@@ -193,7 +193,7 @@ class ShieldTheme {
             return const IconThemeData(color: primary, size: 24);
           }
           return IconThemeData(
-              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+              color: isDark ? Colors.white60 : const Color(0xFF64748B),
               size: 22);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
@@ -202,11 +202,11 @@ class ShieldTheme {
                 color: primary, fontSize: 11, fontWeight: FontWeight.w600);
           }
           return TextStyle(
-              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+              color: isDark ? Colors.white60 : const Color(0xFF64748B),
               fontSize: 11);
         }),
         elevation:     8,
-        shadowColor:   Colors.black26,
+        shadowColor:   Colors.black45,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
 

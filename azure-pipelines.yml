@@ -115,6 +115,76 @@ stages:
         docker push ${ACR}/shield-ai:latest
       displayName: 'Build & Push shield-ai'
 
+  # ── React Dashboard ──────────────────────────────────────────────────────────
+  - job: BuildDashboard
+    displayName: 'Build React Dashboard'
+    pool:
+      name: shield-self-hosted
+    steps:
+    - checkout: self
+      clean: false
+
+    - task: Cache@2
+      displayName: Cache npm packages
+      inputs:
+        key: 'npm | "$(Agent.OS)" | shield-dashboard/package-lock.json'
+        restoreKeys: 'npm | "$(Agent.OS)"'
+        path: shield-dashboard/node_modules
+
+    - script: |
+        set -e
+        cd shield-dashboard
+        npm ci --prefer-offline
+        npm run build
+        echo "Dashboard built: $(du -sh dist)"
+      displayName: 'npm build'
+
+    - script: |
+        set -e
+        # Deploy built assets to web server (only on self-hosted runner = this server)
+        if [ -d "/var/www/ai/FamilyShield/shield-website/app" ]; then
+          rm -rf /var/www/ai/FamilyShield/shield-website/app/assets
+          cp -r shield-dashboard/dist/assets /var/www/ai/FamilyShield/shield-website/app/assets
+          cp shield-dashboard/dist/index.html /var/www/ai/FamilyShield/shield-website/app/index.html
+          echo "Dashboard deployed to /app/"
+        fi
+      displayName: 'Deploy dashboard to web root'
+
+  # ── Flutter APK ──────────────────────────────────────────────────────────────
+  - job: BuildFlutter
+    displayName: 'Build Flutter APK'
+    pool:
+      name: shield-self-hosted
+    steps:
+    - checkout: self
+      clean: false
+
+    - script: |
+        set -e
+        cd shield-app
+        # Use system flutter (installed at /usr/local/flutter or via PATH)
+        flutter pub get
+        flutter build apk --release --no-tree-shake-icons \
+          --dart-define=APP_BASE_URL=https://shield.rstglobal.in/api/v1
+        APK_SIZE=$(du -sh build/app/outputs/flutter-apk/app-release.apk | cut -f1)
+        echo "APK built: $APK_SIZE"
+      displayName: 'flutter build apk --release'
+
+    - script: |
+        set -e
+        # Copy APK to static download location
+        if [ -f "shield-app/build/app/outputs/flutter-apk/app-release.apk" ]; then
+          cp shield-app/build/app/outputs/flutter-apk/app-release.apk \
+             /var/www/ai/FamilyShield/static/shield-app.apk
+          echo "APK deployed: $(du -sh /var/www/ai/FamilyShield/static/shield-app.apk)"
+        else
+          # Fallback: deploy debug build
+          cp shield-app/build/app/outputs/flutter-apk/app-debug.apk \
+             /var/www/ai/FamilyShield/static/shield-app.apk
+          echo "APK deployed (debug): $(du -sh /var/www/ai/FamilyShield/static/shield-app.apk)"
+        fi
+      displayName: 'Deploy APK to static directory'
+
 # ══════════════════════════════════════════════════════════════════════════════
 # STAGE 2: DEPLOY DEV — auto on develop branch
 # ══════════════════════════════════════════════════════════════════════════════
