@@ -163,10 +163,16 @@ stages:
     - script: |
         set -e
         export PATH="/opt/flutter/bin:$PATH"
+        # google-services.json is gitignored (contains Firebase credentials).
+        # On this self-hosted agent the source repo lives at the same path.
+        GSF="/var/www/ai/FamilyShield/shield-app/android/app/google-services.json"
+        DEST="shield-app/android/app/google-services.json"
+        if [ -f "$GSF" ] && [ ! -f "$DEST" ]; then
+          cp "$GSF" "$DEST"
+          echo "Copied google-services.json from server repo"
+        fi
         cd shield-app
         flutter pub get
-        # Debug build: avoids google-services.json requirement (release-grade once
-        # google-services.json is added to Azure Pipelines Secure Files and copied here)
         flutter build apk --debug --no-tree-shake-icons
         APK_SIZE=$(du -sh build/app/outputs/flutter-apk/app-debug.apk | cut -f1)
         echo "APK built: $APK_SIZE"
