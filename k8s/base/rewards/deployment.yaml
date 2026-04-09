@@ -5,6 +5,8 @@ metadata:
   labels:
     app: shield-rewards
 spec:
+  strategy:
+    type: Recreate
   replicas: 1
   selector:
     matchLabels:
@@ -28,7 +30,7 @@ spec:
             - name: SERVER_PORT
               value: "8287"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: "http://shield-eureka:8261/eureka/"
+              value: "http://eureka:ShieldEureka2026@shield-eureka:8261/eureka/"
             - name: EUREKA_INSTANCE_PREFERIPADDRESS
               value: "true"
             - name: SPRING_CONFIG_IMPORT
@@ -44,9 +46,10 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8287
-            initialDelaySeconds: 40
+            initialDelaySeconds: 90
             periodSeconds: 10
             failureThreshold: 6
+            timeoutSeconds: 10
           livenessProbe:
             httpGet:
               path: /actuator/health
@@ -54,3 +57,4 @@ spec:
             initialDelaySeconds: 90
             periodSeconds: 20
             failureThreshold: 3
+            timeoutSeconds: 10

@@ -1,5 +1,6 @@
 # Spring profile active in Kubernetes (SPRING_PROFILES_ACTIVE=kubernetes)
 # Overrides: disables Config Server pull, sets Eureka to K8s service DNS
+# In K8s: use direct K8s service DNS for all routes (no lb://, no rate limiter)
 
 spring:
   config:
@@ -14,16 +15,175 @@ spring:
       ssl:
         enabled: ${REDIS_SSL:true}
 
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            response-timeout: 30s
+            connect-timeout: 10000
+          # Override routes: direct K8s DNS, no Eureka lb://, no rate limiter
+          routes:
+            - id: shield-auth-login
+              uri: http://shield-auth:8281
+              predicates:
+                - Path=/api/v1/auth/login
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: authCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-auth-register
+              uri: http://shield-auth:8281
+              predicates:
+                - Path=/api/v1/auth/register
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: authCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-auth
+              uri: http://shield-auth:8281
+              predicates:
+                - Path=/api/v1/auth/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: authCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-tenant
+              uri: http://shield-tenant:8282
+              predicates:
+                - Path=/api/v1/tenants/**, /api/v1/plans/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: tenantCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-profile
+              uri: http://shield-profile:8283
+              predicates:
+                - Path=/api/v1/profiles/**, /api/v1/devices/**, /api/v1/children/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: profileCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-dns
+              uri: http://shield-dns:8284
+              predicates:
+                - Path=/api/v1/dns/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: dnsCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-location
+              uri: http://shield-location:8285
+              predicates:
+                - Path=/api/v1/locations/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: locationCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-notification
+              uri: http://shield-notification:8286
+              predicates:
+                - Path=/api/v1/notifications/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: notificationCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-rewards
+              uri: http://shield-rewards:8287
+              predicates:
+                - Path=/api/v1/rewards/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: rewardsCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-analytics
+              uri: http://shield-analytics:8289
+              predicates:
+                - Path=/api/v1/analytics/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: analyticsCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-admin
+              uri: http://shield-admin:8290
+              predicates:
+                - Path=/api/v1/admin/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: adminCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-ai
+              uri: http://shield-ai:8291
+              predicates:
+                - Path=/api/v1/ai/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: aiCB
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            - id: shield-docs
+              uri: http://shield-gateway:8280
+              predicates:
+                - Path=/docs/**
+
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://shield-eureka:8261/eureka/
+      defaultZone: http://eureka:ShieldEureka2026@shield-eureka:8261/eureka/
     fetchRegistry: true
     registerWithEureka: true
   instance:
     preferIpAddress: true
-    # Use pod IP (not hostname) for Eureka registration
     ipAddress: ${POD_IP:127.0.0.1}
+
+resilience4j:
+  timelimiter:
+    instances:
+      default:
+        timeoutDuration: 30s
+      authCB:
+        timeoutDuration: 30s
+      tenantCB:
+        timeoutDuration: 30s
+      profileCB:
+        timeoutDuration: 30s
+      dnsCB:
+        timeoutDuration: 30s
+      locationCB:
+        timeoutDuration: 30s
+      notificationCB:
+        timeoutDuration: 30s
+      rewardsCB:
+        timeoutDuration: 30s
+      analyticsCB:
+        timeoutDuration: 30s
+      adminCB:
+        timeoutDuration: 30s
+      aiCB:
+        timeoutDuration: 60s
 
 management:
   endpoints:

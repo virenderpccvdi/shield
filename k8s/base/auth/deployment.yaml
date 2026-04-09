@@ -5,6 +5,8 @@ metadata:
   labels:
     app: shield-auth
 spec:
+  strategy:
+    type: Recreate
   replicas: 1
   selector:
     matchLabels:
@@ -28,29 +30,36 @@ spec:
             - name: SERVER_PORT
               value: "8281"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: "http://shield-eureka:8261/eureka/"
+              value: "http://eureka:ShieldEureka2026@shield-eureka:8261/eureka/"
             - name: EUREKA_INSTANCE_PREFERIPADDRESS
               value: "true"
             - name: SPRING_CONFIG_IMPORT
               value: "optional:"
+            - name: SHIELD_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: shield-secrets
+                  key: JWT_SECRET
           resources:
             requests:
-              memory: "256Mi"
+              memory: "400Mi"
               cpu: "100m"
             limits:
-              memory: "512Mi"
-              cpu: "300m"
+              memory: "768Mi"
+              cpu: "400m"
           readinessProbe:
             httpGet:
-              path: /actuator/health
-              port: 8281
-            initialDelaySeconds: 40
-            periodSeconds: 10
-            failureThreshold: 6
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
+              path: /actuator/health/readiness
               port: 8281
             initialDelaySeconds: 90
-            periodSeconds: 20
+            periodSeconds: 15
+            failureThreshold: 6
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8281
+            initialDelaySeconds: 120
+            periodSeconds: 30
             failureThreshold: 3
+            timeoutSeconds: 10

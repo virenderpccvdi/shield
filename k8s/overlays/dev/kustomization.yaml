@@ -16,7 +16,7 @@ resources:
   - ../../base/analytics
   - ../../base/admin
   - ../../base/ai
-  - ../../base/configmap.yaml
+  - ../../base
 
 images:
   - name: REGISTRY/shield-eureka
