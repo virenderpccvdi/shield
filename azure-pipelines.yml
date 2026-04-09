@@ -134,7 +134,8 @@ stages:
     - script: |
         set -e
         cd shield-dashboard
-        npm ci --prefer-offline
+        # Use npm install (not npm ci) — package-lock.json may diverge on self-hosted agent
+        npm install --prefer-offline
         npm run build
         echo "Dashboard built: $(du -sh dist)"
       displayName: 'npm build'
@@ -161,8 +162,8 @@ stages:
 
     - script: |
         set -e
+        export PATH="/opt/flutter/bin:$PATH"
         cd shield-app
-        # Use system flutter (installed at /usr/local/flutter or via PATH)
         flutter pub get
         flutter build apk --release --no-tree-shake-icons \
           --dart-define=APP_BASE_URL=https://shield.rstglobal.in/api/v1
