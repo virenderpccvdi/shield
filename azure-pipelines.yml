@@ -165,25 +165,18 @@ stages:
         export PATH="/opt/flutter/bin:$PATH"
         cd shield-app
         flutter pub get
-        flutter build apk --release --no-tree-shake-icons \
-          --dart-define=APP_BASE_URL=https://shield.rstglobal.in/api/v1
-        APK_SIZE=$(du -sh build/app/outputs/flutter-apk/app-release.apk | cut -f1)
+        # Debug build: avoids google-services.json requirement (release-grade once
+        # google-services.json is added to Azure Pipelines Secure Files and copied here)
+        flutter build apk --debug --no-tree-shake-icons
+        APK_SIZE=$(du -sh build/app/outputs/flutter-apk/app-debug.apk | cut -f1)
         echo "APK built: $APK_SIZE"
-      displayName: 'flutter build apk --release'
+      displayName: 'flutter build apk'
 
     - script: |
         set -e
-        # Copy APK to static download location
-        if [ -f "shield-app/build/app/outputs/flutter-apk/app-release.apk" ]; then
-          cp shield-app/build/app/outputs/flutter-apk/app-release.apk \
-             /var/www/ai/FamilyShield/static/shield-app.apk
-          echo "APK deployed: $(du -sh /var/www/ai/FamilyShield/static/shield-app.apk)"
-        else
-          # Fallback: deploy debug build
-          cp shield-app/build/app/outputs/flutter-apk/app-debug.apk \
-             /var/www/ai/FamilyShield/static/shield-app.apk
-          echo "APK deployed (debug): $(du -sh /var/www/ai/FamilyShield/static/shield-app.apk)"
-        fi
+        cp shield-app/build/app/outputs/flutter-apk/app-debug.apk \
+           /var/www/ai/FamilyShield/static/shield-app.apk
+        echo "APK deployed: $(du -sh /var/www/ai/FamilyShield/static/shield-app.apk)"
       displayName: 'Deploy APK to static directory'
 
 # ══════════════════════════════════════════════════════════════════════════════
