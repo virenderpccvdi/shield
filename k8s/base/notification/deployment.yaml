@@ -32,7 +32,9 @@ spec:
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: "http://eureka:ShieldEureka2026@shield-eureka:8261/eureka/"
             - name: EUREKA_INSTANCE_PREFERIPADDRESS
-              value: "true"
+              value: "false"
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "shield-notification"
             - name: SPRING_CONFIG_IMPORT
               value: "optional:"
           resources:
