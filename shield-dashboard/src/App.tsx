@@ -1,5 +1,5 @@
-import { lazy, Suspense, useMemo } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, useMemo, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, CircularProgress, Box } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getShieldTheme } from './theme/theme';
@@ -181,6 +181,18 @@ function RoleRouter() {
   return <Navigate to="/dashboard" replace />;
 }
 
+// Listens for auth:logout events dispatched by the axios interceptor and
+// navigates to /login without triggering a full page reload.
+function AuthLogoutListener() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const handler = () => navigate('/login', { replace: true });
+    window.addEventListener('auth:logout', handler);
+    return () => window.removeEventListener('auth:logout', handler);
+  }, [navigate]);
+  return null;
+}
+
 export default function App() {
   const mode = useThemeStore((s) => s.mode);
   const theme = useMemo(() => getShieldTheme(mode), [mode]);
@@ -189,6 +201,7 @@ export default function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <BrowserRouter basename="/app">
+          <AuthLogoutListener />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/login"           element={<LoginPage />} />

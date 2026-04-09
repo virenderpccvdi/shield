@@ -211,7 +211,7 @@ public class DnsRulesController {
 
     /**
      * Start a homework mode session for a child profile.
-     * Body: { "durationMinutes": 60 }  (1–240 minutes)
+     * Body: { "durationMinutes": 60 }  (1–480 minutes)
      */
     @PostMapping("/rules/{profileId}/homework/start")
     public ResponseEntity<ApiResponse<Map<String, Object>>> startHomework(
@@ -220,6 +220,9 @@ public class DnsRulesController {
             @RequestBody Map<String, Integer> body) {
         requireCustomer(role);
         int durationMinutes = body.getOrDefault("durationMinutes", 60);
+        if (durationMinutes < 1 || durationMinutes > 480) {
+            throw ShieldException.badRequest("Duration must be between 1 and 480 minutes");
+        }
         homeworkModeService.activate(profileId, durationMinutes);
         return ResponseEntity.ok(ApiResponse.ok(
                 homeworkModeService.getStatus(profileId),

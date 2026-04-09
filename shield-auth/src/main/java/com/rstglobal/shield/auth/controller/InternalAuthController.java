@@ -61,6 +61,15 @@ public class InternalAuthController {
         if (email == null || email.isBlank()) {
             throw ShieldException.badRequest("email is required");
         }
+        if (tenantId == null || tenantId.isBlank()) {
+            throw ShieldException.badRequest("tenantId is required");
+        }
+        // Validate tenantId is a valid UUID before further processing
+        try {
+            UUID.fromString(tenantId);
+        } catch (IllegalArgumentException e) {
+            throw ShieldException.badRequest("tenantId must be a valid UUID");
+        }
 
         // Check for existing user — return 409 so the caller can handle idempotency
         Optional<User> existing = userRepository.findByEmail(email.toLowerCase());

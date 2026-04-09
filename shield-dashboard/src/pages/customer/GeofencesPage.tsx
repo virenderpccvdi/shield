@@ -3,7 +3,7 @@ import {
   Box, Typography, Card, CardContent, Grid, CircularProgress, Button,
   Chip, IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Slider, Stack, List, ListItem, ListItemIcon, ListItemText,
-  ListItemSecondaryAction
+  ListItemSecondaryAction, Alert, Snackbar
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -149,6 +149,7 @@ export default function GeofencesPage() {
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
   const [form, setForm] = useState<GeofenceForm>({
     name: '', centerLat: DEFAULT_CENTER.lat, centerLng: DEFAULT_CENTER.lng, radiusMeters: 200, type: 'OTHER',
   });
@@ -175,17 +176,20 @@ export default function GeofencesPage() {
   const createMutation = useMutation({
     mutationFn: (data: GeofenceForm) => api.post(`/location/${profileId}/geofences`, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['geofences', profileId] }); closeDialog(); },
+    onError: (e: any) => setMutationError(e?.response?.data?.message ?? 'Failed to create geofence'),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: GeofenceForm }) =>
       api.put(`/location/${profileId}/geofences/${id}`, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['geofences', profileId] }); closeDialog(); },
+    onError: (e: any) => setMutationError(e?.response?.data?.message ?? 'Failed to update geofence'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/location/${profileId}/geofences/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['geofences', profileId] }),
+    onError: (e: any) => setMutationError(e?.response?.data?.message ?? 'Failed to delete geofence'),
   });
 
   const closeDialog = () => {
@@ -423,6 +427,17 @@ export default function GeofencesPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={!!mutationError}
+        autoHideDuration={4000}
+        onClose={() => setMutationError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" onClose={() => setMutationError(null)} sx={{ borderRadius: 2 }}>
+          {mutationError}
+        </Alert>
+      </Snackbar>
     </AnimatedPage>
   );
 }

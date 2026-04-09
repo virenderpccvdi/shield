@@ -67,8 +67,8 @@ public class BudgetController {
         requireCustomer(role);
         int minutes = body.containsKey("minutes") ? ((Number) body.get("minutes")).intValue() : 0;
         String reason = body.containsKey("reason") ? (String) body.get("reason") : "Parent granted extra time";
-        if (minutes <= 0 || minutes > 480) {
-            throw ShieldException.badRequest("Minutes must be between 1 and 480");
+        if (minutes <= 0 || minutes > 240) {
+            throw ShieldException.badRequest("Minutes must be between 1 and 240");
         }
         // Extend the daily budget for all apps or a specific "general" bucket
         String appName = body.containsKey("app") ? (String) body.get("app") : "general";

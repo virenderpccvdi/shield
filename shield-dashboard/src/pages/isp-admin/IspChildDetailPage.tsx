@@ -73,6 +73,7 @@ function ScheduleTab({ profileId }: { profileId: string }) {
   const queryClient = useQueryClient();
   const [grid, setGrid] = useState<Record<string, number[]>>({});
   const [snack, setSnack] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState<'success'|'error'>('success');
   const [overrideDialog, setOverrideDialog] = useState(false);
   const [overrideType, setOverrideType] = useState('PAUSE');
   const [overrideMins, setOverrideMins] = useState(60);
@@ -88,22 +89,26 @@ function ScheduleTab({ profileId }: { profileId: string }) {
 
   const saveMutation = useMutation({
     mutationFn: () => api.put(`/dns/schedules/${profileId}`, { grid }),
-    onSuccess: () => { setSnack('Schedule saved'); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Schedule saved'); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save'); },
   });
 
   const presetMutation = useMutation({
     mutationFn: (preset: string) => api.post(`/dns/schedules/${profileId}/preset?preset=${preset}`),
-    onSuccess: () => { setSnack('Preset applied'); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Preset applied'); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save'); },
   });
 
   const overrideMutation = useMutation({
     mutationFn: () => api.post(`/dns/schedules/${profileId}/override`, { overrideType, durationMinutes: overrideMins }),
-    onSuccess: () => { setSnack('Override applied'); setOverrideDialog(false); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Override applied'); setOverrideDialog(false); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save'); },
   });
 
   const cancelOverrideMutation = useMutation({
     mutationFn: () => api.delete(`/dns/schedules/${profileId}/override`),
-    onSuccess: () => { setSnack('Override cancelled'); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Override cancelled'); queryClient.invalidateQueries({ queryKey: ['isp-schedule', profileId] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save'); },
   });
 
   const toggle = (day: string, hour: number) => {
@@ -228,7 +233,7 @@ function ScheduleTab({ profileId }: { profileId: string }) {
         </DialogActions>
       </Dialog>
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}>
-        <Alert severity="success" onClose={() => setSnack('')}>{snack}</Alert>
+        <Alert severity={snackSeverity} onClose={() => setSnack('')}>{snack}</Alert>
       </Snackbar>
     </Box>
   );
@@ -238,6 +243,7 @@ function BudgetsTab({ profileId }: { profileId: string }) {
   const queryClient = useQueryClient();
   const [budgets, setBudgets] = useState<Record<string, number>>({});
   const [snack, setSnack] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState<'success'|'error'>('success');
 
   const { isLoading } = useQuery({
     queryKey: ['isp-budgets', profileId],
@@ -255,7 +261,8 @@ function BudgetsTab({ profileId }: { profileId: string }) {
 
   const saveMutation = useMutation({
     mutationFn: () => api.put(`/dns/dns-budgets/${profileId}`, { budgets }),
-    onSuccess: () => { setSnack('Budgets saved'); queryClient.invalidateQueries({ queryKey: ['isp-budgets', profileId] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Budgets saved'); queryClient.invalidateQueries({ queryKey: ['isp-budgets', profileId] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save'); },
   });
 
   const defaultApps = ['youtube', 'tiktok', 'gaming', 'social', 'streaming', 'education'];
@@ -306,7 +313,7 @@ function BudgetsTab({ profileId }: { profileId: string }) {
         </CardContent>
       </Card>
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}>
-        <Alert severity="success" onClose={() => setSnack('')}>{snack}</Alert>
+        <Alert severity={snackSeverity} onClose={() => setSnack('')}>{snack}</Alert>
       </Snackbar>
     </Box>
   );
@@ -319,6 +326,7 @@ function RulesTab({ profileId }: { profileId: string }) {
   const [allowlist, setAllowlist] = useState<string[]>([]);
   const [newDomain, setNewDomain] = useState('');
   const [snack, setSnack] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState<'success'|'error'>('success');
 
   const { isLoading } = useQuery({
     queryKey: ['isp-rules', profileId],
@@ -338,15 +346,18 @@ function RulesTab({ profileId }: { profileId: string }) {
 
   const saveCatMutation = useMutation({
     mutationFn: () => api.put(`/dns/rules/${profileId}/categories`, { enabledCategories: categories }),
-    onSuccess: () => { setSnack('Categories saved'); queryClient.invalidateQueries({ queryKey: ['isp-rules', profileId] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Categories saved'); queryClient.invalidateQueries({ queryKey: ['isp-rules', profileId] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save'); },
   });
   const saveBlockMutation = useMutation({
     mutationFn: () => api.put(`/dns/rules/${profileId}/blocklist`, { domains: blocklist }),
-    onSuccess: () => { setSnack('Blocklist saved'); queryClient.invalidateQueries({ queryKey: ['isp-rules', profileId] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Blocklist saved'); queryClient.invalidateQueries({ queryKey: ['isp-rules', profileId] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save'); },
   });
   const saveAllowMutation = useMutation({
     mutationFn: () => api.put(`/dns/rules/${profileId}/allowlist`, { domains: allowlist }),
-    onSuccess: () => { setSnack('Allowlist saved'); queryClient.invalidateQueries({ queryKey: ['isp-rules', profileId] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Allowlist saved'); queryClient.invalidateQueries({ queryKey: ['isp-rules', profileId] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save'); },
   });
 
   if (isLoading) return <LoadingPage />;
@@ -419,7 +430,7 @@ function RulesTab({ profileId }: { profileId: string }) {
         </CardContent>
       </Card>
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}>
-        <Alert severity="success" onClose={() => setSnack('')}>{snack}</Alert>
+        <Alert severity={snackSeverity} onClose={() => setSnack('')}>{snack}</Alert>
       </Snackbar>
     </Box>
   );
@@ -428,6 +439,7 @@ function RulesTab({ profileId }: { profileId: string }) {
 function ExtensionsTab({ profileId }: { profileId: string }) {
   const queryClient = useQueryClient();
   const [snack, setSnack] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState<'success'|'error'>('success');
 
   const { data, isLoading } = useQuery({
     queryKey: ['isp-extensions', profileId],
@@ -439,11 +451,13 @@ function ExtensionsTab({ profileId }: { profileId: string }) {
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.post(`/dns/budgets/extension-requests/${id}/approve`),
-    onSuccess: () => { setSnack('Request approved'); queryClient.invalidateQueries({ queryKey: ['isp-extensions'] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Request approved'); queryClient.invalidateQueries({ queryKey: ['isp-extensions'] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save'); },
   });
   const rejectMutation = useMutation({
     mutationFn: (id: string) => api.post(`/dns/budgets/extension-requests/${id}/reject`),
-    onSuccess: () => { setSnack('Request rejected'); queryClient.invalidateQueries({ queryKey: ['isp-extensions'] }); },
+    onSuccess: () => { setSnackSeverity('success'); setSnack('Request rejected'); queryClient.invalidateQueries({ queryKey: ['isp-extensions'] }); },
+    onError: (e: any) => { setSnackSeverity('error'); setSnack(e?.response?.data?.message || 'Failed to save'); },
   });
 
   const requests = data || [];
@@ -486,7 +500,7 @@ function ExtensionsTab({ profileId }: { profileId: string }) {
         </Box>
       )}
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}>
-        <Alert severity="success" onClose={() => setSnack('')}>{snack}</Alert>
+        <Alert severity={snackSeverity} onClose={() => setSnack('')}>{snack}</Alert>
       </Snackbar>
     </Box>
   );

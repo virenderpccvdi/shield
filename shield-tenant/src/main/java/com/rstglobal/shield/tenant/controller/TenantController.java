@@ -181,14 +181,24 @@ public class TenantController {
             @RequestBody Map<String, Integer> body) {
         requireGlobalAdmin(role);
 
+        Integer maxCustomers = body.get("maxCustomers");
+        Integer maxProfilesPerCustomer = body.get("maxProfilesPerCustomer");
+
+        if (maxCustomers != null && (maxCustomers <= 0 || maxCustomers >= 1_000_000)) {
+            throw ShieldException.badRequest("maxCustomers must be between 1 and 999999");
+        }
+        if (maxProfilesPerCustomer != null && (maxProfilesPerCustomer <= 0 || maxProfilesPerCustomer >= 1_000_000)) {
+            throw ShieldException.badRequest("maxProfilesPerCustomer must be between 1 and 999999");
+        }
+
         Tenant tenant = tenantRepository.findById(id)
                 .orElseThrow(() -> ShieldException.notFound("Tenant", id));
 
-        if (body.containsKey("maxCustomers") && body.get("maxCustomers") != null) {
-            tenant.setMaxCustomers(body.get("maxCustomers"));
+        if (maxCustomers != null) {
+            tenant.setMaxCustomers(maxCustomers);
         }
-        if (body.containsKey("maxProfilesPerCustomer") && body.get("maxProfilesPerCustomer") != null) {
-            tenant.setMaxProfilesPerCustomer(body.get("maxProfilesPerCustomer"));
+        if (maxProfilesPerCustomer != null) {
+            tenant.setMaxProfilesPerCustomer(maxProfilesPerCustomer);
         }
         tenantRepository.save(tenant);
         log.info("Updated quotas for tenant {}: maxCustomers={}, maxProfilesPerCustomer={}",
