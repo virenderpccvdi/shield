@@ -192,7 +192,7 @@ export default function BrowsingHistoryPage() {
     queryKey: ['dns-analytics-stats', profileId],
     queryFn: async () => {
       const [statsRes, topRes] = await Promise.all([
-        api.get(`/analytics/${profileId}/stats`, { params: { period: 'today' } }),
+        api.get(`/analytics/${profileId}/stats`, { params: { period: 'week' } }),
         api.get(`/analytics/${profileId}/top-domains`, { params: { action: 'BLOCKED', limit: 10 } }),
       ]);
       const s = statsRes.data?.data ?? statsRes.data;
@@ -336,7 +336,7 @@ export default function BrowsingHistoryPage() {
               gradient="linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)"
             />
             <StatCard
-              label="Blocked Today"
+              label="Blocked (7d)"
               value={stats?.blockedToday}
               icon={<BlockIcon fontSize="small" />}
               color="#C62828"

@@ -151,7 +151,7 @@ function exportPlatformCSV(d: ReturnType<typeof buildExportData>, days: number) 
   lines.push(`ISP Tenants,${d.totalIspTenants}`);
   lines.push(`Total Customers,${d.totalCustomers}`);
   lines.push(`Active Profiles,${d.activeProfiles}`);
-  lines.push(`DNS Queries Today,${d.totalQueries}`);
+  lines.push(`DNS Queries (7d),${d.totalQueries}`);
   lines.push(`Blocked Queries,${d.blockedQueries}`);
   lines.push(`Block Rate,${Number(d.blockRate).toFixed(1)}%`);
   lines.push(`Monthly Revenue,${d.monthlyRevenue}`);
@@ -247,7 +247,7 @@ export default function PlatformDashboardPage() {
         healthRes, servicesRes, allTenantsRes,
       ] = await Promise.allSettled([
         api.get('/admin/platform/stats'),                              // 0
-        api.get('/analytics/platform/overview?period=today'),         // 1
+        api.get('/analytics/platform/overview?period=week'),          // 1
         api.get(`/analytics/platform/daily?days=${days}`),            // 2
         api.get('/analytics/platform/categories?period=week'),        // 3
         api.get('/analytics/platform/top-tenants?limit=10&period=week'), // 4
@@ -482,7 +482,7 @@ export default function PlatformDashboardPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <StatCard
-            title="DNS Queries Today"
+            title="DNS Queries (7d)"
             value={fmt(d.totalQueries)}
             icon={<DnsIcon />}
             gradient={gradients.purple}

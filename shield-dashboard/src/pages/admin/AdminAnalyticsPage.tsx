@@ -92,7 +92,7 @@ function pct(num: number, den: number) {
 async function fetchOverview() {
   const [statsRes, analyticsRes] = await Promise.allSettled([
     api.get('/admin/platform/stats'),
-    api.get('/analytics/platform/overview'),
+    api.get('/analytics/platform/overview?period=week'),
   ]);
   const stats =
     statsRes.status === 'fulfilled'
@@ -598,13 +598,13 @@ export default function AdminAnalyticsPage() {
       gradient: gradients.teal,
     },
     {
-      title: 'DNS Queries Today',
+      title: 'DNS Queries (7d)',
       value: overview?.dnsQueriesToday ?? 0,
       icon: <DnsIcon />,
       gradient: gradients.purple,
     },
     {
-      title: 'Threats Blocked Today',
+      title: 'Threats Blocked (7d)',
       value: overview?.threatsBlockedToday ?? 0,
       icon: <BlockIcon />,
       gradient: gradients.red,

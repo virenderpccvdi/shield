@@ -215,7 +215,7 @@ export default function ActivityPage({ profileId: profileIdProp }: ActivityPageP
     queryKey: ['activity-stats', profileId],
     queryFn: () =>
       api
-        .get(`/analytics/${profileId}/stats`, { params: { period: 'TODAY' } })
+        .get(`/analytics/${profileId}/stats`, { params: { period: 'week' } })
         .then((r) => {
           const raw = r.data?.data ?? r.data;
           return {
@@ -325,7 +325,7 @@ export default function ActivityPage({ profileId: profileIdProp }: ActivityPageP
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard
-              title="Blocked Today"
+              title="Blocked (7d)"
               value={stats?.totalBlocked ?? 0}
               icon={<BlockIcon />}
               gradient="linear-gradient(135deg, #EF4444 0%, #F87171 100%)"

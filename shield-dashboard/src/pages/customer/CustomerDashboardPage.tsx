@@ -307,8 +307,7 @@ export default function CustomerDashboardPage() {
         const results: Record<string, any> = {};
         await Promise.all(children.map(async c => {
           try {
-            // Fix #2: use period=today (lowercase) instead of period=TODAY
-            const r = await api.get(`/analytics/${c.id}/stats?period=today`);
+            const r = await api.get(`/analytics/${c.id}/stats?period=week`);
             const raw = r.data?.data ?? r.data;
             // Normalise field names: API returns blockedQueries/allowedQueries
             results[c.id] = {

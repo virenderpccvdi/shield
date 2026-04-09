@@ -150,8 +150,8 @@ export default function IspDashboardPage() {
           ? api.get(`/analytics/tenant/${tId}/daily?days=${days}`)
           : api.get(`/analytics/platform/daily?days=${days}`),
         tId
-          ? api.get(`/analytics/tenant/${tId}/overview?period=today`)
-          : api.get('/analytics/platform/overview?period=today'),
+          ? api.get(`/analytics/tenant/${tId}/overview?period=week`)
+          : api.get('/analytics/platform/overview?period=week'),
         tId
           ? api.get(`/analytics/tenant/${tId}/categories?period=week`)
           : api.get('/analytics/platform/categories?period=week'),
