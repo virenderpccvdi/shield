@@ -62,4 +62,3 @@ shield-website/app/assets/
 infra/backup/backup-shield-db.sh
 infra/vector/refresh-clients.sh
 infra/vector/vector.toml
-shield-ai/db/database.py
