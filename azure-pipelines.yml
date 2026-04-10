@@ -58,13 +58,9 @@ stages:
         cat VERSION
       displayName: 'Write VERSION file'
 
-    - task: Cache@2
-      displayName: Cache Maven packages
-      continueOnError: true   # self-hosted agent: .m2 already exists; tar "File exists" is benign
-      inputs:
-        key: 'maven | "$(Agent.OS)" | **/pom.xml'
-        restoreKeys: 'maven | "$(Agent.OS)"'
-        path: /home/azureagent/.m2
+    # No Maven Cache@2 task: self-hosted agent has a persistent ~/.m2 directory.
+    # Cache@2 always exits 2 on self-hosted because tar "File exists" on restore.
+    # Maven picks up cached JARs automatically from ~/.m2/repository.
 
     - script: |
         export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
@@ -295,17 +291,23 @@ stages:
     - script: |
         cd $(Build.SourcesDirectory)/shield-dashboard
         npm audit --audit-level=high --json > npm-audit.json || true
-        cat npm-audit.json | python3 -c "
-        import json,sys
-        d=json.load(sys.stdin)
-        vulns=d.get('metadata',{}).get('vulnerabilities',{})
-        critical=vulns.get('critical',0)
-        high=vulns.get('high',0)
-        print(f'npm audit: {critical} critical, {high} high')
-        if critical > 0: sys.exit(1)
-        "
-      displayName: 'npm audit (fail on critical)'
-      continueOnError: true
+        python3 - <<'PYEOF'
+        import json
+        try:
+            with open("npm-audit.json") as f:
+                d = json.load(f)
+            vulns = d.get("metadata", {}).get("vulnerabilities", {})
+            critical = vulns.get("critical", 0)
+            high     = vulns.get("high", 0)
+            moderate = vulns.get("moderate", 0)
+            print(f"##[section]npm audit — critical:{critical}  high:{high}  moderate:{moderate}")
+            if critical > 0:
+                print("##vso[task.logissue type=warning]npm audit found critical vulnerabilities — review npm-audit.json")
+        except Exception as e:
+            print(f"npm audit parse error: {e}")
+        # Never exit non-zero: step is advisory only; OWASP nightly scan is authoritative
+        PYEOF
+      displayName: 'npm audit (advisory — never fails build)'
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STAGE 3: DEPLOY DEV — auto on develop branch
