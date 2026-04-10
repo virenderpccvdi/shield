@@ -14,7 +14,7 @@ spring:
     config:
       server:
         native:
-          search-locations: file:/var/www/ai/FamilyShield/config-repo/
+          search-locations: ${CONFIG_REPO_PATH:file:/var/www/ai/FamilyShield/config-repo/}
         # Explicitly disable git backend to avoid "configure a uri" error
         git:
           enabled: false

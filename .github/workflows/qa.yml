@@ -108,6 +108,10 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          # CI-only values — not production secrets
+          JWT_SECRET: "ci-shield-test-only-7a9f3b2c8d5e1f4a6b0c3d7e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a"
+          DB_PASSWORD: "Shield@2026#Secure"
+          CONFIG_REPO_PATH: "file:${{ github.workspace }}/config-repo/"
         run: |
           # Start each service in background
           declare -A SVC_PORTS=(
@@ -128,14 +132,16 @@ jobs:
               java -jar "$JAR" \
                 --spring.profiles.active=ci \
                 --server.port="$PORT" \
+                --shield.jwt.secret="${JWT_SECRET}" \
+                --spring.datasource.password="${DB_PASSWORD}" \
                 > /tmp/$svc.log 2>&1 &
               echo "Started $svc on port $PORT (PID $!)"
             fi
           done
-          # Wait for gateway to be healthy
+          # Wait for gateway to be healthy (up to 60s)
           for i in $(seq 1 30); do
             if curl -s http://localhost:8280/actuator/health > /dev/null 2>&1; then
-              echo "Gateway ready after ${i}s"
+              echo "Gateway ready after $((i*2))s"
               break
             fi
             sleep 2
@@ -220,6 +226,9 @@ jobs:
       - name: Start services and wait for readiness
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          JWT_SECRET: "ci-shield-test-only-7a9f3b2c8d5e1f4a6b0c3d7e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a"
+          DB_PASSWORD: "Shield@2026#Secure"
+          CONFIG_REPO_PATH: "file:${{ github.workspace }}/config-repo/"
         run: bash qa/ci/start_services.sh
 
       - name: Run full QA suite

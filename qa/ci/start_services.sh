@@ -26,6 +26,8 @@ for entry in "${SERVICES[@]}"; do
             --spring.profiles.active=ci \
             --server.port="$PORT" \
             --eureka.client.service-url.defaultZone=http://localhost:8261/eureka/ \
+            --shield.jwt.secret="${JWT_SECRET:-ci-shield-test-only-7a9f3b2c8d5e1f4a6b0c3d7e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a}" \
+            "--spring.datasource.password=${DB_PASSWORD:-Shield@2026#Secure}" \
             > "/tmp/${SVC}.log" 2>&1 &
         echo "Started $SVC on :$PORT (PID $!)"
         sleep 1
