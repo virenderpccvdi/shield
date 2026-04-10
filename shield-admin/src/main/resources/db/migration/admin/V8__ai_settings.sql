@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS admin.ai_settings (
 );
 
 -- Seed default DeepSeek config (only if table is empty)
+-- NOTE: api_key_encrypted is intentionally empty — configure via Admin → AI Settings panel
 INSERT INTO admin.ai_settings (provider, model_name, fast_model_name, api_key_encrypted, enabled, updated_by)
-SELECT 'DEEPSEEK', 'deepseek-chat', 'deepseek-chat', 'sk-abc1f1388cec428aa8e7e85fe5f4f96f', true, 'system'
+SELECT 'DEEPSEEK', 'deepseek-chat', 'deepseek-chat', '', true, 'system'
 WHERE NOT EXISTS (SELECT 1 FROM admin.ai_settings);

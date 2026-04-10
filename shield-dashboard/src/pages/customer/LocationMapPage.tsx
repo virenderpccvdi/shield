@@ -14,7 +14,7 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { useState } from 'react';
 import LoadingPage from '../../components/LoadingPage';
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
 
 interface ChildProfile { id: string; name: string; }
 interface LiveLocation {

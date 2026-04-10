@@ -163,19 +163,19 @@ dev_dependencies:
 Shield uses the same Google Maps API key as SmartTrack (shared server / same Google project):
 
 ```
-API Key: AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M
+API Key: ${GOOGLE_MAPS_API_KEY}
 ```
 
 **Android — AndroidManifest.xml:**
 ```xml
 <meta-data
     android:name="com.google.android.geo.API_KEY"
-    android:value="AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M" />
+    android:value="${GOOGLE_MAPS_API_KEY}" />
 ```
 
 **iOS — AppDelegate.swift:**
 ```swift
-GMSServices.provideAPIKey("AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M")
+GMSServices.provideAPIKey("${GOOGLE_MAPS_API_KEY}")
 ```
 
 > Features enabled: Maps SDK for Android/iOS, Geocoding API, Places API

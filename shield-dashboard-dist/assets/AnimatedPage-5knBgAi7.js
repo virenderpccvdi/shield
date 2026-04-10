@@ -1,1 +1,0 @@
-import{j as r}from"./vendor-react-BQ0hWHtW.js";import{B as s}from"./vendor-mui-ThKwF25a.js";function m({children:a,sx:t,delay:o=0}){return r.jsx(s,{sx:{"@keyframes fadeInUp":{from:{opacity:0,transform:"translateY(20px)"},to:{opacity:1,transform:"translateY(0)"}},animation:`fadeInUp 0.5s ease ${o}s both`,...t},children:a})}export{m as A};

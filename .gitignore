@@ -14,8 +14,12 @@
 
 # Environment & secrets
 .env
+**/.env.local
+**/.env.*.local
 config/firebase-service-account.json
 **/google-services.json
+# Build artifacts committed by mistake
+shield-dashboard-dist/
 
 # OS
 .DS_Store

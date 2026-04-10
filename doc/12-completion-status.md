@@ -74,7 +74,7 @@
 - **State:** Riverpod 2.6.1
 - **Navigation:** go_router 14.6.2
 - **HTTP:** Dio 5.8 + retrofit
-- **Maps:** google_maps_flutter 2.9.0 (API key: AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M)
+- **Maps:** google_maps_flutter 2.9.0 (API key: ${GOOGLE_MAPS_API_KEY})
 - **WebSocket:** stomp_dart_client 3.1.0
 - **Push Notifications:** Firebase FCM 15.2.4
 - **Background GPS:** workmanager 0.5.2 + flutter_foreground_task 8.11.0
