@@ -78,9 +78,7 @@ updates:
       - "python"
     commit-message:
       prefix: "chore(deps)"
-    ignore:
-      # python-jose is unmaintained — do not update, migration tracked separately
-      - dependency-name: "python-jose"
+    # python-jose removed entirely (CVE-2024-33663, unmaintained) — no active ignores needed
 
   # ── Flutter (mobile app) ───────────────────────────────────────────────────
   - package-ecosystem: "pub"
