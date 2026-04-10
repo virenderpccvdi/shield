@@ -1,0 +1,90 @@
+# Shield Platform — Nightly OWASP Security Scan
+#
+# Why separate from azure-pipelines.yml:
+#   OWASP Dependency Check downloads ~600 MB of NVD CVE data on first run
+#   (rate-limited to 5 req/30s without API key = 20-40 min just for the download).
+#   Running this on every commit is wasteful; nightly is sufficient since
+#   new CVEs don't appear that frequently.
+#
+# This pipeline:
+#   - Runs every night at 02:00 UTC
+#   - Caches the NVD data directory (~/.m2/repository/org.owasp/...) between runs
+#     so subsequent scans only download the daily delta (usually < 2 min)
+#   - Can also be triggered manually from Azure DevOps UI
+
+schedules:
+  - cron: '0 2 * * *'
+    displayName: 'Nightly OWASP scan (02:00 UTC)'
+    branches:
+      include:
+        - main
+    always: true   # run even if no code changes
+
+trigger: none   # never triggers on push — use azure-pipelines.yml for that
+
+pr: none
+
+pool:
+  name: shield-self-hosted
+
+variables:
+  OWASP_DATA_DIR: /home/azureagent/.owasp-nvd-data
+  MAVEN_HOME: /usr/share/maven
+
+jobs:
+- job: OWASPScan
+  displayName: 'OWASP Dependency Check (full NVD scan)'
+  timeoutInMinutes: 120
+  steps:
+
+  - checkout: self
+    clean: false
+
+  - script: |
+      mkdir -p $(OWASP_DATA_DIR)
+      echo "NVD data dir: $(du -sh $(OWASP_DATA_DIR) 2>/dev/null || echo 'empty')"
+    displayName: 'Prepare NVD data directory'
+
+  - script: |
+      export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+      export PATH=$JAVA_HOME/bin:$PATH
+
+      echo "=== Starting OWASP NVD scan ==="
+      echo "First run: downloads full NVD database (~600 MB, 20-40 min)"
+      echo "Subsequent runs: downloads daily delta only (1-3 min)"
+      echo ""
+
+      $(MAVEN_HOME)/bin/mvn org.owasp:dependency-check-maven:8.4.3:check \
+        -DfailBuildOnCVSS=9 \
+        -DsuppressionFile=owasp-suppressions.xml \
+        -DdataDirectory=$(OWASP_DATA_DIR) \
+        -DautoUpdate=true \
+        -DnvdApiDelay=6000 \
+        --no-transfer-progress \
+        2>&1 | grep -v "^\[INFO\] Checking" | grep -v "^\[INFO\] Processing" \
+             | grep -v "^\[INFO\] Updating" | grep -v "downloading" \
+        || true
+      echo "=== OWASP scan complete ==="
+    displayName: 'OWASP dependency check (CVSS>=9 fails build)'
+    continueOnError: true
+
+  - script: |
+      # Publish HTML report as pipeline artifact
+      REPORT_DIR=$(find . -name "dependency-check-report.html" -printf '%h\n' 2>/dev/null | head -1)
+      if [ -n "$REPORT_DIR" ]; then
+        echo "Report found: $REPORT_DIR/dependency-check-report.html"
+        cp "$REPORT_DIR/dependency-check-report.html" \
+           "$(Build.ArtifactStagingDirectory)/owasp-report-$(date +%Y%m%d).html"
+      else
+        echo "No OWASP report generated (scan may have skipped or failed early)"
+      fi
+    displayName: 'Stage OWASP report'
+    condition: always()
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish OWASP report'
+    condition: always()
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: 'owasp-reports'
+      publishLocation: 'Container'

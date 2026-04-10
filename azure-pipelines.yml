@@ -277,7 +277,8 @@ stages:
       name: apkReport
 
 # ══════════════════════════════════════════════════════════════════════════════
-# STAGE 2: SECURITY SCAN — OWASP + npm audit
+# STAGE 2: SECURITY SCAN — npm audit only (fast, per-commit)
+# OWASP full scan is in azure-pipelines-security.yml (nightly scheduled)
 # ══════════════════════════════════════════════════════════════════════════════
 - stage: SecurityScan
   displayName: 'Security Scanning'
@@ -287,7 +288,7 @@ stages:
   - job: DependencyCheck
     pool:
       name: shield-self-hosted
-    timeoutInMinutes: 90
+    timeoutInMinutes: 10
     steps:
     - checkout: self
       clean: false
@@ -304,15 +305,6 @@ stages:
         if critical > 0: sys.exit(1)
         "
       displayName: 'npm audit (fail on critical)'
-      continueOnError: true
-    - script: |
-        cd $(Build.SourcesDirectory)
-        /usr/share/maven/bin/mvn org.owasp:dependency-check-maven:check \
-          -DfailBuildOnCVSS=9 \
-          -DsuppressionFile=owasp-suppressions.xml \
-          --no-transfer-progress -q \
-          2>&1 | tail -20 || true
-      displayName: 'OWASP dependency check (fail on CVSS>=9)'
       continueOnError: true
 
 # ══════════════════════════════════════════════════════════════════════════════
