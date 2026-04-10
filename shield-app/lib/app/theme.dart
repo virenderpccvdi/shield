@@ -62,6 +62,10 @@ class Ds {
   static const Color outlineVariant   = Color(0xFFC4D0DC);  // ghost borders only @ 20%
   static const Color outlineVariantDark = Color(0xFF2A3F56);
 
+  // ── Aliases for screens that use ShieldTheme.secondary / cardDark ──────────
+  static const Color secondary = Color(0xFF0277BD);       // = info, secondary accent
+  static const Color cardDark  = Color(0xFF122030);       // = surfaceContainerLowDark
+
   // ── Chart palette ─────────────────────────────────────────────────────────
   static const List<Color> chartPalette = [
     Color(0xFF005DAC), Color(0xFF2E7D32), Color(0xFF0288D1),

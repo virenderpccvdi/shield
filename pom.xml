@@ -103,11 +103,11 @@
                 <version>${logstash-logback.version}</version>
             </dependency>
 
-            <!-- Spring Boot starters — explicit versions so CI resolves them
-                 before downloading the parent BOM from Maven Central -->
+            <!-- Spring Boot starters not auto-managed by parent BOM in Boot 4.x -->
+            <!-- spring-boot-starter-aop was RENAMED to spring-boot-starter-aspectj in Boot 4.0 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-aop</artifactId>
+                <artifactId>spring-boot-starter-aspectj</artifactId>
                 <version>${spring-boot.version}</version>
             </dependency>
             <dependency>
