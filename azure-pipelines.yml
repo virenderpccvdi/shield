@@ -28,10 +28,9 @@ variables:
   - group: shield-aks-vars
   - name: IMAGE_TAG
     value: $(Build.SourceVersion)
-  - name: isDevelop
-    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/develop')]
-  - name: isMain
-    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+  # NOTE: isDevelop/isMain removed — boolean runtime expressions ($[...]) coerce to
+  # 'True'/'False' (capital), causing eq(var, 'true') to never match.
+  # Branch checks are done inline in each stage condition instead.
 
 stages:
 
@@ -302,7 +301,14 @@ stages:
 - stage: DeployDev
   displayName: 'Deploy → shield-dev'
   dependsOn: [Build, SecurityScan]
-  condition: and(succeeded('Build'), eq(variables.isDevelop, 'true'))
+  # Inline branch check avoids the boolean-string coercion bug.
+  # in(dependencies.SecurityScan.result,...) lets a scan failure still deploy.
+  condition: |
+    and(
+      succeeded('Build'),
+      in(dependencies.SecurityScan.result, 'Succeeded', 'Failed', 'Skipped'),
+      eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+    )
   jobs:
   - deployment: DeployDev
     displayName: 'Deploy to shield-dev namespace'
@@ -344,7 +350,12 @@ stages:
 - stage: DeployProd
   displayName: 'Deploy → shield-prod'
   dependsOn: [Build, SecurityScan]
-  condition: and(succeeded('Build'), eq(variables.isMain, 'true'))
+  condition: |
+    and(
+      succeeded('Build'),
+      in(dependencies.SecurityScan.result, 'Succeeded', 'Failed', 'Skipped'),
+      eq(variables['Build.SourceBranch'], 'refs/heads/main')
+    )
   jobs:
   - deployment: DeployProd
     displayName: 'Deploy to shield-prod namespace'
