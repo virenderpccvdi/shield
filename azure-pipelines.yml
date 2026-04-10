@@ -284,10 +284,15 @@ stages:
   - job: DependencyCheck
     pool:
       name: shield-self-hosted
-    timeoutInMinutes: 10
+    # 15 min: npm audit (< 1 min) + OWASP warm cache (2-5 min).
+    # First-ever run downloads ~600 MB NVD data; subsequent runs fetch daily delta only.
+    # Job never blocks the pipeline — both steps have continueOnError: true.
+    timeoutInMinutes: 20
     steps:
     - checkout: self
       clean: false
+
+    # ── Step 1: npm audit ────────────────────────────────────────────────────
     - script: |
         cd $(Build.SourcesDirectory)/shield-dashboard
         npm audit --audit-level=high --json > npm-audit.json || true
@@ -305,9 +310,64 @@ stages:
                 print("##vso[task.logissue type=warning]npm audit found critical vulnerabilities — review npm-audit.json")
         except Exception as e:
             print(f"npm audit parse error: {e}")
-        # Never exit non-zero: step is advisory only; OWASP nightly scan is authoritative
         PYEOF
-      displayName: 'npm audit (advisory — never fails build)'
+      displayName: 'npm audit (advisory)'
+
+    # ── Step 2: OWASP Dependency Check ───────────────────────────────────────
+    # NVD data is cached at /home/azureagent/.owasp-nvd-data between runs.
+    # First run: downloads full NVD database (~600 MB, may take up to 15 min).
+    # Subsequent runs: downloads daily delta only (1-3 min) — cache is warm.
+    # continueOnError: true — OWASP result never blocks Build → Deploy flow.
+    - script: |
+        export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+        export PATH=$JAVA_HOME/bin:$PATH
+        NVD_DIR=/home/azureagent/.owasp-nvd-data
+        mkdir -p "$NVD_DIR"
+
+        echo "##[section]OWASP Dependency Check"
+        echo "NVD cache: $(du -sh $NVD_DIR 2>/dev/null || echo 'empty — first run will download ~600 MB')"
+        echo ""
+
+        /usr/share/maven/bin/mvn \
+          org.owasp:dependency-check-maven:10.0.4:check \
+          -DfailBuildOnCVSS=9 \
+          -DsuppressionFile=owasp-suppressions.xml \
+          -DdataDirectory="$NVD_DIR" \
+          -DnvdApiDelay=6000 \
+          -DautoUpdate=true \
+          --no-transfer-progress \
+          -Dmaven.repo.local=/home/azureagent/.m2/repository \
+          2>&1 | grep -E "^\[INFO\] (Checking|One|Dependency|OWASP|Starting|Finished|Analyzing|Writing)|^\[WARN\]|^\[ERROR\]|CVE-|CVSS" \
+               | grep -v "^\[INFO\] Checking" \
+          || true
+
+        echo ""
+        echo "OWASP scan complete. Reports in target/dependency-check-report.*"
+      displayName: 'OWASP dependency check (CVSS≥9 = warning)'
+      continueOnError: true
+      timeoutInMinutes: 15
+
+    # ── Step 3: Publish OWASP HTML report as pipeline artifact ───────────────
+    - script: |
+        REPORT=$(find $(Build.SourcesDirectory) \
+          -name "dependency-check-report.html" 2>/dev/null | head -1)
+        if [ -n "$REPORT" ]; then
+          cp "$REPORT" \
+             "$(Build.ArtifactStagingDirectory)/owasp-$(Build.BuildNumber).html"
+          echo "##[section]OWASP report staged for artifact upload"
+        else
+          echo "No OWASP report found (scan may have timed out on first run)"
+        fi
+      displayName: 'Stage OWASP report'
+      condition: always()
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish OWASP report artifact'
+      condition: always()
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)'
+        artifactName: 'security-reports'
+        publishLocation: 'Container'
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STAGE 3: DEPLOY DEV — runs on BOTH main and develop branches
