@@ -142,6 +142,12 @@
                 <artifactId>commons-fileupload</artifactId>
                 <version>1.6.0</version>
             </dependency>
+            <!-- commons-beanutils: pin to 1.11.0 — fixes CVE-2025-48734 (enum declaredClass property exposure) -->
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>1.11.0</version>
+            </dependency>
             <!-- spring-cloud-config-server: pin to 5.0.2 — fixes CVE-2026-22739 (path traversal via profile param) -->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
