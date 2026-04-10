@@ -43,6 +43,7 @@ jobs:
           exit-code: '0'           # never fail the build — just report
           ignore-unfixed: true
           skip-dirs: '.venv,node_modules,target,.m2'
+          timeout: '15m0s'         # maven pom resolution can take long on cold runner
 
       - name: Upload Trivy FS results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3

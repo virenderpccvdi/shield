@@ -62,22 +62,14 @@ jobs:
             --ignore-vuln PYSEC-2022-42969 \
             --format json \
             --output /tmp/pip-audit.json || true
-          python3 /dev/stdin <<'PYEOF'
-import json, sys
-try:
-    with open('/tmp/pip-audit.json') as f:
-        data = json.load(f)
-    vulns = [v for d in data.get('dependencies', []) for v in d.get('vulns', [])]
-    if vulns:
-        for v in vulns:
-            pkg = v.get('package', '?')
-            desc = v.get('description', '')[:80]
-            print(f"::warning::pip-audit: {v.get('id')} in {pkg} — {desc}")
-    else:
-        print("pip-audit: no vulnerabilities found")
-except Exception as e:
-    print(f"::warning::pip-audit parse error: {e}")
-PYEOF
+          VULN_COUNT=$(jq '[.dependencies[].vulns // []] | flatten | length' /tmp/pip-audit.json 2>/dev/null || echo 0)
+          if [ "${VULN_COUNT:-0}" -gt 0 ]; then
+            jq -r '.dependencies[] | .name as $n | .version as $v | .vulns[]? |
+              "::warning::pip-audit: \(.id) in \($n)==\($v) — \(.description[0:100])"' \
+              /tmp/pip-audit.json 2>/dev/null || true
+          else
+            echo "pip-audit: no vulnerabilities found"
+          fi
 
   # ── 2. Code style and lint ─────────────────────────────────────────────────
   lint:
