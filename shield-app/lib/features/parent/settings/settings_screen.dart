@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../app/theme.dart';
 import '../../../core/api/api_client.dart';
@@ -128,6 +129,11 @@ class SettingsScreen extends ConsumerWidget {
           subtitle: 'Notify when a child\'s device battery is low',
           trailing: Switch(value: true, onChanged: (_) {}),
         ),
+
+        const Divider(),
+
+        // ── Active Sessions ───────────────────────────────────────────────────
+        const _SessionsSection(),
 
         const Divider(),
 
@@ -465,4 +471,251 @@ class _ThemePill extends StatelessWidget {
       ),
     ),
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Active Sessions section
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Simple data class representing one active auth session.
+class _Session {
+  const _Session({
+    required this.id,
+    required this.deviceName,
+    required this.deviceType,
+    required this.ipAddress,
+    required this.lastActive,
+  });
+
+  final String id;
+  final String deviceName;
+  final String deviceType;   // "mobile" | "tablet" | "desktop" | "web"
+  final String ipAddress;
+  final DateTime lastActive;
+
+  factory _Session.fromJson(Map<String, dynamic> j) => _Session(
+    id:          j['id']?.toString() ?? '',
+    deviceName:  j['deviceName']?.toString() ?? j['device_name']?.toString() ?? 'Unknown device',
+    deviceType:  j['deviceType']?.toString() ?? j['device_type']?.toString() ?? 'mobile',
+    ipAddress:   j['ipAddress']?.toString() ?? j['ip_address']?.toString() ?? '',
+    lastActive:  j['lastActiveAt'] != null
+        ? DateTime.tryParse(j['lastActiveAt'].toString()) ?? DateTime.now()
+        : j['last_active_at'] != null
+            ? DateTime.tryParse(j['last_active_at'].toString()) ?? DateTime.now()
+            : DateTime.now(),
+  );
+}
+
+/// Stateful widget that loads and displays active sessions.
+class _SessionsSection extends StatefulWidget {
+  const _SessionsSection();
+
+  @override
+  State<_SessionsSection> createState() => _SessionsSectionState();
+}
+
+class _SessionsSectionState extends State<_SessionsSection> {
+  List<_Session> _sessions = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSessions();
+  }
+
+  Future<void> _loadSessions() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final resp = await ApiClient.instance.get('/auth/sessions');
+      final raw = resp.data;
+      List<dynamic> list;
+      if (raw is List) {
+        list = raw;
+      } else if (raw is Map<String, dynamic>) {
+        list = (raw['data'] as List?) ?? (raw['sessions'] as List?) ?? [];
+      } else {
+        list = [];
+      }
+      if (mounted) {
+        setState(() {
+          _sessions = list
+              .whereType<Map<String, dynamic>>()
+              .map(_Session.fromJson)
+              .toList();
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _loading = false; _error = 'Could not load sessions'; });
+    }
+  }
+
+  Future<void> _revokeSession(String sessionId) async {
+    try {
+      await ApiClient.instance.delete('/auth/sessions/$sessionId');
+      if (mounted) {
+        setState(() => _sessions.removeWhere((s) => s.id == sessionId));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Session revoked')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to revoke session — try again')));
+      }
+    }
+  }
+
+  Future<void> _signOutAll() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Sign Out All Devices'),
+        content: const Text(
+            'This will immediately sign out all devices including this one. '
+            'You will need to log in again.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Ds.danger),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sign Out All'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ApiClient.instance.delete('/auth/sessions');
+      if (mounted) {
+        setState(() => _sessions.clear());
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All sessions signed out'),
+            backgroundColor: Colors.green,
+          ));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to sign out all devices — try again')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader('Active Sessions'),
+
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Center(child: SizedBox(
+              width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )),
+          )
+        else if (_error != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Text(_error!,
+                style: GoogleFonts.inter(fontSize: 13, color: Ds.onSurfaceVariant)),
+          )
+        else if (_sessions.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Text('No active sessions found.',
+                style: GoogleFonts.inter(fontSize: 13, color: Ds.onSurfaceVariant)),
+          )
+        else
+          ..._sessions.map((s) => _SessionTile(
+            session: s,
+            onRevoke: () => _revokeSession(s.id),
+          )),
+
+        ListTile(
+          leading: Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color:        Ds.danger.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.logout_rounded, color: Ds.danger, size: 20),
+          ),
+          title: Text(
+            'Sign out all devices',
+            style: GoogleFonts.inter(
+              fontSize: 14, color: Ds.danger, fontWeight: FontWeight.w600),
+          ),
+          onTap: _signOutAll,
+        ),
+      ],
+    );
+  }
+}
+
+/// A single row representing one session with a revoke button.
+class _SessionTile extends StatelessWidget {
+  const _SessionTile({required this.session, required this.onRevoke});
+
+  final _Session    session;
+  final VoidCallback onRevoke;
+
+  IconData _iconForType(String type) {
+    switch (type.toLowerCase()) {
+      case 'tablet':  return Icons.tablet_android;
+      case 'desktop': return Icons.computer;
+      case 'web':     return Icons.language;
+      default:        return Icons.smartphone;
+    }
+  }
+
+  String _formatAge(DateTime lastActive) {
+    final diff = DateTime.now().difference(lastActive);
+    if (diff.inMinutes < 1)  return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24)   return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        width: 38, height: 38,
+        decoration: BoxDecoration(
+          color:        Ds.primary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(_iconForType(session.deviceType),
+            color: Ds.primary, size: 20),
+      ),
+      title: Text(
+        session.deviceName,
+        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
+      subtitle: Text(
+        '${session.ipAddress}  ·  ${_formatAge(session.lastActive)}',
+        style: GoogleFonts.inter(fontSize: 12, color: Ds.onSurfaceVariant),
+      ),
+      trailing: TextButton(
+        onPressed: onRevoke,
+        style: TextButton.styleFrom(
+          foregroundColor: Ds.danger,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text('Revoke',
+            style: GoogleFonts.inter(
+                fontSize: 13, fontWeight: FontWeight.w600, color: Ds.danger)),
+      ),
+    );
+  }
 }

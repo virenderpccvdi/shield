@@ -4,6 +4,7 @@ import com.rstglobal.shield.common.dto.ApiResponse;
 import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.dns.entity.TenantDnsSettings;
 import com.rstglobal.shield.dns.repository.TenantDnsSettingsRepository;
+import com.rstglobal.shield.dns.service.DnsRulesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class TenantDnsController {
 
     private final TenantDnsSettingsRepository tenantDnsRepo;
+    private final DnsRulesService dnsRulesService;
 
     record UpdateCategoriesRequest(Map<String, Boolean> categories) {}
     record UpdateListRequest(List<String> domains) {}
@@ -76,6 +78,52 @@ public class TenantDnsController {
         return new SettingsResponse(s.getTenantId(), s.getEnabledCategories(),
                 s.getCustomBlocklist(), s.getCustomAllowlist(),
                 s.getSafesearchEnabled(), s.getAdsBlocked());
+    }
+
+    // ── ISP-level category force-block (DNS13) ─────────────────────────────────
+
+    /**
+     * GET /api/v1/dns/rules/tenant/isp-overrides
+     * Returns all ISP-level category overrides for this tenant.
+     */
+    @GetMapping("/isp-overrides")
+    public ApiResponse<Map<String, Boolean>> getIspOverrides(
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        requireIspOrAdmin(role);
+        return ApiResponse.ok(dnsRulesService.getIspCategoryOverrides(tenantId));
+    }
+
+    /**
+     * PUT /api/v1/dns/rules/tenant/isp-overrides/{category}
+     * Set or update an ISP-level category override.
+     * Body: { "blocked": true }
+     * When blocked=true, customers under this ISP cannot enable the category.
+     */
+    @PutMapping("/isp-overrides/{category}")
+    public ApiResponse<String> setIspOverride(
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable String category,
+            @RequestBody Map<String, Boolean> body) {
+        requireIspOrAdmin(role);
+        boolean blocked = Boolean.TRUE.equals(body.get("blocked"));
+        dnsRulesService.setIspCategoryOverride(tenantId, category, blocked);
+        return ApiResponse.ok("ISP override set: " + category + " blocked=" + blocked);
+    }
+
+    /**
+     * DELETE /api/v1/dns/rules/tenant/isp-overrides/{category}
+     * Remove an ISP-level category override, restoring customer control.
+     */
+    @DeleteMapping("/isp-overrides/{category}")
+    public ApiResponse<String> removeIspOverride(
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable String category) {
+        requireIspOrAdmin(role);
+        dnsRulesService.removeIspCategoryOverride(tenantId, category);
+        return ApiResponse.ok("ISP override removed for category: " + category);
     }
 
     private void requireIspOrAdmin(String role) {

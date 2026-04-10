@@ -737,6 +737,16 @@ export default function AiInsightsPage() {
     refetchInterval: 60_000,
   });
 
+  // RD13: Last week's insights for week-over-week comparison
+  const { data: lastWeekInsights } = useQuery({
+    queryKey: ['ai-insights', profileId, 'last-week'],
+    queryFn: () => api.get(`/ai/${profileId}/insights?period=last_week`).then(r => {
+      const d = r.data?.data ?? r.data;
+      return d as InsightsData;
+    }).catch(() => null),
+    enabled: !!profileId,
+  });
+
   // Separate analytics query for weekly trend (insights API doesn't return weeklyTrend)
   const { data: weeklyAnalytics } = useQuery({
     queryKey: ['ai-weekly-analytics', profileId],
@@ -917,8 +927,17 @@ export default function AiInsightsPage() {
                     score={insights?.riskScore ?? 0}
                     level={insights?.riskLevel ?? 'LOW'}
                   />
+                  {/* RD13: Week-over-week comparison */}
+                  {lastWeekInsights?.riskScore != null && insights?.riskScore != null && (() => {
+                    const trend = (insights.riskScore ?? 0) - (lastWeekInsights.riskScore ?? 0);
+                    return (
+                      <Typography variant="caption" sx={{ mt: 1, display: 'block', color: trend < 0 ? '#2E7D32' : trend > 0 ? '#C62828' : 'text.secondary', fontWeight: 600 }}>
+                        {trend < 0 ? '▼' : trend > 0 ? '▲' : '—'} {Math.abs(trend)} vs last week
+                      </Typography>
+                    );
+                  })()}
                   {insights?.summary && (
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block', lineHeight: 1.4 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', lineHeight: 1.4 }}>
                       {insights.summary}
                     </Typography>
                   )}
@@ -1119,8 +1138,8 @@ export default function AiInsightsPage() {
                       />
                     </Box>
                     {/* Anomaly severity distribution chart */}
-                    <Box sx={{ mb: 2, height: 120 }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                    <Box sx={{ mb: 2, height: 120, minHeight: 100 }}>
+                      <ResponsiveContainer width="100%" height="100%" minHeight={100}>
                         <BarChart
                           data={[
                             { name: 'HIGH', value: insights!.anomalies.filter(a => a.severity === 'HIGH').length },
@@ -1258,8 +1277,8 @@ export default function AiInsightsPage() {
                 <Card>
                   <CardContent>
                     <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Top Search Keywords</Typography>
-                    <Box sx={{ height: 250 }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                    <Box sx={{ height: 250, minHeight: 200 }}>
+                      <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                         <BarChart data={keywordChartData} layout="vertical">
                           <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
                           <XAxis type="number" tick={{ fontSize: 12 }} />

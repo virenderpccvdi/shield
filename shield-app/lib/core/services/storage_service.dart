@@ -111,4 +111,23 @@ class StorageService {
   Future<String?> getParentPin()       async => read(AppConstants.keyParentPin);
   Future<void>  setParentPin(String p)       => write(AppConstants.keyParentPin, p);
   Future<void>  clearParentPin()             => delete(AppConstants.keyParentPin);
+
+  // ── DNS rules offline cache ───────────────────────────────────────────────
+  /// Persist DNS rules JSON string and record the current timestamp.
+  Future<void> saveDnsRulesCache(String rulesJson) async {
+    await Future.wait([
+      write(AppConstants.keyDnsRulesCache,     rulesJson),
+      write(AppConstants.keyDnsRulesCacheTime, DateTime.now().toIso8601String()),
+    ]);
+  }
+
+  /// Return cached DNS rules if they exist and are younger than [maxAge].
+  /// Returns null when no cache is available or the cache has expired.
+  Future<String?> loadDnsRulesCache({Duration maxAge = const Duration(hours: 24)}) async {
+    final rulesJson = await read(AppConstants.keyDnsRulesCache);
+    final cacheTime = await read(AppConstants.keyDnsRulesCacheTime);
+    if (rulesJson == null || cacheTime == null) return null;
+    final age = DateTime.now().difference(DateTime.parse(cacheTime));
+    return age <= maxAge ? rulesJson : null;
+  }
 }

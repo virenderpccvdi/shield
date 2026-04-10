@@ -170,6 +170,38 @@ public class InternalNotifyController {
     }
 
     /**
+     * N4: Notify a parent that a new device has logged into their account.
+     * Called by shield-auth or shield-profile after a new device registration.
+     *
+     * <p>Request body:
+     * <pre>{ "parentUserId": "...", "deviceName": "...", "ipAddress": "..." }</pre>
+     */
+    @PostMapping("/new-device")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> notifyNewDevice(
+            @RequestBody Map<String, Object> payload) {
+        String parentUserIdStr = (String) payload.get("parentUserId");
+        String deviceName      = (String) payload.getOrDefault("deviceName", "Unknown Device");
+        String ipAddress       = (String) payload.get("ipAddress");
+
+        if (parentUserIdStr == null || parentUserIdStr.isBlank()) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error("INVALID_REQUEST", "parentUserId is required"));
+        }
+
+        try {
+            java.util.UUID parentUserId = java.util.UUID.fromString(parentUserIdStr);
+            var response = notifService.sendNewDeviceAlert(parentUserId, deviceName, ipAddress);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                    "notificationId", response.getId().toString(),
+                    "status", "sent"
+            )));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error("INVALID_REQUEST", "Invalid parentUserId format"));
+        }
+    }
+
+    /**
      * Manually trigger a monthly report card for a single user — useful for testing
      * and admin-initiated resends without waiting for the 1st-of-month scheduler.
      *

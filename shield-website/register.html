@@ -23,32 +23,497 @@
   }
   </script>
   <link rel="manifest" href="/manifest.json"/>
-  <meta name="theme-color" content="#1565C0"/>
+  <meta name="theme-color" content="#005DAC"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="auth.css?v=3"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --primary: #005DAC;
+      --primary-dark: #003D72;
+      --surface: #F7F9FB;
+      --surface-low: #F0F4F8;
+      --on-surface: #0F1F3D;
+      --on-variant: #4A6481;
+      --outline: #C4D0DC;
+      --shadow: 0 8px 32px -4px rgba(15,31,61,0.06);
+      --r: 12px;
+      --success: #2E7D32;
+      --danger: #C62828;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--surface);
+      color: var(--on-surface);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    /* ── Auth card ── */
+    .auth-card {
+      display: flex;
+      width: 100%;
+      max-width: 980px;
+      min-height: 620px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px -12px rgba(15,31,61,0.14);
+    }
+
+    /* ── Left brand panel ── */
+    .auth-brand {
+      display: flex;
+      flex-direction: column;
+      width: 42%;
+      background: var(--primary);
+      color: #fff;
+      padding: 48px 44px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-brand::before {
+      content: '';
+      position: absolute;
+      top: -100px; right: -80px;
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      pointer-events: none;
+    }
+
+    .auth-brand::after {
+      content: '';
+      position: absolute;
+      bottom: -70px; left: -50px;
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      pointer-events: none;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      color: #fff;
+      text-decoration: none;
+      margin-bottom: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-headline {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 28px;
+      line-height: 1.22;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-headline em {
+      font-style: normal;
+      opacity: 0.78;
+    }
+
+    .brand-sub {
+      font-size: 14px;
+      line-height: 1.65;
+      opacity: 0.78;
+      margin-bottom: 34px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      flex: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .brand-step-num {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.16);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-step-text strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+
+    .brand-step-text span {
+      font-size: 12px;
+      opacity: 0.72;
+      line-height: 1.5;
+    }
+
+    .brand-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 26px;
+      padding: 13px 16px;
+      border-radius: var(--r);
+      background: rgba(255,255,255,0.11);
+      border: 1px solid rgba(255,255,255,0.15);
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-badge-icon { font-size: 22px; line-height: 1; }
+
+    .brand-badge-text strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .brand-badge-text {
+      font-size: 12px;
+      opacity: 0.78;
+    }
+
+    /* ── Right form panel ── */
+    .auth-form-wrap {
+      flex: 1;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 52px;
+      overflow-y: auto;
+    }
+
+    .auth-form-box {
+      width: 100%;
+      max-width: 390px;
+    }
+
+    .form-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--on-variant);
+      text-decoration: none;
+      margin-bottom: 28px;
+      transition: color .15s;
+    }
+
+    .form-back:hover { color: var(--primary); }
+
+    .form-title {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 28px;
+      color: var(--on-surface);
+      margin-bottom: 6px;
+    }
+
+    .form-subtitle {
+      font-size: 14px;
+      color: var(--on-variant);
+      margin-bottom: 24px;
+    }
+
+    .form-subtitle a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* Alert */
+    .alert {
+      display: none;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: var(--r);
+      font-size: 13.5px;
+      line-height: 1.45;
+      margin-bottom: 18px;
+    }
+
+    .alert.show { display: flex; }
+
+    .alert-error {
+      background: #fef2f2;
+      color: var(--danger);
+      border: 1px solid #fecaca;
+    }
+
+    .alert-success {
+      background: #f0fdf4;
+      color: var(--success);
+      border: 1px solid #bbf7d0;
+    }
+
+    /* Fields */
+    .field { margin-bottom: 15px; }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--on-surface);
+      margin-bottom: 6px;
+    }
+
+    .label-opt {
+      font-weight: 400;
+      color: var(--on-variant);
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrap > svg:first-child {
+      position: absolute;
+      left: 14px;
+      color: var(--on-variant);
+      pointer-events: none;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      background: var(--surface-low);
+      border: none;
+      border-radius: 10px;
+      padding: 12px 16px 12px 42px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      color: var(--on-surface);
+      outline: none;
+      transition: box-shadow .15s;
+    }
+
+    .input-wrap input:focus {
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .input-wrap input.error {
+      box-shadow: 0 0 0 2px var(--danger);
+    }
+
+    .input-wrap input::placeholder { color: var(--outline); }
+
+    .pwd-toggle {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      color: var(--on-variant);
+      display: flex;
+      align-items: center;
+    }
+
+    .field-error {
+      display: none;
+      font-size: 12px;
+      color: var(--danger);
+      margin-top: 5px;
+    }
+
+    .field-error.show { display: block; }
+
+    /* Password strength */
+    .pwd-strength { margin-top: 8px; }
+
+    .pwd-strength-bar {
+      height: 4px;
+      background: var(--outline);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .pwd-strength-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width .3s, background .3s;
+      width: 0;
+    }
+
+    .pwd-strength-label {
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+
+    /* Phone row */
+    .phone-wrap { display: flex; gap: 8px; }
+
+    .phone-prefix {
+      background: var(--surface-low);
+      border: none;
+      border-radius: 10px;
+      padding: 12px 10px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--on-surface);
+      cursor: pointer;
+      outline: none;
+      flex-shrink: 0;
+    }
+
+    /* Checkbox */
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--on-variant);
+    }
+
+    .checkbox-wrap input[type="checkbox"] { accent-color: var(--primary); }
+
+    .checkbox-wrap a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* Submit button */
+    .btn-submit {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background .15s, transform .1s;
+      position: relative;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .btn-submit:hover:not(:disabled) { background: var(--primary-dark); }
+    .btn-submit:active:not(:disabled) { transform: scale(0.99); }
+    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+    .spinner {
+      display: none;
+      width: 17px; height: 17px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .btn-submit.loading .btn-text { opacity: 0; }
+    .btn-submit.loading .spinner { display: block; position: absolute; }
+
+    /* Bottom links */
+    .form-switch {
+      text-align: center;
+      font-size: 13.5px;
+      color: var(--on-variant);
+      margin-top: 20px;
+    }
+
+    .form-switch a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .form-trust {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid var(--outline);
+    }
+
+    .form-trust-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      color: var(--on-variant);
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      body { padding: 16px; align-items: flex-start; }
+
+      .auth-card {
+        flex-direction: column;
+        min-height: unset;
+        border-radius: var(--r);
+      }
+
+      .auth-brand { display: none; }
+
+      .auth-form-wrap { padding: 36px 28px; }
+    }
+  </style>
 </head>
 <body>
 
-<div class="auth-page">
 <div class="auth-card">
 
-  <!-- ══ LEFT — Brand Panel ══ -->
+  <!-- LEFT — Brand Panel -->
   <aside class="auth-brand">
-    <div class="brand-glow-top"></div>
-
     <a href="/" class="brand-logo">
       <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
-        <path d="M16 2L4 8v8c0 7.18 5.16 13.9 12 15.5C22.84 29.9 28 23.18 28 16V8L16 2z" fill="rgba(255,255,255,.2)"/>
-        <path d="M16 6L7 11v5c0 5.15 3.7 9.96 9 11.35C21.3 25.96 25 21.15 25 16v-5L16 6z" fill="rgba(255,255,255,.45)"/>
+        <path d="M16 2L4 8v8c0 7.18 5.16 13.9 12 15.5C22.84 29.9 28 23.18 28 16V8L16 2z" fill="rgba(255,255,255,.18)"/>
+        <path d="M16 6L7 11v5c0 5.15 3.7 9.96 9 11.35C21.3 25.96 25 21.15 25 16v-5L16 6z" fill="rgba(255,255,255,.42)"/>
         <path d="M13 15.5l2 2 4-4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       Shield
     </a>
 
-    <h1 class="brand-headline">Set up your family's<br/><em>protection in</em><br/>2 minutes.</h1>
+    <h1 class="brand-headline">Join Shield —<br/><em>protect your family</em><br/>in 2 minutes.</h1>
     <p class="brand-sub">Join thousands of parents protecting their children — completely free, no credit card required.</p>
 
     <div class="brand-steps">
@@ -91,7 +556,7 @@
     </div>
   </aside>
 
-  <!-- ══ RIGHT — Form Panel ══ -->
+  <!-- RIGHT — Form Panel -->
   <main class="auth-form-wrap">
     <div class="auth-form-box">
 
@@ -102,12 +567,10 @@
         Back to home
       </a>
 
-      <div class="form-header">
-        <h2 class="form-title">Create your account</h2>
-        <p class="form-subtitle">
-          Already have an account? <a href="login.html">Sign in</a>
-        </p>
-      </div>
+      <h2 class="form-title">Create Account</h2>
+      <p class="form-subtitle">
+        Already have an account? <a href="login.html">Sign in</a>
+      </p>
 
       <!-- Alerts -->
       <div class="alert alert-error" id="alertBox" role="alert">
@@ -169,7 +632,7 @@
               <option value="+61">🇦🇺 +61</option>
               <option value="+65">🇸🇬 +65</option>
             </select>
-            <div class="input-wrap">
+            <div class="input-wrap" style="flex:1">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.06 1.22 2 2 0 012.03 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
               </svg>
@@ -226,7 +689,7 @@
         </div>
 
         <!-- Terms -->
-        <div class="field" style="margin-bottom:24px;">
+        <div class="field" style="margin-bottom:20px;">
           <label class="checkbox-wrap">
             <input type="checkbox" id="terms" name="terms"/>
             I agree to Shield's
@@ -272,7 +735,6 @@
     </div>
   </main>
 
-</div>
 </div>
 
 <script>

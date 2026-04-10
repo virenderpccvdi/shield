@@ -51,6 +51,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/v1/billing/",
             "/api/v1/admin/contact/submit",
             "/api/v1/admin/visitors/track",
+            "/api/v1/admin/plans/public",
             "/actuator/health",
             "/actuator/info",
             "/api/v1/ai/actuator/health",

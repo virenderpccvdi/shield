@@ -6,6 +6,8 @@ import com.rstglobal.shield.dns.entity.DnsRules;
 import com.rstglobal.shield.dns.repository.DnsRulesRepository;
 import com.rstglobal.shield.dns.service.BudgetEnforcementService;
 import com.rstglobal.shield.dns.service.BudgetTrackingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +32,7 @@ import java.util.UUID;
  * <p>This is distinct from {@link BudgetController} which manages the per-app
  * {@code timeBudgets} JSONB map.  Here we expose the simpler top-level column.
  */
+@Tag(name = "Daily Time Limits", description = "Per-profile daily internet budget: set, query, and reset the daily screen-time allowance")
 @RestController
 @RequestMapping("/api/v1/dns/time-limits")
 @RequiredArgsConstructor
@@ -46,6 +49,7 @@ public class TimeLimitsController {
      * Returns the daily budget (minutes), today's used minutes, remaining minutes,
      * and whether the budget is currently exhausted.
      */
+    @Operation(summary = "Get daily time limit and usage for a profile", description = "Returns the configured daily budget (minutes), today's used minutes, remaining minutes, and whether the budget is exhausted.")
     @GetMapping("/{profileId}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getTimeLimits(
             @PathVariable UUID profileId,
@@ -87,6 +91,7 @@ public class TimeLimitsController {
      * Send {@code {"dailyBudgetMinutes": 120}} to allow 2 h/day.
      * Send {@code {"dailyBudgetMinutes": null}} or {@code {"dailyBudgetMinutes": 0}} to remove the limit.
      */
+    @Operation(summary = "Set or clear the daily internet budget for a profile", description = "Send dailyBudgetMinutes > 0 to set a limit; send 0 or null to remove it.")
     @PutMapping("/{profileId}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> setTimeLimits(
             @PathVariable UUID profileId,
@@ -125,6 +130,7 @@ public class TimeLimitsController {
      * Reset today's usage counter and clear the exhausted flag.
      * Useful when a parent wants to give the child a fresh start mid-day.
      */
+    @Operation(summary = "Reset today's usage counter for a profile", description = "Clears today's used minutes and the budget-exhausted flag, giving the child a fresh start mid-day.")
     @PostMapping("/{profileId}/reset")
     public ResponseEntity<ApiResponse<Map<String, Object>>> resetUsage(
             @PathVariable UUID profileId,

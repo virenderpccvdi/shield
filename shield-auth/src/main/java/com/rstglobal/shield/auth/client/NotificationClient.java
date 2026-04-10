@@ -211,6 +211,41 @@ public class NotificationClient {
         }
     }
 
+    /**
+     * Sends a co-parent invitation email with a registration link containing the invite token.
+     * Fire-and-forget — failure is only logged, never rethrown.
+     */
+    @Async
+    public void sendCoParentInviteEmail(String toEmail, String familyName, String inviteToken) {
+        try {
+            String registerUrl = APP_DOMAIN + "/app/register?inviteToken=" + inviteToken;
+
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("familyName",   familyName != null && !familyName.isBlank() ? familyName : "your family");
+            variables.put("registerUrl",  registerUrl);
+            variables.put("supportEmail", SUPPORT_EMAIL);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("to",           toEmail);
+            payload.put("subject",      "You've been invited to manage " +
+                                        (familyName != null && !familyName.isBlank() ? familyName : "your family") +
+                                        " on Shield");
+            payload.put("templateName", "co-parent-invite");
+            payload.put("variables",    variables);
+
+            restClient.post()
+                    .uri(notificationBaseUrl + "/internal/notifications/email")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Co-parent invite email dispatched to {}", toEmail);
+        } catch (Exception e) {
+            log.warn("Failed to send co-parent invite email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
     /** Sends a password-reset email from an admin reset action, containing the new plaintext password. */
     @Async
     public void sendAdminPasswordResetEmail(String email, String name, String newPassword) {

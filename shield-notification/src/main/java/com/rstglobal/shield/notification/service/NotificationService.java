@@ -85,6 +85,33 @@ public class NotificationService {
         return notifRepo.markAllReadByUserId(userId);
     }
 
+    /**
+     * N4: Send a push notification to a parent when a new device accesses their account.
+     * Persists the notification and dispatches push via FCM topic.
+     *
+     * @param parentUserId UUID of the parent user
+     * @param deviceName   name or model of the new device
+     * @param ipAddress    IP address of the new login
+     */
+    @Transactional
+    public NotificationResponse sendNewDeviceAlert(UUID parentUserId, String deviceName, String ipAddress) {
+        String body = "Your account was accessed from " + deviceName;
+        if (ipAddress != null && !ipAddress.isBlank()) {
+            body += " (" + ipAddress + ")";
+        }
+        Notification n = Notification.builder()
+                .userId(parentUserId)
+                .type("NEW_DEVICE_LOGIN")
+                .title("New Device Login")
+                .body(body)
+                .actionUrl("/app/settings/devices")
+                .build();
+        Notification saved = notifRepo.save(n);
+        // Push via topic so all of the parent's devices receive the alert
+        dispatcher.dispatchNewDeviceAlert(saved, "user-" + parentUserId);
+        return toResponse(saved);
+    }
+
     private NotificationResponse toResponse(Notification n) {
         return NotificationResponse.builder()
                 .id(n.getId())

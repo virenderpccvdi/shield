@@ -1,5 +1,6 @@
 package com.rstglobal.shield.admin.service;
 
+import com.rstglobal.shield.admin.dto.response.PublicPlanResponse;
 import com.rstglobal.shield.admin.entity.SubscriptionPlan;
 import com.rstglobal.shield.admin.repository.SubscriptionPlanRepository;
 import com.rstglobal.shield.common.exception.ShieldException;
@@ -30,6 +31,23 @@ public class SubscriptionPlanService {
     /** ISP-level plans (platform plans that ISPs subscribe to) */
     public List<SubscriptionPlan> listIspPlans() {
         return repo.findByPlanTypeAndActiveTrueOrderBySortOrder("ISP");
+    }
+
+    /** Public-facing ISP plan list — no auth required — for marketing pages. */
+    public List<PublicPlanResponse> getPublicPlans() {
+        return repo.findByPlanTypeAndActiveTrueOrderBySortOrder("ISP").stream()
+                .map(p -> PublicPlanResponse.builder()
+                        .id(p.getId())
+                        .name(p.getName())
+                        .displayName(p.getDisplayName())
+                        .price(p.getPrice())
+                        .billingCycle(p.getBillingCycle())
+                        .description(p.getDescription())
+                        .features(p.getFeatures())
+                        .maxProfilesPerCustomer(p.getMaxProfilesPerCustomer())
+                        .sortOrder(p.getSortOrder())
+                        .build())
+                .toList();
     }
 
     /** Customer plans created by a specific ISP tenant */

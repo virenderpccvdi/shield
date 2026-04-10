@@ -76,6 +76,23 @@ public class AlertPreference {
     @Builder.Default
     private Boolean weeklyReportEnabled = true;
 
+    // ── Safety / event alert type toggles ─────────────────────────────────────
+    @Column(name = "geofence_alerts", nullable = false)
+    @Builder.Default
+    private Boolean geofenceAlerts = true;
+
+    @Column(name = "anomaly_alerts", nullable = false)
+    @Builder.Default
+    private Boolean anomalyAlerts = true;
+
+    @Column(name = "sos_alerts", nullable = false)
+    @Builder.Default
+    private Boolean sosAlerts = true;
+
+    @Column(name = "bedtime_alerts", nullable = false)
+    @Builder.Default
+    private Boolean bedtimeAlerts = true;
+
     // ── External channel contacts ──────────────────────────────────────────
     @Column(name = "whatsapp_number", length = 20)
     private String whatsappNumber;

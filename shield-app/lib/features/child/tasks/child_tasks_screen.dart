@@ -18,11 +18,15 @@ final _childTasksProvider = FutureProvider.autoDispose<List<Map<String, dynamic>
   return raw.whereType<Map<String, dynamic>>().toList();
 });
 
-class ChildTasksScreen extends ConsumerWidget {
+class ChildTasksScreen extends ConsumerStatefulWidget {
   const ChildTasksScreen({super.key});
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChildTasksScreen> createState() => _ChildTasksScreenState();
+}
+
+class _ChildTasksScreenState extends ConsumerState<ChildTasksScreen> {
+  @override
+  Widget build(BuildContext context) {
     final tasks = ref.watch(_childTasksProvider);
 
     return Scaffold(
@@ -118,21 +122,29 @@ class ChildTasksScreen extends ConsumerWidget {
                 _SectionLabel('To Do', color: Colors.white),
                 ...pending.map((t) => _TaskTile(
                     task: t,
+                    onTap: () => _showTaskDetail(context, t),
                     onComplete: () => _complete(context, ref, t))),
               ],
               if (submitted.isNotEmpty) ...[
                 _SectionLabel('Waiting for Approval',
                     color: const Color(0xFFFFB300)),
-                ...submitted.map((t) => _TaskTile(task: t, onComplete: null)),
+                ...submitted.map((t) => _TaskTile(
+                    task: t,
+                    onTap: () => _showTaskDetail(context, t),
+                    onComplete: null)),
               ],
               if (completed.isNotEmpty) ...[
                 _SectionLabel('Completed', color: const Color(0xFF4CAF50)),
-                ...completed.map((t) => _TaskTile(task: t, onComplete: null)),
+                ...completed.map((t) => _TaskTile(
+                    task: t,
+                    onTap: () => _showTaskDetail(context, t),
+                    onComplete: null)),
               ],
               if (rejected.isNotEmpty) ...[
                 _SectionLabel('Needs Redo', color: const Color(0xFFEF5350)),
                 ...rejected.map((t) => _TaskTile(
                     task: t,
+                    onTap: () => _showTaskDetail(context, t),
                     onComplete: () => _complete(context, ref, t))),
               ],
             ],
@@ -143,6 +155,65 @@ class ChildTasksScreen extends ConsumerWidget {
     );
   }
 
+  // FL11: Task detail bottom sheet
+  void _showTaskDetail(BuildContext context, Map<String, dynamic> task) {
+    final title       = task['title']?.toString() ?? '';
+    final description = task['description']?.toString();
+    final points      = task['points'] ?? 0;
+    final dueDate     = task['dueDate']?.toString();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0D2137),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusChild)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text(title,
+                style: GoogleFonts.manrope(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white)),
+            if (description != null && description.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(description,
+                  style: GoogleFonts.inter(
+                      color: Colors.white.withOpacity(0.65),
+                      fontSize: 14,
+                      height: 1.5)),
+            ],
+            const SizedBox(height: 18),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              _InfoChip(
+                  Icons.star_rounded, '+$points pts', const Color(0xFFFFB300)),
+              if (dueDate != null && dueDate.isNotEmpty)
+                _InfoChip(
+                    Icons.calendar_today_rounded, dueDate, Ds.info),
+            ]),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // FL12: Complete with undo snack bar
   void _complete(BuildContext context, WidgetRef ref,
       Map<String, dynamic> task) async {
     final pid    = ref.read(authProvider).childProfileId ?? '';
@@ -153,9 +224,15 @@ class ChildTasksScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Task complete! +${task['points'] ?? 0} points',
+            content: Text('Task completed! +${task['points'] ?? 0} pts',
                 style: GoogleFonts.inter(
                     color: Colors.white, fontWeight: FontWeight.w600)),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Undo',
+              textColor: Colors.white,
+              onPressed: () => _uncomplete(context, ref, taskId),
+            ),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -171,6 +248,53 @@ class ChildTasksScreen extends ConsumerWidget {
       }
     }
   }
+
+  // FL12: Undo task completion — revert to PENDING
+  Future<void> _uncomplete(
+      BuildContext context, WidgetRef ref, String taskId) async {
+    try {
+      // PUT /rewards/tasks/{id} with status reset to PENDING
+      await ApiClient.instance.put(
+        '/rewards/tasks/$taskId',
+        data: {'status': 'PENDING'},
+      );
+      ref.invalidate(_childTasksProvider);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not undo — please contact parent',
+                style: GoogleFonts.inter(color: Colors.white)),
+          ),
+        );
+      }
+    }
+  }
+}
+
+// ── Info chip used in task detail sheet ───────────────────────────────────────
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip(this.icon, this.label, this.color);
+  final IconData icon;
+  final String   label;
+  final Color    color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color:        color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Text(label,
+              style: GoogleFonts.inter(
+                  fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+        ]),
+      );
 }
 
 // ── Progress card ─────────────────────────────────────────────────────────────
@@ -250,9 +374,14 @@ class _SectionLabel extends StatelessWidget {
 // ── Task tile ─────────────────────────────────────────────────────────────────
 
 class _TaskTile extends StatelessWidget {
-  const _TaskTile({required this.task, required this.onComplete});
+  const _TaskTile({
+    required this.task,
+    required this.onComplete,
+    this.onTap,
+  });
   final Map<String, dynamic> task;
   final VoidCallback? onComplete;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +416,8 @@ class _TaskTile extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(Ds.radiusChild),
                 splashColor:  Colors.white.withOpacity(0.05),
-                onTap:        onComplete,
+                // FL11: show detail on tap anywhere; onComplete only on "Done" button
+                onTap: onTap,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   child: Row(children: [
@@ -324,19 +454,23 @@ class _TaskTile extends StatelessWidget {
                     )),
 
                     if (onComplete != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 7),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF43A047), Color(0xFF2E7D32)],
+                      GestureDetector(
+                        onTap: onComplete,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 7),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF43A047), Color(0xFF2E7D32)],
+                            ),
+                            borderRadius: BorderRadius.circular(99),
                           ),
-                          borderRadius: BorderRadius.circular(99),
+                          child: Text('Done',
+                              style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700)),
                         ),
-                        child: Text('Done',
-                            style: GoogleFonts.inter(
-                                color: Colors.white, fontSize: 12,
-                                fontWeight: FontWeight.w700)),
                       ),
                   ]),
                 ),

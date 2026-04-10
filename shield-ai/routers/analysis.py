@@ -34,6 +34,8 @@ async def analyze_batch(
             from routers.alerts import register_alert
             # Normalize to 0-1 (IsolationForest decision_function is negative for anomalies)
             normalized_score = min(abs(result.score) * 2, 1.0)
+            confidence_str = f", confidence={result.confidence_score}%" if result.confidence_score is not None else ""
+            explanation_str = f" {result.explanation}" if result.explanation else ""
             await register_alert(
                 db=db,
                 profile_id=str(request.profileId),
@@ -41,8 +43,8 @@ async def analyze_batch(
                 severity=result.severity.value,
                 score=normalized_score,
                 description=f"Anomaly detected for profile {request.profileId} "
-                            f"(score={normalized_score:.2f}, severity={result.severity.value}). "
-                            f"Unusual internet usage pattern identified by IsolationForest model."
+                            f"(score={normalized_score:.2f}, severity={result.severity.value}"
+                            f"{confidence_str}).{explanation_str}"
             )
         except Exception as e:
             logger.warning("Failed to register alert: %s", e)

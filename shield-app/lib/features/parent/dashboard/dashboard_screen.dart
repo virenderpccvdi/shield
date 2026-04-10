@@ -107,7 +107,13 @@ class DashboardScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: children.when(
               loading: () => const _KpiSkeleton(),
-              error:   (_, __) => const SizedBox.shrink(),
+              error:   (e, _) => Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                child: _InlineError(
+                  message: 'Could not load children',
+                  onRetry: () => ref.invalidate(_dashChildrenProvider),
+                ),
+              ),
               data:    (list) => _KpiRow(
                 children:    list.length,
                 online:      list.where((c) => c.isActive).length,
@@ -120,7 +126,13 @@ class DashboardScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: activity.when(
               loading: () => const _ChartSkeleton(),
-              error:   (_, __) => const SizedBox.shrink(),
+              error:   (e, _) => Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                child: _InlineError(
+                  message: 'Could not load activity data',
+                  onRetry: () => ref.invalidate(_dashActivityProvider),
+                ),
+              ),
               data:    (data) => _ActivityChart(data: data),
             ),
           ),
@@ -172,7 +184,15 @@ class DashboardScreen extends ConsumerWidget {
                   padding: EdgeInsets.all(32),
                   child: CircularProgressIndicator(),
                 ))),
-            error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+            error: (e, _) => SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: _InlineError(
+                  message: 'Could not load alerts',
+                  onRetry: () => ref.invalidate(_dashAlertsProvider),
+                ),
+              ),
+            ),
             data: (list) {
               if (list.isEmpty) {
                 return const SliverToBoxAdapter(
@@ -216,6 +236,46 @@ class DashboardScreen extends ConsumerWidget {
     if (h < 12) return 'Good Morning';
     if (h < 17) return 'Good Afternoon';
     return 'Good Evening';
+  }
+}
+
+// ── Inline error with retry (used in sliver contexts) ─────────────────────────
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(Ds.radiusDefault),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(children: [
+          Icon(Icons.cloud_off_rounded, size: 20, color: cs.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(message,
+                style: GoogleFonts.inter(
+                    fontSize: 13, color: cs.onSurfaceVariant)),
+          ),
+          TextButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: const Text('Retry'),
+            style: TextButton.styleFrom(
+              foregroundColor: Ds.primary,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 }
 

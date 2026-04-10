@@ -5,6 +5,8 @@ import com.rstglobal.shield.dns.entity.DomainBlocklist;
 import com.rstglobal.shield.dns.entity.FilterCategory;
 import com.rstglobal.shield.dns.repository.DomainBlocklistRepository;
 import com.rstglobal.shield.dns.repository.FilterCategoryRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
  * Public:   GET /api/v1/dns/categories/full    → enriched category list with domain counts
  * Internal: GET /internal/dns/domain-blocklist → {domain, categoryId} list for Redis loader
  */
+@Tag(name = "DNS Filter Categories", description = "Content category metadata and internal domain-blocklist endpoints")
 @RestController
 @RequiredArgsConstructor
 public class FilterCategoryController {
@@ -32,6 +35,7 @@ public class FilterCategoryController {
      * Returns all filter categories with metadata including domain counts per category.
      * Used by Flutter DNS rules screen and React dashboard to display category cards.
      */
+    @Operation(summary = "Get all filter categories with domain counts", description = "Returns all 43 content categories with metadata including risk level, filter-level defaults, and domain count per category.")
     @GetMapping("/api/v1/dns/categories/full")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getFullCategories() {
         List<FilterCategory> cats = categoryRepo.findAllByOrderByDisplayOrderAsc();
@@ -68,6 +72,7 @@ public class FilterCategoryController {
      * Called at startup by shield-dns-resolver/CategoryCacheLoader to populate Redis.
      * Not exposed through the gateway (internal only).
      */
+    @Operation(summary = "Internal: dump all domain-to-category mappings for Redis cache loader", description = "Not exposed through the gateway; called at startup by CategoryCacheLoader to populate the Redis blocklist.")
     @GetMapping("/internal/dns/domain-blocklist")
     public List<Map<String, String>> getDomainBlocklist() {
         return domainRepo.findAllDomainCategoryMappings().stream()
@@ -79,6 +84,7 @@ public class FilterCategoryController {
 
     // ─── Internal: single domain lookup ──────────────────────────────────────
 
+    @Operation(summary = "Internal: look up the category for a single domain")
     @GetMapping("/internal/dns/domain-category/{domain}")
     public ResponseEntity<Map<String, String>> getDomainCategory(
             @PathVariable String domain) {

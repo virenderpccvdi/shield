@@ -10,6 +10,8 @@ import com.rstglobal.shield.auth.service.AuthService;
 import com.rstglobal.shield.auth.service.MfaService;
 import com.rstglobal.shield.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -26,7 +28,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "Auth", description = "Authentication & token management")
+@Tag(name = "Authentication", description = "Login, registration, JWT tokens, MFA, sessions, and admin user management")
 public class AuthController {
 
     private final AuthService authService;
@@ -35,21 +37,34 @@ public class AuthController {
     /** Public: Register a new CUSTOMER account. ISP_ADMIN/GLOBAL_ADMIN created by admin endpoints. */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Register a new customer account")
+    @Operation(summary = "Register a new customer account", description = "Creates a CUSTOMER account and sends a verification email.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Account created"),
+        @ApiResponse(responseCode = "409", description = "Email already registered")
+    })
     public ApiResponse<UserResponse> register(@Valid @RequestBody RegisterRequest req, HttpServletRequest httpReq) {
         return ApiResponse.ok(authService.register(req, UserRole.CUSTOMER, extractIp(httpReq)));
     }
 
     /** Public: Login — returns access + refresh tokens. */
     @PostMapping("/login")
-    @Operation(summary = "Login and receive JWT tokens")
+    @Operation(summary = "Login and receive JWT tokens", description = "Authenticates credentials and returns JWT access + refresh tokens. Returns mfaRequired=true if MFA is enabled on the account.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Login successful"),
+        @ApiResponse(responseCode = "401", description = "Invalid credentials"),
+        @ApiResponse(responseCode = "429", description = "Too many failed attempts")
+    })
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest req, HttpServletRequest httpReq) {
         return ApiResponse.ok(authService.login(req, extractIp(httpReq), httpReq.getHeader("User-Agent")));
     }
 
     /** Public: Refresh access token using a valid refresh token. */
     @PostMapping("/refresh")
-    @Operation(summary = "Refresh access token")
+    @Operation(summary = "Refresh access token", description = "Issues a new access token given a valid, non-expired refresh token.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "New access token issued"),
+        @ApiResponse(responseCode = "401", description = "Refresh token invalid or expired")
+    })
     public ApiResponse<AuthResponse> refresh(@Valid @RequestBody RefreshRequest req) {
         return ApiResponse.ok(authService.refresh(req));
     }
@@ -75,7 +90,8 @@ public class AuthController {
 
     /** Public: Request a password reset OTP (sent via notification service). */
     @PostMapping("/forgot-password")
-    @Operation(summary = "Request password reset OTP")
+    @Operation(summary = "Request password reset OTP", description = "Sends a password reset OTP to the registered email address; always returns 200 to prevent email enumeration.")
+    @ApiResponse(responseCode = "200", description = "OTP sent if email is registered")
     public ApiResponse<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
         authService.forgotPassword(req);
         return ApiResponse.ok(null, "If this email is registered, a reset code has been sent.");
@@ -84,6 +100,10 @@ public class AuthController {
     /** Public: Reset password with OTP token. */
     @PostMapping("/reset-password")
     @Operation(summary = "Reset password with token")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Password reset successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid or expired token")
+    })
     public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
         authService.resetPassword(req);
         return ApiResponse.ok(null, "Password reset successfully.");
@@ -92,6 +112,7 @@ public class AuthController {
     /** Authenticated: Logout — invalidates the refresh token and blacklists the access token. */
     @PostMapping("/logout")
     @Operation(summary = "Logout — revoke refresh token and blacklist access token")
+    @ApiResponse(responseCode = "200", description = "Logged out successfully")
     public ApiResponse<Void> logout(
             @RequestHeader(value = "X-User-Id", required = false) UUID userId,
             @RequestBody(required = false) RefreshRequest req) {
@@ -222,6 +243,17 @@ public class AuthController {
             throw com.rstglobal.shield.common.exception.ShieldException.badRequest("Invalid role: " + req.getRole());
         }
         return ApiResponse.ok(authService.adminRegister(req, role));
+    }
+
+    /** Authenticated: Send a co-parent invite email. Caller must be CUSTOMER or CO_PARENT. */
+    @PostMapping("/invite/co-parent")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Send co-parent invite — generates a 7-day invite token and emails the invitee")
+    public ApiResponse<Void> inviteCoParent(
+            @RequestHeader("X-User-Id") UUID userId,
+            @Valid @RequestBody com.rstglobal.shield.auth.dto.request.CoParentInviteRequest req) {
+        authService.sendCoParentInvite(userId, req);
+        return ApiResponse.ok(null, "Invite email sent. The link is valid for 7 days.");
     }
 
     /** Authenticated: Issue a limited child device token. Caller must be the parent. */

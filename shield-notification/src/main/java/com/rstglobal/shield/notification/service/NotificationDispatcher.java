@@ -54,6 +54,31 @@ public class NotificationDispatcher {
     private NoOpSmsService noOpSmsService;
 
     /**
+     * N4: Dispatch a new-device login alert to the parent via FCM topic and WebSocket.
+     * Does not send email — this is a real-time security push only.
+     *
+     * @param notification  The saved Notification entity
+     * @param topic         FCM topic (e.g. "user-{parentUserId}")
+     */
+    public void dispatchNewDeviceAlert(Notification notification, String topic) {
+        // 1. WebSocket (real-time in-app)
+        pushWebSocket(notification);
+
+        // 2. FCM push to all parent devices via topic
+        try {
+            java.util.Map<String, String> data = java.util.Map.of(
+                    "type", notification.getType(),
+                    "notificationId", notification.getId().toString(),
+                    "actionUrl", notification.getActionUrl() != null ? notification.getActionUrl() : ""
+            );
+            fcmService.sendToTopic(topic, notification.getTitle(), notification.getBody(), data);
+        } catch (Exception e) {
+            log.debug("FCM topic push failed for new-device alert userId={}: {}",
+                    notification.getUserId(), e.getMessage());
+        }
+    }
+
+    /**
      * @param notification  The saved Notification entity
      * @param toEmail       User's email address
      */
@@ -190,6 +215,14 @@ public class NotificationDispatcher {
             case "EXTENSION_REQUESTED", "EXTENSION_APPROVED", "EXTENSION_REJECTED" ->
                     Boolean.TRUE.equals(pref.getExtensionAlerts());
             case "WEEKLY_REPORT" -> Boolean.TRUE.equals(pref.getWeeklyReportEnabled());
+            case "GEOFENCE_BREACH", "GEOFENCE_BREACH_HIGH", "GEOFENCE_BREACH_LOW" ->
+                    Boolean.TRUE.equals(pref.getGeofenceAlerts());
+            case "ANOMALY_DETECTED", "ANOMALY_ALERT" ->
+                    Boolean.TRUE.equals(pref.getAnomalyAlerts());
+            case "SOS_ALERT", "SOS_PANIC" ->
+                    Boolean.TRUE.equals(pref.getSosAlerts());
+            case "BEDTIME_START", "BEDTIME_LOCK", "BEDTIME_REMINDER" ->
+                    Boolean.TRUE.equals(pref.getBedtimeAlerts());
             default -> true;
         };
     }
@@ -208,6 +241,8 @@ public class NotificationDispatcher {
                 .blockAlerts(true).scheduleAlerts(true)
                 .budgetAlerts(true).extensionAlerts(true)
                 .weeklyReportEnabled(true)
+                .geofenceAlerts(true).anomalyAlerts(true)
+                .sosAlerts(true).bedtimeAlerts(true)
                 .build();
     }
 }

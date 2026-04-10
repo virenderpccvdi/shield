@@ -1,8 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/services.dart';
+import '../api/api_client.dart';
 import '../constants.dart';
+import 'storage_service.dart';
 
 /// Communicates with the native VPN service via MethodChannel.
 /// Channel name must exactly match MainActivity.kt: "com.rstglobal.shield/vpn"
+///
+/// Also owns the DNS rules offline cache: [fetchDnsRules] tries the backend
+/// first, persists the result, then falls back to the local cache when the
+/// network is unavailable.
 class DnsVpnService {
   DnsVpnService._();
 
@@ -48,5 +55,41 @@ class DnsVpnService {
     } on PlatformException {
       return false;
     }
+  }
+
+  // ── DNS rules offline cache ───────────────────────────────────────────────
+
+  /// Fetch DNS rules for [profileId] from the backend.
+  ///
+  /// On success the rules are persisted to encrypted local storage so the app
+  /// can operate when the network is unavailable.  On any network error the
+  /// cached copy (up to 24 h old) is returned instead.  Returns null only
+  /// when both the network call fails and no valid cache exists.
+  static Future<Map<String, dynamic>?> fetchDnsRules(String profileId) async {
+    try {
+      final resp = await ApiClient.instance.get(
+        '/dns/profiles/$profileId/rules',
+      );
+      final data = resp.data is Map<String, dynamic>
+          ? resp.data as Map<String, dynamic>
+          : <String, dynamic>{'rules': resp.data};
+
+      // Persist to cache on success.
+      await StorageService.instance.saveDnsRulesCache(jsonEncode(data));
+      return data;
+    } catch (_) {
+      // Network or server error — try local cache.
+      final cached = await StorageService.instance.loadDnsRulesCache();
+      if (cached != null) {
+        return jsonDecode(cached) as Map<String, dynamic>;
+      }
+      return null;
+    }
+  }
+
+  /// Save DNS rules to the local cache without making a network call.
+  /// Useful when rules are already fetched as part of a larger profile load.
+  static Future<void> cacheDnsRules(Map<String, dynamic> rules) async {
+    await StorageService.instance.saveDnsRulesCache(jsonEncode(rules));
   }
 }

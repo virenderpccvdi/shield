@@ -1,5 +1,6 @@
 package com.rstglobal.shield.admin.controller;
 
+import com.rstglobal.shield.admin.dto.PublicPlanDto;
 import com.rstglobal.shield.admin.entity.SubscriptionPlan;
 import com.rstglobal.shield.admin.service.AuditLogService;
 import com.rstglobal.shield.admin.service.StripeService;
@@ -56,6 +57,20 @@ public class SubscriptionPlanController {
     @GetMapping("/isp")
     public ResponseEntity<ApiResponse<List<SubscriptionPlan>>> listIspPlans() {
         return ResponseEntity.ok(ApiResponse.ok(planService.listIspPlans()));
+    }
+
+    /**
+     * Public pricing endpoint — NO authentication required.
+     * Returns active ISP-level plans with display fields only (no internal IDs/Stripe keys).
+     * Used by the marketing website pricing section.
+     */
+    @GetMapping("/public")
+    @Operation(summary = "Public plans pricing — no auth required")
+    public ResponseEntity<ApiResponse<List<PublicPlanDto>>> getPublicPlans() {
+        List<PublicPlanDto> plans = planService.listIspPlans().stream()
+                .map(PublicPlanDto::from)
+                .toList();
+        return ResponseEntity.ok(ApiResponse.ok(plans));
     }
 
     @GetMapping("/{id}")

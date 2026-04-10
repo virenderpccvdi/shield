@@ -5,6 +5,8 @@ import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.dns.dto.response.BrowsingHistoryResponse;
 import com.rstglobal.shield.dns.dto.response.BrowsingStatsResponse;
 import com.rstglobal.shield.dns.service.BrowsingHistoryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +30,7 @@ import java.util.UUID;
  *   GET    /api/v1/dns/profiles/{profileId}/usage/today  (A3: screen time minutes today)
  * </pre>
  */
+@Tag(name = "Browsing History", description = "Child profile DNS query history, daily statistics and screen-time estimates")
 @RestController
 @RequiredArgsConstructor
 public class BrowsingHistoryController {
@@ -39,6 +42,7 @@ public class BrowsingHistoryController {
     /**
      * Retrieve paginated browsing history for a child profile.
      */
+    @Operation(summary = "Get paginated browsing history for a child profile", description = "Supports filtering by blockedOnly flag and period (TODAY, WEEK, MONTH).")
     @GetMapping("/api/v1/dns/history/{profileId}")
     public ResponseEntity<ApiResponse<Page<BrowsingHistoryResponse>>> getHistory(
             @PathVariable UUID profileId,
@@ -58,6 +62,7 @@ public class BrowsingHistoryController {
      * Retrieve today's summary statistics for a child profile.
      * Returns: totalToday, blockedToday, allowedToday, topDomains (up to 10).
      */
+    @Operation(summary = "Get today's browsing statistics for a child profile", description = "Returns totalToday, blockedToday, allowedToday, and top 10 domains queried today.")
     @GetMapping("/api/v1/dns/history/{profileId}/stats")
     public ResponseEntity<ApiResponse<BrowsingStatsResponse>> getStats(
             @PathVariable UUID profileId,
@@ -70,6 +75,7 @@ public class BrowsingHistoryController {
     /**
      * Delete all browsing history for a child profile.
      */
+    @Operation(summary = "Delete all browsing history for a child profile")
     @DeleteMapping("/api/v1/dns/history/{profileId}")
     public ResponseEntity<ApiResponse<Void>> deleteHistory(
             @PathVariable UUID profileId,
@@ -87,6 +93,7 @@ public class BrowsingHistoryController {
      * Returns today's DNS query count, block count, and estimated screen time in minutes.
      * Screen time estimate: each DNS query ≈ 30 seconds of active browsing.
      */
+    @Operation(summary = "Get estimated screen time for today", description = "Returns DNS query count, block count, and estimated screen time in minutes (each query ≈ 30 seconds of active browsing).")
     @GetMapping("/api/v1/dns/profiles/{profileId}/usage/today")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUsageToday(
             @PathVariable UUID profileId,

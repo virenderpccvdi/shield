@@ -6,6 +6,10 @@ import com.rstglobal.shield.admin.repository.ComplianceReportRepository;
 import com.rstglobal.shield.admin.repository.IspBrandingRepository;
 import com.rstglobal.shield.admin.repository.Tr069ProvisionRepository;
 import com.rstglobal.shield.admin.service.AuditLogService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityManager;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +23,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Tag(name = "Platform Admin", description = "Platform-wide statistics, revenue, service health and lifecycle management (GLOBAL_ADMIN only)")
 @RestController
 @RequestMapping("/api/v1/admin/platform")
 @RequiredArgsConstructor
@@ -53,6 +58,11 @@ public class PlatformController {
             Map.entry("ai", 8291)
     );
 
+    @Operation(summary = "Platform stats", description = "Returns counts of tenants, customers, users, devices, subscriptions and provisioned items across the whole platform.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Stats returned"),
+        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
+    })
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> platformStats(@RequestHeader("X-User-Role") String role) {
         requireGlobalAdmin(role);
@@ -70,6 +80,11 @@ public class PlatformController {
         return ResponseEntity.ok(stats);
     }
 
+    @Operation(summary = "Revenue stats", description = "Returns monthly recurring revenue (MRR), active subscription count, and active plan count.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Revenue stats returned"),
+        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
+    })
     @GetMapping("/revenue")
     public ResponseEntity<Map<String, Object>> revenueStats(@RequestHeader("X-User-Role") String role) {
         requireGlobalAdmin(role);
@@ -101,6 +116,8 @@ public class PlatformController {
         }
     }
 
+    @Operation(summary = "Platform health (quick)", description = "Returns admin service status, database connectivity, and a live HTTP health check for every Shield microservice.")
+    @ApiResponse(responseCode = "200", description = "Health report returned")
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> platformHealth() {
         Map<String, Object> health = new LinkedHashMap<>();
@@ -122,7 +139,58 @@ public class PlatformController {
         return ResponseEntity.ok(health);
     }
 
+    // ── A8: GET /api/v1/admin/system/health — aggregated services health ──────
+
+    /**
+     * A8: GET /api/v1/admin/system/health
+     * Calls each service's /actuator/health in parallel using CompletableFuture.
+     * Returns: { "overall": "UP|DOWN", "services": { "gateway": "UP", "auth": "UP", ... },
+     *            "timestamp": "...", "upCount": 10, "downCount": 1 }
+     * Also accessible as GET /api/v1/admin/platform/system/health (same method).
+     */
+    @Operation(summary = "Aggregated system health", description = "Checks all microservices in parallel via /actuator/health and returns overall UP/DEGRADED/DOWN status with per-service results.")
+    @ApiResponse(responseCode = "200", description = "Aggregated health report returned")
+    @GetMapping("/system/health")
+    public ResponseEntity<Map<String, Object>> systemHealth() {
+        List<java.util.concurrent.CompletableFuture<Map.Entry<String, String>>> futures = new ArrayList<>();
+
+        for (String svc : ALLOWED_SERVICES) {
+            futures.add(java.util.concurrent.CompletableFuture.supplyAsync(() ->
+                    Map.entry(svc, getServiceStatus(svc))
+            ));
+        }
+
+        // Wait for all health checks (each has 3 s timeout inside getServiceStatus)
+        java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0])).join();
+
+        Map<String, String> services = new LinkedHashMap<>();
+        long upCount   = 0;
+        long downCount = 0;
+        for (var future : futures) {
+            try {
+                Map.Entry<String, String> e = future.get();
+                services.put(e.getKey(), e.getValue());
+                if ("active".equals(e.getValue())) upCount++;
+                else downCount++;
+            } catch (Exception ex) {
+                log.warn("Could not get health status: {}", ex.getMessage());
+            }
+        }
+
+        String overall = downCount == 0 ? "UP" : (upCount == 0 ? "DOWN" : "DEGRADED");
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("overall",   overall);
+        result.put("timestamp", OffsetDateTime.now().toString());
+        result.put("upCount",   upCount);
+        result.put("downCount", downCount);
+        result.put("services",  services);
+        return ResponseEntity.ok(result);
+    }
+
     /** GET /api/v1/admin/platform/services — status of all services via HTTP health checks */
+    @Operation(summary = "List all services with status", description = "Returns a sorted list of all Shield microservices with their current HTTP health check status.")
+    @ApiResponse(responseCode = "200", description = "Service list returned")
     @GetMapping("/services")
     public ResponseEntity<List<Map<String, Object>>> listServices() {
         List<Map<String, Object>> result = new ArrayList<>();
@@ -139,6 +207,12 @@ public class PlatformController {
     }
 
     /** POST /api/v1/admin/platform/services/{name}/restart — K8s: returns current health */
+    @Operation(summary = "Restart a service (K8s)", description = "Logs a restart action and returns the kubectl rollout restart command; actual restart must be performed via Kubernetes.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Restart action logged"),
+        @ApiResponse(responseCode = "400", description = "Invalid service name"),
+        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
+    })
     @PostMapping("/services/{name}/restart")
     public ResponseEntity<Map<String, Object>> restartService(@PathVariable String name,
                                                                 @RequestHeader("X-User-Role") String role,
@@ -154,6 +228,11 @@ public class PlatformController {
     }
 
     /** POST /api/v1/admin/platform/services/{name}/stop */
+    @Operation(summary = "Stop a service (K8s)", description = "Logs a stop action and returns the kubectl scale-down command.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Stop action logged"),
+        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
+    })
     @PostMapping("/services/{name}/stop")
     public ResponseEntity<Map<String, Object>> stopService(@PathVariable String name,
                                                             @RequestHeader("X-User-Role") String role,
@@ -169,6 +248,11 @@ public class PlatformController {
     }
 
     /** POST /api/v1/admin/platform/services/{name}/start */
+    @Operation(summary = "Start a service (K8s)", description = "Logs a start action and returns the kubectl scale-up command.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Start action logged"),
+        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
+    })
     @PostMapping("/services/{name}/start")
     public ResponseEntity<Map<String, Object>> startService(@PathVariable String name,
                                                             @RequestHeader("X-User-Role") String role,
@@ -184,6 +268,11 @@ public class PlatformController {
     }
 
     /** GET /api/v1/admin/platform/services/{name}/logs — returns recent health check result */
+    @Operation(summary = "Get recent service logs (K8s)", description = "Returns the current health check result and the kubectl logs command for fetching real pod logs.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Log info returned"),
+        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
+    })
     @GetMapping("/services/{name}/logs")
     public ResponseEntity<Map<String, Object>> serviceLogs(@PathVariable String name,
                                                             @RequestHeader("X-User-Role") String role,

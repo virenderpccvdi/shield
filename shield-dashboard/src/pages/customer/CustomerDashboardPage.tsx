@@ -186,6 +186,47 @@ function StatCard({ label, value, color, bg: _bg, icon, subtitle, trend }: {
   );
 }
 
+// A3: Screen time today (DNS usage endpoint)
+interface UsageToday { screenTimeMinutes?: number; totalRequests?: number; }
+function ScreenTimeBadge({ profileId }: { profileId: string }) {
+  const { data: usage } = useQuery<UsageToday>({
+    queryKey: ['usage-today', profileId],
+    queryFn: () =>
+      api.get(`/api/v1/dns/profiles/${profileId}/usage/today`)
+        .then(r => (r.data?.data ?? r.data) as UsageToday)
+        .catch(() => ({} as UsageToday)),
+    enabled: !!profileId,
+    staleTime: 60_000,
+  });
+  const mins = usage?.screenTimeMinutes ?? 0;
+  return (
+    <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: 'rgba(2,119,189,0.06)' }}>
+      <Typography fontSize={16} fontWeight={800} color="#0277BD">{mins}</Typography>
+      <Typography fontSize={9} color="text.secondary">min screen time</Typography>
+    </Box>
+  );
+}
+
+// A5: Live child status (polls every 30 s)
+interface ChildStatus { online?: boolean; lastSeen?: string; currentActivity?: string; }
+function useChildLiveStatus(childId: string, fallbackOnline: boolean) {
+  const { data: status } = useQuery<ChildStatus>({
+    queryKey: ['child-status', childId],
+    queryFn: () =>
+      api.get(`/api/v1/profile/children/${childId}/status`)
+        .then(r => (r.data?.data ?? r.data) as ChildStatus)
+        .catch(() => ({} as ChildStatus)),
+    enabled: !!childId,
+    refetchInterval: 30_000,
+    staleTime: 25_000,
+  });
+  return {
+    online: status?.online ?? fallbackOnline,
+    lastSeen: status?.lastSeen,
+    currentActivity: status?.currentActivity,
+  };
+}
+
 // Fix #5: Mini trend bar chart for child cards
 function MiniTrendChart({ profileId }: { profileId: string }) {
   const { data: daily } = useQuery<DailyPoint[]>({
@@ -222,6 +263,204 @@ function MiniTrendChart({ profileId }: { profileId: string }) {
         </BarChart>
       </ResponsiveContainer>
     </Box>
+  );
+}
+
+// ── ChildCard — extracted to allow hooks (live status + screen time) per child ──
+
+interface ChildCardProps {
+  child: ChildProfile;
+  index: number;
+  stats?: { totalQueries: number; totalBlocks: number; blockRate: number };
+  navigate: (path: string) => void;
+  onPause: (id: string, paused: boolean) => void;
+  isPauseLoading: boolean;
+}
+
+function ChildCard({ child, index, stats, navigate, onPause }: ChildCardProps) {
+  const childBlockRate = stats?.totalQueries ? Math.round((stats.totalBlocks / stats.totalQueries) * 100) : 0;
+  const accent = GRADIENT_ACCENTS[index % GRADIENT_ACCENTS.length];
+
+  // A5: Live status polling every 30 s
+  const liveStatus = useChildLiveStatus(child.id, child.online);
+  // Fix #6: detect recently active (within 5 min) even if not flagged online
+  const recentlyActive = liveStatus.online || isRecentlyActive(liveStatus.lastSeen ?? child.lastSeen);
+
+  return (
+    <Grid size={{ xs: 12, sm: 6 }}>
+      <AnimatedPage delay={0.05 + index * 0.07}>
+        <Card
+          onClick={() => navigate(`/profiles/${child.id}`)}
+          sx={{
+            cursor: 'pointer', overflow: 'hidden', position: 'relative',
+            bgcolor: '#FFFFFF', border: 'none',
+            boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)',
+            borderRadius: '12px',
+            transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+            '&:hover': { transform: 'translateY(-3px)', boxShadow: `0 12px 32px -4px rgba(15,31,61,0.12)` },
+            '&::before': {
+              content: '""', position: 'absolute',
+              top: 0, left: 0, bottom: 0, width: 3,
+              background: accent, borderRadius: '12px 0 0 12px',
+            },
+          }}
+        >
+          <CardContent sx={{ pb: '12px !important' }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{
+                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                  background: `linear-gradient(135deg, ${accent}20, ${accent}40)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: `2px solid ${accent}30`, position: 'relative',
+                }}>
+                  <Typography fontWeight={700} fontSize={15} sx={{ color: accent }}>
+                    {getInitials(child.name)}
+                  </Typography>
+                  {/* Fix #6 / A5: pulsing dot for online OR recently-active children */}
+                  {recentlyActive && (
+                    <Box sx={{
+                      position: 'absolute', bottom: 0, right: 0,
+                      width: 12, height: 12, borderRadius: '50%',
+                      bgcolor: 'success.main', border: '2px solid white',
+                      '@keyframes pulse': {
+                        '0%': { boxShadow: '0 0 0 0 rgba(67,160,71,0.5)' },
+                        '70%': { boxShadow: '0 0 0 5px rgba(67,160,71,0)' },
+                        '100%': { boxShadow: '0 0 0 0 rgba(67,160,71,0)' },
+                      },
+                      animation: 'pulse 2s infinite',
+                    }} />
+                  )}
+                </Box>
+                <Box>
+                  <Typography fontWeight={700} fontSize={15} lineHeight={1.2}>{child.name}</Typography>
+                  <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ mt: 0.3 }}>
+                    <Chip size="small"
+                      label={liveStatus.online ? 'Online' : ((liveStatus.lastSeen ?? child.lastSeen) ? timeAgo(liveStatus.lastSeen ?? child.lastSeen) : 'Offline')}
+                      color={liveStatus.online ? 'success' : 'default'}
+                      sx={{ height: 16, fontSize: 10 }} />
+                    {child.filterLevel && (
+                      <Chip size="small" label={child.filterLevel}
+                        sx={{ height: 16, fontSize: 10, fontWeight: 600,
+                          bgcolor: FILTER_COLOR[child.filterLevel] + '18',
+                          color: FILTER_COLOR[child.filterLevel] }} />
+                    )}
+                  </Stack>
+                </Box>
+              </Box>
+              <Tooltip title={child.paused ? 'Resume internet' : 'Pause 1 hour'}>
+                <Button size="small" variant={child.paused ? 'contained' : 'outlined'}
+                  color={child.paused ? 'success' : 'warning'}
+                  startIcon={child.paused ? <PlayArrowIcon sx={{ fontSize: 14 }} /> : <PauseIcon sx={{ fontSize: 14 }} />}
+                  onClick={e => { e.stopPropagation(); onPause(child.id, child.paused); }}
+                  sx={{ minWidth: 80, borderRadius: 1.5, fontSize: 11 }}>
+                  {child.paused ? 'Resume' : 'Pause'}
+                </Button>
+              </Tooltip>
+            </Box>
+
+            {/* Activity */}
+            {(liveStatus.currentActivity ?? child.currentActivity) && (
+              <Box sx={{ mb: 1, px: 1, py: 0.5, bgcolor: 'background.default', borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Active: <strong>{liveStatus.currentActivity ?? child.currentActivity}</strong>
+                </Typography>
+              </Box>
+            )}
+
+            {/* Stats row: blocks / queries / block-rate / screen-time */}
+            <Grid container spacing={1} sx={{ mb: 1.5 }}>
+              <Grid size={3}>
+                <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: child.blocksToday > 0 ? 'rgba(229,57,53,0.06)' : 'rgba(67,160,71,0.06)' }}>
+                  <Typography fontSize={16} fontWeight={800} color={child.blocksToday > 0 ? 'error.main' : 'success.main'}>
+                    {child.blocksToday}
+                  </Typography>
+                  <Typography fontSize={9} color="text.secondary">blocks today</Typography>
+                </Box>
+              </Grid>
+              <Grid size={3}>
+                <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: 'background.default' }}>
+                  <Typography fontSize={16} fontWeight={800} color="primary.main">
+                    {stats?.totalQueries ?? '—'}
+                  </Typography>
+                  <Typography fontSize={9} color="text.secondary">queries today</Typography>
+                </Box>
+              </Grid>
+              <Grid size={3}>
+                <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: 'background.default' }}>
+                  <Typography fontSize={16} fontWeight={800} color={childBlockRate > 20 ? 'warning.dark' : '#00897B'}>
+                    {childBlockRate}%
+                  </Typography>
+                  <Typography fontSize={9} color="text.secondary">block rate</Typography>
+                </Box>
+              </Grid>
+              {/* A3: Screen time today */}
+              <Grid size={3}>
+                <ScreenTimeBadge profileId={child.id} />
+              </Grid>
+            </Grid>
+
+            {/* Block rate progress bar */}
+            {childBlockRate > 0 && (
+              <Box sx={{ mb: 1.5 }}>
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.min(childBlockRate, 100)}
+                  sx={{
+                    height: 4, borderRadius: 2,
+                    bgcolor: 'rgba(67,160,71,0.08)',
+                    '& .MuiLinearProgress-bar': {
+                      bgcolor: childBlockRate > 30 ? 'error.main' : childBlockRate > 15 ? 'warning.main' : 'success.main',
+                      borderRadius: 2,
+                    },
+                  }}
+                />
+              </Box>
+            )}
+
+            {/* Fix #5: Mini 7-day trend chart */}
+            <MiniTrendChart profileId={child.id} />
+
+            {/* Sparkline: synthetic 7-day block trend using blocksToday as last point */}
+            {child.blocksToday > 0 && (() => {
+              const last = child.blocksToday;
+              const sparkData = Array.from({ length: 7 }, (_, idx) => {
+                if (idx === 6) return { v: last };
+                const variation = 1 + (Math.sin(child.id.charCodeAt(idx % child.id.length) + idx) * 0.2);
+                return { v: Math.max(0, Math.round(last * variation)) };
+              });
+              return (
+                <Box sx={{ mt: 0.5, px: 0.5 }}>
+                  <Typography fontSize={9} color="text.disabled" sx={{ mb: 0.25 }}>blocks trend (synthetic)</Typography>
+                  <ResponsiveContainer width="100%" height={32}>
+                    <LineChart data={sparkData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                      <Line type="monotone" dataKey="v" stroke="#1565C0" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              );
+            })()}
+
+            <Divider sx={{ mb: 1, mt: 1 }} />
+            <Stack direction="row" spacing={0.5}>
+              {[
+                { label: 'Rules', path: `/profiles/${child.id}/rules`, color: 'primary.main' },
+                { label: 'Schedule', path: `/profiles/${child.id}/schedules`, color: 'warning.dark' },
+                { label: 'Activity', path: `/profiles/${child.id}/activity`, color: 'success.dark' },
+                { label: 'Details →', path: `/profiles/${child.id}`, color: '#7B1FA2' },
+              ].map(btn => (
+                <Button key={btn.label} size="small" variant="text"
+                  onClick={e => { e.stopPropagation(); navigate(btn.path); }}
+                  sx={{ fontSize: 10, flex: 1, textTransform: 'none', color: btn.color, minWidth: 0, px: 0.5 }}>
+                  {btn.label}
+                </Button>
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
+      </AnimatedPage>
+    </Grid>
   );
 }
 
@@ -697,180 +936,16 @@ export default function CustomerDashboardPage() {
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {children.map((child, i) => {
               const stats = profileStats?.[child.id];
-              const childBlockRate = stats?.totalQueries ? Math.round((stats.totalBlocks / stats.totalQueries) * 100) : 0;
-              const accent = GRADIENT_ACCENTS[i % GRADIENT_ACCENTS.length];
-              // Fix #6: detect recently active (within 5 min) even if not flagged online
-              const recentlyActive = child.online || isRecentlyActive(child.lastSeen);
               return (
-                <Grid size={{ xs: 12, sm: 6 }} key={child.id}>
-                  <AnimatedPage delay={0.05 + i * 0.07}>
-                    <Card
-                      onClick={() => navigate(`/profiles/${child.id}`)}
-                      sx={{
-                        cursor: 'pointer', overflow: 'hidden', position: 'relative',
-                        bgcolor: '#FFFFFF', border: 'none',
-                        boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)',
-                        borderRadius: '12px',
-                        transition: 'transform 0.22s ease, box-shadow 0.22s ease',
-                        '&:hover': { transform: 'translateY(-3px)', boxShadow: `0 12px 32px -4px rgba(15,31,61,0.12)` },
-                        '&::before': {
-                          content: '""', position: 'absolute',
-                          top: 0, left: 0, bottom: 0, width: 3,
-                          background: accent, borderRadius: '12px 0 0 12px',
-                        },
-                      }}
-                    >
-                      <CardContent sx={{ pb: '12px !important' }}>
-                        {/* Header */}
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <Box sx={{
-                              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                              background: `linear-gradient(135deg, ${accent}20, ${accent}40)`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              border: `2px solid ${accent}30`, position: 'relative',
-                            }}>
-                              <Typography fontWeight={700} fontSize={15} sx={{ color: accent }}>
-                                {getInitials(child.name)}
-                              </Typography>
-                              {/* Fix #6: pulsing dot for online OR recently-active children */}
-                              {recentlyActive && (
-                                <Box sx={{
-                                  position: 'absolute', bottom: 0, right: 0,
-                                  width: 12, height: 12, borderRadius: '50%',
-                                  bgcolor: 'success.main', border: '2px solid white',
-                                  '@keyframes pulse': {
-                                    '0%': { boxShadow: '0 0 0 0 rgba(67,160,71,0.5)' },
-                                    '70%': { boxShadow: '0 0 0 5px rgba(67,160,71,0)' },
-                                    '100%': { boxShadow: '0 0 0 0 rgba(67,160,71,0)' },
-                                  },
-                                  animation: 'pulse 2s infinite',
-                                }} />
-                              )}
-                            </Box>
-                            <Box>
-                              <Typography fontWeight={700} fontSize={15} lineHeight={1.2}>{child.name}</Typography>
-                              <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ mt: 0.3 }}>
-                                <Chip size="small" label={child.online ? 'Online' : (child.lastSeen ? timeAgo(child.lastSeen) : 'Offline')}
-                                  color={child.online ? 'success' : 'default'}
-                                  sx={{ height: 16, fontSize: 10 }} />
-                                {child.filterLevel && (
-                                  <Chip size="small" label={child.filterLevel}
-                                    sx={{ height: 16, fontSize: 10, fontWeight: 600,
-                                      bgcolor: FILTER_COLOR[child.filterLevel] + '18',
-                                      color: FILTER_COLOR[child.filterLevel] }} />
-                                )}
-                              </Stack>
-                            </Box>
-                          </Box>
-                          <Tooltip title={child.paused ? 'Resume internet' : 'Pause 1 hour'}>
-                            <Button size="small" variant={child.paused ? 'contained' : 'outlined'}
-                              color={child.paused ? 'success' : 'warning'}
-                              startIcon={child.paused ? <PlayArrowIcon sx={{ fontSize: 14 }} /> : <PauseIcon sx={{ fontSize: 14 }} />}
-                              onClick={e => { e.stopPropagation(); pauseMutation.mutate({ id: child.id, paused: child.paused }); }}
-                              sx={{ minWidth: 80, borderRadius: 1.5, fontSize: 11 }}>
-                              {child.paused ? 'Resume' : 'Pause'}
-                            </Button>
-                          </Tooltip>
-                        </Box>
-
-                        {/* Activity */}
-                        {child.currentActivity && (
-                          <Box sx={{ mb: 1, px: 1, py: 0.5, bgcolor: 'background.default', borderRadius: 1 }}>
-                            <Typography variant="caption" color="text.secondary">
-                              Active: <strong>{child.currentActivity}</strong>
-                            </Typography>
-                          </Box>
-                        )}
-
-                        {/* Stats row */}
-                        <Grid container spacing={1} sx={{ mb: 1.5 }}>
-                          <Grid size={4}>
-                            <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: child.blocksToday > 0 ? 'rgba(229,57,53,0.06)' : 'rgba(67,160,71,0.06)' }}>
-                              <Typography fontSize={16} fontWeight={800} color={child.blocksToday > 0 ? 'error.main' : 'success.main'}>
-                                {child.blocksToday}
-                              </Typography>
-                              <Typography fontSize={9} color="text.secondary">blocks today</Typography>
-                            </Box>
-                          </Grid>
-                          <Grid size={4}>
-                            <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: 'background.default' }}>
-                              <Typography fontSize={16} fontWeight={800} color="primary.main">
-                                {stats?.totalQueries ?? '—'}
-                              </Typography>
-                              <Typography fontSize={9} color="text.secondary">queries today</Typography>
-                            </Box>
-                          </Grid>
-                          <Grid size={4}>
-                            <Box sx={{ textAlign: 'center', p: 0.5, borderRadius: 1, bgcolor: 'background.default' }}>
-                              <Typography fontSize={16} fontWeight={800} color={childBlockRate > 20 ? 'warning.dark' : '#00897B'}>
-                                {childBlockRate}%
-                              </Typography>
-                              <Typography fontSize={9} color="text.secondary">block rate</Typography>
-                            </Box>
-                          </Grid>
-                        </Grid>
-
-                        {/* Block rate progress */}
-                        {childBlockRate > 0 && (
-                          <Box sx={{ mb: 1.5 }}>
-                            <LinearProgress
-                              variant="determinate"
-                              value={Math.min(childBlockRate, 100)}
-                              sx={{
-                                height: 4, borderRadius: 2,
-                                bgcolor: 'rgba(67,160,71,0.08)',
-                                '& .MuiLinearProgress-bar': {
-                                  bgcolor: childBlockRate > 30 ? 'error.main' : childBlockRate > 15 ? 'warning.main' : 'success.main',
-                                  borderRadius: 2,
-                                },
-                              }}
-                            />
-                          </Box>
-                        )}
-
-                        {/* Fix #5: Mini 7-day trend chart */}
-                        <MiniTrendChart profileId={child.id} />
-
-                        {/* Sparkline: synthetic 7-day block trend using blocksToday as last point */}
-                        {child.blocksToday > 0 && (() => {
-                          const last = child.blocksToday;
-                          const sparkData = Array.from({ length: 7 }, (_, idx) => {
-                            if (idx === 6) return { v: last };
-                            const variation = 1 + (Math.sin(child.id.charCodeAt(idx % child.id.length) + idx) * 0.2);
-                            return { v: Math.max(0, Math.round(last * variation)) };
-                          });
-                          return (
-                            <Box sx={{ mt: 0.5, px: 0.5 }}>
-                              <Typography fontSize={9} color="text.disabled" sx={{ mb: 0.25 }}>blocks trend (synthetic)</Typography>
-                              <ResponsiveContainer width="100%" height={32}>
-                                <LineChart data={sparkData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
-                                  <Line type="monotone" dataKey="v" stroke="#1565C0" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                                </LineChart>
-                              </ResponsiveContainer>
-                            </Box>
-                          );
-                        })()}
-
-                        <Divider sx={{ mb: 1, mt: 1 }} />
-                        <Stack direction="row" spacing={0.5}>
-                          {[
-                            { label: 'Rules', path: `/profiles/${child.id}/rules`, color: 'primary.main' },
-                            { label: 'Schedule', path: `/profiles/${child.id}/schedules`, color: 'warning.dark' },
-                            { label: 'Activity', path: `/profiles/${child.id}/activity`, color: 'success.dark' },
-                            { label: 'Details →', path: `/profiles/${child.id}`, color: '#7B1FA2' },
-                          ].map(btn => (
-                            <Button key={btn.label} size="small" variant="text"
-                              onClick={e => { e.stopPropagation(); navigate(btn.path); }}
-                              sx={{ fontSize: 10, flex: 1, textTransform: 'none', color: btn.color, minWidth: 0, px: 0.5 }}>
-                              {btn.label}
-                            </Button>
-                          ))}
-                        </Stack>
-                      </CardContent>
-                    </Card>
-                  </AnimatedPage>
-                </Grid>
+                <ChildCard
+                  key={child.id}
+                  child={child}
+                  index={i}
+                  stats={stats}
+                  navigate={navigate}
+                  onPause={(id, paused) => pauseMutation.mutate({ id, paused })}
+                  isPauseLoading={pauseMutation.isPending}
+                />
               );
             })}
 

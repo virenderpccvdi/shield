@@ -16,6 +16,10 @@ public class UpdatePreferenceRequest {
     private Boolean budgetAlerts;
     private Boolean extensionAlerts;
     private Boolean weeklyReportEnabled;
+    private Boolean geofenceAlerts;
+    private Boolean anomalyAlerts;
+    private Boolean sosAlerts;
+    private Boolean bedtimeAlerts;
     private String whatsappNumber;
     private String telegramChatId;
 }

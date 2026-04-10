@@ -119,8 +119,8 @@ export default function TenantsPage() {
       `${t.name} ${t.slug} ${t.contactEmail}`.toLowerCase().includes(search.toLowerCase())
     );
     return [...filtered].sort((a, b) => {
-      const av = (a as Record<string, unknown>)[sortField] as string ?? '';
-      const bv = (b as Record<string, unknown>)[sortField] as string ?? '';
+      const av = (a as unknown as Record<string, unknown>)[sortField] as string ?? '';
+      const bv = (b as unknown as Record<string, unknown>)[sortField] as string ?? '';
       const cmp = String(av).localeCompare(String(bv));
       return sortDir === 'asc' ? cmp : -cmp;
     });

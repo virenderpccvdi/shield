@@ -4,6 +4,7 @@ import com.rstglobal.shield.admin.dto.InvoicePdfResult;
 import com.rstglobal.shield.admin.dto.InvoiceResponse;
 import com.rstglobal.shield.admin.service.BillingService;
 import com.rstglobal.shield.common.dto.ApiResponse;
+import com.rstglobal.shield.common.dto.PagedResponse;
 import com.rstglobal.shield.common.exception.ShieldException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,7 +32,7 @@ public class InvoiceAdminController {
 
     @GetMapping
     @Operation(summary = "List all invoices (paginated), optionally filtered by tenantId")
-    public ApiResponse<Page<InvoiceResponse>> listAll(
+    public ApiResponse<PagedResponse<InvoiceResponse>> listAll(
             @RequestHeader("X-User-Role") String role,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -41,7 +42,7 @@ public class InvoiceAdminController {
         Page<InvoiceResponse> result = tenantId != null
                 ? billingService.listInvoicesByTenant(tenantId, pageable)
                 : billingService.listAllInvoices(pageable);
-        return ApiResponse.ok(result);
+        return ApiResponse.page(result);
     }
 
     @GetMapping("/{id}")

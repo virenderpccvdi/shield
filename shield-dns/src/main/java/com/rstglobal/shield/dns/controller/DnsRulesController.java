@@ -12,6 +12,10 @@ import com.rstglobal.shield.dns.repository.RulesAuditLogRepository;
 import com.rstglobal.shield.dns.service.BedtimeLockService;
 import com.rstglobal.shield.dns.service.DnsRulesService;
 import com.rstglobal.shield.dns.service.HomeworkModeService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Tag(name = "DNS Filtering", description = "Per-profile DNS filtering rules: categories, allowlist, blocklist, filter level, homework/bedtime modes and safe-search enforcement")
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/dns")
@@ -42,6 +47,7 @@ public class DnsRulesController {
     private final DiscoveryClient discoveryClient;
     private final RestClient restClient = RestClient.builder().build();
 
+    @Operation(summary = "Get DNS rules for a profile", description = "Returns enabled categories, custom allowlist/blocklist, filter level, and feature flags for the given child profile.")
     @GetMapping("/rules/{profileId}")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> getRules(
             @PathVariable UUID profileId,
@@ -53,6 +59,7 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(rulesService.getRules(profileId, parseUuid(tenantIdStr))));
     }
 
+    @Operation(summary = "Update blocked content categories", description = "Replaces the set of enabled/blocked content categories for a child profile and syncs to AdGuard.")
     @PutMapping("/rules/{profileId}/categories")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateCategories(
             @PathVariable UUID profileId,
@@ -65,6 +72,7 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(rulesService.updateCategories(profileId, parseUuid(tenantIdStr), req)));
     }
 
+    @Operation(summary = "Update custom allowlist", description = "Replaces the custom domain allowlist for a child profile (domains always permitted regardless of category blocks).")
     @PutMapping("/rules/{profileId}/allowlist")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateAllowlist(
             @PathVariable UUID profileId,
@@ -77,6 +85,7 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(rulesService.updateAllowlist(profileId, parseUuid(tenantIdStr), req)));
     }
 
+    @Operation(summary = "Update custom blocklist", description = "Replaces the custom domain blocklist for a child profile (domains always blocked regardless of category settings).")
     @PutMapping("/rules/{profileId}/blocklist")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateBlocklist(
             @PathVariable UUID profileId,
@@ -90,6 +99,7 @@ public class DnsRulesController {
     }
 
     /** Combined endpoint: update both blocklist and allowlist in one call (used by mobile app). */
+    @Operation(summary = "Update both custom allowlist and blocklist in one call")
     @PutMapping("/rules/{profileId}/custom-lists")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateCustomLists(
             @PathVariable UUID profileId,
@@ -108,6 +118,7 @@ public class DnsRulesController {
     }
 
     /** Apply a preset filter level (MILD, MODERATE, STRICT) — resets categories to defaults for that level. */
+    @Operation(summary = "Apply a preset filter level (MILD, MODERATE, STRICT)", description = "Resets all content categories to the defaults for the chosen filter level.")
     @PutMapping("/rules/{profileId}/filter-level")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateFilterLevel(
             @PathVariable UUID profileId,
@@ -122,6 +133,7 @@ public class DnsRulesController {
                 rulesService.updateFilterLevel(profileId, parseUuid(tenantIdStr), level)));
     }
 
+    @Operation(summary = "Allow or block a single domain", description = "Adds or removes a domain from the custom allowlist or blocklist for a child profile.")
     @PostMapping("/rules/{profileId}/domain/action")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> domainAction(
             @PathVariable UUID profileId,
@@ -134,6 +146,7 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(rulesService.domainAction(profileId, parseUuid(tenantIdStr), req)));
     }
 
+    @Operation(summary = "Get content category names", description = "Returns a map of category ID to display name for all supported content categories.")
     @GetMapping("/categories")
     public ResponseEntity<ApiResponse<Map<String, String>>> getCategories(
             @RequestHeader("X-User-Role") String role) {
@@ -143,6 +156,7 @@ public class DnsRulesController {
 
     // ── Activity feed (DNS query log) ──────────────────────────────────────
 
+    @Operation(summary = "Get recent DNS query activity", description = "Returns recent DNS queries for a child profile from the AdGuard query log.")
     @GetMapping("/rules/{profileId}/activity")
     public ResponseEntity<ApiResponse<java.util.List<Map<String, Object>>>> getActivity(
             @PathVariable UUID profileId,
@@ -159,6 +173,7 @@ public class DnsRulesController {
     }
 
     /** Force re-sync current DB rules to AdGuard for a profile (parent triggers after config change). */
+    @Operation(summary = "Force sync rules to AdGuard", description = "Pushes the current DB rules for a child profile to AdGuard Home immediately.")
     @PostMapping("/rules/{profileId}/sync")
     public ResponseEntity<ApiResponse<com.rstglobal.shield.dns.dto.response.DnsRulesResponse>> forceSync(
             @PathVariable UUID profileId,
@@ -172,6 +187,7 @@ public class DnsRulesController {
 
     // ── Pause / Resume filtering ─────────────────────────────────────────────
 
+    @Operation(summary = "Pause DNS filtering for a profile", description = "Temporarily disables all DNS filtering for the child profile until resumed by a parent.")
     @PostMapping("/rules/{profileId}/pause")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> pauseFiltering(
             @PathVariable UUID profileId,
@@ -184,6 +200,7 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(response, "Filtering paused for profile"));
     }
 
+    @Operation(summary = "Resume DNS filtering for a profile", description = "Re-enables DNS filtering after it was paused.")
     @PostMapping("/rules/{profileId}/resume")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> resumeFiltering(
             @PathVariable UUID profileId,
@@ -199,6 +216,7 @@ public class DnsRulesController {
     // ── Platform defaults ─────────────────────────────────────────────────────
 
     /** ISP_ADMIN can read platform defaults (inherited rules); writes remain GLOBAL_ADMIN only. */
+    @Operation(summary = "Get platform-wide default DNS rules")
     @GetMapping("/rules/platform")
     public ResponseEntity<ApiResponse<PlatformDefaultsResponse>> getPlatformDefaults(
             @RequestHeader("X-User-Role") String role) {
@@ -207,6 +225,7 @@ public class DnsRulesController {
     }
 
     /** Propagate platform blocklist/allowlist to all existing child profiles. */
+    @Operation(summary = "Propagate platform rules to all profiles (GLOBAL_ADMIN only)", description = "Copies platform-level blocklist and allowlist into every child profile's DNS rules.")
     @PostMapping("/rules/platform/propagate")
     public ResponseEntity<ApiResponse<Map<String, Object>>> propagatePlatformRules(
             @RequestHeader("X-User-Role") String role) {
@@ -215,6 +234,7 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(Map.of("profilesUpdated", count)));
     }
 
+    @Operation(summary = "Update platform-wide default categories (GLOBAL_ADMIN only)")
     @PutMapping("/rules/platform/categories")
     public ResponseEntity<ApiResponse<PlatformDefaultsResponse>> updatePlatformCategories(
             @RequestHeader("X-User-Role") String role,
@@ -223,6 +243,7 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(rulesService.updatePlatformCategories(req)));
     }
 
+    @Operation(summary = "Update platform-wide default blocklist (GLOBAL_ADMIN only)")
     @PutMapping("/rules/platform/blocklist")
     public ResponseEntity<ApiResponse<PlatformDefaultsResponse>> updatePlatformBlocklist(
             @RequestHeader("X-User-Role") String role,
@@ -231,6 +252,7 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(rulesService.updatePlatformBlocklist(req)));
     }
 
+    @Operation(summary = "Update platform-wide default allowlist (GLOBAL_ADMIN only)")
     @PutMapping("/rules/platform/allowlist")
     public ResponseEntity<ApiResponse<PlatformDefaultsResponse>> updatePlatformAllowlist(
             @RequestHeader("X-User-Role") String role,
@@ -245,6 +267,7 @@ public class DnsRulesController {
      * Start a homework mode session for a child profile.
      * Body: { "durationMinutes": 60 }  (1–480 minutes)
      */
+    @Operation(summary = "Start homework mode", description = "Activates homework mode for a set duration (1–480 min), applying a stricter content filter that permits only educational domains.")
     @PostMapping("/rules/{profileId}/homework/start")
     public ResponseEntity<ApiResponse<Map<String, Object>>> startHomework(
             @PathVariable UUID profileId,
@@ -266,6 +289,7 @@ public class DnsRulesController {
     /**
      * Stop an active homework mode session early, restoring original rules.
      */
+    @Operation(summary = "Stop homework mode early", description = "Ends an active homework mode session and restores the original DNS rules.")
     @PostMapping("/rules/{profileId}/homework/stop")
     public ResponseEntity<ApiResponse<Map<String, Object>>> stopHomework(
             @PathVariable UUID profileId,
@@ -282,6 +306,7 @@ public class DnsRulesController {
     /**
      * Get current homework mode status: active, endsAt, minutesRemaining.
      */
+    @Operation(summary = "Get homework mode status", description = "Returns whether homework mode is active, when it ends, and minutes remaining.")
     @GetMapping("/rules/{profileId}/homework/status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> homeworkStatus(
             @PathVariable UUID profileId,
@@ -298,6 +323,7 @@ public class DnsRulesController {
      * Enable or disable YouTube Restricted Mode for a child profile via DNS CNAME rewrite.
      * Body: { "enabled": true }
      */
+    @Operation(summary = "Enable or disable YouTube Restricted Mode via DNS CNAME rewrite")
     @PostMapping("/rules/{profileId}/youtube-safe-mode")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> setYoutubeSafeMode(
             @PathVariable UUID profileId,
@@ -319,6 +345,7 @@ public class DnsRulesController {
      * Redirects Google, Bing, and DuckDuckGo queries to their safe-search endpoints.
      * Body: { "enabled": true }
      */
+    @Operation(summary = "Enable or disable DNS-level safe search", description = "Redirects Google, Bing, and DuckDuckGo DNS queries to their safe-search endpoints.")
     @PostMapping("/rules/{profileId}/safe-search")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> setSafeSearch(
             @PathVariable UUID profileId,
@@ -340,6 +367,7 @@ public class DnsRulesController {
      * Supported platforms: facebook, instagram, tiktok
      * Body: { "platform": "facebook", "enabled": true }
      */
+    @Operation(summary = "Block or unblock a social media platform at DNS level", description = "Supports facebook, instagram, and tiktok; adds or removes the platform's domains from the profile's blocklist.")
     @PostMapping("/rules/{profileId}/social-block")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> setSocialBlock(
             @PathVariable UUID profileId,
@@ -362,6 +390,7 @@ public class DnsRulesController {
      * Configure bedtime lock for a child profile.
      * Body: { "enabled": true, "bedtimeStart": "21:00", "bedtimeEnd": "07:00" }
      */
+    @Operation(summary = "Configure bedtime lock", description = "Enables or disables bedtime internet lock with start/end times (HH:mm); blocks all DNS queries during the bedtime window.")
     @PostMapping("/rules/{profileId}/bedtime/configure")
     public ResponseEntity<ApiResponse<Map<String, Object>>> configureBedtime(
             @PathVariable UUID profileId,
@@ -380,6 +409,7 @@ public class DnsRulesController {
      * Get current bedtime lock status for a child profile.
      * Returns: { enabled, bedtimeStart, bedtimeEnd, active }
      */
+    @Operation(summary = "Get bedtime lock status", description = "Returns enabled flag, bedtime window, and whether the lock is currently active.")
     @GetMapping("/rules/{profileId}/bedtime/status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> bedtimeStatus(
             @PathVariable UUID profileId,
@@ -391,6 +421,7 @@ public class DnsRulesController {
     }
 
     /** Get DNS rules change history for a child profile (parent/admin access). */
+    @Operation(summary = "Get DNS rules change audit log", description = "Returns a paginated history of all DNS rule changes made for a child profile.")
     @GetMapping("/rules/{profileId}/audit-log")
     public ResponseEntity<ApiResponse<Page<RulesAuditLog>>> getAuditLog(
             @PathVariable UUID profileId,
@@ -409,6 +440,7 @@ public class DnsRulesController {
      * Quick DNS status for a profile: paused flag, filter level, homework/bedtime active.
      * Called by the Flutter app to show the DNS status badge on the DNS Rules screen.
      */
+    @Operation(summary = "Quick DNS status for a profile", description = "Returns paused flag, filter level, and whether homework/bedtime modes are currently active.")
     @GetMapping("/{profileId}/status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getDnsStatus(
             @PathVariable UUID profileId,

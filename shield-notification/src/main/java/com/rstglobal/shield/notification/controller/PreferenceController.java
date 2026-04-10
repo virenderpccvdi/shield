@@ -51,6 +51,10 @@ public class PreferenceController {
         if (req.getBudgetAlerts()         != null) pref.setBudgetAlerts(req.getBudgetAlerts());
         if (req.getExtensionAlerts()      != null) pref.setExtensionAlerts(req.getExtensionAlerts());
         if (req.getWeeklyReportEnabled()  != null) pref.setWeeklyReportEnabled(req.getWeeklyReportEnabled());
+        if (req.getGeofenceAlerts()       != null) pref.setGeofenceAlerts(req.getGeofenceAlerts());
+        if (req.getAnomalyAlerts()        != null) pref.setAnomalyAlerts(req.getAnomalyAlerts());
+        if (req.getSosAlerts()            != null) pref.setSosAlerts(req.getSosAlerts());
+        if (req.getBedtimeAlerts()        != null) pref.setBedtimeAlerts(req.getBedtimeAlerts());
         if (req.getWhatsappNumber()       != null) pref.setWhatsappNumber(req.getWhatsappNumber());
         if (req.getTelegramChatId()       != null) pref.setTelegramChatId(req.getTelegramChatId());
 

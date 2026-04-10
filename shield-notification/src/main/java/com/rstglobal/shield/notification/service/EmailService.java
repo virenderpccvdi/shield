@@ -5,8 +5,12 @@ import com.rstglobal.shield.notification.repository.NotificationChannelRepositor
 import com.rstglobal.shield.notification.service.WeeklyDigestService.WeeklyDigestData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -52,7 +56,7 @@ public class EmailService {
             Context ctx = new Context();
             ctx.setVariables(variables);
             helper.setText(templateEngine.process(templateName, ctx), true);
-            sender.send(message);
+            sendWithRetry(sender, message, toEmail);
             log.info("Email sent: to={} subject={}", toEmail, subject);
             return true;
         } catch (Exception e) {
@@ -76,7 +80,7 @@ public class EmailService {
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(body, false);
-            sender.send(message);
+            sendWithRetry(sender, message, toEmail);
             log.info("Plain email sent: to={} subject={}", toEmail, subject);
             return true;
         } catch (Exception e) {
@@ -102,7 +106,7 @@ public class EmailService {
             String greeting = recipientName != null && !recipientName.isBlank()
                     ? "Dear " + recipientName + ",\n\n" : "";
             helper.setText(greeting + body + "\n\n-- Shield Family Safety", false);
-            sender.send(message);
+            sendWithRetry(sender, message, toEmail);
             log.info("Emergency alert email sent to {}", toEmail);
             return true;
         } catch (Exception e) {
@@ -127,7 +131,7 @@ public class EmailService {
             helper.setTo(toEmail);
             helper.setSubject("Shield Weekly Report — " + data.weekStart() + " – " + data.weekEnd());
             helper.setText(html, true);
-            sender.send(message);
+            sendWithRetry(sender, message, toEmail);
             log.info("Weekly digest sent: to={} child={}", toEmail, data.childName());
             return true;
         } catch (Exception e) {
@@ -151,13 +155,40 @@ public class EmailService {
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(html, true);
-            sender.send(message);
+            sendWithRetry(sender, message, toEmail);
             log.info("Report card email sent: to={} subject={}", toEmail, subject);
             return true;
         } catch (Exception e) {
             log.warn("Report card email send failed to={}: {}", toEmail, e.getMessage());
             return false;
         }
+    }
+
+    // ── N6: Retryable low-level send ───────────────────────────────────────────
+
+    /**
+     * Sends a prepared MimeMessage with exponential backoff retry on MailException.
+     * 3 attempts: 5s → 10s → gives up and calls recoverSend().
+     * Called internally by all public send methods.
+     */
+    @Retryable(
+        retryFor = {MailException.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 5000, multiplier = 2)
+    )
+    public void sendWithRetry(JavaMailSenderImpl sender, jakarta.mail.internet.MimeMessage message,
+                               String toEmail) {
+        sender.send(message);
+    }
+
+    /**
+     * Recovery method — called after all retry attempts are exhausted.
+     * Logs the failure. Could be extended to persist to a failed_emails table.
+     */
+    @Recover
+    public void recoverSend(MailException e, JavaMailSenderImpl sender,
+                             jakarta.mail.internet.MimeMessage message, String toEmail) {
+        log.error("Email delivery failed after 3 attempts to {}: {}", toEmail, e.getMessage());
     }
 
     // ── Private helpers ────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import com.rstglobal.shield.admin.dto.*;
 import com.rstglobal.shield.admin.service.BillingService;
 import com.rstglobal.shield.admin.service.StripeService;
 import com.rstglobal.shield.common.dto.ApiResponse;
+import com.rstglobal.shield.common.dto.PagedResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -62,6 +63,32 @@ public class BillingController {
         return ApiResponse.ok("Subscription cancelled");
     }
 
+    @PostMapping("/trial")
+    @Operation(summary = "Start a free trial for the current user")
+    public ApiResponse<String> startTrial(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
+            @RequestParam(defaultValue = "14") int trialDays) {
+        UUID tenantId = parseUuid(tenantIdStr);
+        billingService.startTrial(userId, tenantId, trialDays);
+        return ApiResponse.ok("Trial started for " + trialDays + " days");
+    }
+
+    @PostMapping("/customers/{customerId}/change-plan")
+    @Operation(summary = "Change subscription plan with Stripe proration (GLOBAL_ADMIN or ISP_ADMIN)")
+    public ApiResponse<String> changePlan(
+            @RequestHeader("X-User-Role") String role,
+            @PathVariable UUID customerId,
+            @RequestParam String newPriceId) {
+        if (!"GLOBAL_ADMIN".equals(role) && !"ISP_ADMIN".equals(role)) {
+            throw new com.rstglobal.shield.common.exception.ShieldException(
+                    "FORBIDDEN", "GLOBAL_ADMIN or ISP_ADMIN role required",
+                    org.springframework.http.HttpStatus.FORBIDDEN);
+        }
+        billingService.changePlan(customerId, newPriceId);
+        return ApiResponse.ok("Plan changed successfully");
+    }
+
     private static UUID parseUuid(String s) {
         if (s == null || s.isBlank()) return null;
         try { return UUID.fromString(s); } catch (IllegalArgumentException e) { return null; }
@@ -69,11 +96,11 @@ public class BillingController {
 
     @GetMapping("/invoices/my")
     @Operation(summary = "Get my invoices")
-    public ApiResponse<Page<InvoiceResponse>> myInvoices(
+    public ApiResponse<PagedResponse<InvoiceResponse>> myInvoices(
             @RequestHeader("X-User-Id") UUID userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.ok(billingService.getMyInvoices(userId,
+        return ApiResponse.page(billingService.getMyInvoices(userId,
                 PageRequest.of(page, size, Sort.by("createdAt").descending())));
     }
 

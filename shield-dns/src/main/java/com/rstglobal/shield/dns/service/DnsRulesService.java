@@ -15,6 +15,7 @@ import com.rstglobal.shield.dns.entity.RulesAuditLog;
 import com.rstglobal.shield.dns.repository.DnsRulesRepository;
 import com.rstglobal.shield.dns.repository.PlatformDefaultsRepository;
 import com.rstglobal.shield.dns.repository.RulesAuditLogRepository;
+import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -62,11 +63,13 @@ public class DnsRulesService {
     private final RulesAuditLogRepository auditLogRepo;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final EntityManager entityManager;
 
     public DnsRulesService(DnsRulesRepository rulesRepo, PlatformDefaultsRepository platformRepo,
                             FeatureGateService featureGate, DnsBroadcastService dnsBroadcast,
                             RulesAuditLogRepository auditLogRepo,
-                            StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+                            StringRedisTemplate redisTemplate, ObjectMapper objectMapper,
+                            EntityManager entityManager) {
         this.rulesRepo = rulesRepo;
         this.platformRepo = platformRepo;
         this.featureGate = featureGate;
@@ -74,6 +77,7 @@ public class DnsRulesService {
         this.auditLogRepo = auditLogRepo;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.entityManager = entityManager;
     }
 
     @Value("${shield.app.domain:shield.rstglobal.in}")
@@ -129,6 +133,8 @@ public class DnsRulesService {
         Map<String, Boolean> cats = rules.getEnabledCategories();
         if (cats == null) cats = new LinkedHashMap<>();
         cats.putAll(req.getCategories());
+        // DNS13: enforce ISP-level category overrides — customer cannot un-block ISP-blocked categories
+        cats = applyIspOverrides(tenantId, cats);
         rules.setEnabledCategories(cats);
         DnsRules saved = rulesRepo.save(rules);
         evictRulesCache(profileId);
@@ -337,6 +343,76 @@ public class DnsRulesService {
         audit(profileId, null, null, paused ? "PAUSE" : "RESUME",
                 "Internet filtering " + (paused ? "paused" : "resumed"));
         return toResponse(saved);
+    }
+
+    // ── ISP-level category force-block ─────────────────────────────────────────
+
+    /**
+     * Upsert an ISP category override. If blocked=true, the category is force-blocked
+     * for ALL customers under this tenant and customers cannot override it.
+     */
+    @Transactional
+    public void setIspCategoryOverride(UUID tenantId, String category, boolean blocked) {
+        entityManager.createNativeQuery(
+                "INSERT INTO dns.isp_category_overrides (tenant_id, category, blocked, created_at, updated_at) " +
+                "VALUES (:tid, :cat, :blocked, now(), now()) " +
+                "ON CONFLICT (tenant_id, category) DO UPDATE SET blocked = :blocked, updated_at = now()")
+                .setParameter("tid", tenantId)
+                .setParameter("cat", category)
+                .setParameter("blocked", blocked)
+                .executeUpdate();
+        log.info("ISP category override: tenant={} category={} blocked={}", tenantId, category, blocked);
+    }
+
+    /**
+     * Remove an ISP category override (restores customer control).
+     */
+    @Transactional
+    public void removeIspCategoryOverride(UUID tenantId, String category) {
+        entityManager.createNativeQuery(
+                "DELETE FROM dns.isp_category_overrides WHERE tenant_id = :tid AND category = :cat")
+                .setParameter("tid", tenantId)
+                .setParameter("cat", category)
+                .executeUpdate();
+        log.info("ISP category override removed: tenant={} category={}", tenantId, category);
+    }
+
+    /**
+     * Get all ISP category overrides for a tenant.
+     * Returns a map of category → blocked flag.
+     */
+    @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
+    public Map<String, Boolean> getIspCategoryOverrides(UUID tenantId) {
+        List<Object[]> rows = entityManager.createNativeQuery(
+                "SELECT category, blocked FROM dns.isp_category_overrides WHERE tenant_id = :tid")
+                .setParameter("tid", tenantId)
+                .getResultList();
+        Map<String, Boolean> result = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            result.put((String) row[0], (Boolean) row[1]);
+        }
+        return result;
+    }
+
+    /**
+     * Apply ISP-level category overrides on top of a profile's existing categories.
+     * Force-blocked categories by the ISP cannot be re-enabled by the customer.
+     * Called after any customer-initiated category update.
+     */
+    @Transactional
+    public Map<String, Boolean> applyIspOverrides(UUID tenantId, Map<String, Boolean> categories) {
+        if (tenantId == null) return categories;
+        Map<String, Boolean> overrides = getIspCategoryOverrides(tenantId);
+        if (overrides.isEmpty()) return categories;
+        Map<String, Boolean> enforced = new LinkedHashMap<>(categories);
+        overrides.forEach((cat, blocked) -> {
+            if (blocked) {
+                // ISP force-blocks this category — customer cannot enable it
+                enforced.put(cat, false);
+            }
+        });
+        return enforced;
     }
 
     /** Exposes the raw entity — used by controller for clientId lookup. */

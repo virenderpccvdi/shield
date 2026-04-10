@@ -20,4 +20,7 @@ public interface SubscriptionPlanRepository extends JpaRepository<SubscriptionPl
 
     /** Look up a plan by its Stripe product ID without scanning the full table. */
     Optional<SubscriptionPlan> findByStripeProductId(String stripeProductId);
+
+    /** Look up a plan by its Stripe price ID (used when changing plans with proration). */
+    Optional<SubscriptionPlan> findByStripePriceId(String stripePriceId);
 }

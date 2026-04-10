@@ -1,6 +1,7 @@
 import {
   Box, Typography, Card, CardContent, Button, CircularProgress, LinearProgress,
   Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Stack, Tooltip,
+  List, ListItem, ListItemText, Avatar,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -8,6 +9,7 @@ import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import AddIcon from '@mui/icons-material/Add';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
@@ -16,6 +18,7 @@ import AnimatedPage from '../../components/AnimatedPage';
 import PageHeader from '../../components/PageHeader';
 import { gradients } from '../../theme/theme';
 import LoadingPage from '../../components/LoadingPage';
+import { useAuthStore } from '../../store/auth.store';
 
 interface Task {
   id: string;
@@ -46,16 +49,38 @@ interface RewardsPageProps {
   profileId?: string;
 }
 
+interface LeaderboardEntry {
+  profileId: string;
+  name: string;
+  totalPoints: number;
+  streakDays?: number;
+}
+
+const RANK_MEDAL = ['🥇', '🥈', '🥉'];
+
 export default function RewardsPage({ profileId: profileIdProp }: RewardsPageProps) {
   const theme = useTheme();
   const { profileId: profileIdParam } = useParams();
   const profileId = profileIdProp ?? profileIdParam;
   const qc = useQueryClient();
+  const user = useAuthStore(s => s.user);
+  const tenantId = user?.tenantId;
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [points, setPoints] = useState('10');
   const [createError, setCreateError] = useState('');
+
+  // A6: Leaderboard
+  const { data: leaderboard } = useQuery<LeaderboardEntry[]>({
+    queryKey: ['leaderboard', tenantId],
+    queryFn: () =>
+      api.get(`/api/v1/rewards/leaderboard${tenantId ? `?tenantId=${tenantId}` : ''}`)
+        .then(r => (r.data?.data ?? r.data) as LeaderboardEntry[])
+        .catch(() => [] as LeaderboardEntry[]),
+    enabled: true,
+    staleTime: 120_000,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['tasks', profileId],
@@ -157,6 +182,44 @@ export default function RewardsPage({ profileId: profileIdProp }: RewardsPagePro
           </CardContent>
         </Card>
       </AnimatedPage>
+
+      {/* A6: Leaderboard */}
+      {leaderboard && leaderboard.length > 0 && (
+        <AnimatedPage delay={0.12}>
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <EmojiEventsIcon sx={{ fontSize: 18, color: theme.palette.warning.main }} />
+                Family Leaderboard
+              </Typography>
+              <List disablePadding>
+                {leaderboard.slice(0, 5).map((entry, idx) => (
+                  <ListItem key={entry.profileId} disableGutters
+                    sx={{ py: 0.75, borderBottom: idx < Math.min(leaderboard.length, 5) - 1 ? '1px solid' : 'none', borderColor: 'divider' }}>
+                    <Avatar sx={{ width: 32, height: 32, mr: 1.5, fontSize: 18, bgcolor: 'transparent' }}>
+                      {RANK_MEDAL[idx] ?? `#${idx + 1}`}
+                    </Avatar>
+                    <ListItemText
+                      primary={<Typography fontWeight={600} fontSize={14}>{entry.name}</Typography>}
+                      secondary={
+                        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25 }}>
+                          <Chip size="small" label={`${entry.totalPoints} pts`}
+                            sx={{ height: 18, fontSize: 11, fontWeight: 700, bgcolor: 'warning.light', color: 'warning.dark' }} />
+                          {(entry.streakDays ?? 0) > 0 && (
+                            <Chip size="small" icon={<LocalFireDepartmentIcon sx={{ fontSize: 12 }} />}
+                              label={`${entry.streakDays}-day streak`}
+                              sx={{ height: 18, fontSize: 11, fontWeight: 600, bgcolor: 'error.light', color: 'error.dark', '& .MuiChip-icon': { color: 'error.dark' } }} />
+                          )}
+                        </Stack>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
+        </AnimatedPage>
+      )}
 
       {/* Pending approval — parent action needed */}
       {submitted.length > 0 && (

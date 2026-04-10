@@ -30,4 +30,8 @@ public class RegisterRequest {
 
     /** Optional: the tenant this user belongs to (required for ISP_ADMIN / CUSTOMER). */
     private UUID tenantId;
+
+    /** Optional: co-parent invite token (from the invite email link).
+     *  When present, tenantId and role are resolved from the stored invite. */
+    private String inviteToken;
 }

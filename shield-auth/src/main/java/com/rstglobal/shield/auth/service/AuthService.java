@@ -1,5 +1,7 @@
 package com.rstglobal.shield.auth.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rstglobal.shield.auth.client.AuditClient;
 import com.rstglobal.shield.auth.client.NotificationClient;
 import com.rstglobal.shield.auth.dto.request.*;
@@ -9,6 +11,8 @@ import com.rstglobal.shield.auth.dto.response.UserResponse;
 import com.rstglobal.shield.auth.entity.Session;
 import com.rstglobal.shield.auth.entity.User;
 import com.rstglobal.shield.auth.entity.UserRole;
+import com.rstglobal.shield.auth.entity.PasswordHistory;
+import com.rstglobal.shield.auth.repository.PasswordHistoryRepository;
 import com.rstglobal.shield.auth.repository.SessionRepository;
 import com.rstglobal.shield.auth.repository.UserRepository;
 import com.rstglobal.shield.common.exception.ShieldException;
@@ -30,6 +34,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -42,18 +47,22 @@ public class AuthService {
     private static final String OTP_PREFIX        = "shield:auth:otp:";
     private static final String BLACKLIST_PREFIX  = "shield:auth:blacklist:";
     private static final String FAILURES_PREFIX   = "shield:auth:failures:";
+    private static final String INVITE_PREFIX     = "shield:auth:invite:";
     private static final int    MAX_FAIL_ATTEMPTS = 5;
     private static final int    LOCK_MINUTES      = 30;
     private static final int    RATE_LOCK_MINUTES = 15;
 
-    private final UserRepository      userRepository;
-    private final SessionRepository   sessionRepository;
-    private final PasswordEncoder     passwordEncoder;
-    private final JwtUtils            jwtUtils;
-    private final StringRedisTemplate redis;
-    private final AuditClient         auditClient;
-    private final MfaService          mfaService;
-    private final NotificationClient  notificationClient;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private final UserRepository             userRepository;
+    private final SessionRepository          sessionRepository;
+    private final PasswordHistoryRepository  passwordHistoryRepository;
+    private final PasswordEncoder            passwordEncoder;
+    private final JwtUtils                   jwtUtils;
+    private final StringRedisTemplate        redis;
+    private final AuditClient                auditClient;
+    private final MfaService                 mfaService;
+    private final NotificationClient         notificationClient;
 
     @Value("${shield.jwt.refresh-days:30}")
     private long refreshDays;
@@ -78,6 +87,28 @@ public class AuthService {
         if (userRepository.existsByEmail(req.getEmail())) {
             throw ShieldException.conflict("Email already registered");
         }
+
+        // Resolve invite token — if present, override tenantId and role from the stored invite
+        if (req.getInviteToken() != null && !req.getInviteToken().isBlank()) {
+            String inviteJson = redis.opsForValue().get(INVITE_PREFIX + req.getInviteToken());
+            if (inviteJson == null) {
+                throw ShieldException.badRequest("Invite token is invalid or has expired");
+            }
+            try {
+                Map<String, String> invite = OBJECT_MAPPER.readValue(
+                        inviteJson, new TypeReference<Map<String, String>>() {});
+                if (invite.containsKey("tenantId")) {
+                    req.setTenantId(UUID.fromString(invite.get("tenantId")));
+                }
+                role = UserRole.CO_PARENT;
+                // Consume the invite token so it cannot be reused
+                redis.delete(INVITE_PREFIX + req.getInviteToken());
+                log.info("Invite token consumed for email={} tenantId={}", req.getEmail(), req.getTenantId());
+            } catch (Exception e) {
+                throw ShieldException.badRequest("Invite token is malformed");
+            }
+        }
+
         User user = User.builder()
                 .email(req.getEmail().toLowerCase())
                 .passwordHash(passwordEncoder.encode(req.getPassword()))
@@ -509,8 +540,28 @@ public class AuthService {
         if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPasswordHash())) {
             throw ShieldException.badRequest("Current password is incorrect");
         }
-        user.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+
+        // AU10: Check against last 5 passwords (including the current one stored in DB)
+        List<PasswordHistory> history =
+                passwordHistoryRepository.findTop5ByUserIdOrderByCreatedAtDesc(userId);
+        for (PasswordHistory h : history) {
+            if (passwordEncoder.matches(req.getNewPassword(), h.getPasswordHash())) {
+                throw ShieldException.badRequest("Cannot reuse one of your last 5 passwords");
+            }
+        }
+        // Also check against the current password hash stored on the user record
+        if (passwordEncoder.matches(req.getNewPassword(), user.getPasswordHash())) {
+            throw ShieldException.badRequest("New password must be different from your current password");
+        }
+
+        String encodedNewPassword = passwordEncoder.encode(req.getNewPassword());
+        user.setPasswordHash(encodedNewPassword);
         userRepository.save(user);
+
+        // Record the new password in history, then prune to keep only the last 5
+        passwordHistoryRepository.save(new PasswordHistory(userId, encodedNewPassword));
+        passwordHistoryRepository.deleteOldEntries(userId, 5);
+
         auditClient.log("PASSWORD_CHANGED", "User", userId.toString(),
                 userId, user.getName(), null, Map.of("email", user.getEmail()));
     }
@@ -598,6 +649,44 @@ public class AuthService {
         userRepository.delete(user);
         auditClient.log("USER_DELETED", "User", userId.toString(),
                 userId, user.getName(), null, Map.of("email", user.getEmail()));
+    }
+
+    // ── Co-parent Invite ─────────────────────────────────────────────────────
+
+    /**
+     * Generates a co-parent invite token and sends an invite email to the given address.
+     *
+     * The token is stored in Redis with a 7-day TTL:
+     *   shield:auth:invite:{token} → {"tenantId": "...", "inviterUserId": "...", "role": "CO_PARENT"}
+     *
+     * When the invitee registers with ?inviteToken={token}, the register() method automatically:
+     *   - assigns CO_PARENT role
+     *   - links to the inviter's tenant
+     *   - deletes the invite token (single-use)
+     */
+    public void sendCoParentInvite(UUID inviterUserId, CoParentInviteRequest req) {
+        // Generate a random invite token
+        String token = UUID.randomUUID().toString().replace("-", "") +
+                       UUID.randomUUID().toString().replace("-", "");
+
+        // Build the payload stored in Redis
+        Map<String, String> inviteData = Map.of(
+                "tenantId",      req.getTenantId() != null ? req.getTenantId().toString() : "",
+                "inviterUserId", inviterUserId.toString(),
+                "role",          "CO_PARENT"
+        );
+        try {
+            String json = OBJECT_MAPPER.writeValueAsString(inviteData);
+            redis.opsForValue().set(INVITE_PREFIX + token, json, 7, TimeUnit.DAYS);
+        } catch (Exception e) {
+            throw ShieldException.badRequest("Failed to create invite token");
+        }
+
+        // Fire-and-forget email via notification service
+        notificationClient.sendCoParentInviteEmail(req.getEmail(), req.getFamilyName(), token);
+
+        log.info("Co-parent invite dispatched to {} by userId={} tenantId={}",
+                req.getEmail(), inviterUserId, req.getTenantId());
     }
 
     // ── Child Token ─────────────────────────────────────────────────────────

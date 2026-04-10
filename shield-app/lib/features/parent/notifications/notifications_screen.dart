@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../app/theme.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
 import '../../../core/models/alert_model.dart';
@@ -29,69 +31,22 @@ final unreadCountProvider = FutureProvider.autoDispose<int>((ref) async {
   return alerts.where((a) => !a.isRead).length;
 });
 
-class NotificationsScreen extends ConsumerWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(_notifProvider);
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
+}
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications'),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              try {
-                await ApiClient.instance.post(Endpoints.markAllRead);
-                ref.invalidate(_notifProvider);
-              } catch (_) {}
-            },
-            child: const Text('Mark all read',
-                style: TextStyle(color: Colors.white70, fontSize: 13)),
-          ),
-        ],
-      ),
-      body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error:   (e, _) => ErrorView(
-          message: 'Failed to load notifications',
-          onRetry: () => ref.invalidate(_notifProvider),
-        ),
-        data: (list) {
-          if (list.isEmpty) {
-            return const EmptyView(
-              icon:    Icons.notifications_none,
-              message: 'No notifications yet.\n'
-                       'Alerts for location, schedule, and safety appear here.',
-            );
-          }
-          final grouped = _groupByDay(list);
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(_notifProvider),
-            child: ListView.builder(
-              itemCount: grouped.length,
-              itemBuilder: (_, i) {
-                final entry = grouped[i];
-                if (entry is String) {
-                  return _DayHeader(label: entry);
-                }
-                return _NotifTile(
-                  alert:   entry as AlertModel,
-                  onRead: () async {
-                    try {
-                      await ApiClient.instance
-                          .post(Endpoints.markRead((entry as AlertModel).id));
-                      ref.invalidate(_notifProvider);
-                    } catch (_) {}
-                  },
-                );
-              },
-            ),
-          );
-        },
-      ),
-    );
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  // FL17: All / Unread filter
+  bool _showUnreadOnly = false;
+
+  Future<void> _markAllRead() async {
+    try {
+      await ApiClient.instance.post(Endpoints.markAllRead);
+      ref.invalidate(_notifProvider);
+    } catch (_) {}
   }
 
   /// Interleave day-header strings with AlertModel objects.
@@ -113,11 +68,165 @@ class NotificationsScreen extends ConsumerWidget {
     final now   = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final d     = DateTime(dt.year, dt.month, dt.day);
-    if (d == today)
-      return 'Today';
-    if (d == today.subtract(const Duration(days: 1)))
-      return 'Yesterday';
+    if (d == today) return 'Today';
+    if (d == today.subtract(const Duration(days: 1))) return 'Yesterday';
     return DateFormat('EEEE, d MMM').format(dt);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(_notifProvider);
+    final cs    = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      backgroundColor: Ds.surface,
+      appBar: AppBar(
+        backgroundColor: Ds.surface,
+        title: Text('Notifications',
+            style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+        actions: [
+          TextButton(
+            onPressed: _markAllRead,
+            child: Text('Mark all read',
+                style: GoogleFonts.inter(
+                    color: cs.onSurface.withOpacity(0.55), fontSize: 13)),
+          ),
+        ],
+      ),
+      body: Column(children: [
+        // FL17: All / Unread segmented toggle
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+          child: Row(children: [
+            _FilterChip(
+              label: 'All',
+              selected: !_showUnreadOnly,
+              onTap: () => setState(() => _showUnreadOnly = false),
+            ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: 'Unread',
+              selected: _showUnreadOnly,
+              onTap: () => setState(() => _showUnreadOnly = true),
+              badge: async.valueOrNull
+                  ?.where((a) => !a.isRead)
+                  .length,
+            ),
+          ]),
+        ),
+
+        Expanded(
+          child: async.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => ErrorView(
+              message: 'Failed to load notifications',
+              onRetry: () => ref.invalidate(_notifProvider),
+            ),
+            data: (list) {
+              final filtered = _showUnreadOnly
+                  ? list.where((a) => !a.isRead).toList()
+                  : list;
+
+              if (filtered.isEmpty) {
+                return EmptyView(
+                  icon: Icons.notifications_none,
+                  message: _showUnreadOnly
+                      ? 'All caught up! No unread notifications.'
+                      : 'No notifications yet.\n'
+                        'Alerts for location, schedule, and safety appear here.',
+                );
+              }
+              final grouped = _groupByDay(filtered);
+              return RefreshIndicator(
+                color: Ds.primary,
+                onRefresh: () async => ref.invalidate(_notifProvider),
+                child: ListView.builder(
+                  itemCount: grouped.length,
+                  itemBuilder: (_, i) {
+                    final entry = grouped[i];
+                    if (entry is String) {
+                      return _DayHeader(label: entry);
+                    }
+                    final alert = entry as AlertModel;
+                    return _NotifTile(
+                      alert: alert,
+                      onRead: () async {
+                        try {
+                          await ApiClient.instance
+                              .post(Endpoints.markRead(alert.id));
+                          ref.invalidate(_notifProvider);
+                        } catch (_) {}
+                      },
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Filter chip ───────────────────────────────────────────────────────────────
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.badge,
+  });
+  final String   label;
+  final bool     selected;
+  final VoidCallback onTap;
+  final int?     badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? Ds.primary : Ds.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : cs.onSurface,
+            ),
+          ),
+          if (badge != null && badge! > 0) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color:        selected
+                    ? Colors.white.withOpacity(0.25)
+                    : Ds.danger,
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Text(
+                '$badge',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ]),
+      ),
+    );
   }
 }
 

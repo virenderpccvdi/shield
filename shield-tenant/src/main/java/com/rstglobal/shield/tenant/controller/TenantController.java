@@ -12,6 +12,8 @@ import com.rstglobal.shield.tenant.entity.Tenant;
 import com.rstglobal.shield.tenant.repository.TenantRepository;
 import com.rstglobal.shield.tenant.service.TenantService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityManager;
 import jakarta.validation.Valid;
@@ -41,6 +43,11 @@ public class TenantController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a new ISP tenant")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Tenant created"),
+        @ApiResponse(responseCode = "409", description = "Slug or domain already in use"),
+        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
+    })
     public ApiResponse<TenantResponse> create(
             @RequestHeader("X-User-Role") String role,
             @Valid @RequestBody CreateTenantRequest req) {
@@ -49,7 +56,11 @@ public class TenantController {
     }
 
     @GetMapping
-    @Operation(summary = "List all tenants (paginated)")
+    @Operation(summary = "List all tenants (paginated)", description = "Supports optional text search via ?q= parameter.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Tenant list returned"),
+        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
+    })
     public ApiResponse<PagedResponse<TenantResponse>> list(
             @RequestHeader("X-User-Role") String role,
             @RequestParam(required = false) String q,
@@ -80,13 +91,18 @@ public class TenantController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update tenant details")
+    @Operation(summary = "Update tenant details", description = "Automatically re-applies plan feature defaults when the plan field changes.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Tenant updated"),
+        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN or ISP_ADMIN (own tenant) required"),
+        @ApiResponse(responseCode = "404", description = "Tenant not found")
+    })
     public ApiResponse<TenantResponse> update(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader(value = "X-Tenant-Id", required = false) UUID callerTenantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String callerTenantIdStr,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateTenantRequest req) {
-        requireGlobalAdminOrSelf(role, callerTenantId, id);
+        requireGlobalAdminOrSelf(role, parseUuid(callerTenantIdStr), id);
         return ApiResponse.ok(tenantService.update(id, req));
     }
 
@@ -105,6 +121,11 @@ public class TenantController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Soft-delete a tenant")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Tenant deleted"),
+        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required"),
+        @ApiResponse(responseCode = "404", description = "Tenant not found")
+    })
     public void delete(
             @RequestHeader("X-User-Role") String role,
             @PathVariable UUID id) {
@@ -116,7 +137,9 @@ public class TenantController {
     @GetMapping("/me")
     @Operation(summary = "ISP Admin: get own tenant details")
     public ApiResponse<TenantResponse> getMyTenant(
-            @RequestHeader("X-Tenant-Id") UUID tenantId) {
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr) {
+        UUID tenantId = parseUuid(tenantIdStr);
+        if (tenantId == null) throw ShieldException.badRequest("X-Tenant-Id header is required");
         return ApiResponse.ok(tenantService.getById(tenantId));
     }
 
@@ -132,9 +155,9 @@ public class TenantController {
     @Operation(summary = "Get tenant quota limits and current usage")
     public ApiResponse<Map<String, Object>> getQuotas(
             @RequestHeader(value = "X-User-Role", required = false) String role,
-            @RequestHeader(value = "X-Tenant-Id", required = false) UUID callerTenantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String callerTenantIdStr,
             @PathVariable UUID id) {
-        requireGlobalAdminOrSelf(role, callerTenantId, id);
+        requireGlobalAdminOrSelf(role, parseUuid(callerTenantIdStr), id);
 
         Tenant tenant = tenantRepository.findById(id)
                 .orElseThrow(() -> ShieldException.notFound("Tenant", id));
@@ -235,9 +258,9 @@ public class TenantController {
     @Operation(summary = "Get tenant white-label branding settings")
     public ApiResponse<BrandingResponse> getBranding(
             @RequestHeader(value = "X-User-Role",  required = false) String role,
-            @RequestHeader(value = "X-Tenant-Id",  required = false) UUID callerTenantId,
+            @RequestHeader(value = "X-Tenant-Id",  required = false) String callerTenantIdStr,
             @PathVariable UUID tenantId) {
-        requireGlobalAdminOrSelf(role, callerTenantId, tenantId);
+        requireGlobalAdminOrSelf(role, parseUuid(callerTenantIdStr), tenantId);
         return ApiResponse.ok(tenantService.getBranding(tenantId));
     }
 
@@ -249,10 +272,10 @@ public class TenantController {
     @Operation(summary = "Update tenant white-label branding settings")
     public ApiResponse<BrandingResponse> updateBranding(
             @RequestHeader(value = "X-User-Role",  required = false) String role,
-            @RequestHeader(value = "X-Tenant-Id",  required = false) UUID callerTenantId,
+            @RequestHeader(value = "X-Tenant-Id",  required = false) String callerTenantIdStr,
             @PathVariable UUID tenantId,
             @Valid @RequestBody UpdateBrandingRequest req) {
-        requireGlobalAdminOrSelf(role, callerTenantId, tenantId);
+        requireGlobalAdminOrSelf(role, parseUuid(callerTenantIdStr), tenantId);
         return ApiResponse.ok(tenantService.updateBranding(tenantId, req));
     }
 
@@ -278,7 +301,7 @@ public class TenantController {
 
     private void requireGlobalAdminOrSelf(String role, UUID callerTenantId, UUID targetTenantId) {
         if ("GLOBAL_ADMIN".equals(role)) return;
-        if ("ISP_ADMIN".equals(role) && targetTenantId.equals(callerTenantId)) return;
+        if ("ISP_ADMIN".equals(role) && callerTenantId != null && callerTenantId.equals(targetTenantId)) return;
         throw ShieldException.forbidden("GLOBAL_ADMIN or ISP_ADMIN (own tenant) role required");
     }
 
@@ -286,5 +309,12 @@ public class TenantController {
         if (!"GLOBAL_ADMIN".equals(role)) {
             throw ShieldException.forbidden("GLOBAL_ADMIN role required");
         }
+    }
+
+    /** Safely parse a UUID from a header value — returns null if blank or malformed. */
+    private static UUID parseUuid(String value) {
+        if (value == null || value.isBlank()) return null;
+        try { return UUID.fromString(value); }
+        catch (IllegalArgumentException e) { return null; }
     }
 }

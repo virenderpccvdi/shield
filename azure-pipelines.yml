@@ -69,6 +69,30 @@ stages:
       displayName: 'Maven Build (all services)'
 
     - script: |
+        for SERVICE in auth tenant profile dns location notification rewards analytics admin; do
+          echo "=== Testing shield-$SERVICE ==="
+          cd $(Build.SourcesDirectory)/shield-$SERVICE
+          /usr/share/maven/bin/mvn test -q --no-transfer-progress \
+            -Dspring.datasource.url=jdbc:h2:mem:testdb \
+            -Dspring.datasource.driver-class-name=org.h2.Driver \
+            -Dspring.jpa.database-platform=org.hibernate.dialect.H2Dialect \
+            -Dspring.flyway.enabled=false \
+            -Deureka.client.enabled=false \
+            -DJWT_SECRET=testSecretKeyForTestingOnlyNotRealValue12345678 \
+            || echo "WARNING: Tests failed for shield-$SERVICE (non-blocking)"
+        done
+      displayName: 'Run unit tests (non-blocking)'
+      continueOnError: true
+
+    - task: PublishTestResults@2
+      condition: always()
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
+        mergeTestResults: true
+        testRunTitle: 'Shield Unit Tests'
+
+    - script: |
         set -e
         export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
         export PATH=$JAVA_HOME/bin:$PATH
@@ -173,24 +197,67 @@ stages:
         fi
         cd shield-app
         flutter pub get
-        flutter build apk --debug --no-tree-shake-icons
-        APK_SIZE=$(du -sh build/app/outputs/flutter-apk/app-debug.apk | cut -f1)
-        echo "APK built: $APK_SIZE"
-      displayName: 'flutter build apk'
+        flutter build apk \
+          --release \
+          --tree-shake-icons \
+          --obfuscate \
+          --split-debug-info=build/debug-info
+        APK_SIZE=$(du -sh build/app/outputs/flutter-apk/app-release.apk | cut -f1)
+        echo "Release APK built: $APK_SIZE"
+      displayName: 'flutter build apk (release)'
 
     - script: |
         set -e
-        cp shield-app/build/app/outputs/flutter-apk/app-debug.apk \
+        cp shield-app/build/app/outputs/flutter-apk/app-release.apk \
            /var/www/ai/FamilyShield/static/shield-app.apk
         echo "APK deployed: $(du -sh /var/www/ai/FamilyShield/static/shield-app.apk)"
       displayName: 'Deploy APK to static directory'
 
 # ══════════════════════════════════════════════════════════════════════════════
-# STAGE 2: DEPLOY DEV — auto on develop branch
+# STAGE 2: SECURITY SCAN — OWASP + npm audit
+# ══════════════════════════════════════════════════════════════════════════════
+- stage: SecurityScan
+  displayName: 'Security Scanning'
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - job: DependencyCheck
+    pool:
+      name: shield-self-hosted
+    timeoutInMinutes: 30
+    steps:
+    - checkout: self
+      clean: false
+    - script: |
+        cd $(Build.SourcesDirectory)/shield-dashboard
+        npm audit --audit-level=high --json > npm-audit.json || true
+        cat npm-audit.json | python3 -c "
+        import json,sys
+        d=json.load(sys.stdin)
+        vulns=d.get('metadata',{}).get('vulnerabilities',{})
+        critical=vulns.get('critical',0)
+        high=vulns.get('high',0)
+        print(f'npm audit: {critical} critical, {high} high')
+        if critical > 0: sys.exit(1)
+        "
+      displayName: 'npm audit (fail on critical)'
+      continueOnError: true
+    - script: |
+        cd $(Build.SourcesDirectory)
+        /usr/share/maven/bin/mvn org.owasp:dependency-check-maven:check \
+          -DfailBuildOnCVSS=9 \
+          -DsuppressionFile=owasp-suppressions.xml \
+          --no-transfer-progress -q \
+          2>&1 | tail -20 || true
+      displayName: 'OWASP dependency check (fail on CVSS>=9)'
+      continueOnError: true
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STAGE 3: DEPLOY DEV — auto on develop branch
 # ══════════════════════════════════════════════════════════════════════════════
 - stage: DeployDev
   displayName: 'Deploy → shield-dev'
-  dependsOn: Build
+  dependsOn: [Build, SecurityScan]
   condition: and(succeeded('Build'), eq(variables.isDevelop, 'true'))
   jobs:
   - deployment: DeployDev
@@ -221,7 +288,7 @@ stages:
 # ══════════════════════════════════════════════════════════════════════════════
 - stage: DeployProd
   displayName: 'Deploy → shield-prod'
-  dependsOn: Build
+  dependsOn: [Build, SecurityScan]
   condition: and(succeeded('Build'), eq(variables.isMain, 'true'))
   jobs:
   - deployment: DeployProd

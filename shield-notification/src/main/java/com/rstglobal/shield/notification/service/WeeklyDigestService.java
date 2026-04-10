@@ -129,7 +129,7 @@ public class WeeklyDigestService {
      * @param weekStart first day of the reporting window (Monday)
      * @param weekEnd   last day of the reporting window (Sunday)
      */
-    @Async
+    @Async("digestExecutor")
     public void sendDigestForUser(Map<String, Object> user,
                                    LocalDate weekStart, LocalDate weekEnd) {
         // Check weekly_digest feature flag for this tenant before sending

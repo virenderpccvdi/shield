@@ -25,6 +25,10 @@ class AppConstants {
   static const String keyParentPin      = 'shield_parent_pin';   // PIN to exit child mode
   static const String keyThemeMode      = 'shield_theme_mode';   // light | dark | system
 
+  // DNS rules offline cache (secure storage)
+  static const String keyDnsRulesCache     = 'shield_dns_rules_cache';
+  static const String keyDnsRulesCacheTime = 'shield_dns_rules_cache_time';
+
   // Background service (SharedPreferences — accessible from background isolate)
   static const String bgKeyToken        = 'shield_bg_token';
   static const String bgKeyProfileId    = 'shield_bg_profile_id';

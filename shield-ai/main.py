@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -8,6 +9,7 @@ from slowapi.errors import RateLimitExceeded
 from limiter import limiter
 
 from routers import health, insights, analysis, keywords, alerts, training, config, chat, safe_chat
+from routers.training import weekly_retrain_loop
 from services.anomaly_service import load_model
 from db.init import init_db
 
@@ -21,6 +23,8 @@ async def lifespan(app: FastAPI):
     await init_db()
     load_model()
     logger.info("Anomaly model loaded.")
+    asyncio.create_task(weekly_retrain_loop())
+    logger.info("Weekly retrain background task scheduled (fires every 7 days).")
     yield
     logger.info("Shield AI Service shutting down.")
 

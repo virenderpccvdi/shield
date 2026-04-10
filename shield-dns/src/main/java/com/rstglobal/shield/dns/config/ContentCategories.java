@@ -94,6 +94,17 @@ public final class ContentCategories {
         cats.put("weapons",    false);
 
         switch (filterLevel) {
+            case "HOMEWORK" -> {
+                // Homework mode: only Education, Search, Reference, Technology allowed.
+                // Block everything else — this is the most restrictive category filter.
+                all().keySet().forEach(k -> cats.put(k, false)); // block all first
+                // Allow only educational / reference categories
+                cats.put("education",       true);
+                cats.put("search_engines",  true);
+                cats.put("reference",       true);
+                cats.put("software",        true);
+                cats.put("ads",             true);  // keep ads/tracking accessible (neutral)
+            }
             case "MAXIMUM" -> {
                 cats.put("gambling",       false);
                 cats.put("alcohol",        false);

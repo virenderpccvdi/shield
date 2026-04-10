@@ -1,20 +1,26 @@
 package com.rstglobal.shield.dns.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.dns.dto.request.ScheduleOverrideRequest;
 import com.rstglobal.shield.dns.dto.request.UpdateScheduleRequest;
 import com.rstglobal.shield.dns.dto.response.ScheduleResponse;
 import com.rstglobal.shield.dns.entity.DnsRules;
 import com.rstglobal.shield.dns.entity.Schedule;
+import com.rstglobal.shield.dns.entity.SchedulePreset;
 import com.rstglobal.shield.dns.repository.DnsRulesRepository;
+import com.rstglobal.shield.dns.repository.SchedulePresetRepository;
 import com.rstglobal.shield.dns.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -31,9 +37,14 @@ public class ScheduleService {
      */
     public static final String SCHEDULE_BLOCKED_KEY = "__schedule_blocked__";
 
+    private static final String PRESET_CACHE_KEY = "shield:dns:schedule:presets";
+
     private final ScheduleRepository scheduleRepo;
     private final DnsRulesRepository dnsRulesRepo;
     private final BudgetTrackingService budgetTracking;
+    private final SchedulePresetRepository presetRepo;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public Schedule initSchedule(UUID tenantId, UUID profileId) {
@@ -240,11 +251,74 @@ public class ScheduleService {
         return grid;
     }
 
+    /**
+     * DNS12 — Load a preset grid from DB (Redis-cached for 1 hour).
+     * Falls back to hardcoded grids if the DB preset is not found.
+     */
     private Map<String, List<Integer>> gridForPreset(String preset) {
+        // 1. Try Redis cache
+        try {
+            String cached = redisTemplate.opsForValue().get(PRESET_CACHE_KEY + ":" + preset);
+            if (cached != null) {
+                return objectMapper.readValue(cached, new TypeReference<>() {});
+            }
+        } catch (Exception e) {
+            log.debug("Schedule preset cache miss for {}: {}", preset, e.getMessage());
+        }
+
+        // 2. Try DB
+        try {
+            Optional<SchedulePreset> dbPreset = presetRepo.findByName(preset);
+            if (dbPreset.isPresent()) {
+                Map<String, List<Integer>> grid = dbPreset.get().getGrid();
+                // Cache for 1 hour
+                try {
+                    redisTemplate.opsForValue().set(
+                            PRESET_CACHE_KEY + ":" + preset,
+                            objectMapper.writeValueAsString(grid),
+                            Duration.ofHours(1));
+                } catch (Exception e) {
+                    log.debug("Failed to cache schedule preset {}: {}", preset, e.getMessage());
+                }
+                return grid;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to load schedule preset {} from DB: {}", preset, e.getMessage());
+        }
+
+        // 3. Hardcoded fallback (backward compatibility)
+        return gridForPresetFallback(preset);
+    }
+
+    /** List all available presets (DB-backed, Redis-cached). */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> listPresets() {
+        List<SchedulePreset> presets = presetRepo.findAllByOrderByName();
+        return presets.stream().map(p -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("name", p.getName());
+            m.put("label", p.getLabel());
+            m.put("description", p.getDescription());
+            m.put("isDefault", p.isDefault());
+            m.put("grid", p.getGrid());
+            return m;
+        }).toList();
+    }
+
+    /** Evict the preset cache (e.g. after admin updates a preset). */
+    public void evictPresetCache(String preset) {
+        try {
+            redisTemplate.delete(PRESET_CACHE_KEY + ":" + preset);
+        } catch (Exception e) {
+            log.debug("Failed to evict preset cache for {}: {}", preset, e.getMessage());
+        }
+    }
+
+    /** Hardcoded fallback grids — used when DB is unavailable or preset not found. */
+    private Map<String, List<Integer>> gridForPresetFallback(String preset) {
         Map<String, List<Integer>> grid = defaultGrid();
         return switch (preset) {
             case "SCHOOL" -> {
-                // Block 8am-4pm Mon-Fri
                 List<String> weekdays = List.of("monday","tuesday","wednesday","thursday","friday");
                 for (String day : weekdays) {
                     List<Integer> hours = new ArrayList<>(Collections.nCopies(24, 0));
@@ -254,7 +328,6 @@ public class ScheduleService {
                 yield grid;
             }
             case "BEDTIME" -> {
-                // Block 10pm-7am every day
                 for (String day : grid.keySet()) {
                     List<Integer> hours = new ArrayList<>(Collections.nCopies(24, 0));
                     for (int h = 22; h < 24; h++) hours.set(h, 1);
@@ -264,7 +337,6 @@ public class ScheduleService {
                 yield grid;
             }
             case "STRICT" -> {
-                // Block 8am-4pm weekdays + 10pm-7am all days
                 List<String> weekdays = List.of("monday","tuesday","wednesday","thursday","friday");
                 for (String day : grid.keySet()) {
                     List<Integer> hours = new ArrayList<>(Collections.nCopies(24, 0));
@@ -276,10 +348,18 @@ public class ScheduleService {
                 yield grid;
             }
             case "WEEKEND" -> {
-                // Weekdays fully blocked, weekends fully open
                 List<String> weekdays = List.of("monday","tuesday","wednesday","thursday","friday");
                 for (String day : grid.keySet()) {
                     List<Integer> hours = new ArrayList<>(Collections.nCopies(24, weekdays.contains(day) ? 1 : 0));
+                    grid.put(day, hours);
+                }
+                yield grid;
+            }
+            case "HOMEWORK" -> {
+                List<String> weekdays = List.of("monday","tuesday","wednesday","thursday","friday");
+                for (String day : weekdays) {
+                    List<Integer> hours = new ArrayList<>(Collections.nCopies(24, 0));
+                    for (int h = 15; h < 18; h++) hours.set(h, 1);
                     grid.put(day, hours);
                 }
                 yield grid;

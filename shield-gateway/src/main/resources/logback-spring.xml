@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- PII masking converter: masks emails and IP addresses in log messages -->
+    <conversionRule conversionWord="maskedMsg"
+                    converterClass="com.rstglobal.shield.common.logging.PiiMaskingConverter"/>
+
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="shield-gateway"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %maskedMsg%n</pattern>
+        </encoder>
+    </appender>
+
+    <springProfile name="!prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <logger name="com.rstglobal.shield" level="INFO"/>
+    </springProfile>
+
+</configuration>

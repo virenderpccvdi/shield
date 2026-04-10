@@ -26,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.rstglobal.shield.analytics.util.DateRangeUtils;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -97,7 +98,7 @@ public class AnalyticsService {
     @Transactional(readOnly = true)
     public UsageStatsResponse getUsageStats(UUID profileId, UUID tenantId, String period) {
         requireFeature(tenantId, "content_reporting");
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         Instant from = range[0];
         Instant to = range[1];
 
@@ -113,7 +114,7 @@ public class AnalyticsService {
                cacheManager = "analyticsCacheManager")
     @Transactional(readOnly = true)
     public List<TopDomainEntry> getTopDomains(UUID profileId, String action, int limit, String period) {
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         List<Object[]> rows = dnsQueryLogRepository.findTopDomainsByProfileIdAndAction(
                 profileId, action, range[0], range[1], limit);
 
@@ -131,7 +132,7 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public List<TopAppEntry> getTopApps(UUID profileId, String period) {
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         List<Object[]> rows = dnsQueryLogRepository.findTopDomainsByProfileId(
                 profileId, range[0], range[1], 200);
 
@@ -175,7 +176,7 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public List<CategoryBreakdown> getCategoryBreakdown(UUID profileId, String period) {
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         List<Object[]> rows = dnsQueryLogRepository.findCategoryBreakdownByProfileId(
                 profileId, range[0], range[1]);
 
@@ -228,7 +229,7 @@ public class AnalyticsService {
                cacheManager = "analyticsCacheManager")
     @Transactional(readOnly = true)
     public UsageStatsResponse getPlatformOverview(String period) {
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         long total = dnsQueryLogRepository.countByQueriedAtBetween(range[0], range[1]);
         long blocked = dnsQueryLogRepository.countByActionAndQueriedAtBetween("BLOCKED", range[0], range[1]);
         long allowed = total - blocked;
@@ -260,7 +261,7 @@ public class AnalyticsService {
                cacheManager = "analyticsCacheManager")
     @Transactional(readOnly = true)
     public UsageStatsResponse getTenantOverview(UUID tenantId, String period) {
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         long total = dnsQueryLogRepository.countByTenantIdAndQueriedAtBetween(tenantId, range[0], range[1]);
         long blocked = dnsQueryLogRepository.countByTenantIdAndActionAndQueriedAtBetween(tenantId, "BLOCKED", range[0], range[1]);
         long allowed = total - blocked;
@@ -286,7 +287,7 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public List<CategoryBreakdown> getTenantBlockedCategories(UUID tenantId, String period) {
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         List<Object[]> rows = dnsQueryLogRepository.findTenantBlockedCategories(tenantId, range[0], range[1]);
         List<CategoryBreakdown> result = new ArrayList<>();
         for (Object[] row : rows) {
@@ -297,7 +298,7 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public List<CategoryBreakdown> getPlatformBlockedCategories(String period) {
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         List<Object[]> rows = dnsQueryLogRepository.findPlatformBlockedCategories(range[0], range[1]);
         List<CategoryBreakdown> result = new ArrayList<>();
         for (Object[] row : rows) {
@@ -308,13 +309,13 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public List<Object[]> getTopTenantsByQueries(String period, int limit) {
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         return dnsQueryLogRepository.findTopTenantsByQueries(range[0], range[1], limit);
     }
 
     @Transactional(readOnly = true)
     public List<TopDomainEntry> getTenantTopBlockedDomains(UUID tenantId, String period, int limit) {
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         List<Object[]> rows = dnsQueryLogRepository.findTenantTopBlockedDomains(
                 tenantId, range[0], range[1], limit);
         List<TopDomainEntry> result = new ArrayList<>();
@@ -385,7 +386,7 @@ public class AnalyticsService {
      */
     @Transactional(readOnly = true)
     public List<AppUsageEntry> getAppUsageReport(UUID profileId, String period) {
-        Instant[] range = periodToRange(period);
+        Instant[] range = DateRangeUtils.fromPeriod(period).toArray();
         List<Object[]> rows = dnsQueryLogRepository.findDomainAggregatesForProfile(
                 profileId, range[0], range[1]);
 
@@ -592,18 +593,6 @@ public class AnalyticsService {
             }
         }
         return null;
-    }
-
-    private Instant[] periodToRange(String period) {
-        Instant now = Instant.now();
-        Instant from = switch (period == null ? "today" : period.toLowerCase()) {
-            case "week" -> now.minus(7, ChronoUnit.DAYS);
-            case "month" -> now.minus(30, ChronoUnit.DAYS);
-            default -> now.truncatedTo(ChronoUnit.DAYS); // today: midnight to now
-        };
-        // 'to' is always Instant.now() — ensures "today" returns data from midnight to this moment,
-        // not an empty range. Previously there was a risk of 'to' being midnight = empty range.
-        return new Instant[]{from, now};
     }
 
     private void requireFeature(UUID tenantId, String feature) {

@@ -3,25 +3,994 @@
 <head>
   <meta charset="UTF-8"/>
   <meta http-equiv="refresh" content="0;url=/app/"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Shield Dashboard</title>
+  <meta name="robots" content="noindex, nofollow"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
   <style>
-    body { font-family: system-ui, sans-serif; display: flex; align-items: center;
-           justify-content: center; min-height: 100vh; margin: 0; background: #f8faff; }
-    .msg { text-align: center; color: #6b7280; font-size: 14px; }
-    .spinner { width: 32px; height: 32px; border: 3px solid #e3f2fd;
-               border-top-color: #1565C0; border-radius: 50%;
-               animation: spin .7s linear infinite; margin: 0 auto 12px; }
+    :root {
+      --primary: #005DAC;
+      --primary-dark: #003D72;
+      --surface: #F7F9FB;
+      --surface-low: #F0F4F8;
+      --on-surface: #0F1F3D;
+      --on-variant: #4A6481;
+      --outline: #C4D0DC;
+      --shadow: 0 8px 32px -4px rgba(15,31,61,0.06);
+      --r: 12px;
+      --success: #2E7D32;
+      --danger: #C62828;
+      --sidebar-w: 240px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--surface);
+      color: var(--on-surface);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top Nav — glassmorphism ── */
+    .topnav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 14px;
+      background: rgba(247,249,251,0.78);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--outline);
+      box-shadow: var(--shadow);
+    }
+
+    .topnav-logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--primary);
+      text-decoration: none;
+      margin-right: 8px;
+    }
+
+    .topnav-logo svg { flex-shrink: 0; }
+
+    .topnav-spacer { flex: 1; }
+
+    .topnav-role {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: var(--surface-low);
+      color: var(--primary);
+      border: 1px solid var(--outline);
+      display: none;
+    }
+
+    .topnav-role.visible { display: block; }
+
+    .topnav-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--on-variant);
+      transition: background .15s;
+      position: relative;
+    }
+
+    .topnav-btn:hover { background: var(--surface-low); }
+
+    .notif-dot {
+      position: absolute;
+      top: 7px; right: 7px;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--danger);
+      border: 2px solid var(--surface);
+    }
+
+    .topnav-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .hamburger { display: none; }
+
+    /* ── Layout ── */
+    .layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-height: calc(100vh - 60px);
+      background: var(--primary);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 0 24px;
+      flex-shrink: 0;
+      transition: transform .25s;
+    }
+
+    .sidebar-section { margin-bottom: 4px; }
+
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.42);
+      padding: 10px 20px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 10px 20px;
+      color: rgba(255,255,255,0.72);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: background .15s, color .15s;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    .nav-item.active {
+      background: rgba(255,255,255,0.16);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .nav-item svg { flex-shrink: 0; opacity: 0.82; }
+    .nav-item.active svg { opacity: 1; }
+    .nav-item.active { position: relative; }
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 6px; bottom: 6px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: rgba(255,255,255,0.85);
+    }
+
+    .sidebar-spacer { flex: 1; }
+
+    .sidebar-footer { padding: 0 12px; }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 8px;
+      border-radius: var(--r);
+      background: rgba(255,255,255,0.1);
+    }
+
+    .sidebar-user-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.22);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-user-info { flex: 1; overflow: hidden; }
+
+    .sidebar-user-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-user-role {
+      font-size: 11px;
+      color: rgba(255,255,255,0.58);
+    }
+
+    .sidebar-logout {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(255,255,255,0.52);
+      display: flex;
+      align-items: center;
+      padding: 4px;
+      transition: color .15s;
+    }
+
+    .sidebar-logout:hover { color: #fff; }
+
+    /* ── Main content ── */
+    .main {
+      flex: 1;
+      padding: 28px 32px;
+      overflow-y: auto;
+      min-width: 0;
+    }
+
+    .page-header { margin-bottom: 24px; }
+
+    .page-title {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      color: var(--on-surface);
+      margin-bottom: 4px;
+    }
+
+    .page-subtitle {
+      font-size: 13.5px;
+      color: var(--on-variant);
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: #fff;
+      border-radius: var(--r);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    .stat-icon-blue  { background: #EBF3FF; color: var(--primary); }
+    .stat-icon-green { background: #E8F5E9; color: var(--success); }
+    .stat-icon-red   { background: #FFEBEE; color: var(--danger); }
+    .stat-icon-amber { background: #FFF8E1; color: #F57F17; }
+
+    .stat-value {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 28px;
+      color: var(--on-surface);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 12.5px;
+      color: var(--on-variant);
+    }
+
+    .stat-delta {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--success);
+    }
+
+    .stat-delta.down { color: var(--danger); }
+
+    /* Quick actions */
+    .section-title {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--on-surface);
+      margin-bottom: 14px;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .action-card {
+      background: #fff;
+      border-radius: var(--r);
+      padding: 18px 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      text-decoration: none;
+      transition: border-color .15s, transform .1s;
+    }
+
+    .action-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .action-icon {
+      width: 38px; height: 38px;
+      border-radius: 9px;
+      background: var(--surface-low);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+
+    .action-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--on-surface);
+      line-height: 1.3;
+    }
+
+    .action-desc {
+      font-size: 11.5px;
+      color: var(--on-variant);
+    }
+
+    /* Activity / card */
+    .card {
+      background: #fff;
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--outline);
+    }
+
+    .card-head h3 {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--on-surface);
+    }
+
+    .card-link {
+      font-size: 12.5px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .card-link:hover { text-decoration: underline; }
+
+    .activity-list { padding: 6px 0; }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 20px;
+      transition: background .1s;
+    }
+
+    .activity-item:hover { background: var(--surface); }
+
+    .activity-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .activity-dot.blocked { background: var(--danger); }
+    .activity-dot.allowed { background: var(--success); }
+    .activity-dot.alert   { background: #F57F17; }
+
+    .activity-info { flex: 1; min-width: 0; }
+
+    .activity-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--on-surface);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .activity-meta {
+      font-size: 11.5px;
+      color: var(--on-variant);
+      margin-top: 1px;
+    }
+
+    .activity-time {
+      font-size: 11.5px;
+      color: var(--on-variant);
+      flex-shrink: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-blocked { background: #FFEBEE; color: var(--danger); }
+    .badge-allowed { background: #E8F5E9; color: var(--success); }
+    .badge-alert   { background: #FFF8E1; color: #E65100; }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 999;
+    }
+
+    .loading-overlay.hidden { display: none; }
+
+    .spinner-lg {
+      width: 40px; height: 40px;
+      border: 3px solid var(--outline);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      font-size: 14px;
+      color: var(--on-variant);
+    }
+
+    /* Role-gated sections */
+    .role-section { display: none; }
+    .role-section.visible { display: block; }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        top: 60px; left: 0;
+        height: calc(100vh - 60px);
+        z-index: 90;
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open { transform: translateX(0); }
+
+      .layout { position: relative; }
+
+      .main { padding: 20px 16px; }
+
+      .hamburger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 38px; height: 38px;
+        border-radius: 10px;
+        color: var(--on-variant);
+      }
+
+      .hamburger:hover { background: var(--surface-low); }
+
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+
+      .topnav-role { display: none !important; }
+
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        top: 60px;
+        background: rgba(15,31,61,0.4);
+        z-index: 89;
+      }
+
+      .sidebar-overlay.open { display: block; }
+    }
   </style>
 </head>
 <body>
-  <div class="msg">
-    <div class="spinner"></div>
-    Redirecting to dashboard…
-  </div>
-  <script>
-    // Redirect to React SPA — all role-based routing handled by AuthGuard in React
-    window.location.replace('/app/');
-  </script>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner-lg"></div>
+  <div class="loading-text">Loading dashboard…</div>
+</div>
+
+<!-- Top nav -->
+<nav class="topnav">
+  <button class="hamburger" id="hamburger" aria-label="Menu" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+
+  <a href="/" class="topnav-logo">
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <path d="M16 2L4 8v8c0 7.18 5.16 13.9 12 15.5C22.84 29.9 28 23.18 28 16V8L16 2z" fill="rgba(0,93,172,0.14)"/>
+      <path d="M16 6L7 11v5c0 5.15 3.7 9.96 9 11.35C21.3 25.96 25 21.15 25 16v-5L16 6z" fill="rgba(0,93,172,0.32)"/>
+      <path d="M13 15.5l2 2 4-4" stroke="#005DAC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Shield
+  </a>
+
+  <div class="topnav-spacer"></div>
+
+  <span class="topnav-role" id="roleBadge"></span>
+
+  <button class="topnav-btn" aria-label="Notifications">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 01-3.46 0"/>
+    </svg>
+    <div class="notif-dot"></div>
+  </button>
+
+  <div class="topnav-avatar" id="topAvatar" title="Account">?</div>
+</nav>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+
+    <!-- Global Admin nav -->
+    <div class="sidebar-section role-section" id="navGlobalAdmin">
+      <div class="sidebar-label">Platform</div>
+      <a class="nav-item active" href="/app/">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        </svg>
+        Overview
+      </a>
+      <a class="nav-item" href="/app/tenants">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Tenants (ISPs)
+      </a>
+      <a class="nav-item" href="/app/users">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+        All Users
+      </a>
+      <a class="nav-item" href="/app/analytics">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Analytics
+      </a>
+      <a class="nav-item" href="/app/billing">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2"/>
+          <line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+        Billing
+      </a>
+    </div>
+
+    <!-- ISP Admin nav -->
+    <div class="sidebar-section role-section" id="navIspAdmin">
+      <div class="sidebar-label">ISP Portal</div>
+      <a class="nav-item active" href="/app/">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        </svg>
+        Dashboard
+      </a>
+      <a class="nav-item" href="/app/customers">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+        Customers
+      </a>
+      <a class="nav-item" href="/app/dns">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
+        </svg>
+        DNS Rules
+      </a>
+      <a class="nav-item" href="/app/reports">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        Reports
+      </a>
+      <a class="nav-item" href="/app/billing">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2"/>
+          <line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+        Billing
+      </a>
+    </div>
+
+    <!-- Customer / Parent nav -->
+    <div class="sidebar-section role-section" id="navCustomer">
+      <div class="sidebar-label">Family</div>
+      <a class="nav-item active" href="/app/">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        </svg>
+        Dashboard
+      </a>
+      <a class="nav-item" href="/app/children">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+        Children
+      </a>
+      <a class="nav-item" href="/app/alerts">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        </svg>
+        Alerts
+      </a>
+      <a class="nav-item" href="/app/dns">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>
+        </svg>
+        Content Filters
+      </a>
+      <a class="nav-item" href="/app/schedule">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        Schedule
+      </a>
+      <a class="nav-item" href="/app/location">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        Location
+      </a>
+      <a class="nav-item" href="/app/rewards">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="8" r="6"/>
+          <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+        </svg>
+        Rewards
+      </a>
+    </div>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="sideAvatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sideName">Loading…</div>
+          <div class="sidebar-user-role" id="sideRole">—</div>
+        </div>
+        <button class="sidebar-logout" onclick="logout()" aria-label="Sign out" title="Sign out">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="mainContent">
+
+    <div class="page-header">
+      <h1 class="page-title" id="pageTitle">Dashboard</h1>
+      <p class="page-subtitle" id="pageSubtitle">Welcome back! Here's what's happening.</p>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>
+          </svg>
+        </div>
+        <div class="stat-value" id="statBlocked">—</div>
+        <div class="stat-label">Domains Blocked Today</div>
+        <div class="stat-delta" id="statBlockedDelta"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+          </svg>
+        </div>
+        <div class="stat-value" id="statProfiles">—</div>
+        <div class="stat-label" id="statProfilesLabel">Active Profiles</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-red">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 01-3.46 0"/>
+          </svg>
+        </div>
+        <div class="stat-value" id="statAlerts">—</div>
+        <div class="stat-label">Alerts This Week</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-amber">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="stat-value" id="statScreenTime">—</div>
+        <div class="stat-label">Avg Screen Time Today</div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="section-title">Quick Actions</div>
+    <div class="actions-grid" id="actionsGrid">
+      <!-- populated by JS based on role -->
+    </div>
+
+    <!-- Recent activity -->
+    <div class="card">
+      <div class="card-head">
+        <h3>Recent Activity</h3>
+        <a href="/app/activity" class="card-link">View all →</a>
+      </div>
+      <div class="activity-list" id="activityList">
+        <div class="activity-item">
+          <div class="activity-dot blocked"></div>
+          <div class="activity-info">
+            <div class="activity-title">social-media-site.com</div>
+            <div class="activity-meta">Child: Alex · Social Media</div>
+          </div>
+          <span class="badge badge-blocked">Blocked</span>
+          <div class="activity-time">2m ago</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot allowed"></div>
+          <div class="activity-info">
+            <div class="activity-title">khanacademy.org</div>
+            <div class="activity-meta">Child: Alex · Education</div>
+          </div>
+          <span class="badge badge-allowed">Allowed</span>
+          <div class="activity-time">8m ago</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot alert"></div>
+          <div class="activity-info">
+            <div class="activity-title">Geofence Exit — School Zone</div>
+            <div class="activity-meta">Child: Emma · Location alert</div>
+          </div>
+          <span class="badge badge-alert">Alert</span>
+          <div class="activity-time">1h ago</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot blocked"></div>
+          <div class="activity-info">
+            <div class="activity-title">gaming-ads.net</div>
+            <div class="activity-meta">Child: Emma · Ads &amp; Trackers</div>
+          </div>
+          <span class="badge badge-blocked">Blocked</span>
+          <div class="activity-time">2h ago</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Redirect to React SPA — all role-based routing handled by AuthGuard in React
+  window.location.replace('/app/');
+</script>
+
+<script>
+// Dashboard init — runs if redirect is somehow blocked
+(function() {
+  const token = localStorage.getItem('shield_access_token');
+  const name  = localStorage.getItem('shield_name')  || 'User';
+  const role  = localStorage.getItem('shield_role')  || '';
+  const email = localStorage.getItem('shield_email') || '';
+
+  if (!token) {
+    window.location.href = '/login.html';
+    return;
+  }
+
+  // Hide loading
+  document.getElementById('loadingOverlay').classList.add('hidden');
+
+  // Avatar initials
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('topAvatar').textContent  = initials;
+  document.getElementById('sideAvatar').textContent = initials;
+  document.getElementById('sideName').textContent   = name;
+
+  // Role badge
+  const roleBadge = document.getElementById('roleBadge');
+  const roleLabel = { GLOBAL_ADMIN: 'Global Admin', ISP_ADMIN: 'ISP Admin', CUSTOMER: 'Family' }[role] || role;
+  roleBadge.textContent = roleLabel;
+  roleBadge.classList.add('visible');
+  document.getElementById('sideRole').textContent = roleLabel;
+
+  // Page title
+  if (role === 'GLOBAL_ADMIN') {
+    document.getElementById('pageTitle').textContent = 'Platform Overview';
+    document.getElementById('pageSubtitle').textContent = 'Platform-wide metrics and tenant management.';
+  } else if (role === 'ISP_ADMIN') {
+    document.getElementById('pageTitle').textContent = 'ISP Dashboard';
+    document.getElementById('pageSubtitle').textContent = 'Manage your customers and DNS services.';
+  }
+
+  // Show role-specific sidebar
+  const navMap = { GLOBAL_ADMIN: 'navGlobalAdmin', ISP_ADMIN: 'navIspAdmin', CUSTOMER: 'navCustomer' };
+  const navId  = navMap[role] || 'navCustomer';
+  document.getElementById(navId).classList.add('visible');
+
+  // Quick actions by role
+  const actionsByRole = {
+    GLOBAL_ADMIN: [
+      { icon: iconUsers,   label: 'Manage Tenants',  desc: 'Add or configure ISPs', href: '/app/tenants' },
+      { icon: iconChart,   label: 'Analytics',        desc: 'Platform-wide stats',   href: '/app/analytics' },
+      { icon: iconBilling, label: 'Billing',          desc: 'Invoices & plans',      href: '/app/billing' },
+      { icon: iconShield,  label: 'DNS Rules',        desc: 'Global blocklist',      href: '/app/dns' },
+    ],
+    ISP_ADMIN: [
+      { icon: iconUsers,   label: 'Customers',        desc: 'Manage subscribers',    href: '/app/customers' },
+      { icon: iconDns,     label: 'DNS Config',       desc: 'Filter rules',          href: '/app/dns' },
+      { icon: iconChart,   label: 'Reports',          desc: 'Usage & alerts',        href: '/app/reports' },
+      { icon: iconBilling, label: 'Billing',          desc: 'Subscriptions',         href: '/app/billing' },
+    ],
+    CUSTOMER: [
+      { icon: iconChild,   label: 'Add Child',        desc: 'New profile',           href: '/app/children/new' },
+      { icon: iconDns,     label: 'Content Filters',  desc: 'Block categories',      href: '/app/dns' },
+      { icon: iconCal,     label: 'Set Schedule',     desc: 'Screen time rules',     href: '/app/schedule' },
+      { icon: iconMap,     label: 'Geofences',        desc: 'Safe zones',            href: '/app/geofences' },
+    ],
+  };
+
+  function iconSvg(path) {
+    return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${path}</svg>`;
+  }
+  const iconUsers   = iconSvg('<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>');
+  const iconChart   = iconSvg('<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>');
+  const iconBilling = iconSvg('<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>');
+  const iconShield  = iconSvg('<path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>');
+  const iconDns     = iconSvg('<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>');
+  const iconChild   = iconSvg('<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>');
+  const iconCal     = iconSvg('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>');
+  const iconMap     = iconSvg('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>');
+
+  const actions = actionsByRole[role] || actionsByRole.CUSTOMER;
+  document.getElementById('actionsGrid').innerHTML = actions.map(a => `
+    <a class="action-card" href="${a.href}">
+      <div class="action-icon">${a.icon}</div>
+      <div>
+        <div class="action-label">${a.label}</div>
+        <div class="action-desc">${a.desc}</div>
+      </div>
+    </a>
+  `).join('');
+
+  // Mock stats
+  const stats = {
+    GLOBAL_ADMIN: { blocked: '1.2M', profiles: '8,431', profilesLabel: 'Active Customers', alerts: '342', screen: 'N/A' },
+    ISP_ADMIN:    { blocked: '84.2K', profiles: '1,204', profilesLabel: 'Subscribers', alerts: '56', screen: 'N/A' },
+    CUSTOMER:     { blocked: '127', profiles: '2', profilesLabel: 'Child Profiles', alerts: '3', screen: '4h 12m' },
+  };
+  const s = stats[role] || stats.CUSTOMER;
+  document.getElementById('statBlocked').textContent       = s.blocked;
+  document.getElementById('statProfiles').textContent      = s.profiles;
+  document.getElementById('statProfilesLabel').textContent = s.profilesLabel;
+  document.getElementById('statAlerts').textContent        = s.alerts;
+  document.getElementById('statScreenTime').textContent    = s.screen;
+
+  if (role === 'CUSTOMER') {
+    document.getElementById('statBlockedDelta').textContent = '↑ 12 vs yesterday';
+  }
+})();
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+
+function logout() {
+  ['shield_access_token','shield_refresh_token','shield_name','shield_email','shield_role','shield_remember','shield-auth'].forEach(k => localStorage.removeItem(k));
+  window.location.href = '/login.html';
+}
+</script>
 </body>
 </html>

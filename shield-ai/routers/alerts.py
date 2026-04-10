@@ -4,12 +4,18 @@ Shield AI — Mental Health Signals and Alerts endpoints.
 GET  /ai/{profile_id}/mental-health  — mental health risk signals for a profile
 GET  /ai/alerts                      — platform-wide AI alerts above threshold
 POST /ai/alerts/{alert_id}/feedback  — rate an alert for accuracy (persisted to DB)
+                                       If feedback is inaccurate, stores training_feedback
+                                       row so the next retrain cycle treats the alert
+                                       features as a normal (non-anomaly) example.
 """
+import json
+import logging
 from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
@@ -23,6 +29,8 @@ from db.queries import (
 from services.risk_scorer import ProfileStats, generate_insights, calculate_addiction_score
 from services.anomaly_service import detect_anomaly
 from schemas.response import RiskLevel, InsightsResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/ai", tags=["alerts", "mental-health"])
 
@@ -57,6 +65,7 @@ class AlertItem(BaseModel):
 class AlertFeedbackRequest(BaseModel):
     accurate: bool
     comment: Optional[str] = None
+    feedback: Optional[str] = None   # "ACCURATE" | "INACCURATE" — alternative to accurate bool
 
 
 # ── GET /ai/{profile_id}/mental-health ───────────────────────────────────────
@@ -201,18 +210,53 @@ async def submit_alert_feedback(
     body: AlertFeedbackRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Rate an alert for accuracy. Feedback is persisted to the database."""
+    """Rate an alert for accuracy. Feedback is persisted to the database.
+
+    If feedback indicates the alert was inaccurate (either accurate=False or
+    feedback='INACCURATE'), the alert's features are stored in ai.training_feedback
+    as a 'normal' labelled example so the next retraining cycle can use them to
+    reduce false positives.
+    """
     existing = await get_alert(db, alert_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Alert '{alert_id}' not found")
 
     await upsert_alert_feedback(db, alert_id, body.accurate, body.comment)
 
+    # Determine if this is a false positive (INACCURATE feedback)
+    is_inaccurate = (not body.accurate) or (body.feedback == "INACCURATE")
+
+    if is_inaccurate:
+        # Store the alert's features as a 'normal' training example to suppress
+        # future false positives in the next retrain cycle.
+        try:
+            profile_id = existing.get("profileId", "")
+            features = existing.get("metadata") or {}
+            await db.execute(text("""
+                INSERT INTO ai.training_feedback (alert_id, profile_id, features, label, created_at)
+                VALUES (:alert_id::uuid, :profile_id, :features::jsonb, 'normal', NOW())
+                ON CONFLICT (alert_id) DO UPDATE SET label = 'normal'
+            """), {
+                "alert_id": alert_id,
+                "profile_id": profile_id,
+                "features": json.dumps(features),
+            })
+            await db.commit()
+            logger.info("Stored false-positive training feedback for alert %s (profile=%s)",
+                        alert_id, profile_id)
+        except Exception as e:
+            logger.warning("Failed to store training feedback for alert %s: %s", alert_id, e)
+
     return {
         "alertId": alert_id,
         "status": "feedback_recorded",
         "accurate": body.accurate,
-        "message": "Thank you for the feedback. It will be used to improve alert accuracy.",
+        "falsePositiveRecorded": is_inaccurate,
+        "message": (
+            "False positive recorded. Features stored for model retraining."
+            if is_inaccurate
+            else "Thank you for the feedback. It will be used to improve alert accuracy."
+        ),
     }
 
 

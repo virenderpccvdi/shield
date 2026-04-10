@@ -5,8 +5,11 @@ Endpoints for on-demand AI model retraining.
 
 POST /ai/train        — kick off a background retraining job
 GET  /ai/train/status — poll current job status (reads /tmp/shield_training_status.json)
+
+Also exports weekly_retrain_loop() for the lifespan startup to schedule.
 """
 
+import asyncio
 import json
 import logging
 from pathlib import Path
@@ -14,7 +17,7 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.database import get_db
+from db.database import get_db, AsyncSessionLocal
 from services.model_trainer import run_retraining
 
 logger = logging.getLogger(__name__)
@@ -22,6 +25,23 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/ai", tags=["training"])
 
 STATUS_FILE = Path("/tmp/shield_training_status.json")
+
+
+async def weekly_retrain_loop() -> None:
+    """Background coroutine — retrains the anomaly model every 7 days.
+
+    Runs indefinitely once launched via asyncio.create_task() in lifespan startup.
+    Uses its own DB session so it doesn't hold a request-scoped session open.
+    """
+    while True:
+        await asyncio.sleep(7 * 24 * 3600)  # wait 7 days
+        try:
+            logger.info("Starting scheduled weekly model retrain...")
+            async with AsyncSessionLocal() as db:
+                await run_retraining(days_back=30, db=db)
+            logger.info("Weekly retrain complete.")
+        except Exception as e:
+            logger.error("Weekly retrain failed: %s", e)
 
 
 @router.post("/train")

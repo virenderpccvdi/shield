@@ -34,3 +34,14 @@ CREATE TABLE IF NOT EXISTS ai.ai_keywords (
     keywords   TEXT[]      NOT NULL DEFAULT '{}',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- False-positive feedback for model retraining (AI11)
+-- When a user marks an alert as inaccurate, its features are stored here
+-- as 'normal' labelled examples to be used in the next retraining cycle.
+CREATE TABLE IF NOT EXISTS ai.training_feedback (
+    alert_id    UUID PRIMARY KEY REFERENCES ai.ai_alerts(id) ON DELETE CASCADE,
+    profile_id  TEXT NOT NULL,
+    features    JSONB,
+    label       VARCHAR(20) NOT NULL DEFAULT 'normal',
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);

@@ -16,12 +16,17 @@ public class ShieldException extends RuntimeException {
     }
 
     public static ShieldException notFound(String resource, Object id) {
-        return new ShieldException(resource.toUpperCase() + "_NOT_FOUND",
-                resource + " not found: " + id, HttpStatus.NOT_FOUND);
+        // Convert resource name to SCREAMING_SNAKE_CASE (e.g. "SubscriptionPlan" → "SUBSCRIPTION_PLAN_NOT_FOUND")
+        String code = resource.replaceAll("([a-z])([A-Z])", "$1_$2").toUpperCase() + "_NOT_FOUND";
+        return new ShieldException(code, resource + " not found: " + id, HttpStatus.NOT_FOUND);
     }
 
     public static ShieldException conflict(String message) {
         return new ShieldException("CONFLICT", message, HttpStatus.CONFLICT);
+    }
+
+    public static ShieldException forbidden() {
+        return new ShieldException("FORBIDDEN", "Access denied", HttpStatus.FORBIDDEN);
     }
 
     public static ShieldException forbidden(String message) {

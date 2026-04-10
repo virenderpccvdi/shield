@@ -261,6 +261,34 @@ public class NotificationClient {
         }
     }
 
+    /**
+     * Send trial-expired notification email (async).
+     */
+    @Async
+    public void sendTrialExpiredEmail(String email, String name, java.util.UUID tenantId) {
+        try {
+            String baseUrl = resolveBaseUrl();
+            if (baseUrl == null) return;
+
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("email", email);
+            payload.put("name", name != null ? name : email);
+            payload.put("upgradeUrl", "https://shield.rstglobal.in/app/billing");
+            if (tenantId != null) payload.put("tenantId", tenantId.toString());
+
+            restClient.post()
+                    .uri(baseUrl + "/internal/notifications/billing/trial-expired")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Trial-expired email sent to {}", email);
+        } catch (Exception e) {
+            log.warn("Failed to send trial-expired email to {}: {}", email, e.getMessage());
+        }
+    }
+
     private String resolveBaseUrl() {
         List<ServiceInstance> instances = discoveryClient.getInstances(SERVICE_ID);
         if (instances.isEmpty()) {

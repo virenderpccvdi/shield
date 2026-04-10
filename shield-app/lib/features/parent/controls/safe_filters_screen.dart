@@ -5,7 +5,6 @@ import '../../../app/theme.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
 import '../../../core/widgets/common_widgets.dart';
-import 'dart:async';
 
 // Categories that require a confirmation dialog before unblocking
 const _sensitiveCategories = {'adult', 'violence', 'drugs', 'malware', 'gambling'};
