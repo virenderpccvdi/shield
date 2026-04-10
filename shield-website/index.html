@@ -531,6 +531,77 @@
     .testi-name { font-weight: 700; font-size: 0.9rem; }
     .testi-role { font-size: 0.8rem; color: var(--on-surface-variant); }
 
+    /* ── APK Download Section ── */
+    .download-section {
+      background: linear-gradient(135deg, #005DAC 0%, #0277BD 100%);
+      padding: 80px 0;
+      color: #fff;
+    }
+    .download-card {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      gap: 60px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .download-left { flex: 1; min-width: 300px; }
+    .dl-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    .download-left h2 {
+      font-family: Manrope, sans-serif;
+      font-weight: 800;
+      font-size: clamp(24px, 3vw, 36px);
+      margin-bottom: 12px;
+    }
+    .dl-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+      margin: 20px 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      color: #005DAC;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      text-decoration: none;
+      margin-bottom: 14px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .btn-download:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.2); }
+    .dl-meta { font-size: 12px; font-weight: 400; opacity: 0.6; margin-left: 4px; }
+    .dl-note { font-size: 12px; opacity: 0.65; margin-top: 0; }
+    .download-right { flex: 0 0 200px; }
+    .qr-box {
+      width: 180px;
+      height: 180px;
+      background: rgba(255,255,255,0.12);
+      border: 2px solid rgba(255,255,255,0.25);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qr-inner { text-align: center; padding: 20px; }
+    .qr-icon { font-size: 48px; margin-bottom: 8px; }
+
     /* ── CTA Banner ── */
     .cta-banner {
       background: linear-gradient(135deg, #003D72 0%, #005DAC 60%, #1976D2 100%);
@@ -647,6 +718,7 @@
         <li><a href="#how-it-works">How It Works</a></li>
         <li><a href="#pricing">Pricing</a></li>
         <li><a href="#testimonials">Reviews</a></li>
+        <li><a href="#download">Download</a></li>
       </ul>
 
       <div class="nav-actions">
@@ -664,6 +736,7 @@
     <a href="#how-it-works">How It Works</a>
     <a href="#pricing">Pricing</a>
     <a href="#testimonials">Reviews</a>
+    <a href="#download">Download</a>
     <div class="nav-mobile-actions">
       <a href="/login.html" class="nav-login">Sign In</a>
       <a href="/register.html" class="nav-cta">Get Started</a>
@@ -692,7 +765,7 @@
             <span class="material-symbols-outlined" style="font-size:18px">rocket_launch</span>
             Start Free Trial
           </a>
-          <a href="/shield-app.apk" class="btn btn-outline">
+          <a href="#download" class="btn btn-outline">
             <span class="material-symbols-outlined" style="font-size:18px">android</span>
             Download App
           </a>
@@ -985,6 +1058,40 @@
   </div>
 </section>
 
+<!-- ══════════════ APK DOWNLOAD ══════════════ -->
+<section id="download" class="download-section">
+  <div class="container">
+    <div class="download-card">
+      <div class="download-left">
+        <div class="dl-badge">Android App</div>
+        <h2>Protect your family, right from your phone</h2>
+        <p>Monitor activity, set screen time limits, and receive instant alerts — all from the Shield mobile app.</p>
+        <div class="dl-features">
+          <span>✓ Real-time DNS filtering</span>
+          <span>✓ Location tracking</span>
+          <span>✓ Screen time controls</span>
+          <span>✓ Instant alerts</span>
+        </div>
+        <a href="/download/shield-app.apk" class="btn-download" id="apkDownloadBtn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 16l-4-4h3V4h2v8h3l-4 4z" fill="currentColor"/><path d="M20 18H4v2h16v-2z" fill="currentColor"/></svg>
+          Download for Android
+          <span class="dl-meta" id="apkMeta">APK · Free</span>
+        </a>
+        <p class="dl-note">Compatible with Android 7.0+. Enable "Install from unknown sources" in Settings.</p>
+      </div>
+      <div class="download-right">
+        <div class="qr-box">
+          <div class="qr-inner">
+            <div class="qr-icon">📱</div>
+            <p>Scan to download</p>
+            <small>Or click the button →</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ══════════════ CTA BANNER ══════════════ -->
 <section class="cta-banner">
   <div class="container">
@@ -995,7 +1102,7 @@
         <span class="material-symbols-outlined" style="font-size:18px">rocket_launch</span>
         Create Free Account
       </a>
-      <a href="/shield-app.apk" class="btn btn-outline">
+      <a href="/download/shield-app.apk" class="btn btn-outline">
         <span class="material-symbols-outlined" style="font-size:18px">android</span>
         Download APK
       </a>
@@ -1025,7 +1132,7 @@
           <li><a href="#features">Features</a></li>
           <li><a href="#pricing">Pricing</a></li>
           <li><a href="#how-it-works">How It Works</a></li>
-          <li><a href="/shield-app.apk">Download App</a></li>
+          <li><a href="/download/shield-app.apk">Download App</a></li>
         </ul>
       </div>
 
@@ -1121,6 +1228,19 @@
       }
     }, { threshold: 0.4 }).observe(statsSection);
   }
+
+  // Fetch APK file size for download button label
+  (function(){
+    fetch('/download/shield-app.apk', {method:'HEAD'})
+      .then(r => {
+        const size = r.headers.get('content-length');
+        if (size) {
+          const mb = (parseInt(size) / 1024 / 1024).toFixed(0);
+          const meta = document.getElementById('apkMeta');
+          if (meta) meta.textContent = 'APK \u00b7 ' + mb + ' MB \u00b7 Free';
+        }
+      }).catch(function(){});
+  })();
 </script>
 </body>
 </html>

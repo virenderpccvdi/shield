@@ -3,6 +3,9 @@ FROM nginx:alpine
 # Copy website files
 COPY . /usr/share/nginx/html/
 
+# Create download directory for APK (populated by CI after flutter build)
+RUN mkdir -p /usr/share/nginx/html/download
+
 # Custom nginx config for SPA + static files
 RUN cat > /etc/nginx/conf.d/default.conf << 'EOF'
 server {
@@ -30,8 +33,19 @@ server {
         try_files $uri $uri/ /app/index.html;
     }
 
-    # APK download
+    # APK download — /download/ clean URL
+    location /download/ {
+        add_header Content-Type "application/vnd.android.package-archive";
+        add_header Content-Disposition 'attachment; filename="shield-app.apk"';
+        add_header X-Content-Type-Options nosniff;
+        add_header Access-Control-Allow-Origin *;
+        add_header Access-Control-Allow-Methods 'GET, HEAD, OPTIONS';
+        try_files $uri =404;
+    }
+
+    # Legacy APK direct download (regex catch)
     location ~* \.apk$ {
+        add_header Content-Type "application/vnd.android.package-archive";
         add_header Content-Disposition "attachment";
     }
 

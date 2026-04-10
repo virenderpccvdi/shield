@@ -66,6 +66,13 @@ spec:
                 name: shield-website
                 port:
                   number: 80
+          - path: /download/
+            pathType: Prefix
+            backend:
+              service:
+                name: shield-website
+                port:
+                  number: 80
           - path: /
             pathType: Prefix
             backend:
