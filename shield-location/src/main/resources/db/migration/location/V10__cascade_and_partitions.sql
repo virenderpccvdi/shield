@@ -1,5 +1,8 @@
+-- flyway:nonTransactional
 -- V10: DB1 — Add ON DELETE CASCADE to geofence_events.geofence_id FK.
 --       DB4 — Pre-create location_points 2027 Q2-Q4 and 2028 Q1 partitions.
+-- NOTE: nonTransactional required — mixing ALTER TABLE + CREATE TABLE PARTITION OF
+--       in the same Flyway transaction causes PostgreSQL partition exclusion check failures.
 
 -- ── DB1: ON DELETE CASCADE on geofence_events ────────────────────────────────
 -- Previously: deleting a geofence with events raised FK constraint error.

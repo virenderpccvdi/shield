@@ -1,6 +1,9 @@
+-- flyway:nonTransactional
 -- V7: Category composite index + 2027 Q2/Q3/Q4 and 2028 Q1 partitions.
 -- DB3: Composite index for AI insights category queries (used by shield-ai get_profile_stats).
 -- DB4: Pre-create future partitions so no query plan fallback occurs.
+-- NOTE: nonTransactional required — mixing CREATE INDEX + CREATE TABLE PARTITION OF
+--       in the same Flyway transaction causes PostgreSQL partition exclusion check failures.
 
 -- ── DB3: Category-scoped index ────────────────────────────────────────────────
 -- Powers the per-category blocked/allowed counts in the AI insights pipeline.

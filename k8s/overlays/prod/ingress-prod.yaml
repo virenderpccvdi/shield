@@ -1,0 +1,66 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shield-ingress
+  namespace: shield-prod
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-body-size: "200m"
+    nginx.ingress.kubernetes.io/limit-rps: "200"
+    nginx.ingress.kubernetes.io/limit-connections: "100"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - shield.rstglobal.in
+        - api.shield.rstglobal.in
+      secretName: shield-tls-cert
+  rules:
+    # API gateway — all backend service calls via HTTPS
+    - host: api.shield.rstglobal.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shield-gateway
+                port:
+                  number: 8280
+
+    # Website / dashboard / APK download / Swagger docs
+    - host: shield.rstglobal.in
+      http:
+        paths:
+          - path: /app/
+            pathType: Prefix
+            backend:
+              service:
+                name: shield-website
+                port:
+                  number: 80
+          - path: /docs/
+            pathType: Prefix
+            backend:
+              service:
+                name: shield-gateway
+                port:
+                  number: 8280
+          - path: /download/
+            pathType: Prefix
+            backend:
+              service:
+                name: shield-website
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shield-website
+                port:
+                  number: 80

@@ -14,8 +14,10 @@ data:
   SPRING_PROFILES_ACTIVE: "kubernetes"
   LOG_LEVEL: "INFO"
 
-  # Disable Config Server import (use env vars instead)
+  # Disable Spring Cloud Config Server — all config comes from env vars (k8s secrets + this ConfigMap)
   SPRING_CONFIG_IMPORT: "optional:"
+  SPRING_CLOUD_CONFIG_ENABLED: "false"
+  SPRING_CLOUD_CONFIG_IMPORT_CHECK_ENABLED: "false"
 
   # PostgreSQL pool settings
   DB_POOL_SIZE: "5"

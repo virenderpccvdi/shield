@@ -20,7 +20,11 @@ resources:
 - ../../base/ai
 - ../../base/website
 - ../../base
-- ../../hpa/hpa.yaml
+# HPA disabled until vCPU quota > 4 vCPUs in Central India subscription.
+# To re-enable: uncomment the line below and request quota at
+#   https://portal.azure.com → Subscriptions → Usage + Quotas → Central India → Request 12 vCPUs
+# - ../../hpa
+- ingress-prod.yaml
 
   # CI pipeline sets these via: kustomize edit set image REGISTRY/shield-gateway=<acr>.azurecr.io/shield-gateway:<sha>
 images:
@@ -70,64 +74,10 @@ images:
   newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-website
   newTag: latest
 
-  # Prod: 2 replicas for all critical services (gateway, auth, tenant, profile, dns, notification, ai)
+  # NOTE: All services at 1 replica — vCPU quota in Central India is 4 (1 node).
+  # Request quota increase at https://portal.azure.com to enable 2+ replicas for HA.
+  # HPA will auto-scale when quota allows cluster autoscaler to add nodes.
 patches:
-- patch: |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: shield-gateway
-    spec:
-      replicas: 2
-- patch: |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: shield-auth
-    spec:
-      replicas: 2
-- patch: |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: shield-tenant
-    spec:
-      replicas: 2
-- patch: |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: shield-profile
-    spec:
-      replicas: 2
-- patch: |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: shield-dns
-    spec:
-      replicas: 2
-- patch: |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: shield-dns-resolver
-    spec:
-      replicas: 2
-- patch: |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: shield-notification
-    spec:
-      replicas: 2
-- patch: |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: shield-ai
-    spec:
-      replicas: 2
 - patch: |-
     apiVersion: v1
     kind: ConfigMap
