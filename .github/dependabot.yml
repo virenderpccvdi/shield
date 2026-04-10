@@ -66,7 +66,27 @@ updates:
       # Only patch/minor updates for major UI libraries — avoid breaking changes
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
+      # All MUI packages must be upgraded together (peer deps must share major version).
+      # Block individual major bumps; do a coordinated MUI v7→v8 migration PR manually.
       - dependency-name: "@mui/material"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@mui/icons-material"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@mui/x-date-pickers"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@emotion/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@emotion/styled"
+        update-types: ["version-update:semver-major"]
+      # TypeScript 6 and Vite 8 require dedicated migration — block major auto-bumps.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitejs/plugin-react"
+        update-types: ["version-update:semver-major"]
+      # recharts 2→3 has breaking chart API changes; 18+ files need verification.
+      - dependency-name: "recharts"
         update-types: ["version-update:semver-major"]
 
   # ── pip (shield-ai Python service) ─────────────────────────────────────────
@@ -104,6 +124,16 @@ updates:
       - dependency-name: "firebase_core"
         update-types: ["version-update:semver-major"]
       - dependency-name: "firebase_messaging"
+        update-types: ["version-update:semver-major"]
+      # flutter_riverpod 2→3: StateNotifier→Notifier/AsyncNotifier migration; 245+ usages.
+      - dependency-name: "flutter_riverpod"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "riverpod"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "hooks_riverpod"
+        update-types: ["version-update:semver-major"]
+      # go_router: 3-major-version jump (14→17); 88+ route usages need manual migration.
+      - dependency-name: "go_router"
         update-types: ["version-update:semver-major"]
 
   # ── GitHub Actions ─────────────────────────────────────────────────────────
