@@ -71,9 +71,7 @@
 | Analytics Service | **8289** | 2 |
 | Admin Service | **8290** | 6 |
 | AI Service (Python) | **8291** | 4 |
-| AdGuard Home UI | **3080** | 2 |
-| AdGuard DNS (UDP/TCP) | **5353** | 2 |
-| AdGuard DoH | **4443** | 2 |
+| DNS Resolver (DoH/DoT) | **8443** | 2 |
 
 > **No port conflicts** with existing apps:
 > - SmartTrack (gps): 8081, 8082–8089, 8093, 8761, 8888

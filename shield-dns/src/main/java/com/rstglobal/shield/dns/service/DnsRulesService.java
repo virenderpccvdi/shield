@@ -433,7 +433,7 @@ public class DnsRulesService {
         return List.of();
     }
 
-    /** Force-push current DB rules to AdGuard for a profile. */
+    /** Broadcast current DB rules to shield-dns-resolver for a profile. */
     @Transactional
     public DnsRulesResponse forceSync(UUID profileId, UUID tenantId) {
         DnsRules rules = findOrInit(profileId, tenantId);
@@ -442,7 +442,7 @@ public class DnsRulesService {
     }
 
     /**
-     * Push current DB rules to AdGuard by profileId only (no tenantId needed).
+     * Broadcast current DB rules to shield-dns-resolver by profileId only (no tenantId needed).
      * Used internally after provisioning sets the dnsClientId.
      */
     @Transactional(readOnly = true)
@@ -466,7 +466,7 @@ public class DnsRulesService {
                 synced++;
             }
         }
-        log.info("syncAllProfiles: synced {} profiles to AdGuard", synced);
+        log.info("syncAllProfiles: broadcasted rules for {} profiles to shield-dns-resolver", synced);
         return synced;
     }
 
@@ -529,7 +529,7 @@ public class DnsRulesService {
     /**
      * Enable or disable YouTube Restricted Mode for a child profile.
      * When enabled, youtube.com / www.youtube.com / m.youtube.com are rewritten
-     * via AdGuard DNS CNAME to restrict.youtube.com.
+     * via SafeSearch CNAME in shield-dns-resolver to restrict.youtube.com.
      */
     @Transactional
     public DnsRulesResponse setYoutubeSafeMode(UUID profileId, boolean enabled) {

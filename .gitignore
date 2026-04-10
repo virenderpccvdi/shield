@@ -28,10 +28,6 @@ Thumbs.db
 # APK (too large for git)
 static/shield-app.apk
 
-# AdGuard work data
-infra/adguard/work/
-infra/adguard/conf/AdGuardHome.yaml
-
 # Vector logs
 infra/vector/logs/
 infra/vector/client_profiles.csv

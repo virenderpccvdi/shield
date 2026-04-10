@@ -6,7 +6,6 @@ Disallow: /api/
 Disallow: /ws/
 Disallow: /actuator/
 Disallow: /eureka/
-Disallow: /adguard/
 Disallow: /dashboard/
 
 # Sitemap location

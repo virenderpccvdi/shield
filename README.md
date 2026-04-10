@@ -18,7 +18,7 @@ Shield is a production-grade, multi-tenant SaaS platform that ISPs deploy to off
 
 | Feature | How it works |
 |---------|-------------|
-| **DNS content filtering** | Per-child AdGuard Home DoH client IDs — filter by 43 content categories |
+| **DNS content filtering** | Per-child DoH client IDs — shield-dns-resolver (Java) filters by 43 content categories |
 | **Screen-time scheduling** | Block internet access by time-of-day (school, bedtime, weekend presets) |
 | **GPS geofencing** | Real-time location with breach alerts and place history |
 | **AI anomaly detection** | Isolation Forest + Claude AI flags unusual browsing patterns |
@@ -43,8 +43,8 @@ Shield is a production-grade, multi-tenant SaaS platform that ISPs deploy to off
               │              │             │            │                  │
          PostgreSQL 18 ──────────────────────────────────────────────── Redis 7
               │
-        AdGuard Home (Docker :3053)   ←  per-child DoH push
-              │
+        shield-dns-resolver :8443  ← per-child DoH/DoT (pure Java, dnsjava)
+              │                        category blocking · SafeSearch · Redis rules cache
         shield-ai :8291  (FastAPI + scikit-learn + Claude)
 ```
 
@@ -64,7 +64,7 @@ Full architecture diagram: [doc/02-system-architecture.md](doc/02-system-archite
 | AI Service | Python 3.13 · FastAPI 0.115 · scikit-learn 1.6 · Anthropic Claude |
 | Mobile | Flutter **3.41.0** · Dart 3.7 (25 screens) |
 | Dashboard | React **19.2** · MUI **v7.3** · Vite 6 · TypeScript 5.8 |
-| DNS Engine | AdGuard Home (Docker) · DoH / DoT per-child client IDs |
+| DNS Engine | **shield-dns-resolver** (Java · dnsjava 3.6) · DoH/DoT · per-child client IDs · pure Java |
 | Monitoring | Prometheus · Grafana · Zipkin · Vector log pipeline |
 | Containers | Docker 29 · Docker Compose · Kubernetes manifests in `k8s/` |
 | CI/CD | GitHub Actions (4 pipelines) · Azure DevOps |
@@ -80,7 +80,8 @@ Full architecture diagram: [doc/02-system-architecture.md](doc/02-system-archite
 | `shield-auth` | **8281** | Registration, login, TOTP MFA, JWT refresh |
 | `shield-tenant` | **8282** | ISP tenant management, plans, customer onboarding |
 | `shield-profile` | **8283** | Child profiles, device registration (DoH URL generation) |
-| `shield-dns` | **8284** | Content filter rules, schedules, custom allow/block lists |
+| `shield-dns` | **8284** | DNS rules management — categories, schedules, time budgets, allow/block lists |
+| `shield-dns-resolver` | **8443** | DNS filter engine — DoH/DoT, dnsjava, Redis rules cache, SafeSearch |
 | `shield-location` | **8285** | GPS tracking, geofence zones, breach detection |
 | `shield-notification` | **8286** | FCM push, WebSocket STOMP, email, weekly digest |
 | `shield-rewards` | **8287** | Tasks, point system, reward redemption |
@@ -89,7 +90,6 @@ Full architecture diagram: [doc/02-system-architecture.md](doc/02-system-archite
 | `shield-admin` | **8290** | Platform-wide admin API |
 | `shield-ai` | **8291** | Python AI — anomaly detection, insights, gap analysis |
 | `shield-eureka` | **8261** | Service discovery (Eureka) |
-| AdGuard Home UI | **3080** | DNS admin (localhost only) |
 
 ---
 
@@ -115,7 +115,7 @@ cd shield
 cp .env.example .env          # fill in DB creds, JWT secret, API keys
 
 # 2. Start infrastructure
-docker compose up -d postgres redis adguard
+docker compose up -d postgres redis
 
 # 3. Build all Java services
 mvn package -DskipTests -q
@@ -152,7 +152,8 @@ shield/
 ├── shield-auth/            Authentication & authorisation
 ├── shield-tenant/          Multi-tenant / ISP management
 ├── shield-profile/         Child profiles & devices
-├── shield-dns/             DNS filtering engine
+├── shield-dns/             DNS rules management (categories, schedules, budgets)
+├── shield-dns-resolver/    DNS filter engine (DoH/DoT, Java, dnsjava)
 ├── shield-location/        GPS & geofencing
 ├── shield-notification/    Push, email, WebSocket
 ├── shield-rewards/         Gamification / tasks
@@ -194,7 +195,7 @@ Report vulnerabilities via [SECURITY.md](.github/SECURITY.md).
 | [02-system-architecture.md](doc/02-system-architecture.md) | Architecture diagram, service communication |
 | [03-microservices-specification.md](doc/03-microservices-specification.md) | Per-service API, DB schema, responsibilities |
 | [04-database-design.md](doc/04-database-design.md) | Full PostgreSQL schema |
-| [05-adguard-dns-engine.md](doc/05-adguard-dns-engine.md) | DoH/DoT, per-child DNS client IDs |
+| [05-dns-engine.md](doc/05-adguard-dns-engine.md) | DoH/DoT, per-child DNS client IDs, shield-dns-resolver architecture |
 | [06-flutter-mobile-app.md](doc/06-flutter-mobile-app.md) | 25 screens, navigation, Firebase FCM |
 | [07-web-dashboard.md](doc/07-web-dashboard.md) | React dashboard — all pages and components |
 | [08-api-reference.md](doc/08-api-reference.md) | Full REST API reference |

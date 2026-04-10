@@ -13,8 +13,7 @@ import org.springframework.web.bind.annotation.*;
  *
  * <p>Not exposed through the API gateway.  Called by:
  * <ul>
- *   <li>The AdGuard webhook handler (when AdGuard is enabled)</li>
- *   <li>The DNS filter engine within shield-dns itself</li>
+ *   <li>shield-dns-resolver (Java DNS filter engine) after resolving each query</li>
  * </ul>
  *
  * <p>Endpoint:

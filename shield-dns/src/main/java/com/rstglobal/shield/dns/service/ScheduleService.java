@@ -33,7 +33,7 @@ public class ScheduleService {
     /**
      * Special key stored in dns_rules.enabled_categories to signal that the
      * schedule grid is currently in a "blocked" hour.  The key is read by
-     * AdGuard sync / any DNS-filter logic that checks enabled_categories.
+     * shield-dns-resolver / any DNS-filter logic that checks enabled_categories.
      */
     public static final String SCHEDULE_BLOCKED_KEY = "__schedule_blocked__";
 
@@ -131,7 +131,7 @@ public class ScheduleService {
     /**
      * Every minute: check every profile's schedule grid against the current
      * local hour and set/clear the {@code __schedule_blocked__} flag in
-     * dns_rules.enabled_categories so AdGuard sync and DNS filtering can
+     * dns_rules.enabled_categories so the rules broadcast and DNS filtering can
      * honour the schedule.
      *
      * <p>Override rules:
@@ -191,7 +191,7 @@ public class ScheduleService {
             }
 
             // Write __schedule_blocked__ flag into the corresponding DnsRules row
-            // and trigger AdGuard sync only when the value changes
+            // and trigger rules broadcast only when the value changes
             final boolean finalShouldBlock = shouldBlock;
             dnsRulesRepo.findByProfileId(profileId).ifPresent(rules -> {
                 Map<String, Boolean> cats = rules.getEnabledCategories();

@@ -13,7 +13,7 @@
 
     <artifactId>shield-dns</artifactId>
     <name>Shield DNS</name>
-    <description>DNS filtering rules, schedules, time budgets, AdGuard sync</description>
+    <description>DNS filtering rules, schedules, time budgets — rules broadcast to shield-dns-resolver</description>
 
     <dependencies>
         <!-- Shared library -->

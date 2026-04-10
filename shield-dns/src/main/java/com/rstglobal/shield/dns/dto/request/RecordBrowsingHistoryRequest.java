@@ -6,7 +6,7 @@ import java.util.UUID;
 
 /**
  * PO-02: Request body for the internal DNS history record endpoint.
- * Called by the AdGuard webhook handler or the DNS filter engine
+ * Called by shield-dns-resolver after resolving each query
  * to persist a single query event.
  */
 @Data

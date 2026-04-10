@@ -32,7 +32,7 @@ import java.util.UUID;
  *       the last 2 minutes (last-seen TTL key still present) and, if so, increments the
  *       daily counter.  When the counter reaches the limit it writes
  *       {@code __budget_exhausted__ = true} into {@code dns_rules.enabled_categories} and
- *       syncs to AdGuard.  When the counter drops back below the limit (e.g. the parent
+ *       broadcasts rules to shield-dns-resolver.  When the counter drops back below the limit (e.g. the parent
  *       raised the limit) the flag is cleared.</li>
  *   <li>Keys use a TTL of 2 days so Redis self-cleans.</li>
  * </ul>
@@ -50,7 +50,7 @@ public class BudgetTrackingService {
      * Special key stored in {@code dns_rules.enabled_categories} to signal that the
      * child's {@code daily_budget_minutes} limit is exhausted.  Same key used by
      * {@link BudgetEnforcementService#BUDGET_EXHAUSTED_KEY} so both mechanisms share the
-     * same AdGuard sync path.
+     * same rule broadcast path.
      */
     public static final String BUDGET_BLOCKED_KEY = BudgetEnforcementService.BUDGET_EXHAUSTED_KEY;
 
@@ -132,7 +132,7 @@ public class BudgetTrackingService {
             Boolean current = cats.get(BUDGET_BLOCKED_KEY);
 
             if (!Objects.equals(current, nowExhausted)) {
-                // State changed — persist flag and sync to AdGuard
+                // State changed — persist flag and broadcast to shield-dns-resolver
                 cats = new LinkedHashMap<>(cats);
                 cats.put(BUDGET_BLOCKED_KEY, nowExhausted);
                 rules.setEnabledCategories(cats);

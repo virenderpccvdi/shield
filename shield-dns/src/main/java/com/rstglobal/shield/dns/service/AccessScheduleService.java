@@ -201,11 +201,11 @@ public class AccessScheduleService {
                 dnsRules.setEnabledCategories(cats);
                 dnsRulesRepo.save(dnsRules);
 
-                // Sync to AdGuard immediately so the change takes effect
+                // Broadcast rules to shield-dns-resolver immediately so the change takes effect
                 try {
                     dnsRulesService.syncRules(profileId);
                 } catch (Exception e) {
-                    log.warn("AccessSchedule AdGuard sync failed for profileId={}: {}", profileId, e.getMessage());
+                    log.warn("AccessSchedule rules broadcast failed for profileId={}: {}", profileId, e.getMessage());
                 }
 
                 log.info("AccessSchedule lock {}: profileId={}",
@@ -239,7 +239,7 @@ public class AccessScheduleService {
                     try {
                         dnsRulesService.syncRules(profileId);
                     } catch (Exception e) {
-                        log.warn("AccessSchedule AdGuard sync (clear) failed for profileId={}: {}",
+                        log.warn("AccessSchedule rules broadcast (clear) failed for profileId={}: {}",
                                 profileId, e.getMessage());
                     }
                 }

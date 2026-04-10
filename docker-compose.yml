@@ -1,11 +1,10 @@
 # Shield Platform - Docker Infrastructure
 # Java microservices run as systemd units; this compose manages supporting Docker services.
+# DNS filtering is handled by shield-dns-resolver (Java) — no external DNS proxy required.
 #
 # Usage:
 #   docker compose up -d                 # Start all Docker services
 #   docker compose -f infra/monitoring/docker-compose.yml up -d   # Monitoring only
-#   docker compose -f infra/adguard/docker-compose.yml up -d      # AdGuard only
 
 include:
   - path: infra/monitoring/docker-compose.yml
-  - path: infra/adguard/docker-compose.yml

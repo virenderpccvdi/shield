@@ -35,8 +35,8 @@ public class InternalProvisionController {
     }
 
     /**
-     * Force-sync ALL profiles to AdGuard. Use after deploying the sync bug fix
-     * to repair existing profiles that were provisioned with empty blocked_services.
+     * Broadcast rules for ALL profiles to shield-dns-resolver.
+     * Use to repair profiles that were provisioned before a rules bug fix.
      */
     @PostMapping("/sync-all")
     public ResponseEntity<ApiResponse<Map<String, Integer>>> syncAll() {

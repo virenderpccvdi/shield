@@ -20,7 +20,7 @@ import java.util.UUID;
  * PO-02: Safe Browsing History — business logic.
  *
  * <p>DNS query events are written via {@link #recordQuery} (called from the
- * internal endpoint that AdGuard or the filter engine posts to).
+ * internal endpoint that shield-dns-resolver posts to after each query).
  * Parents retrieve history and statistics through {@link #getHistory} and
  * {@link #getStats}.
  */

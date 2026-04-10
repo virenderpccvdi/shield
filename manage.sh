@@ -17,7 +17,7 @@ TIER1="shield-eureka shield-config shield-gateway shield-auth"
 TIER2="shield-tenant shield-profile shield-dns shield-notification shield-admin"
 TIER3="shield-location shield-rewards shield-analytics shield-ai"
 ALL_SVCS="$TIER1 $TIER2 $TIER3"
-DOCKER_SVCS="shield-adguard shield-prometheus shield-grafana shield-zipkin"
+DOCKER_SVCS="shield-prometheus shield-grafana shield-zipkin"
 
 declare -A SVC_PORT=(
   [shield-eureka]=8261   [shield-config]=8288   [shield-gateway]=8280

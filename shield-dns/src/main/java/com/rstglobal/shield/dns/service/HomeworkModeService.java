@@ -37,10 +37,10 @@ public class HomeworkModeService {
     private final DnsRulesRepository dnsRulesRepository;
     private final DnsRulesService dnsRulesService;
 
-    // Instantiated directly — same pattern used in AdGuardClient (no registered Spring bean)
+    // No external DNS proxy — rules broadcast via Redis to shield-dns-resolver
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /** Marker key injected into enabled_categories so AdGuard sync can signal homework mode. */
+    /** Marker key injected into enabled_categories so the rules broadcast can signal homework mode. */
     public static final String HOMEWORK_BLOCKED_KEY = "__homework_mode__";
 
     /**
@@ -99,8 +99,8 @@ public class HomeworkModeService {
             }
         }
 
-        // 3. Flag the rule using the special key in enabled_categories so syncToAdGuard
-        //    can handle homework-mode-specific AdGuard service blocking if needed.
+        // 3. Flag the rule using the special key in enabled_categories so the rules broadcast
+        //    can handle homework-mode-specific service blocking if needed.
         java.util.Map<String, Boolean> cats = Optional.ofNullable(rules.getEnabledCategories())
                 .map(java.util.LinkedHashMap::new)
                 .orElse(new java.util.LinkedHashMap<>());
@@ -115,7 +115,7 @@ public class HomeworkModeService {
         rules.setHomeworkModeEndsAt(OffsetDateTime.now().plusMinutes(durationMinutes));
         DnsRules saved = dnsRulesRepository.save(rules);
 
-        // 5. Push to AdGuard
+        // 5. Broadcast rules to shield-dns-resolver
         dnsRulesService.syncRules(profileId);
 
         log.info("Homework mode ACTIVATED for profileId={} duration={}min ends={}",
@@ -168,7 +168,7 @@ public class HomeworkModeService {
         rules.setHomeworkModeSnapshot(null);
         dnsRulesRepository.save(rules);
 
-        // 4. Push restored rules to AdGuard
+        // 4. Broadcast restored rules to shield-dns-resolver
         dnsRulesService.syncRules(profileId);
 
         log.info("Homework mode DEACTIVATED for profileId={}", profileId);
@@ -233,7 +233,7 @@ public class HomeworkModeService {
      */
     private List<String> buildHomeworkDomains(DnsRules rules) {
         // Representative domain per homework-blocked category (lightweight, no deep mapping needed —
-        // AdGuard service-level blocking already handles the heavy lifting via syncToAdGuard).
+        // shield-dns-resolver handles category blocking via rules cache).
         // These domain entries act as visible indicators in the activity feed.
         return List.of(
                 "facebook.com", "instagram.com", "twitter.com", "tiktok.com",

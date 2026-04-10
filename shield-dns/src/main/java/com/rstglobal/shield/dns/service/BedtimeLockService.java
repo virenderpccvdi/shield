@@ -25,9 +25,9 @@ import java.util.UUID;
  * <p>
  * When a parent-configured bedtime window is active, all DNS queries for the
  * child's profile are blocked by setting a special sentinel key in
- * {@code enabled_categories}.  The existing {@code syncToAdGuard} logic in
+ * {@code enabled_categories}.  The existing rule-broadcast logic in
  * {@link DnsRulesService} already checks this key and disables filtering for
- * the AdGuard client, cutting off all internet access for the duration.
+ * the DNS filter engine, cutting off all internet access for the duration.
  * <p>
  * The lock activates/deactivates automatically every minute via a scheduled
  * check.  Overnight windows (e.g. 21:00 → 07:00) are handled correctly.
@@ -74,11 +74,11 @@ public class BedtimeLockService {
 
         dnsRulesRepository.save(rules);
 
-        // Push to AdGuard immediately so the change takes effect without waiting for scheduler
+        // Broadcast rules to shield-dns-resolver immediately so the change takes effect without waiting for scheduler
         try {
             dnsRulesService.syncRules(profileId);
         } catch (Exception e) {
-            log.warn("Bedtime configure: AdGuard sync failed for profileId={}: {}", profileId, e.getMessage());
+            log.warn("Bedtime configure: rules broadcast failed for profileId={}: {}", profileId, e.getMessage());
         }
 
         log.info("Bedtime lock configured: profileId={} enabled={} start={} end={} activatedNow={}",

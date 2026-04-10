@@ -9,7 +9,7 @@ import java.util.UUID;
 /**
  * PO-02: Safe Browsing History
  * One record per DNS query event, written by the internal record endpoint
- * (called from AdGuard webhook or the DNS filter engine).
+ * (called from shield-dns-resolver after resolving each query).
  * Parents read this table via BrowsingHistoryController.
  */
 @Entity

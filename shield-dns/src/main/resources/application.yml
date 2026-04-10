@@ -52,12 +52,6 @@ shield:
     base-url: ${SHIELD_TENANT_URL:http://localhost:8282}
   app:
     domain: ${APP_DOMAIN:shield.rstglobal.in}
-  adguard:
-    enabled: ${ADGUARD_ENABLED:false}
-    url: ${ADGUARD_URL:http://localhost:3080}
-    user: ${ADGUARD_USER:shield-api}
-    pass: ${ADGUARD_PASS:}
-
 management:
   endpoints:
     web:

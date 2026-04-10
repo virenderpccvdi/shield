@@ -36,7 +36,7 @@ public class ChildProfileController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create child profile", description = "Creates a child profile under the authenticated customer; provisions a DNS client ID for AdGuard filtering.")
+    @Operation(summary = "Create child profile", description = "Creates a child profile under the authenticated customer; provisions a unique DNS client ID for shield-dns-resolver filtering.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Child profile created"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Access denied — CUSTOMER role required"),

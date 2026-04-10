@@ -86,7 +86,7 @@ public class DnsRules {
 
     /**
      * When true, youtube.com / www.youtube.com / m.youtube.com are rewritten
-     * via AdGuard DNS CNAME to restrict.youtube.com (YouTube Restricted Mode).
+     * via shield-dns-resolver SafeSearch CNAME to restrict.youtube.com (YouTube Restricted Mode).
      * This is a DNS-level enforcement, stronger than the per-client safe-search flag.
      */
     @Column(name = "youtube_safe_mode", nullable = false)
@@ -97,7 +97,7 @@ public class DnsRules {
 
     /**
      * When true, major search engines are redirected to their safe-search endpoints
-     * via AdGuard DNS CNAME rewrites:
+     * via shield-dns-resolver SafeSearch CNAME rewrites:
      *   google.com / www.google.com → forcesafesearch.google.com
      *   www.bing.com → strict.bing.com
      *   duckduckgo.com → safe.duckduckgo.com

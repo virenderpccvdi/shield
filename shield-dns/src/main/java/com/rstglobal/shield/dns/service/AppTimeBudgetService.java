@@ -27,7 +27,7 @@ import java.util.*;
  * Parents configure a daily minute allowance per app (identified by domain pattern).
  * The Flutter child app periodically reports app usage via {@link #reportUsage}.
  * When the budget is consumed the domain is added to the profile's custom blocklist,
- * AdGuard is synced, and the parent is notified.
+ * shield-dns-resolver cache is updated, and the parent is notified.
  * At midnight a scheduled job unblocks the domain and resets the day.
  */
 @Slf4j

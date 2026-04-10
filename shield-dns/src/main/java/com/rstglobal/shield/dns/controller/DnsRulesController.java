@@ -58,7 +58,7 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(rulesService.getRules(profileId, parseUuid(tenantIdStr))));
     }
 
-    @Operation(summary = "Update blocked content categories", description = "Replaces the set of enabled/blocked content categories for a child profile and syncs to AdGuard.")
+    @Operation(summary = "Update blocked content categories", description = "Replaces the set of enabled/blocked content categories for a child profile and broadcasts to DNS filter engine.")
     @PutMapping("/rules/{profileId}/categories")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateCategories(
             @PathVariable UUID profileId,
@@ -155,7 +155,7 @@ public class DnsRulesController {
 
     // ── Activity feed (DNS query log) ──────────────────────────────────────
 
-    @Operation(summary = "Get recent DNS query activity", description = "Returns recent DNS queries for a child profile from the AdGuard query log.")
+    @Operation(summary = "Get recent DNS query activity", description = "Returns recent DNS queries for a child profile from the DNS query log.")
     @GetMapping("/rules/{profileId}/activity")
     public ResponseEntity<ApiResponse<java.util.List<Map<String, Object>>>> getActivity(
             @PathVariable UUID profileId,
@@ -171,8 +171,8 @@ public class DnsRulesController {
         return ResponseEntity.ok(ApiResponse.ok(activity));
     }
 
-    /** Force re-sync current DB rules to AdGuard for a profile (parent triggers after config change). */
-    @Operation(summary = "Force sync rules to AdGuard", description = "Pushes the current DB rules for a child profile to AdGuard Home immediately.")
+    /** Force re-sync current DB rules to shield-dns-resolver for a profile (parent triggers after config change). */
+    @Operation(summary = "Force sync rules to DNS filter engine", description = "Broadcasts the current DB rules for a child profile to shield-dns-resolver immediately.")
     @PostMapping("/rules/{profileId}/sync")
     public ResponseEntity<ApiResponse<com.rstglobal.shield.dns.dto.response.DnsRulesResponse>> forceSync(
             @PathVariable UUID profileId,

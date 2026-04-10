@@ -28,9 +28,6 @@ data:
   APP_DOMAIN: "shield.rstglobal.in"
   GATEWAY_URL: "http://shield-gateway:8280"
 
-  # AdGuard (disabled in K8s — use DNS rules service instead)
-  ADGUARD_ENABLED: "false"
-
   # Timezone
   TZ: "Asia/Kolkata"
 

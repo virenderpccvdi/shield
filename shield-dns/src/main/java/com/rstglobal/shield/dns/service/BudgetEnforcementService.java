@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  * Every minute it increments Redis usage counters for profiles that have active budgets.
  * When usage hits 80% or 100% of a budget limit, a notification is sent to the parent.
  * When the "total" daily budget key is exhausted, all internet is cut off by setting
- * the {@code __budget_exhausted__} flag in dns_rules.enabled_categories and syncing to AdGuard.
+ * the {@code __budget_exhausted__} flag in dns_rules.enabled_categories and broadcasting rules to shield-dns-resolver.
  * At midnight, all daily counters are reset and persisted to the database.
  */
 @Slf4j
@@ -34,7 +34,7 @@ public class BudgetEnforcementService {
 
     /**
      * Special key stored in dns_rules.enabled_categories to signal that the child's total
-     * daily screen-time budget is exhausted.  Checked by DnsRulesService.syncToAdGuard()
+     * daily screen-time budget is exhausted.  Checked by shield-dns-resolver rules cache
      * alongside {@code __schedule_blocked__} to disable all DNS filtering.
      */
     public static final String BUDGET_EXHAUSTED_KEY = "__budget_exhausted__";
@@ -137,7 +137,7 @@ public class BudgetEnforcementService {
             // If timeBudgets contains a "total" key, treat it as the overall daily
             // internet allowance.  Every minute a profile has ANY budget, we increment
             // its total counter.  When it hits the limit, we set __budget_exhausted__
-            // in enabled_categories and push the change to AdGuard so ALL DNS is cut off.
+            // in enabled_categories and broadcast to shield-dns-resolver to cut off all DNS.
             Integer totalLimitMinutes = budgets.get(TOTAL_BUDGET_KEY);
             if (totalLimitMinutes != null && totalLimitMinutes > 0) {
                 String totalKey = totalUsageKey(profileId);
@@ -164,7 +164,7 @@ public class BudgetEnforcementService {
                 }
 
                 if (nowExhausted != wasExhausted) {
-                    // State changed — update DnsRules flag and sync to AdGuard
+                    // State changed — update DnsRules flag and broadcast to shield-dns-resolver
                     cats = new LinkedHashMap<>(cats);
                     cats.put(BUDGET_EXHAUSTED_KEY, nowExhausted);
                     rules.setEnabledCategories(cats);
@@ -297,7 +297,7 @@ public class BudgetEnforcementService {
      * <ul>
      *   <li>Re-enables per-category blocks that were set by budget enforcement.</li>
      *   <li>Clears {@code __budget_exhausted__} so the new day starts with internet access.</li>
-     *   <li>Syncs to AdGuard when the exhausted flag was previously set.</li>
+     *   <li>Broadcasts rule update to shield-dns-resolver when the exhausted flag was previously set.</li>
      * </ul>
      */
     @Transactional
