@@ -10,6 +10,8 @@ import com.rstglobal.shield.profile.repository.ChildProfileRepository;
 import com.rstglobal.shield.profile.repository.CustomerRepository;
 import com.rstglobal.shield.profile.service.ChildProfileService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +37,12 @@ public class ChildProfileController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create child profile")
+    @Operation(summary = "Create child profile", description = "Creates a child profile under the authenticated customer; provisions a DNS client ID for AdGuard filtering.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Child profile created"),
+        @ApiResponse(responseCode = "403", description = "Access denied — CUSTOMER role required"),
+        @ApiResponse(responseCode = "400", description = "Profile limit reached for this customer")
+    })
     public ApiResponse<ChildProfileResponse> create(
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
@@ -83,6 +90,11 @@ public class ChildProfileController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Delete child profile")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Profile deleted"),
+        @ApiResponse(responseCode = "403", description = "Access denied — not the owner"),
+        @ApiResponse(responseCode = "404", description = "Profile not found")
+    })
     public void delete(
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role,
