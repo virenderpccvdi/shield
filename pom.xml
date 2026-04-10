@@ -140,7 +140,7 @@
             <dependency>
                 <groupId>commons-fileupload</groupId>
                 <artifactId>commons-fileupload</artifactId>
-                <version>1.5</version>
+                <version>1.6.0</version>
             </dependency>
             <!-- spring-cloud-config-server: pin to 5.0.1 (Spring Cloud 2025.1.1) -->
             <dependency>
