@@ -2,19 +2,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Box, Typography, Card, CardContent, Grid, Chip, Table, TableHead,
-  TableRow, TableCell, TableBody, Paper, Stack, CircularProgress, Button,
+  TableRow, TableCell, TableBody, Paper, Stack, Button,
   Avatar, Tabs, Tab,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonIcon from '@mui/icons-material/Person';
 import PeopleIcon from '@mui/icons-material/People';
 import DevicesIcon from '@mui/icons-material/Devices';
-import DnsIcon from '@mui/icons-material/Dns';
 import ShieldIcon from '@mui/icons-material/Shield';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
 import { useState } from 'react';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
@@ -27,12 +23,6 @@ import LoadingPage from '../../components/LoadingPage';
 const ROLE_COLOR: Record<string, 'error' | 'warning' | 'success' | 'default'> = {
   GLOBAL_ADMIN: 'error', ISP_ADMIN: 'warning', CUSTOMER: 'success',
 };
-
-function fmt(v: number) {
-  if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
-  if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
-  return String(v);
-}
 
 function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);

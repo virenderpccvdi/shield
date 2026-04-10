@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, Chip, Stack, Avatar,
   Table, TableHead, TableRow, TableCell, TableBody, Paper, Tooltip,
-  Button, Switch, Snackbar, Alert, ToggleButtonGroup, ToggleButton,
+  Button, Snackbar, Alert,
 } from '@mui/material';
 import SecurityIcon from '@mui/icons-material/Security';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -74,8 +74,6 @@ const INITIAL_PERMISSIONS: Permission[] = [
 
 const CATEGORIES = ['Platform', 'Users', 'Tenant', 'Family', 'Billing'];
 const ACCESS_CYCLE: Access[] = ['full', 'limited', 'none'];
-
-const ROLE_KEYS: (keyof Permission)[] = ['globalAdmin', 'ispAdmin', 'customer'];
 
 const ROLE_CONFIG = [
   { key: 'globalAdmin', label: 'GLOBAL ADMIN', color: '#E53935', bg: '#FFEBEE', icon: <AdminPanelSettingsIcon />, desc: 'Full platform control. Manages all tenants, users, plans and system configuration.' },

@@ -114,7 +114,6 @@ const GROUP_COLORS: Record<string, string> = {
 export default function FeatureManagementPage() {
   const qc = useQueryClient();
   const [snack, setSnack] = useState('');
-  const [expandedTenant, setExpandedTenant] = useState<string | null>(null);
 
   const { data: tenants = [], isLoading } = useQuery<Tenant[]>({
     queryKey: ['tenants-features'],

@@ -42,13 +42,6 @@ const EMPTY_FORM: TenantForm = {
 };
 const EMPTY_TENANTS: Tenant[] = [];
 
-// Plan badge styles using palette-aligned values
-const PLAN_STYLES: Record<string, { bgKey: 'primary' | 'success' | 'secondary'; label: string }> = {
-  STARTER: { bgKey: 'primary', label: 'STARTER' },
-  GROWTH: { bgKey: 'success', label: 'GROWTH' },
-  ENTERPRISE: { bgKey: 'secondary', label: 'ENTERPRISE' },
-};
-
 export default function TenantsPage() {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -126,7 +119,6 @@ export default function TenantsPage() {
     });
   }, [data, search, sortField, sortDir]);
 
-  function openAdd() { setEditing(null); setForm(EMPTY_FORM); setFormError(''); setOpen(true); }
   function openEdit(t: Tenant) {
     setEditing(t);
     setForm({ name: t.name, slug: t.slug, contactEmail: t.contactEmail, contactPhone: t.contactPhone || '', plan: t.plan, maxCustomers: t.maxCustomers, maxProfilesPerCustomer: t.maxProfilesPerCustomer, active: t.status !== 'SUSPENDED' });

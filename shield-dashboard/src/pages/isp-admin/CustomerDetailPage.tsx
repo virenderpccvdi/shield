@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, CircularProgress, Button,
-  Chip, Avatar, Stack, Divider, Table, TableHead, TableRow, TableCell,
+  Chip, Avatar, Stack, Table, TableHead, TableRow, TableCell,
   TableBody, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Select, MenuItem, FormControl, InputLabel, Switch, IconButton,
-  Tooltip, Alert, Snackbar, LinearProgress,
+  Tooltip, Alert, Snackbar,
 } from '@mui/material';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
@@ -16,7 +16,6 @@ import DevicesIcon from '@mui/icons-material/Devices';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
 import BlockIcon from '@mui/icons-material/Block';
 import DnsIcon from '@mui/icons-material/Dns';
-import ShieldIcon from '@mui/icons-material/Shield';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -29,7 +28,6 @@ import TuneIcon from '@mui/icons-material/Tune';
 import SmartphoneIcon from '@mui/icons-material/Smartphone';
 import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
-import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import LoadingPage from '../../components/LoadingPage';
 import { useAuthStore } from '../../store/auth.store';
@@ -109,7 +107,6 @@ function DnsRulesDialog({ profile, open, onClose }: { profile: ChildProfile; ope
   };
 
   // Load when opened
-  const wasOpen = open;
   if (open && categories.length === 0 && !loading) { loadRules(); }
 
   const saveCategories = async () => {

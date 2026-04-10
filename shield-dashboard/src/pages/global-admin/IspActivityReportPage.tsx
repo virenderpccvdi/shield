@@ -3,7 +3,7 @@ import {
   Box, Typography, Card, CardContent, Grid, Stack, MenuItem, TextField,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, TablePagination, Chip, Avatar, CircularProgress, Button,
-  Tooltip, IconButton, LinearProgress, ToggleButtonGroup, ToggleButton,
+  Tooltip, IconButton, ToggleButtonGroup, ToggleButton,
   Divider,
 } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
@@ -158,7 +158,6 @@ interface KpiCardProps {
 }
 
 function KpiCard({ title, value, icon, color, sub, loading, delay = 0 }: KpiCardProps) {
-  const theme = useTheme();
   return (
     <Card sx={{
       height: '100%',
@@ -399,7 +398,6 @@ export default function IspActivityReportPage() {
   const visibleDomains = domainsRows.slice(domainsPage * 10, domainsPage * 10 + 10);
 
   const catRows = (categories ?? []).slice().sort((a, b) => b.count - a.count).slice(0, 12);
-  const maxCatCount = Math.max(...catRows.map(c => c.count), 1);
 
   const auditEntries = auditData?.content ?? [];
   const auditTotal = auditData?.totalElements ?? 0;

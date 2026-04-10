@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Card, CardContent, Grid, Chip, Table, TableHead,
-  TableRow, TableCell, TableBody, Paper, Stack, CircularProgress, Button, Alert,
+  TableRow, TableCell, TableBody, Paper, Stack, CircularProgress, Button,
   Avatar, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions,
   FormControl, InputLabel, Select, MenuItem, Snackbar,
 } from '@mui/material';
@@ -10,7 +10,6 @@ import LoadingPage from '../../components/LoadingPage';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
-import DevicesIcon from '@mui/icons-material/Devices';
 import DnsIcon from '@mui/icons-material/Dns';
 import ShieldIcon from '@mui/icons-material/Shield';
 import EditIcon from '@mui/icons-material/Edit';
@@ -151,7 +150,6 @@ export default function TenantDetailPage() {
   if (!tenant) return <EmptyState icon={<BusinessIcon sx={{ fontSize: 36 }} />} title="Tenant not found" description="The requested ISP tenant could not be loaded" />;
 
   const totalQueries = daily.reduce((s: number, d: any) => s + d.queries, 0);
-  const totalBlocked = daily.reduce((s: number, d: any) => s + d.blocked, 0);
   const featureCount = tenant.features ? Object.values(tenant.features).filter(Boolean).length : 0;
 
   return (

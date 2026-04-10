@@ -14,7 +14,6 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import FolderIcon from '@mui/icons-material/Folder';
 import DnsIcon from '@mui/icons-material/Dns';
 import GridViewIcon from '@mui/icons-material/GridView';
-import TimelineIcon from '@mui/icons-material/Timeline';
 import BubbleChartIcon from '@mui/icons-material/BubbleChart';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import {
@@ -255,7 +254,6 @@ function buildCohortData(daily: { queries: number }[]): CohortRow[] {
     const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
     const label = d.toLocaleDateString('en', { month: 'short', year: '2-digit' });
     // Seed a declining retention curve with slight randomness per cohort
-    const base = 75 + Math.random() * 15;
     const weeks = [100];
     for (let w = 1; w <= 5; w++) {
       const prev = weeks[w - 1];

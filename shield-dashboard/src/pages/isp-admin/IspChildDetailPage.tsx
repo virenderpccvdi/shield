@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import {
   Box, Typography, Card, CardContent, Tabs, Tab, Chip, Button, Grid,
-  CircularProgress, Avatar, Tooltip, TextField, MenuItem, Snackbar, Alert,
+  Avatar, Tooltip, TextField, MenuItem, Snackbar, Alert,
   IconButton, Switch, Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ChildCareIcon from '@mui/icons-material/ChildCare';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import TimerIcon from '@mui/icons-material/Timer';
 import ShieldIcon from '@mui/icons-material/Shield';
