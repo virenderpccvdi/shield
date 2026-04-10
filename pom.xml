@@ -44,7 +44,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok.version>1.18.36</lombok.version>
         <springdoc.version>3.0.2</springdoc.version>
-        <logstash-logback.version>8.0</logstash-logback.version>
+        <logstash-logback.version>9.0</logstash-logback.version>
 
         <!-- ── Security CVE overrides ───────────────────────────────────────── -->
         <!-- CVE-2026-33871 / CVE-2025-55163: Netty HTTP/2 header handling -->
