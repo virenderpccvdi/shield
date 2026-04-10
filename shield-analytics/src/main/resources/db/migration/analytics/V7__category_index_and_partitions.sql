@@ -9,9 +9,9 @@ CREATE INDEX IF NOT EXISTS idx_dns_logs_profile_category_time
     ON analytics.dns_query_logs (profile_id, category, queried_at DESC)
     WHERE category IS NOT NULL;
 
--- After-hours detection index (hour extraction is slow without this)
-CREATE INDEX IF NOT EXISTS idx_dns_logs_profile_hour
-    ON analytics.dns_query_logs (profile_id, EXTRACT(HOUR FROM queried_at));
+-- After-hours detection: index on (profile_id, queried_at) used for time-range scans.
+-- Note: EXTRACT(HOUR FROM timestamptz) is STABLE not IMMUTABLE — cannot use in index.
+-- Existing idx_dns_logs_profile_time already covers profile_id+queried_at range queries.
 
 -- ── DB4: 2027 Q2-Q4 and 2028 Q1 partitions ───────────────────────────────────
 CREATE TABLE IF NOT EXISTS analytics.dns_query_logs_2027_q2 PARTITION OF analytics.dns_query_logs
