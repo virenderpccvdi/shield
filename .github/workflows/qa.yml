@@ -68,7 +68,7 @@ jobs:
         env:
           POSTGRES_DB: shield_db
           POSTGRES_USER: shield
-          POSTGRES_PASSWORD: Shield@2026#Secure
+          POSTGRES_PASSWORD: "Shield@2026#Secure"
         ports:
           - 5432:5432
         options: >-
@@ -177,7 +177,7 @@ jobs:
         env:
           POSTGRES_DB: shield_db
           POSTGRES_USER: shield
-          POSTGRES_PASSWORD: Shield@2026#Secure
+          POSTGRES_PASSWORD: "Shield@2026#Secure"
         ports:
           - 5432:5432
       redis:
