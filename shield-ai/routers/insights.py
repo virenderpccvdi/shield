@@ -10,7 +10,7 @@ from schemas.response import WeeklyDigestResponse, InsightsResponse
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/ai", tags=["insights"])
+router = APIRouter(prefix="/api/v1/ai", tags=["insights"])
 
 
 @router.get("/{profile_id}/weekly", response_model=WeeklyDigestResponse)

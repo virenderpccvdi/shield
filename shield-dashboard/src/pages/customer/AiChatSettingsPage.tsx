@@ -398,10 +398,10 @@ export default function AiChatSettingsPage() {
                     <Stack direction="row" spacing={1.25} alignItems="flex-start">
                       <Box sx={{
                         width: 22, height: 22, borderRadius: '50%', flexShrink: 0, mt: 0.1,
-                        bgcolor: 'rgba(245,127,23,0.1)',
+                        bgcolor: 'rgba(194,65,12,0.1)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <Typography variant="caption" fontWeight={800} sx={{ color: '#F57F17', fontSize: 10 }}>
+                        <Typography variant="caption" fontWeight={800} sx={{ color: '#92400E', fontSize: 10 }}>
                           {i + 1}
                         </Typography>
                       </Box>

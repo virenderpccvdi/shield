@@ -17,6 +17,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @RestControllerAdvice
@@ -85,13 +86,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
         log.debug("Method not supported: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(ApiResponse.error("METHOD_NOT_ALLOWED", ex.getMessage()));
+                .body(ApiResponse.error("METHOD_NOT_ALLOWED", "HTTP method not supported for this endpoint"));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiResponse<Void>> handleResponseStatus(ResponseStatusException ex) {
         log.debug("ResponseStatusException [{}]: {}", ex.getStatusCode(), ex.getReason());
-        String reason = ex.getReason() != null ? ex.getReason() : ex.getMessage();
+        // Only expose the reason phrase (set intentionally), never the internal message
+        String reason = ex.getReason() != null ? ex.getReason() : "Request could not be processed";
         return ResponseEntity.status(ex.getStatusCode())
                 .body(ApiResponse.error(ex.getStatusCode().toString(), reason));
     }
@@ -100,13 +102,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleNoResource(NoResourceFoundException ex) {
         log.debug("No resource found: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error("NOT_FOUND", ex.getMessage()));
+                .body(ApiResponse.error("NOT_FOUND", "The requested resource was not found"));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        // Generate a correlation ID so ops can trace the error in logs without exposing details
+        String correlationId = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        log.error("Unhandled exception [ref:{}]: {}", correlationId, ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("INTERNAL_ERROR", "An unexpected error occurred"));
+                .body(ApiResponse.error("INTERNAL_ERROR",
+                        "An unexpected error occurred. Reference: " + correlationId));
     }
 }

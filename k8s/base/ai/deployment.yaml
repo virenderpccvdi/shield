@@ -66,13 +66,15 @@ spec:
               cpu: "500m"
           readinessProbe:
             httpGet:
-              path: /health
+              path: /actuator/health
               port: 8291
             initialDelaySeconds: 20
             periodSeconds: 10
+            failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /health
+              path: /actuator/health
               port: 8291
-            initialDelaySeconds: 40
+            initialDelaySeconds: 60
             periodSeconds: 20
+            failureThreshold: 5

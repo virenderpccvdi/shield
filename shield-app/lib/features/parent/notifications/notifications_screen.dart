@@ -148,7 +148,7 @@ class _NotifTile extends StatelessWidget {
 
   Color get _color {
     if (alert.isCritical)          return Colors.red;
-    if (alert.type == 'BATTERY')   return Colors.orange;
+    if (alert.type == 'BATTERY')   return const Color(0xFFC2410C);
     if (alert.type == 'GEOFENCE')  return Colors.blue;
     if (alert.type == 'SCHEDULE')  return Colors.teal;
     return Colors.grey;

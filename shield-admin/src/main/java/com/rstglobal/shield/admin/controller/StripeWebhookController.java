@@ -25,22 +25,21 @@ public class StripeWebhookController {
             @RequestBody String payload,
             @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) {
 
+        if (stripeConfig.getWebhookSecret() == null || stripeConfig.getWebhookSecret().isBlank()) {
+            log.error("STRIPE_WEBHOOK_SECRET is not configured — rejecting webhook");
+            return ResponseEntity.status(503).body("Webhook secret not configured");
+        }
+        if (sigHeader == null || sigHeader.isBlank()) {
+            log.warn("Stripe webhook received without Stripe-Signature header — rejecting");
+            return ResponseEntity.status(400).body("Missing signature header");
+        }
+
         Event event;
-        if (stripeConfig.getWebhookSecret() != null && !stripeConfig.getWebhookSecret().isBlank() && sigHeader != null) {
-            try {
-                event = Webhook.constructEvent(payload, sigHeader, stripeConfig.getWebhookSecret());
-            } catch (Exception e) {
-                log.warn("Invalid Stripe webhook signature: {}", e.getMessage());
-                return ResponseEntity.status(400).body("Invalid signature");
-            }
-        } else {
-            // No webhook secret configured — use constructEvent with empty secret (test mode)
-            try {
-                event = com.stripe.model.Event.GSON.fromJson(payload, com.stripe.model.Event.class);
-            } catch (Exception e) {
-                log.warn("Failed to parse Stripe event: {}", e.getMessage());
-                return ResponseEntity.badRequest().body("Invalid payload");
-            }
+        try {
+            event = Webhook.constructEvent(payload, sigHeader, stripeConfig.getWebhookSecret());
+        } catch (Exception e) {
+            log.warn("Invalid Stripe webhook signature: {}", e.getMessage());
+            return ResponseEntity.status(400).body("Invalid signature");
         }
 
         log.info("Stripe webhook: type={}, id={}", event.getType(), event.getId());

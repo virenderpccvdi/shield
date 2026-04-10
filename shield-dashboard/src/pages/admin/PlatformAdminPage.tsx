@@ -187,8 +187,8 @@ export default function PlatformAdminPage() {
       label: 'Total Queries',
       value: formatNumber(stats?.totalQueriesAllTime ?? 0),
       icon: <DnsIcon sx={{ fontSize: 22 }} />,
-      color: '#E65100',
-      bg: 'rgba(230,81,0,0.08)',
+      color: '#C2410C',
+      bg: 'rgba(194,65,12,0.08)',
     },
   ];
 

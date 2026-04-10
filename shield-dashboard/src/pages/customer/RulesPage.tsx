@@ -151,7 +151,7 @@ function rulesToCategories(
 function riskChipColor(risk?: string): { bg: string; color: string; label: string } {
   switch (risk?.toUpperCase()) {
     case 'HIGH':    return { bg: 'rgba(229,57,53,0.10)', color: '#C62828', label: 'High Risk' };
-    case 'MEDIUM':  return { bg: 'rgba(251,140,0,0.10)',  color: '#E65100', label: 'Medium' };
+    case 'MEDIUM':  return { bg: 'rgba(251,140,0,0.10)',  color: '#92400E', label: 'Medium' };
     case 'LOW':     return { bg: 'rgba(56,142,60,0.10)',  color: '#2E7D32', label: 'Low' };
     default:        return { bg: 'rgba(97,97,97,0.08)',   color: '#424242', label: risk ?? '' };
   }

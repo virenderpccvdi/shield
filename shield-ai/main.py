@@ -27,12 +27,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "https://shield.rstglobal.in,https://api.shield.rstglobal.in"
+).split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type", "X-Tenant-Id", "X-User-Id", "X-User-Role"],
 )
 
 app.include_router(health.router)
@@ -47,7 +52,7 @@ app.include_router(safe_chat.router)
 
 
 @app.get("/actuator/health")
-@app.get("/ai/actuator/health")  # gateway rewrites /api/v1/ai/actuator/health → /ai/actuator/health
+@app.get("/api/v1/ai/actuator/health")
 async def actuator_health():
     return {"status": "UP", "groups": ["liveness", "readiness"]}
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box, Typography, Card, CardContent, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, Switch, CircularProgress,
@@ -35,6 +35,7 @@ export default function DnsRulesPage() {
   const [domainError, setDomainError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [propagating, setPropagating] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -75,9 +76,31 @@ export default function DnsRulesPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const scheduleCategorySave = useCallback((rows: CategoryRow[]) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      setSaving(true);
+      try {
+        const catMap: Record<string, boolean> = {};
+        rows.forEach(c => { catMap[c.key] = !c.blocked; });
+        await api.put('/dns/rules/platform/categories', { categories: catMap });
+        setSnack('Category rules saved');
+        setDirty(false);
+      } catch {
+        setSnack('Failed to save category rules');
+      } finally {
+        setSaving(false);
+      }
+    }, 600);
+  }, []);
+
   const handleToggle = (index: number) => {
-    setCategories(prev => prev.map((c, i) => i === index ? { ...c, blocked: !c.blocked } : c));
-    setDirty(true);
+    setCategories(prev => {
+      const updated = prev.map((c, i) => i === index ? { ...c, blocked: !c.blocked } : c);
+      setDirty(true);
+      scheduleCategorySave(updated);
+      return updated;
+    });
   };
 
   const handleSaveCategories = async () => {
@@ -208,11 +231,13 @@ export default function DnsRulesPage() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                       <Typography variant="body2" color="text.secondary">
                         {categories.filter(c => c.blocked).length} of {categories.length} categories blocked
+                        {saving && <CircularProgress size={12} sx={{ ml: 1, verticalAlign: 'middle' }} />}
+                        {!saving && !dirty && <Chip label="Saved" size="small"
+                          sx={{ ml: 1, height: 18, fontSize: 10, bgcolor: '#E8F5E9', color: '#2E7D32', fontWeight: 600 }} />}
                       </Typography>
-                      <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveCategories}
-                        disabled={saving || !dirty} sx={{ bgcolor: '#1565C0' }}>
-                        {saving ? <CircularProgress size={18} color="inherit" /> : 'Save Changes'}
-                      </Button>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        Changes save automatically
+                      </Typography>
                     </Box>
                     <Box sx={{ overflowX: 'auto' }}>
                     <TableContainer>

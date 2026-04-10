@@ -517,7 +517,7 @@ class _AdminAlertTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = alert['alertType']?.toString() ?? alert['type']?.toString() ?? '';
     final color = type == 'SOS' || type == 'CRITICAL' ? Colors.red
-        : type == 'BATTERY' ? Colors.orange
+        : type == 'BATTERY' ? const Color(0xFFC2410C)
         : Colors.blue;
     final icon = type == 'SOS' ? Icons.sos
         : type == 'BATTERY' ? Icons.battery_alert
@@ -535,7 +535,7 @@ class _AdminAlertTile extends StatelessWidget {
           style: const TextStyle(fontSize: 12)),
       trailing: Text(
         _time(alert['createdAt']?.toString()),
-        style: const TextStyle(fontSize: 11, color: Colors.black38),
+        style: const TextStyle(fontSize: 11, color: Colors.black54),
       ),
     );
   }

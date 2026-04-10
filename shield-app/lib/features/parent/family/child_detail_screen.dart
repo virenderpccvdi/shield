@@ -38,21 +38,21 @@ const _sections = [
   ]),
   _Section('Screen Time', [
     _Tile(Icons.schedule,      'Schedule',       'schedule',      color: Color(0xFF2E7D32)),
-    _Tile(Icons.timer_outlined,'Time Limits',    'time-limits',   color: Color(0xFFF57F17)),
+    _Tile(Icons.timer_outlined,'Time Limits',    'time-limits',   color: Color(0xFFC2410C)),
     _Tile(Icons.bedtime,       'Bedtime',        'bedtime',       color: Color(0xFF4A148C)),
     _Tile(Icons.school,        'Homework Mode',  'homework-mode', color: Color(0xFF1B5E20)),
   ]),
   _Section('Location', [
     _Tile(Icons.map,            'Live Map',          'map',               color: Color(0xFF2563EB)),
     _Tile(Icons.history,        'Location History',  'location-history',  color: Color(0xFF37474F)),
-    _Tile(Icons.fence,          'Geofences',         'geofences',         color: Color(0xFFE65100)),
+    _Tile(Icons.fence,          'Geofences',         'geofences',         color: Color(0xFFC2410C)),
   ]),
   _Section('Activity & Insights', [
     _Tile(Icons.phone_android,  'App Usage',       'app-usage',    color: Color(0xFF6A1B9A)),
     _Tile(Icons.psychology,     'AI Insights',     'ai-insights',  color: Color(0xFF1E40AF)),
   ]),
   _Section('Rewards & Tasks', [
-    _Tile(Icons.star,           'Rewards',          'rewards',      color: Color(0xFFF9A825)),
+    _Tile(Icons.star,           'Rewards',          'rewards',      color: Color(0xFFB45309)),
     _Tile(Icons.thumb_up,       'Approvals',        'approvals',    color: Color(0xFF558B2F)),
   ]),
   _Section('Safety', [

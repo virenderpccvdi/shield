@@ -130,8 +130,8 @@ class _TimeLimitsState extends ConsumerState<TimeLimitsScreen> {
                       onChanged: (v) => setState(() => _dailyMinutes = v.round()),
                     ),
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      const Text('30m', style: TextStyle(color: Colors.black38)),
-                      const Text('12h',  style: TextStyle(color: Colors.black38)),
+                      const Text('30m', style: TextStyle(color: Colors.black54)),
+                      const Text('12h',  style: TextStyle(color: Colors.black54)),
                     ]),
                   ]),
                 ),

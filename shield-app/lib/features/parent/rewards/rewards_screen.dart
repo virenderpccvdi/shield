@@ -149,7 +149,7 @@ class _TaskTile extends StatelessWidget {
             style: TextStyle(
                 color: done ? Colors.green :
                        status == 'SUBMITTED' ? Colors.blue :
-                       status == 'REJECTED' ? Colors.red : Colors.orange,
+                       status == 'REJECTED' ? Colors.red : const Color(0xFF92400E),
                 fontWeight: FontWeight.w600)),
       ),
     );

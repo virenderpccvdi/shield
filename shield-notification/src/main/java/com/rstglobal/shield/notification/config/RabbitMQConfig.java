@@ -8,11 +8,13 @@ import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFacto
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
  * RabbitMQ topology for the Shield event bus.
+ * Disabled when rabbitmq.enabled=false (e.g. Kubernetes deployments without RabbitMQ).
  *
  * Exchange : shield.events  (TopicExchange — durable)
  * Queue    : shield.notification.queue  (durable)
@@ -25,6 +27,7 @@ import org.springframework.context.annotation.Configuration;
  *   shield.ai.anomaly
  */
 @Configuration
+@ConditionalOnProperty(name = "rabbitmq.enabled", havingValue = "true", matchIfMissing = false)
 public class RabbitMQConfig {
 
     public static final String EXCHANGE_NAME = "shield.events";

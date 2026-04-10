@@ -331,7 +331,7 @@ export default function SuspiciousActivityPage() {
           <Chip
             size="small"
             label={`${filteredAlerts.filter(a => a.severity === 'MEDIUM').length} Medium`}
-            sx={{ bgcolor: '#FFF3E0', color: '#E65100', fontWeight: 600 }}
+            sx={{ bgcolor: '#FFF3E0', color: '#92400E', fontWeight: 600 }}
           />
           <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto', alignSelf: 'center' }}>
             Auto-refreshes every 60s
@@ -386,7 +386,7 @@ export default function SuspiciousActivityPage() {
                     alert.severity === 'HIGH'
                       ? THEME_COLOR
                       : alert.severity === 'MEDIUM'
-                      ? '#E65100'
+                      ? '#C2410C'
                       : '#9E9E9E'
                   }`,
                   opacity: alert.acknowledged ? 0.65 : 1,

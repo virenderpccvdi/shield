@@ -166,7 +166,7 @@ class _ScheduleBodyState extends ConsumerState<_ScheduleBody> {
             ),
           ] else ...[
             const Expanded(child: Text('Blocked all day',
-                style: TextStyle(color: Colors.black38, fontSize: 13))),
+                style: TextStyle(color: Colors.black54, fontSize: 13))),
           ],
         ]),
       ),

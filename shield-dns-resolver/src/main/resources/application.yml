@@ -29,6 +29,14 @@ dns:
   rules-ttl-seconds: 300
   query-timeout-ms: 2000
 
+shield:
+  dns:
+    service:
+      url: ${SHIELD_DNS_SERVICE_URL:http://shield-dns:8284}
+  analytics:
+    service:
+      url: ${SHIELD_ANALYTICS_SERVICE_URL:http://shield-analytics:8289}
+
 logging:
   level:
     com.rstglobal.shield.dnsresolver: DEBUG

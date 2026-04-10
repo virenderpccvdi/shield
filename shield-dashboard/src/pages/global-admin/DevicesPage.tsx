@@ -39,7 +39,7 @@ const DEVICE_ICONS: Record<string, React.ReactNode> = {
 const DNS_METHOD_COLOR: Record<string, { bg: string; color: string }> = {
   DOH: { bg: '#E3F2FD', color: '#1565C0' },
   WIREGUARD: { bg: '#F3E5F5', color: '#7B1FA2' },
-  DHCP: { bg: '#FFF3E0', color: '#E65100' },
+  DHCP: { bg: '#FFF3E0', color: '#92400E' },
 };
 
 function timeAgo(dateStr?: string): string {

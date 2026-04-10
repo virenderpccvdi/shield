@@ -15,7 +15,7 @@ import PageHeader from '../../components/PageHeader';
 
 const FILTER_OPTIONS = [
   { value: 'STRICT',   label: 'Strict',   desc: 'Maximum protection — suitable for young children (2–8)',  color: '#C62828', bg: '#FFEBEE' },
-  { value: 'MODERATE', label: 'Moderate', desc: 'Balanced protection — suitable for children (8–13)',       color: '#F57F17', bg: '#FFF8E1' },
+  { value: 'MODERATE', label: 'Moderate', desc: 'Balanced protection — suitable for children (8–13)',       color: '#7C4700', bg: '#FFF8E1' },
   { value: 'RELAXED',  label: 'Relaxed',  desc: 'Light filtering — suitable for older teens (13+)',         color: '#2E7D32', bg: '#E8F5E9' },
 ];
 

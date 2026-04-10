@@ -20,7 +20,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/ai", tags=["config"])
+router = APIRouter(prefix="/api/v1/ai", tags=["config"])
 
 CONFIG_FILE = Path("/tmp/shield_ai_config.json")
 

@@ -45,7 +45,7 @@ function BudgetStatusChip({ used, total }: { used: number; total: number }) {
     <Chip size="small" label="Depleted" sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#FFEBEE', color: '#C62828' }} />
   );
   if (pct >= 80) return (
-    <Chip size="small" label="Warning" sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#FFF8E1', color: '#F57F17' }} />
+    <Chip size="small" label="Warning" sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#FFF8E1', color: '#7C4700' }} />
   );
   return (
     <Chip size="small" label="On track" sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#E8F5E9', color: '#2E7D32' }} />
@@ -156,9 +156,9 @@ export default function AppBudgetsPage() {
                 onClick={() => setSelectedChild(c.id)}
                 sx={{
                   fontWeight: 600,
-                  bgcolor: (profileId === c.id) ? '#F57F17' : 'rgba(245,127,23,0.08)',
-                  color: (profileId === c.id) ? 'white' : '#F57F17',
-                  '&:hover': { bgcolor: (profileId === c.id) ? '#E65100' : 'rgba(245,127,23,0.16)' },
+                  bgcolor: (profileId === c.id) ? '#C2410C' : 'rgba(194,65,12,0.08)',
+                  color: (profileId === c.id) ? 'white' : '#92400E',
+                  '&:hover': { bgcolor: (profileId === c.id) ? '#9A3412' : 'rgba(194,65,12,0.16)' },
                 }}
               />
             ))}
@@ -167,7 +167,7 @@ export default function AppBudgetsPage() {
               size="small"
               startIcon={<AddIcon />}
               onClick={() => { setForm(FORM_INITIAL); setFormErrors({}); setDialogOpen(true); }}
-              sx={{ bgcolor: '#F57F17', '&:hover': { bgcolor: '#E65100' }, fontWeight: 600 }}
+              sx={{ bgcolor: '#C2410C', '&:hover': { bgcolor: '#9A3412' }, fontWeight: 600 }}
             >
               Add Budget
             </Button>
@@ -194,7 +194,7 @@ export default function AppBudgetsPage() {
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => { setForm(FORM_INITIAL); setFormErrors({}); setDialogOpen(true); }}
-                sx={{ bgcolor: '#F57F17', '&:hover': { bgcolor: '#E65100' }, fontWeight: 600 }}
+                sx={{ bgcolor: '#C2410C', '&:hover': { bgcolor: '#9A3412' }, fontWeight: 600 }}
               >
                 Add First Budget
               </Button>
@@ -300,7 +300,7 @@ export default function AppBudgetsPage() {
             />
             <Box>
               <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-                Daily Limit: <span style={{ color: '#F57F17' }}>{formatMins(form.dailyMinutes)}</span>
+                Daily Limit: <span style={{ color: '#92400E' }}>{formatMins(form.dailyMinutes)}</span>
               </Typography>
               <Slider
                 value={form.dailyMinutes}
@@ -318,7 +318,7 @@ export default function AppBudgetsPage() {
                   { value: 240, label: '4h' },
                 ]}
                 sx={{
-                  color: '#F57F17',
+                  color: '#C2410C',
                   '& .MuiSlider-thumb': { width: 18, height: 18 },
                   '& .MuiSlider-markLabel': { fontSize: 11 },
                 }}
@@ -332,7 +332,7 @@ export default function AppBudgetsPage() {
             variant="contained"
             onClick={handleAdd}
             disabled={addMutation.isPending}
-            sx={{ bgcolor: '#F57F17', '&:hover': { bgcolor: '#E65100' }, fontWeight: 600 }}
+            sx={{ bgcolor: '#C2410C', '&:hover': { bgcolor: '#9A3412' }, fontWeight: 600 }}
           >
             {addMutation.isPending ? 'Adding...' : 'Add Budget'}
           </Button>

@@ -175,7 +175,7 @@ export default function UserDetailPage() {
           <CardContent>
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Assigned Tenant</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar sx={{ bgcolor: '#FB8C00' }}>{getInitials(userTenant.name)}</Avatar>
+              <Avatar sx={{ bgcolor: '#C2410C' }}>{getInitials(userTenant.name)}</Avatar>
               <Box>
                 <Typography fontWeight={600}>{userTenant.name}</Typography>
                 <Typography variant="body2" color="text.secondary">{userTenant.slug} — {userTenant.plan} plan</Typography>

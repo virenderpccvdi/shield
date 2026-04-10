@@ -467,8 +467,8 @@ export default function IspActivityReportPage() {
                       {t.status && (
                         <Chip label={t.status} size="small"
                           sx={{ height: 16, fontSize: 9, ml: 0.5,
-                            bgcolor: t.status === 'ACTIVE' ? alpha('#2E7D32', 0.12) : alpha('#E65100', 0.12),
-                            color: t.status === 'ACTIVE' ? '#2E7D32' : '#E65100',
+                            bgcolor: t.status === 'ACTIVE' ? alpha('#2E7D32', 0.12) : alpha('#C2410C', 0.12),
+                            color: t.status === 'ACTIVE' ? '#2E7D32' : '#92400E',
                           }} />
                       )}
                     </Box>
@@ -535,7 +535,7 @@ export default function IspActivityReportPage() {
                 title: 'Block Rate',
                 value: blockRate,
                 icon: <PercentIcon fontSize="small" />,
-                color: '#E65100',
+                color: '#C2410C',
                 sub: overview?.totalQueries ? `of ${fmt(overview.totalQueries)} total` : 'queries',
                 delay: 0.1,
               },

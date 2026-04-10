@@ -19,7 +19,7 @@ from services.model_trainer import run_retraining
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/ai", tags=["training"])
+router = APIRouter(prefix="/api/v1/ai", tags=["training"])
 
 STATUS_FILE = Path("/tmp/shield_training_status.json")
 

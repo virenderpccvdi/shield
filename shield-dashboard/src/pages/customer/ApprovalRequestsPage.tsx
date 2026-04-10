@@ -48,7 +48,7 @@ function timeAgo(iso: string): string {
 
 function StatusChip({ status }: { status: ApprovalRequest['status'] }) {
   const config = {
-    PENDING:  { color: '#F57F17', bg: '#FFF8E1', label: 'Pending' },
+    PENDING:  { color: '#7C4700', bg: '#FFF8E1', label: 'Pending' },
     APPROVED: { color: '#2E7D32', bg: '#E8F5E9', label: 'Approved' },
     DENIED:   { color: '#C62828', bg: '#FFEBEE', label: 'Denied' },
     EXPIRED:  { color: '#546E7A', bg: '#ECEFF1', label: 'Expired' },

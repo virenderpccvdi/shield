@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from services.keyword_service import set_keywords, get_keywords
 from schemas.request import KeywordRequest
 
-router = APIRouter(prefix="/ai", tags=["keywords"])
+router = APIRouter(prefix="/api/v1/ai", tags=["keywords"])
 
 
 @router.get("/{profile_id}/keywords")

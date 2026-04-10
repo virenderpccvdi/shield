@@ -13,11 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.OffsetDateTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -34,8 +33,24 @@ public class PlatformController {
     private final EntityManager entityManager;
 
     private static final Set<String> ALLOWED_SERVICES = Set.of(
-            "eureka", "config", "gateway", "auth", "tenant", "profile",
+            "eureka", "gateway", "auth", "tenant", "profile",
             "dns", "location", "notification", "rewards", "analytics", "admin", "ai"
+    );
+
+    /** K8s service-name → health check port */
+    private static final Map<String, Integer> SERVICE_PORTS = Map.ofEntries(
+            Map.entry("eureka", 8261),
+            Map.entry("gateway", 8280),
+            Map.entry("auth", 8281),
+            Map.entry("tenant", 8282),
+            Map.entry("profile", 8283),
+            Map.entry("dns", 8284),
+            Map.entry("location", 8285),
+            Map.entry("notification", 8286),
+            Map.entry("rewards", 8287),
+            Map.entry("analytics", 8289),
+            Map.entry("admin", 8290),
+            Map.entry("ai", 8291)
     );
 
     @GetMapping("/stats")
@@ -107,21 +122,23 @@ public class PlatformController {
         return ResponseEntity.ok(health);
     }
 
-    /** GET /api/v1/admin/platform/services — status of all 13 services */
+    /** GET /api/v1/admin/platform/services — status of all services via HTTP health checks */
     @GetMapping("/services")
     public ResponseEntity<List<Map<String, Object>>> listServices() {
         List<Map<String, Object>> result = new ArrayList<>();
-        for (String name : ALLOWED_SERVICES) {
+        List<String> sorted = new ArrayList<>(ALLOWED_SERVICES);
+        Collections.sort(sorted);
+        for (String name : sorted) {
             Map<String, Object> info = new LinkedHashMap<>();
             info.put("name", name);
-            info.put("unit", "shield-" + name + ".service");
+            info.put("unit", "shield-" + name);
             info.put("status", getServiceStatus(name));
             result.add(info);
         }
         return ResponseEntity.ok(result);
     }
 
-    /** POST /api/v1/admin/platform/services/{name}/restart */
+    /** POST /api/v1/admin/platform/services/{name}/restart — K8s: returns current health */
     @PostMapping("/services/{name}/restart")
     public ResponseEntity<Map<String, Object>> restartService(@PathVariable String name,
                                                                 @RequestHeader("X-User-Role") String role,
@@ -129,10 +146,11 @@ public class PlatformController {
         requireGlobalAdmin(role);
         validateServiceName(name);
         String unit = "shield-" + name;
-        String output = execCommand("systemctl", "restart", unit);
         auditLogService.log("SERVICE_RESTART", "Service", unit,
                 getUserId(req), getUserName(req), req.getRemoteAddr(), Map.of("service", unit));
-        return ResponseEntity.ok(Map.of("service", unit, "action", "restart", "output", output, "status", getServiceStatus(name)));
+        return ResponseEntity.ok(Map.of("service", unit, "action", "restart",
+                "output", "In Kubernetes, use kubectl rollout restart deployment/" + unit + " -n shield-prod",
+                "status", getServiceStatus(name)));
     }
 
     /** POST /api/v1/admin/platform/services/{name}/stop */
@@ -143,10 +161,11 @@ public class PlatformController {
         requireGlobalAdmin(role);
         validateServiceName(name);
         String unit = "shield-" + name;
-        String output = execCommand("systemctl", "stop", unit);
         auditLogService.log("SERVICE_STOP", "Service", unit,
                 getUserId(req), getUserName(req), req.getRemoteAddr(), Map.of("service", unit));
-        return ResponseEntity.ok(Map.of("service", unit, "action", "stop", "output", output, "status", getServiceStatus(name)));
+        return ResponseEntity.ok(Map.of("service", unit, "action", "stop",
+                "output", "Scale down via: kubectl scale deployment/" + unit + " -n shield-prod --replicas=0",
+                "status", getServiceStatus(name)));
     }
 
     /** POST /api/v1/admin/platform/services/{name}/start */
@@ -157,22 +176,24 @@ public class PlatformController {
         requireGlobalAdmin(role);
         validateServiceName(name);
         String unit = "shield-" + name;
-        String output = execCommand("systemctl", "start", unit);
         auditLogService.log("SERVICE_START", "Service", unit,
                 getUserId(req), getUserName(req), req.getRemoteAddr(), Map.of("service", unit));
-        return ResponseEntity.ok(Map.of("service", unit, "action", "start", "output", output, "status", getServiceStatus(name)));
+        return ResponseEntity.ok(Map.of("service", unit, "action", "start",
+                "output", "Scale up via: kubectl scale deployment/" + unit + " -n shield-prod --replicas=1",
+                "status", getServiceStatus(name)));
     }
 
-    /** GET /api/v1/admin/platform/services/{name}/logs — last 50 lines */
+    /** GET /api/v1/admin/platform/services/{name}/logs — returns recent health check result */
     @GetMapping("/services/{name}/logs")
     public ResponseEntity<Map<String, Object>> serviceLogs(@PathVariable String name,
                                                             @RequestHeader("X-User-Role") String role,
                                                             @RequestParam(defaultValue = "50") int lines) {
         requireGlobalAdmin(role);
         validateServiceName(name);
-        int safelines = Math.min(Math.max(lines, 10), 200);
-        String output = execCommand("journalctl", "-u", "shield-" + name, "-n", String.valueOf(safelines), "--no-pager");
-        return ResponseEntity.ok(Map.of("service", "shield-" + name, "lines", safelines, "logs", output));
+        String status = getServiceStatus(name);
+        String logs = String.format("[%s] shield-%s health: %s%nRunning in Kubernetes (AKS). Use kubectl logs for pod logs:%n  kubectl logs -n shield-prod -l app=shield-%s --tail=%d",
+                OffsetDateTime.now(), name, status, name, lines);
+        return ResponseEntity.ok(Map.of("service", "shield-" + name, "lines", lines, "logs", logs));
     }
 
     // --- Helpers ---
@@ -183,40 +204,28 @@ public class PlatformController {
         }
     }
 
+    /**
+     * Check service health via HTTP GET to its /actuator/health endpoint.
+     * In Kubernetes, services are reachable at shield-{name}:{port}/actuator/health.
+     * Returns "active" (UP), "inactive" (DOWN), or "unknown".
+     */
     private String getServiceStatus(String name) {
+        Integer port = SERVICE_PORTS.get(name);
+        if (port == null) return "unknown";
+        String healthPath = name.equals("ai") ? "/actuator/health" : "/actuator/health";
+        String urlStr = "http://shield-" + name + ":" + port + healthPath;
         try {
-            return execCommand("systemctl", "is-active", "shield-" + name).trim();
+            URL url = new URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(3000);
+            conn.setReadTimeout(3000);
+            int code = conn.getResponseCode();
+            conn.disconnect();
+            return (code >= 200 && code < 300) ? "active" : "inactive";
         } catch (Exception e) {
-            return "unknown";
-        }
-    }
-
-    private static final int MAX_OUTPUT_LENGTH = 10000;
-
-    private String execCommand(String... cmd) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder(cmd);
-            pb.redirectErrorStream(true);
-            Process proc = pb.start();
-            StringBuilder sb = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null && sb.length() < MAX_OUTPUT_LENGTH) {
-                    if (sb.length() > 0) sb.append('\n');
-                    sb.append(line);
-                }
-            }
-            boolean finished = proc.waitFor(15, TimeUnit.SECONDS);
-            if (!finished) {
-                proc.destroyForcibly();
-                sb.append("\n[truncated: command timed out]");
-            }
-            return sb.length() > MAX_OUTPUT_LENGTH
-                    ? sb.substring(0, MAX_OUTPUT_LENGTH) + "\n[truncated]"
-                    : sb.toString();
-        } catch (Exception e) {
-            log.error("Failed to execute command: {}", String.join(" ", cmd), e);
-            return "error: command execution failed";
+            log.debug("Health check failed for shield-{}: {}", name, e.getMessage());
+            return "inactive";
         }
     }
 

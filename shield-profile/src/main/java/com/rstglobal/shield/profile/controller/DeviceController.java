@@ -149,11 +149,47 @@ public class DeviceController {
         Page<Device> devices = (tenantId != null && "ISP_ADMIN".equals(role))
                 ? deviceRepository.findByTenantId(tenantId, pr)
                 : deviceRepository.findAll(pr);
-        return ApiResponse.ok(devices.map(d -> DeviceResponse.builder()
-                .id(d.getId()).profileId(d.getProfileId()).tenantId(d.getTenantId())
-                .name(d.getName()).deviceType(d.getDeviceType()).macAddress(d.getMacAddress())
-                .online(d.isOnline()).lastSeenAt(d.getLastSeenAt()).dnsMethod(d.getDnsMethod())
-                .createdAt(d.getCreatedAt()).build()));
+        return ApiResponse.ok(devices.map(d -> {
+            // Enrich with child profile name and customer info
+            String profileName = null;
+            String customerName = null;
+            String customerEmail = null;
+            if (d.getProfileId() != null) {
+                childProfileRepository.findById(d.getProfileId()).ifPresent(cp -> {});
+                var cpOpt = childProfileRepository.findById(d.getProfileId());
+                if (cpOpt.isPresent()) {
+                    var cp = cpOpt.get();
+                    // profileName captured via final/effectively-final trick
+                    String pn = cp.getName();
+                    // fetch customer
+                    if (cp.getCustomerId() != null) {
+                        var custOpt = customerRepository.findById(cp.getCustomerId());
+                        if (custOpt.isPresent()) {
+                            var cust = custOpt.get();
+                            return DeviceResponse.builder()
+                                    .id(d.getId()).profileId(d.getProfileId()).tenantId(d.getTenantId())
+                                    .name(d.getName()).deviceType(d.getDeviceType()).macAddress(d.getMacAddress())
+                                    .online(d.isOnline()).lastSeenAt(d.getLastSeenAt()).dnsMethod(d.getDnsMethod())
+                                    .createdAt(d.getCreatedAt())
+                                    .profileName(pn)
+                                    .customerName(cust.getName())
+                                    .customerEmail(cust.getEmail())
+                                    .build();
+                        }
+                    }
+                    return DeviceResponse.builder()
+                            .id(d.getId()).profileId(d.getProfileId()).tenantId(d.getTenantId())
+                            .name(d.getName()).deviceType(d.getDeviceType()).macAddress(d.getMacAddress())
+                            .online(d.isOnline()).lastSeenAt(d.getLastSeenAt()).dnsMethod(d.getDnsMethod())
+                            .createdAt(d.getCreatedAt()).profileName(pn).build();
+                }
+            }
+            return DeviceResponse.builder()
+                    .id(d.getId()).profileId(d.getProfileId()).tenantId(d.getTenantId())
+                    .name(d.getName()).deviceType(d.getDeviceType()).macAddress(d.getMacAddress())
+                    .online(d.isOnline()).lastSeenAt(d.getLastSeenAt()).dnsMethod(d.getDnsMethod())
+                    .createdAt(d.getCreatedAt()).build();
+        }));
     }
 
     @GetMapping("/qr/{childId}")

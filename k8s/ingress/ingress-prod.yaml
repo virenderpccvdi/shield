@@ -47,6 +47,13 @@ spec:
                 name: shield-gateway
                 port:
                   number: 8280
+          - path: /ws/
+            pathType: Prefix
+            backend:
+              service:
+                name: shield-notification
+                port:
+                  number: 8286
           - path: /app/
             pathType: Prefix
             backend:

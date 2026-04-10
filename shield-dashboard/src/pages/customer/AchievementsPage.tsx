@@ -41,7 +41,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; color: string }> = {
   Tasks:    { bg: 'rgba(21,101,192,0.10)', color: '#1565C0' },
   Safety:   { bg: 'rgba(198,40,40,0.10)',  color: '#C62828' },
   Learning: { bg: 'rgba(46,125,50,0.10)',  color: '#2E7D32' },
-  Streak:   { bg: 'rgba(230,81,0,0.10)',   color: '#E65100' },
+  Streak:   { bg: 'rgba(230,81,0,0.10)',   color: '#92400E' },
   All:      { bg: BG_COLOR,               color: ICON_COLOR },
 };
 

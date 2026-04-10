@@ -102,16 +102,16 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
             alignment: Alignment.centerLeft,
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               SizedBox(width: 24, height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54)),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70)),
               SizedBox(width: 8),
-              Text('Thinking…', style: TextStyle(color: Colors.white38, fontSize: 12)),
+              Text('Thinking…', style: TextStyle(color: Colors.white70, fontSize: 12)),
             ]),
           ),
         ),
 
       // Input
       Container(
-        color: Colors.black26,
+        color: Colors.black54,
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
         child: Row(children: [
           Expanded(
@@ -120,7 +120,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
               style:      const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText:    'Ask anything…',
-                hintStyle:   const TextStyle(color: Colors.white38),
+                hintStyle:   const TextStyle(color: Colors.white60),
                 filled:      true,
                 fillColor:   Colors.white.withOpacity(0.08),
                 border:      OutlineInputBorder(

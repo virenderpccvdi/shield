@@ -148,7 +148,7 @@ const SOCIAL_ALERT_ICONS: Record<string, React.ReactNode> = {
 // color values are hex — used in CSS string interpolation for border alpha tinting
 const SOCIAL_ALERT_COLORS: Record<string, { color: string; bg: string }> = {
   HIGH: { color: '#E53935', bg: 'rgba(229,57,53,0.08)' },
-  MEDIUM: { color: '#FB8C00', bg: 'rgba(251,140,0,0.08)' },
+  MEDIUM: { color: '#92400E', bg: 'rgba(251,140,0,0.08)' },
   LOW: { color: '#43A047', bg: 'rgba(67,160,71,0.08)' },
 };
 

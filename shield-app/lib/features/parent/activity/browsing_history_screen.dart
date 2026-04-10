@@ -103,7 +103,7 @@ class _BrowsingHistoryState extends ConsumerState<BrowsingHistoryScreen> {
                             ),
                           if (dt != null)
                             Text(DateFormat('HH:mm').format(dt.toLocal()),
-                                style: const TextStyle(fontSize: 11, color: Colors.black38)),
+                                style: const TextStyle(fontSize: 11, color: Colors.black54)),
                         ],
                       ),
                     ),

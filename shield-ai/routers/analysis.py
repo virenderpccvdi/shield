@@ -8,7 +8,7 @@ from schemas.request import BatchAnalysisRequest
 from schemas.response import AnomalyResult
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/ai", tags=["analysis"])
+router = APIRouter(prefix="/api/v1/ai", tags=["analysis"])
 
 
 @router.post("/analyze/batch", response_model=AnomalyResult)

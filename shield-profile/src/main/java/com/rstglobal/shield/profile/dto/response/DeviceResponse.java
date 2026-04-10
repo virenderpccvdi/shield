@@ -22,4 +22,8 @@ public class DeviceResponse {
     private Integer batteryPct;
     private BigDecimal speedKmh;
     private String appVersion;
+    // Enriched display fields for admin views
+    private String profileName;
+    private String customerName;
+    private String customerEmail;
 }

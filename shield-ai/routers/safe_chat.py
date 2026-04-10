@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/ai", tags=["safe-chat"])
+router = APIRouter(prefix="/api/v1/ai", tags=["safe-chat"])
 
 # ─── System prompt & blocked keywords ─────────────────────────────────────────
 

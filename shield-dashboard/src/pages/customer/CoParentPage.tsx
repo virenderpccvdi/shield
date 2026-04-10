@@ -255,12 +255,12 @@ export default function CoParentPage() {
       <Card>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <ScheduleSendIcon sx={{ color: '#E65100' }} />
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#E65100' }}>
+            <ScheduleSendIcon sx={{ color: '#C2410C' }} />
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#92400E' }}>
               Pending Invites
             </Typography>
             {pendingInvites.length > 0 && (
-              <Chip label={pendingInvites.length} size="small" sx={{ bgcolor: '#E65100', color: 'white', fontWeight: 700 }} />
+              <Chip label={pendingInvites.length} size="small" sx={{ bgcolor: '#C2410C', color: 'white', fontWeight: 700 }} />
             )}
           </Box>
 
@@ -281,7 +281,7 @@ export default function CoParentPage() {
                   }}
                 >
                   <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: '#E65100', width: 40, height: 40, fontWeight: 700 }}>
+                    <Avatar sx={{ bgcolor: '#C2410C', width: 40, height: 40, fontWeight: 700 }}>
                       {avatarLetters(invite.email)}
                     </Avatar>
                   </ListItemAvatar>
@@ -289,7 +289,7 @@ export default function CoParentPage() {
                     primary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <Typography variant="body1" fontWeight={600}>{invite.email}</Typography>
-                        <Chip label="Pending" size="small" sx={{ bgcolor: '#FFF3E0', color: '#E65100', fontWeight: 600, height: 20, fontSize: 11 }} />
+                        <Chip label="Pending" size="small" sx={{ bgcolor: '#FFF3E0', color: '#92400E', fontWeight: 600, height: 20, fontSize: 11 }} />
                       </Box>
                     }
                     secondary={

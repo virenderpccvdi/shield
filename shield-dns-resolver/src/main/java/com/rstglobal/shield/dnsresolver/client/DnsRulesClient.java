@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * Feign client for calling shield-dns service to load filtering rules on cache miss.
  */
-@FeignClient(name = "shield-dns-direct", url = "http://localhost:8284", path = "/internal/dns")
+@FeignClient(name = "shield-dns-direct", url = "${shield.dns.service.url:http://shield-dns:8284}", path = "/internal/dns")
 public interface DnsRulesClient {
 
     /**

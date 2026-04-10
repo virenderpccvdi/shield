@@ -18,7 +18,7 @@ from db.queries import get_profile_week_stats
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/ai", tags=["chat"])
+router = APIRouter(prefix="/api/v1/ai", tags=["chat"])
 
 # ─── Request / Response models ────────────────────────────────────────────────
 

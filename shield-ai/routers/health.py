@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from schemas.response import HealthResponse
 from services.anomaly_service import is_model_loaded, load_model
 
-router = APIRouter(prefix="/ai", tags=["health"])
+router = APIRouter(prefix="/api/v1/ai", tags=["health"])
 
 
 @router.get("/model/health", response_model=HealthResponse)

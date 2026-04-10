@@ -26,6 +26,7 @@ interface Device {
   id: string; profileId: string; tenantId: string; name: string;
   deviceType: string; macAddress?: string; online: boolean;
   lastSeenAt?: string; dnsMethod: string; createdAt: string;
+  profileName?: string; customerName?: string; customerEmail?: string;
 }
 
 const DEVICE_ICONS: Record<string, React.ReactNode> = {
@@ -39,7 +40,7 @@ const DEVICE_ICONS: Record<string, React.ReactNode> = {
 const DNS_METHOD_COLOR: Record<string, { bg: string; color: string }> = {
   DOH: { bg: '#E3F2FD', color: '#1565C0' },
   WIREGUARD: { bg: '#F3E5F5', color: '#7B1FA2' },
-  DHCP: { bg: '#FFF3E0', color: '#E65100' },
+  DHCP: { bg: '#FFF3E0', color: '#92400E' },
 };
 
 function timeAgo(dateStr?: string): string {
@@ -143,7 +144,7 @@ export default function IspDevicesPage() {
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: '#F8FAFC' }}>
-                  {['Device Name', 'Type', 'Status', 'DNS Method', 'MAC Address', 'Last Seen', 'Registered', ''].map(h => (
+                  {['Device Name', 'Child Profile', 'Customer', 'Type', 'Status', 'DNS Method', 'MAC Address', 'Last Seen', ''].map(h => (
                     <TableCell key={h} sx={{ fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>{h}</TableCell>
                   ))}
                 </TableRow>
@@ -160,6 +161,18 @@ export default function IspDevicesPage() {
                           {DEVICE_ICONS[d.deviceType] || <DevicesIcon fontSize="small" />}
                         </Box>
                         <Typography fontWeight={600} fontSize={14}>{d.name}</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      {d.profileName
+                        ? <Chip size="small" label={d.profileName} sx={{ height: 20, fontSize: 11, bgcolor: '#DCFCE7', color: '#14532D', fontWeight: 600 }} />
+                        : <Typography variant="caption" color="text.disabled">—</Typography>}
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        {d.customerName && <Typography variant="body2" fontWeight={600} fontSize={12}>{d.customerName}</Typography>}
+                        {d.customerEmail && <Typography variant="caption" color="text.secondary">{d.customerEmail}</Typography>}
+                        {!d.customerName && !d.customerEmail && <Typography variant="caption" color="text.disabled">—</Typography>}
                       </Box>
                     </TableCell>
                     <TableCell>
@@ -186,11 +199,6 @@ export default function IspDevicesPage() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">{timeAgo(d.lastSeenAt)}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '—'}
-                      </Typography>
                     </TableCell>
                     <TableCell align="right">
                       <Tooltip title="Delete device">

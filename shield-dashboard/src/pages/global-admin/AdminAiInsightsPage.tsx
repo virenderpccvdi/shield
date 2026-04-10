@@ -55,7 +55,7 @@ interface ModelHealth {
 
 const SEVERITY_COLORS: Record<string, string> = {
   HIGH: '#E53935',
-  MEDIUM: '#FB8C00',
+  MEDIUM: '#92400E',
   LOW: '#43A047',
 };
 
@@ -235,7 +235,7 @@ export default function AdminAiInsightsPage() {
                   sx={{
                     fontWeight: 700, fontSize: 10,
                     bgcolor: modelHealth?.model_loaded ? '#E8F5E9' : '#FFF3E0',
-                    color: modelHealth?.model_loaded ? '#2E7D32' : '#E65100',
+                    color: modelHealth?.model_loaded ? '#2E7D32' : '#92400E',
                   }}
                 />
               </Box>

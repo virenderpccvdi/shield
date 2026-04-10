@@ -260,7 +260,7 @@ class _CustomerTile extends StatelessWidget {
               if (children > 0) ...[
                 const SizedBox(height: 4),
                 Row(children: [
-                  const Icon(Icons.child_care, size: 12, color: Colors.black38),
+                  const Icon(Icons.child_care, size: 12, color: Colors.black54),
                   const SizedBox(width: 3),
                   Text('$children child${children > 1 ? 'ren' : ''}',
                       style: const TextStyle(fontSize: 11, color: Colors.black45)),

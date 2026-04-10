@@ -69,11 +69,12 @@ export default function IspUrlActivityPage() {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [days, setDays] = useState<7 | 14 | 30>(7);
 
-  // Tenant overview
+  // Tenant overview — API uses period=week|month, not days
+  const period = days <= 7 ? 'week' : 'month';
   const { data: overview } = useQuery<TenantOverview>({
     queryKey: ['isp-url-activity-overview', tenantId, days],
     enabled: !!tenantId,
-    queryFn: () => api.get(`/analytics/tenant/${tenantId}/overview`, { params: { days } }).then(r => r.data?.data ?? r.data).catch(() => null),
+    queryFn: () => api.get(`/analytics/tenant/${tenantId}/overview`, { params: { period } }).then(r => r.data?.data ?? r.data).catch(() => null),
   });
 
   // Customers list
@@ -106,9 +107,10 @@ export default function IspUrlActivityPage() {
   const { data: historyResponse, isLoading: loadingHistory, isFetching: fetchingHistory } = useQuery({
     queryKey: ['isp-url-activity-history', selectedProfile, page, rowsPerPage, days],
     enabled: !!selectedProfile,
-    queryFn: () => api.get(`/analytics/${selectedProfile}/history`, { params: { page, size: rowsPerPage, days } }).then(r => {
+    queryFn: () => api.get(`/analytics/${selectedProfile}/history`, { params: { page, size: rowsPerPage } }).then(r => {
+      // API returns plain Spring Page: {content:[...], totalElements:N}  (no extra 'data' wrapper)
       const totalElements: number = r.data?.data?.totalElements ?? r.data?.totalElements ?? 0;
-      const d = r.data?.data?.content ?? r.data?.data ?? r.data;
+      const d = r.data?.data?.content ?? r.data?.content ?? r.data?.data ?? r.data;
       return { content: (Array.isArray(d) ? d : []) as HistoryEntry[], totalElements };
     }).catch(() => ({ content: [] as HistoryEntry[], totalElements: 0 })),
   });
@@ -171,7 +173,7 @@ export default function IspUrlActivityPage() {
               />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <StatCard label="Block Rate" value={`${((overview.blockRate ?? 0) * 100).toFixed(1)}%`} color="#F57F17" sub="Of all queries" />
+              <StatCard label="Block Rate" value={`${(overview.blockRate ?? 0).toFixed(1)}%`} color="#F57F17" sub="Of all queries" />
             </Grid>
           </Grid>
         </AnimatedPage>
@@ -287,7 +289,7 @@ export default function IspUrlActivityPage() {
                       <Typography variant="caption" color="text.secondary">Blocked</Typography>
                     </Box>
                     <Box sx={{ textAlign: 'center' }}>
-                      <Typography fontWeight={700} color="#D97706">{((profileStats.blockRate ?? 0) * 100).toFixed(1)}%</Typography>
+                      <Typography fontWeight={700} color="#D97706">{(profileStats.blockRate ?? 0).toFixed(1)}%</Typography>
                       <Typography variant="caption" color="text.secondary">Block Rate</Typography>
                     </Box>
                   </Stack>

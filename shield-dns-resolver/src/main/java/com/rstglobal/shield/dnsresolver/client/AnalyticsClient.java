@@ -12,7 +12,7 @@ import java.util.Map;
  * Payload must match LogIngestRequest: profileId, domain, action (BLOCKED|ALLOWED),
  * category, queriedAt.
  */
-@FeignClient(name = "shield-analytics-direct", url = "http://localhost:8289")
+@FeignClient(name = "shield-analytics-direct", url = "${shield.analytics.service.url:http://shield-analytics:8289}")
 public interface AnalyticsClient {
 
     @PostMapping("/internal/analytics/log")

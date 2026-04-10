@@ -19,7 +19,7 @@ from services.risk_scorer import ProfileStats, generate_insights, calculate_addi
 from services.anomaly_service import detect_anomaly
 from schemas.response import RiskLevel, InsightsResponse
 
-router = APIRouter(prefix="/ai", tags=["alerts", "mental-health"])
+router = APIRouter(prefix="/api/v1/ai", tags=["alerts", "mental-health"])
 
 # ── In-memory alert store (process lifetime) ─────────────────────────────────
 # In production this would be backed by a DB or Redis.

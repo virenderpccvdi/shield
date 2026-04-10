@@ -424,7 +424,7 @@ export default function IspReportsPage() {
     const threats = Math.round(blocked * 0.15);
     return [
       { label: 'All DNS Queries', value: total, pct: 100, color: '#1565C0' },
-      { label: 'Content Filtered', value: filtered, pct: total > 0 ? Math.round((filtered / total) * 100) : 0, color: '#F57F17' },
+      { label: 'Content Filtered', value: filtered, pct: total > 0 ? Math.round((filtered / total) * 100) : 0, color: '#92400E' },
       { label: 'Blocked Requests', value: blocked, pct: total > 0 ? Math.round((blocked / total) * 100) : 0, color: '#E53935' },
       { label: 'Security Threats', value: threats, pct: total > 0 ? Math.round((threats / total) * 100) : 0, color: '#7B1FA2' },
     ];

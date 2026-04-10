@@ -55,7 +55,7 @@ class _BatteryAlertsState extends ConsumerState<BatteryAlertsScreen> {
         : Column(children: [
             Expanded(child: ListView(children: [
               SwitchListTile(
-                secondary:  const Icon(Icons.battery_alert, color: Colors.orange),
+                secondary:  const Icon(Icons.battery_alert, color: const Color(0xFFC2410C)),
                 title:      const Text('Battery Low Alerts',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle:   const Text('Get notified when your child\'s battery is low'),
@@ -70,12 +70,12 @@ class _BatteryAlertsState extends ConsumerState<BatteryAlertsScreen> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Alert when below $_threshold%',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
-                            color: Colors.orange)),
+                            color: const Color(0xFFC2410C))),
                     Slider(
                       value:      _threshold.toDouble(),
                       min:        5, max: 50, divisions: 9,
                       label:      '$_threshold%',
-                      activeColor: Colors.orange,
+                      activeColor: const Color(0xFFC2410C),
                       onChanged:  (v) => setState(() => _threshold = v.round()),
                     ),
                   ]),

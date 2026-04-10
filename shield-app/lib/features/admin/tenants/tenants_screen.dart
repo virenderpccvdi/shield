@@ -281,7 +281,7 @@ class _TenantTile extends StatelessWidget {
               ],
               const SizedBox(height: 4),
               Row(children: [
-                const Icon(Icons.people_outline, size: 12, color: Colors.black38),
+                const Icon(Icons.people_outline, size: 12, color: Colors.black54),
                 const SizedBox(width: 3),
                 Text('$customers customer${customers != 1 ? 's' : ''}',
                     style: const TextStyle(fontSize: 11, color: Colors.black45)),

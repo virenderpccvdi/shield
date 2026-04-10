@@ -222,7 +222,7 @@ export default function VisitorsPage() {
                           <TableCell>
                             {v.isMobile ? (
                               <Chip size="small" label="Mobile"
-                                sx={{ bgcolor: '#FFF3E0', color: '#E65100', fontWeight: 700, fontSize: 11, height: 22 }} />
+                                sx={{ bgcolor: '#FFF3E0', color: '#92400E', fontWeight: 700, fontSize: 11, height: 22 }} />
                             ) : (
                               <Chip size="small" icon={<DevicesIcon style={{ fontSize: 12 }} />} label="Desktop"
                                 sx={{ bgcolor: '#E3F2FD', color: '#1565C0', fontWeight: 700, fontSize: 11, height: 22 }} />

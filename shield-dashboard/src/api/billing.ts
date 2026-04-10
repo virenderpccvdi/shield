@@ -32,53 +32,41 @@ export const syncPlanToStripe = (planId: string) =>
   api.post(`/admin/plans/${planId}/sync-stripe`).then(r => r.data);
 
 /**
- * Open invoice PDF in a new tab.
- * Fetches via authenticated axios, then opens the result:
- * - If backend redirects to Stripe PDF URL, opens that URL directly.
- * - If backend returns HTML, opens a blob URL with the HTML content.
+ * Open invoice PDF in a new browser tab.
+ * The backend endpoint returns either:
+ *   - 302 redirect → Stripe hosted PDF URL (browser follows automatically)
+ *   - 200 HTML     → rendered invoice page
+ * We rely on the JWT token being passed via a temporary link to avoid
+ * cross-origin Stripe CORS issues.
  */
 export async function openInvoicePdf(invoiceId: string, admin = false): Promise<void> {
-  const url = admin
+  const path = admin
     ? `/admin/invoices/${invoiceId}/pdf`
     : `/admin/billing/invoices/${invoiceId}/pdf`;
 
-  const resp = await api.get(url, {
-    maxRedirects: 0,
-    validateStatus: (s) => s >= 200 && s < 400,
+  // Fetch with full auth headers — get the response content/redirect URL
+  const resp = await api.get(path, {
     responseType: 'arraybuffer',
+    validateStatus: (s) => s >= 200 && s < 400,
   });
 
-  // If axios followed a redirect (302 -> Stripe PDF), the final response is the PDF itself
-  // But in practice, the browser/axios may follow the redirect automatically.
-  // Check the content-type to decide what to do.
-  const contentType = resp.headers['content-type'] || '';
+  const contentType = (resp.headers['content-type'] as string) || '';
 
-  if (contentType.includes('text/html')) {
-    // Backend returned HTML invoice — open in new tab via blob URL
-    const blob = new Blob([resp.data], { type: 'text/html' });
-    const blobUrl = URL.createObjectURL(blob);
-    window.open(blobUrl, '_blank');
-    // Clean up after a delay
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-  } else if (contentType.includes('application/pdf')) {
-    // Got a PDF (redirect was followed) — open via blob
+  if (contentType.includes('application/pdf')) {
     const blob = new Blob([resp.data], { type: 'application/pdf' });
     const blobUrl = URL.createObjectURL(blob);
-    window.open(blobUrl, '_blank');
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   } else {
-    // Likely a redirect URL in the Location header (shouldn't happen with axios follow)
-    // Try to extract redirect URL from response
-    const location = resp.headers['location'];
-    if (location) {
-      window.open(location, '_blank');
-    } else {
-      // Fallback: try to open as HTML
-      const text = new TextDecoder().decode(resp.data);
-      const blob = new Blob([text], { type: 'text/html' });
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-    }
+    // HTML invoice — decode and open in new tab
+    const html = new TextDecoder().decode(resp.data as ArrayBuffer);
+    const blob = new Blob([html], { type: 'text/html' });
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank', 'noopener,noreferrer');
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   }
 }

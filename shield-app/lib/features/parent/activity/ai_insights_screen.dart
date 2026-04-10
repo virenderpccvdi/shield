@@ -64,7 +64,7 @@ class AiInsightsScreen extends ConsumerWidget {
           if (d['recommendations'] != null) ...[
             const SectionHeader('Recommendations'),
             ...(d['recommendations'] as List? ?? []).map((r) => ListTile(
-              leading: const Icon(Icons.lightbulb_outline, color: Colors.amber),
+              leading: const Icon(Icons.lightbulb_outline, color: Color(0xFFB45309)),
               title:   Text(r.toString()),
             )),
           ],
@@ -75,7 +75,7 @@ class AiInsightsScreen extends ConsumerWidget {
             ...(d['anomalies'] as List? ?? []).map((a) {
               final item = a as Map<String, dynamic>;
               return ListTile(
-                leading: const Icon(Icons.warning_amber, color: Colors.orange),
+                leading: const Icon(Icons.warning_amber, color: const Color(0xFFC2410C)),
                 title:   Text(item['description']?.toString() ?? ''),
                 subtitle: item['detectedAt'] != null
                     ? Text(DateFormat('d MMM, HH:mm').format(
@@ -99,7 +99,7 @@ class AiInsightsScreen extends ConsumerWidget {
         desc  = 'High risk activity detected. Review alerts immediately.';
         break;
       case 'MEDIUM':
-        color = Colors.orange; icon = Icons.warning;
+        color = const Color(0xFFC2410C); icon = Icons.warning;
         desc  = 'Some concerning patterns detected. Review when possible.';
         break;
       default:

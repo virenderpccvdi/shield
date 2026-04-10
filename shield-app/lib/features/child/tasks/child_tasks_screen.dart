@@ -37,9 +37,9 @@ class ChildTasksScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
         error:   (e, _) => Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.error_outline, color: Colors.white54, size: 48),
+            const Icon(Icons.error_outline, color: Colors.white70, size: 48),
             const SizedBox(height: 12),
-            const Text('Could not load tasks', style: TextStyle(color: Colors.white54)),
+            const Text('Could not load tasks', style: TextStyle(color: Colors.white70)),
             TextButton(
               onPressed: () => ref.invalidate(_childTasksProvider),
               child: const Text('Retry', style: TextStyle(color: Colors.white70)),
@@ -49,9 +49,9 @@ class ChildTasksScreen extends ConsumerWidget {
         data: (list) {
           if (list.isEmpty) {
             return const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.task_alt, color: Colors.white30, size: 64),
+              Icon(Icons.task_alt, color: Colors.white60, size: 64),
               SizedBox(height: 12),
-              Text('No tasks yet!', style: TextStyle(color: Colors.white54, fontSize: 16)),
+              Text('No tasks yet!', style: TextStyle(color: Colors.white70, fontSize: 16)),
             ]));
           }
           final pending   = list.where((t) => t['status'] == 'PENDING').toList();
@@ -62,7 +62,7 @@ class ChildTasksScreen extends ConsumerWidget {
             if (pending.isNotEmpty) ...[
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text('TO DO', style: TextStyle(color: Colors.white54,
+                child: Text('TO DO', style: TextStyle(color: Colors.white70,
                     fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
               ),
               ...pending.map((t) => _TaskCard(task: t, onComplete: () {
@@ -72,7 +72,7 @@ class ChildTasksScreen extends ConsumerWidget {
             if (submitted.isNotEmpty) ...[
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text('WAITING FOR APPROVAL', style: TextStyle(color: Colors.white54,
+                child: Text('WAITING FOR APPROVAL', style: TextStyle(color: Colors.white70,
                     fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
               ),
               ...submitted.map((t) => _TaskCard(task: t, onComplete: null)),
@@ -80,7 +80,7 @@ class ChildTasksScreen extends ConsumerWidget {
             if (completed.isNotEmpty) ...[
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text('COMPLETED', style: TextStyle(color: Colors.white30,
+                child: Text('COMPLETED', style: TextStyle(color: Colors.white60,
                     fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
               ),
               ...completed.map((t) => _TaskCard(task: t, onComplete: null)),
@@ -148,15 +148,15 @@ class _TaskCard extends StatelessWidget {
             submitted ? Icons.hourglass_top :
             Icons.radio_button_unchecked,
             color: done ? Colors.green :
-                   submitted ? Colors.amber : Colors.white54,
+                   submitted ? Colors.amber : Colors.white,
           ),
           title: Text(task['title']?.toString() ?? '',
               style: TextStyle(
-                color:      done ? Colors.white38 : Colors.white,
+                color:      done ? Colors.white60 : Colors.white,
                 decoration: done ? TextDecoration.lineThrough : null,
               )),
           subtitle: Text('${task['points'] ?? 0} pts',
-              style: TextStyle(color: done ? Colors.white24 : const Color(0xFFFFC107))),
+              style: TextStyle(color: done ? Colors.white60 : const Color(0xFFFFC107))),
           trailing: onComplete != null
               ? ElevatedButton(
                   onPressed: onComplete,

@@ -547,7 +547,7 @@ export default function IspSettingsPage() {
                       <Grid size={12}>
                         <Button variant="contained" onClick={handleChangePassword}
                           disabled={pwdSaving || !currentPwd || !newPwd || !confirmPwd || newPwd !== confirmPwd}
-                          sx={{ borderRadius: 2, bgcolor: '#FB8C00', '&:hover': { bgcolor: '#E65100' } }}>
+                          sx={{ borderRadius: 2, bgcolor: '#C2410C', '&:hover': { bgcolor: '#9A3412' } }}>
                           {pwdSaving ? <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} /> : null}
                           {pwdSaving ? 'Updating…' : 'Update Password'}
                         </Button>
@@ -674,7 +674,7 @@ export default function IspSettingsPage() {
                           sx={inputSx} />
                       </Grid>
                       <Grid size={12}>
-                        <Button variant="outlined" sx={{ borderRadius: 2, borderColor: '#F57F17', color: '#F57F17', '&:hover': { bgcolor: '#FFF8E1' } }}
+                        <Button variant="outlined" sx={{ borderRadius: 2, borderColor: '#F57F17', color: '#7C4700', '&:hover': { bgcolor: 'rgba(245,127,23,0.08)' } }}
                           onClick={() => showSnack('Email channels saved!')}>
                           Save Channels
                         </Button>

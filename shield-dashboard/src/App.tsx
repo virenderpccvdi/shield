@@ -114,6 +114,7 @@ const IspChildProfilesPage = lazy(() => import('./pages/isp-admin/IspChildProfil
 const IspChildDetailPage   = lazy(() => import('./pages/isp-admin/IspChildDetailPage'));
 const IspPlansPage         = lazy(() => import('./pages/isp-admin/IspPlansPage'));
 const IspAiInsightsPage    = lazy(() => import('./pages/isp-admin/IspAiInsightsPage'));
+const IspDnsPage           = lazy(() => import('./pages/isp-admin/IspDnsPage'));
 const BulkImportPage       = lazy(() => import('./pages/isp-admin/BulkImportPage'));
 const CommunicationsPage   = lazy(() => import('./pages/isp-admin/CommunicationsPage'));
 const AnalyticsExportPage  = lazy(() => import('./pages/isp-admin/AnalyticsExportPage'));
@@ -307,6 +308,7 @@ export default function App() {
                 <Route path="/isp/plans"                          element={<IspPlansPage />} />
                 <Route path="/isp/blocklist"                      element={<IspBlocklistPage />} />
                 <Route path="/isp/filtering"                      element={<IspFilteringPage />} />
+                <Route path="/isp/dns"                           element={<IspDnsPage />} />
                 <Route path="/isp/reports"                        element={<IspReportsPage />} />
                 <Route path="/isp/url-activity"                   element={<IspUrlActivityPage />} />
                 <Route path="/isp/app-control"                    element={<IspAppControlPage />} />

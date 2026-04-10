@@ -43,7 +43,7 @@ class LocationHistoryScreen extends ConsumerWidget {
                 subtitle: dt != null
                     ? Text(DateFormat('d MMM yyyy, HH:mm').format(dt.toLocal()))
                     : null,
-                trailing: const Icon(Icons.chevron_right, color: Colors.black26),
+                trailing: const Icon(Icons.chevron_right, color: Colors.black45),
               );
             },
           );

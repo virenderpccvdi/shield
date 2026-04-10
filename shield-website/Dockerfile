@@ -11,8 +11,22 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # React app at /app/
+    # React SPA entry point — never cache so users always get latest chunks
+    location = /app/index.html {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+        try_files $uri /app/index.html;
+    }
+
+    # Hashed JS/CSS assets — cache forever (hash changes on each deploy)
+    location ~* /app/assets/.*\.(js|css|woff2?|ttf|eot|svg|png|jpg|ico)$ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # React app at /app/ — fallback to SPA index
     location /app/ {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
         try_files $uri $uri/ /app/index.html;
     }
 
@@ -21,7 +35,7 @@ server {
         add_header Content-Disposition "attachment";
     }
 
-    # Static files
+    # Static files (website landing pages)
     location / {
         try_files $uri $uri/ /index.html;
     }

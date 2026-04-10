@@ -79,7 +79,7 @@ const ROLE_KEYS: (keyof Permission)[] = ['globalAdmin', 'ispAdmin', 'customer'];
 
 const ROLE_CONFIG = [
   { key: 'globalAdmin', label: 'GLOBAL ADMIN', color: '#E53935', bg: '#FFEBEE', icon: <AdminPanelSettingsIcon />, desc: 'Full platform control. Manages all tenants, users, plans and system configuration.' },
-  { key: 'ispAdmin',    label: 'ISP ADMIN',    color: '#F57F17', bg: '#FFF8E1', icon: <BusinessIcon />,          desc: 'Manages own tenant, customers, DNS filtering and content reporting for their ISP.' },
+  { key: 'ispAdmin',    label: 'ISP ADMIN',    color: '#7C4700', bg: '#FFF8E1', icon: <BusinessIcon />,          desc: 'Manages own tenant, customers, DNS filtering and content reporting for their ISP.' },
   { key: 'customer',   label: 'CUSTOMER',     color: '#2E7D32', bg: '#E8F5E9', icon: <FamilyRestroomIcon />,    desc: "Parent/guardian managing their family's internet safety, child profiles and devices." },
 ];
 
@@ -91,7 +91,7 @@ function AccessChip({ access, note, editMode, onClick }: { access: Access; note?
   ) : access === 'limited' ? (
     <Tooltip title={note ?? 'Limited access'} placement="top">
       <Chip size="small" icon={<RemoveCircleOutlineIcon sx={{ fontSize: 14 }} />} label="Limited"
-        sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#FFF8E1', color: '#E65100',
+        sx={{ height: 22, fontSize: 11, fontWeight: 600, bgcolor: '#FFF8E1', color: '#7C4700',
           cursor: editMode ? 'pointer' : 'help', '&:hover': editMode ? { transform: 'scale(1.05)' } : {} }} />
     </Tooltip>
   ) : (
@@ -200,7 +200,7 @@ export default function RolePermissionsPage() {
                         <Typography fontWeight={700} fontSize={13}>{role.label}</Typography>
                         <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
                           <Chip size="small" label={`${counts.full} full`} sx={{ height: 18, fontSize: 10, bgcolor: '#E8F5E9', color: '#1B5E20', fontWeight: 600 }} />
-                          <Chip size="small" label={`${counts.limited} limited`} sx={{ height: 18, fontSize: 10, bgcolor: '#FFF8E1', color: '#E65100', fontWeight: 600 }} />
+                          <Chip size="small" label={`${counts.limited} limited`} sx={{ height: 18, fontSize: 10, bgcolor: '#FFF8E1', color: '#7C4700', fontWeight: 600 }} />
                           <Chip size="small" label={`${counts.none} none`} sx={{ height: 18, fontSize: 10, bgcolor: '#FAFAFA', color: '#9E9E9E', fontWeight: 600 }} />
                         </Stack>
                       </Box>
@@ -238,7 +238,7 @@ export default function RolePermissionsPage() {
                       <TableCell sx={{ fontWeight: 600, color: '#64748B', fontSize: 12, width: '28%' }}>Permission</TableCell>
                       <TableCell sx={{ fontWeight: 600, color: '#64748B', fontSize: 12, width: '28%' }}>Description</TableCell>
                       <TableCell sx={{ fontWeight: 600, color: '#E53935', fontSize: 12, textAlign: 'center', width: '14%' }}>GLOBAL ADMIN</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#F57F17', fontSize: 12, textAlign: 'center', width: '14%' }}>ISP ADMIN</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#92400E', fontSize: 12, textAlign: 'center', width: '14%' }}>ISP ADMIN</TableCell>
                       <TableCell sx={{ fontWeight: 600, color: '#2E7D32', fontSize: 12, textAlign: 'center', width: '16%' }}>CUSTOMER</TableCell>
                     </TableRow>
                   </TableHead>

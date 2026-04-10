@@ -28,10 +28,10 @@ class ChildRewardsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
         error:   (e, _) => Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.error_outline, color: Colors.white38, size: 48),
+            const Icon(Icons.error_outline, color: Colors.white70, size: 48),
             const SizedBox(height: 12),
             const Text('Could not load rewards',
-                style: TextStyle(color: Colors.white54)),
+                style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => ref.invalidate(_pointsProvider(pid)),
@@ -48,7 +48,7 @@ class ChildRewardsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.amber.shade700, Colors.orange.shade600],
+                  colors: [const Color(0xFFB45309), const Color(0xFF92400E)],
                   begin: Alignment.topLeft,
                   end:   Alignment.bottomRight,
                 ),
@@ -89,12 +89,12 @@ class _AchievementsSection extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
         error:   (_, __) => const Center(
           child: Text('Could not load achievements',
-              style: TextStyle(color: Colors.white38, fontSize: 13))),
+              style: TextStyle(color: Colors.white70, fontSize: 13))),
         data: (list) {
           if (list.isEmpty) {
             return const Center(
               child: Text('Complete tasks to earn achievements!',
-                  style: TextStyle(color: Colors.white38)),
+                  style: TextStyle(color: Colors.white70)),
             );
           }
           return GridView.builder(

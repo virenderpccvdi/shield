@@ -123,7 +123,7 @@ class SettingsScreen extends ConsumerWidget {
         ),
         _tile(
           icon:     Icons.battery_alert_outlined,
-          iconColor: Colors.orange,
+          iconColor: const Color(0xFFC2410C),
           title:    'Battery Alerts',
           subtitle: 'Notify when a child\'s device battery is low',
           trailing: Switch(value: true, onChanged: (_) {}),

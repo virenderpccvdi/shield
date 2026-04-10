@@ -10,7 +10,7 @@ spring:
 
   datasource:
     hikari:
-      maximum-pool-size: 20
+      maximum-pool-size: 8
       minimum-idle: 5
       connection-timeout: 20000
       idle-timeout: 300000
@@ -36,6 +36,9 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:shield}
     password: ${RABBITMQ_PASSWORD:Shield@Rabbit2026}
+    listener:
+      simple:
+        auto-startup: ${RABBITMQ_ENABLED:false}
 
   # Thymeleaf for email templates
   thymeleaf:
@@ -44,6 +47,9 @@ spring:
     mode: HTML
     encoding: UTF-8
     cache: false
+
+rabbitmq:
+  enabled: ${RABBITMQ_ENABLED:false}
 
 eureka:
   client:
@@ -67,6 +73,9 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+  health:
+    rabbit:
+      enabled: false
   metrics:
     export:
       prometheus:

@@ -12,7 +12,7 @@ spring:
     password: changeme
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 20
+      maximum-pool-size: 8
       minimum-idle: 5
       connection-timeout: 20000
       idle-timeout: 300000

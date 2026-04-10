@@ -55,7 +55,7 @@ class _AlertCard extends StatelessWidget {
 
   Color get _color {
     if (alert.isCritical) return Colors.red;
-    if (alert.type == 'BATTERY') return Colors.orange;
+    if (alert.type == 'BATTERY') return const Color(0xFFC2410C);
     if (alert.type == 'GEOFENCE') return Colors.blue;
     if (alert.type == 'SCHEDULE') return Colors.teal;
     return Colors.grey;
@@ -88,7 +88,7 @@ class _AlertCard extends StatelessWidget {
       ]),
       trailing: Text(
         DateFormat('d MMM\nHH:mm').format(alert.createdAt.toLocal()),
-        style: const TextStyle(fontSize: 11, color: Colors.black38),
+        style: const TextStyle(fontSize: 11, color: Colors.black54),
         textAlign: TextAlign.right,
       ),
     ),

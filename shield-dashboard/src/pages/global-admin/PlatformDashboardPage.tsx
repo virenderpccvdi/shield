@@ -582,7 +582,7 @@ export default function PlatformDashboardPage() {
               const atRisk = Math.round(blocked * 0.3);
               const stages = [
                 { label: 'Total Queries', value: d.totalQueries, pct: 100, color: '#1565C0' },
-                { label: 'Filtered / Blocked', value: blocked, pct: Math.round((blocked / total) * 100), color: '#FB8C00' },
+                { label: 'Filtered / Blocked', value: blocked, pct: Math.round((blocked / total) * 100), color: '#92400E' },
                 { label: 'At Risk (est.)', value: atRisk, pct: Math.round((atRisk / total) * 100), color: '#E53935' },
               ];
               return (

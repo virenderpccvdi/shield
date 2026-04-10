@@ -53,7 +53,7 @@ const CATEGORY_GROUPS: Record<string, { label: string; color: string; categories
   },
   security: {
     label: 'Security & Malware',
-    color: '#E65100',
+    color: '#C2410C',
     categories: ['MALWARE', 'PHISHING', 'CRYPTOMINING', 'HACKING'],
   },
   education: {
@@ -360,7 +360,7 @@ function CustomerRow({ customer, idx, search }: { customer: Customer; idx: numbe
                           )}
                           {rules?.customBlocklist?.length ? (
                             <Chip size="small" label={`+${rules.customBlocklist.length} custom`}
-                              sx={{ height: 18, fontSize: 10, bgcolor: '#FFF8E1', color: '#E65100' }} />
+                              sx={{ height: 18, fontSize: 10, bgcolor: '#FFF8E1', color: '#7C4700' }} />
                           ) : null}
                         </Stack>
                       </Box>

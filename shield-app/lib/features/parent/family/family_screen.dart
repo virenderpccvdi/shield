@@ -97,7 +97,7 @@ class _ChildListTile extends StatelessWidget {
                 _chip('Active', Colors.green),
             ]),
           ])),
-          const Icon(Icons.chevron_right, color: Colors.black26),
+          const Icon(Icons.chevron_right, color: Colors.black45),
         ]),
       ),
     ),

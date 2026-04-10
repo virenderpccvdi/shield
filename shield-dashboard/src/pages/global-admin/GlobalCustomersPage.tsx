@@ -42,7 +42,7 @@ const planColors: Record<string, { bg: string; text: string }> = {
   FREE:       { bg: '#F5F5F5', text: '#757575' },
   BASIC:      { bg: '#E3F2FD', text: '#1565C0' },
   PREMIUM:    { bg: '#F3E5F5', text: '#7B1FA2' },
-  ENTERPRISE: { bg: '#FFF8E1', text: '#F57F17' },
+  ENTERPRISE: { bg: '#FFF8E1', text: '#7C4700' },
 };
 
 const ispColors = ['#00897B', '#1565C0', '#7B1FA2', '#E65100', '#2E7D32', '#AD1457'];
@@ -267,7 +267,7 @@ export default function GlobalCustomersPage() {
                             </Tooltip>
                             <Tooltip title={status === 'ACTIVE' ? 'Suspend' : 'Activate'}>
                               <IconButton size="small" onClick={e => handleToggleSuspend(c, e)}
-                                sx={{ color: status === 'ACTIVE' ? '#F57F17' : '#1B5E20',
+                                sx={{ color: status === 'ACTIVE' ? '#C2410C' : '#1B5E20',
                                   '&:hover': { bgcolor: status === 'ACTIVE' ? '#FFF8E1' : '#E8F5E9' } }}>
                                 {status === 'ACTIVE' ? <PauseCircleIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
                               </IconButton>

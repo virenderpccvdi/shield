@@ -29,7 +29,7 @@ public class SecurityConfig {
                                 "/internal/location/**",
                                 "/public/**"
                         ).permitAll()
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
                 .build();
     }

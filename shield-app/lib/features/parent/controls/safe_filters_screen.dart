@@ -38,7 +38,7 @@ class SafeFiltersScreen extends ConsumerWidget {
 
 const _categories = [
   ('adult',        'Adult Content',      Icons.no_adult_content,   Colors.red),
-  ('violence',     'Violence',           Icons.warning_amber,       Colors.orange),
+  ('violence',     'Violence',           Icons.warning_amber,       Color(0xFFC2410C)),
   ('gambling',     'Gambling',           Icons.casino_outlined,     Colors.purple),
   ('social',       'Social Media',       Icons.groups_outlined,     Colors.blue),
   ('gaming',       'Gaming',             Icons.sports_esports,      Colors.teal),
@@ -94,7 +94,7 @@ class _SafeFiltersBodyState extends ConsumerState<_SafeFiltersBody> {
               style: TextStyle(color: Colors.black54)),
         ),
         ..._categories.map((cat) => SwitchListTile(
-          secondary:    Icon(cat.$3, color: _blocked[cat.$1] == true ? cat.$4 : Colors.black26),
+          secondary:    Icon(cat.$3, color: _blocked[cat.$1] == true ? cat.$4 : Colors.black45),
           title:        Text(cat.$2),
           subtitle:     Text(_blocked[cat.$1] == true ? 'Blocked' : 'Allowed',
               style: TextStyle(

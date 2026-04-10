@@ -291,7 +291,7 @@ eureka:
 # JWT secret for token validation
 shield:
   jwt:
-    secret: ${JWT_SECRET:7a9f3b2c8d5e1f4a6b0c3d7e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a}
+    secret: ${JWT_SECRET}  # Required — no default; service will refuse to start if missing
   app:
     url: ${APP_URL:https://shield.rstglobal.in}
 

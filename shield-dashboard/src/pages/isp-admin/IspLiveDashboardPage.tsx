@@ -472,7 +472,7 @@ export default function IspLiveDashboardPage() {
   useEffect(() => {
     if (!tenantId) return;
 
-    const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/shield`;
+    const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
 
     const client = new Client({
       brokerURL: wsUrl,

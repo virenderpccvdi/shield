@@ -100,7 +100,7 @@ class _BedtimeScreenState extends ConsumerState<BedtimeScreen> {
                   ),
                 ),
                 ListTile(
-                  leading:  const Icon(Icons.wb_sunny_outlined, color: Colors.orange),
+                  leading:  const Icon(Icons.wb_sunny_outlined, color: Color(0xFFC2410C)),
                   title:    const Text('Wake Time'),
                   trailing: TextButton(
                     onPressed: () => _pickTime(false),

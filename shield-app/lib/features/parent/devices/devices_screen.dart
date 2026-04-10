@@ -207,7 +207,7 @@ class _DeviceCard extends StatelessWidget {
           if (device.lastSeen != null)
             Text(
               'Last seen: ${DateFormat('d MMM, HH:mm').format(device.lastSeen!.toLocal())}',
-              style: const TextStyle(color: Colors.black38, fontSize: 12),
+              style: const TextStyle(color: Colors.black54, fontSize: 12),
             ),
         ])),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -232,7 +232,7 @@ class _DeviceCard extends StatelessWidget {
               Icon(Icons.battery_4_bar, size: 12,
                   color: (device.batteryLevel ?? 100) < 20 ? Colors.red : Colors.black38),
               Text('${device.batteryLevel}%',
-                  style: const TextStyle(fontSize: 11, color: Colors.black38)),
+                  style: const TextStyle(fontSize: 11, color: Colors.black54)),
             ]),
           ],
           const SizedBox(height: 4),

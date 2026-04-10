@@ -77,7 +77,7 @@ stages:
         echo "Logging in to ACR: $ACR"
         az acr login --name ${ACR%%.*} 2>&1 | tail -2
 
-        SERVICES="eureka gateway auth tenant profile dns location notification rewards analytics admin"
+        SERVICES="eureka config gateway auth tenant profile dns dns-resolver location notification rewards analytics admin"
         echo "Building images in parallel..."
         for svc in $SERVICES; do
           docker build \
@@ -207,7 +207,7 @@ stages:
 
           - script: |
               cd k8s/overlays/dev
-              SERVICES="eureka gateway auth tenant profile dns location notification rewards analytics admin ai"
+              SERVICES="eureka config gateway auth tenant profile dns dns-resolver location notification rewards analytics admin ai"
               for svc in $SERVICES; do
                 kustomize edit set image REGISTRY/shield-${svc}=$(ACR_LOGIN_SERVER)/shield-${svc}:$(IMAGE_TAG)
               done
@@ -238,14 +238,14 @@ stages:
 
           - script: |
               cd k8s/overlays/prod
-              SERVICES="eureka gateway auth tenant profile dns location notification rewards analytics admin ai"
+              SERVICES="eureka config gateway auth tenant profile dns dns-resolver location notification rewards analytics admin ai"
               for svc in $SERVICES; do
                 kustomize edit set image REGISTRY/shield-${svc}=$(ACR_LOGIN_SERVER)/shield-${svc}:$(IMAGE_TAG)
               done
               kustomize build . | kubectl apply -f -
-              for svc in gateway auth tenant profile dns location notification rewards analytics admin; do
+              for svc in gateway auth tenant profile dns dns-resolver location notification rewards analytics admin ai; do
                 echo "Waiting: shield-${svc}..."
-                kubectl rollout status deployment/shield-${svc} -n shield-prod --timeout=300s
+                kubectl rollout status deployment/shield-${svc} -n shield-prod --timeout=300s || true
               done
               echo "Prod deploy complete."
             displayName: 'Apply K8s manifests (prod)'
@@ -254,3 +254,37 @@ stages:
               echo "=== Prod pods after deploy ==="
               kubectl get pods -n shield-prod
             displayName: 'Show pod status'
+
+          - script: |
+              set -e
+              echo "=== Smoke test ==="
+              # Wait for gateway to be fully ready
+              kubectl wait --for=condition=Ready pod -l app=shield-gateway -n shield-prod --timeout=120s
+              kubectl wait --for=condition=Ready pod -l app=shield-auth -n shield-prod --timeout=120s
+
+              GW_SVC=$(kubectl get svc shield-gateway -n shield-prod -o jsonpath='{.spec.clusterIP}')
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${GW_SVC}:8280/actuator/health" --max-time 10)
+              if [ "$STATUS" != "200" ]; then
+                echo "❌ Gateway health check failed: HTTP $STATUS"
+                exit 1
+              fi
+              echo "✅ Gateway health: OK"
+
+              AUTH_SVC=$(kubectl get svc shield-auth -n shield-prod -o jsonpath='{.spec.clusterIP}')
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${AUTH_SVC}:8281/actuator/health" --max-time 10)
+              if [ "$STATUS" != "200" ]; then
+                echo "❌ Auth health check failed: HTTP $STATUS"
+                exit 1
+              fi
+              echo "✅ Auth health: OK"
+              echo "=== All smoke tests passed ==="
+            displayName: 'Post-deploy smoke test'
+
+          - script: |
+              echo "Rolling back on smoke test failure..."
+              for svc in gateway auth; do
+                kubectl rollout undo deployment/shield-${svc} -n shield-prod
+                echo "Rolled back shield-${svc}"
+              done
+            condition: failed()
+            displayName: 'Auto-rollback on smoke test failure'

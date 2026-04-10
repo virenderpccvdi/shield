@@ -552,7 +552,7 @@ class _ChildCard extends StatelessWidget {
                 children: [
               _statusPill(child.isActive),
               const SizedBox(height: 4),
-              const Icon(Icons.chevron_right, color: Colors.black26, size: 18),
+              const Icon(Icons.chevron_right, color: Colors.black45, size: 18),
             ]),
           ]),
         ),
@@ -595,7 +595,7 @@ class _AlertTile extends StatelessWidget {
 
   Color get _iconColor {
     if (alert.isCritical)          return Colors.red;
-    if (alert.type == 'BATTERY')   return Colors.orange;
+    if (alert.type == 'BATTERY')   return const Color(0xFFC2410C);
     if (alert.type == 'GEOFENCE')  return const Color(0xFF2563EB);
     return Colors.grey;
   }
@@ -621,7 +621,7 @@ class _AlertTile extends StatelessWidget {
         style: const TextStyle(fontSize: 12)),
     trailing: Text(
       _formatTime(alert.createdAt),
-      style: const TextStyle(fontSize: 11, color: Colors.black38),
+      style: const TextStyle(fontSize: 11, color: Colors.black54),
     ),
     onTap: () => context.go('/parent/alerts'),
   );

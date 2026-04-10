@@ -319,7 +319,7 @@ export default function ActivityPage({ profileId: profileIdProp }: ActivityPageP
               title="Total Today"
               value={stats?.totalQueries ?? 0}
               icon={<QueryStatsIcon />}
-              gradient="linear-gradient(135deg, #6366F1 0%, #818CF8 100%)"
+              gradient="linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)"
               delay={0}
             />
           </Grid>

@@ -162,7 +162,7 @@ class _BottomControls extends StatelessWidget {
           width:  i == page ? 24 : 8,
           height: 8,
           decoration: BoxDecoration(
-            color: i == page ? Colors.white : Colors.white30,
+            color: i == page ? Colors.white : Colors.white60,
             borderRadius: BorderRadius.circular(4),
           ),
         ),

@@ -272,14 +272,14 @@ class _ChildSetupScreenState extends ConsumerState<ChildSetupScreen> {
     decoration: BoxDecoration(
       color: Colors.orange.shade50,
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.orange),
+      border: Border.all(color: Color(0xFFC2410C)),
     ),
     child: const Row(children: [
-      Icon(Icons.warning_amber, color: Colors.orange),
+      Icon(Icons.warning_amber, color: Color(0xFFC2410C)),
       SizedBox(width: 8),
       Expanded(child: Text(
         'Child session expired. Please re-authenticate to restore protection.',
-        style: TextStyle(color: Colors.orange, fontSize: 13),
+        style: TextStyle(color: Color(0xFF92400E), fontSize: 13),
       )),
     ]),
   );

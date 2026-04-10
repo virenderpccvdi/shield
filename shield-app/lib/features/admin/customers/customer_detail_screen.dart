@@ -55,9 +55,9 @@ class CustomerDetailScreen extends ConsumerWidget {
                     ])),
                 const PopupMenuItem(value: 'suspend',
                     child: Row(children: [
-                      Icon(Icons.block, size: 18, color: Colors.orange),
+                      Icon(Icons.block, size: 18, color: const Color(0xFFC2410C)),
                       SizedBox(width: 8),
-                      Text('Suspend', style: TextStyle(color: Colors.orange)),
+                      Text('Suspend', style: TextStyle(color: const Color(0xFFC2410C))),
                     ])),
                 const PopupMenuItem(value: 'delete',
                     child: Row(children: [
@@ -109,7 +109,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                 onPressed: () => Navigator.pop(context, false),
                 child: const Text('Cancel')),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC2410C)),
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Suspend'),
             ),

@@ -33,3 +33,11 @@ data:
 
   # Timezone
   TZ: "Asia/Kolkata"
+
+  # Inter-service URLs (K8s DNS)
+  SHIELD_NOTIFICATION_URL: "http://shield-notification:8286"
+
+  # RabbitMQ — not deployed in K8s; disable listeners to avoid spam
+  MANAGEMENT_HEALTH_RABBIT_ENABLED: "false"
+  SPRING_RABBITMQ_LISTENER_SIMPLE_AUTOSTARTUP: "false"
+  SPRING_RABBITMQ_LISTENER_DIRECT_AUTOSTARTUP: "false"
