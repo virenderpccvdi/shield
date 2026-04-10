@@ -68,10 +68,10 @@ jobs:
           languages: javascript-typescript
           queries: security-extended,security-and-quality
 
-      - name: Set up Node.js 25
+      - name: Set up Node.js 22 LTS
         uses: actions/setup-node@v4
         with:
-          node-version: '25'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: shield-dashboard/package-lock.json
 
@@ -128,7 +128,7 @@ jobs:
           fetch-depth: 0  # full history required for complete secret scan
 
       - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: false   # don't comment on PRs — just fail the check
