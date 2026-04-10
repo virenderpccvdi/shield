@@ -52,7 +52,7 @@ dependencies:
   sensors_plus: ^4.0.0
 
   # Battery
-  battery_plus: ^6.0.3
+  battery_plus: ^7.0.0
 
   # Background service (keeps location tracking alive when app is in background)
   flutter_background_service: ^5.0.0
