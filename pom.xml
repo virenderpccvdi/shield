@@ -49,6 +49,10 @@
         <!-- ── Security CVE overrides ───────────────────────────────────────── -->
         <!-- CVE-2026-33871 / CVE-2025-55163: Netty HTTP/2 header handling -->
         <netty.version>4.2.12.Final</netty.version>
+        <!-- CVE-2026-29062 / GHSA-2m67-wjpj-xhg9 / GHSA-72hv-8253-57qq:
+             Jackson DoS via excessive nesting + Document Length Constraint Bypass.
+             Spring Boot 4.x uses tools.jackson group; 3.1.1 fixes all three CVEs. -->
+        <jackson-bom.version>3.1.1</jackson-bom.version>
     </properties>
 
     <dependencyManagement>
