@@ -129,7 +129,7 @@
         <dependency>
             <groupId>com.twilio.sdk</groupId>
             <artifactId>twilio</artifactId>
-            <version>10.6.7</version>
+            <version>11.3.6</version>
         </dependency>
 
         <!-- RabbitMQ / AMQP event bus -->
