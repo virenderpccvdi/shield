@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <!-- PII masking converter: masks emails and IP addresses in log messages -->
-    <conversionRule conversionWord="maskedMsg"
-                    converterClass="com.rstglobal.shield.common.logging.PiiMaskingConverter"/>
-
+    <!-- NOTE: shield-gateway does NOT depend on shield-common (WebFlux/Web conflict).
+         PiiMaskingConverter is therefore NOT on the classpath — use plain %msg instead. -->
     <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="shield-gateway"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %maskedMsg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 

@@ -70,6 +70,64 @@ images:
     newTag: dev-latest
 
 patches:
+  # Dev: imagePullPolicy=Always — dev-latest is a moving tag; IfNotPresent would
+  # keep serving the cached image even after a new push to ACR.
+  # Apply this patch to every service via a wildcard name match.
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: shield-gateway
+      spec:
+        template:
+          spec:
+            containers:
+              - name: shield-gateway
+                imagePullPolicy: Always
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: shield-auth
+      spec:
+        template:
+          spec:
+            containers:
+              - name: shield-auth
+                imagePullPolicy: Always
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: shield-tenant
+      spec:
+        template:
+          spec:
+            containers:
+              - name: shield-tenant
+                imagePullPolicy: Always
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: shield-eureka
+      spec:
+        template:
+          spec:
+            containers:
+              - name: shield-eureka
+                imagePullPolicy: Always
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: shield-website
+      spec:
+        template:
+          spec:
+            containers:
+              - name: shield-website
+                imagePullPolicy: Always
   # Dev: all services 1 replica, reduced resource limits (saves ~40% RAM)
   - patch: |-
       apiVersion: apps/v1
