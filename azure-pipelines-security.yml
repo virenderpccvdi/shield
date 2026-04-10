@@ -54,7 +54,7 @@ jobs:
       echo "Subsequent runs: downloads daily delta only (1-3 min)"
       echo ""
 
-      $(MAVEN_HOME)/bin/mvn org.owasp:dependency-check-maven:8.4.3:check \
+      $(MAVEN_HOME)/bin/mvn org.owasp:dependency-check-maven:10.0.4:check \
         -DfailBuildOnCVSS=9 \
         -DsuppressionFile=owasp-suppressions.xml \
         -DdataDirectory=$(OWASP_DATA_DIR) \

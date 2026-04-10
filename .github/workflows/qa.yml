@@ -21,7 +21,7 @@ concurrency:
 
 env:
   JAVA_VERSION: '21'
-  PYTHON_VERSION: '3.12'
+  PYTHON_VERSION: '3.13'
   NODE_VERSION: '25'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -64,7 +64,7 @@ jobs:
     needs: []  # runs in parallel with static-checks
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_DB: shield_db
           POSTGRES_USER: shield
@@ -77,7 +77,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       redis:
-        image: redis:7
+        image: redis:7.4
         ports:
           - 6379:6379
 
@@ -96,7 +96,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Python QA dependencies
-        run: pip install requests psycopg2-binary dnspython redis
+        run: pip install requests psycopg2-binary dnspython redis PyJWT
 
       - name: Build all services (skip tests)
         run: mvn package -DskipTests -q --no-transfer-progress
@@ -152,7 +152,7 @@ jobs:
     needs: [static-checks, api-qa-fast]
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_DB: shield_db
           POSTGRES_USER: shield
@@ -160,7 +160,7 @@ jobs:
         ports:
           - 5432:5432
       redis:
-        image: redis:7
+        image: redis:7.4
         ports:
           - 6379:6379
 
@@ -196,7 +196,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Install Python QA dependencies
-        run: pip install requests psycopg2-binary dnspython redis
+        run: pip install requests psycopg2-binary dnspython redis PyJWT
 
       - name: Build all services
         run: mvn package -DskipTests -q --no-transfer-progress
