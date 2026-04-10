@@ -225,7 +225,6 @@ class _InsightsBody extends StatelessWidget {
             trailing: StatusChip('${recommendations.length}',
                 color: Ds.primary)),
         ...recommendations.asMap().entries.map((entry) {
-          final i   = entry.key;
           final rec = entry.value.toString();
           return GuardianCard(
             padding: const EdgeInsets.all(16),

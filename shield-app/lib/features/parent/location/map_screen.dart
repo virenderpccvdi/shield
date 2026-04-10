@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
-import '../../../core/widgets/common_widgets.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key, required this.profileId, this.childName});

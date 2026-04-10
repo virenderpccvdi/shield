@@ -4,14 +4,6 @@ import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
 import '../../../core/widgets/common_widgets.dart';
 
-final _timeLimitsProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>(
-  (ref, pid) async {
-    final resp = await ApiClient.instance.get(Endpoints.dnsTimeLimits(pid));
-    final raw = resp.data as Map<String, dynamic>? ?? {};
-    return (raw['data'] as Map<String, dynamic>?) ?? raw;
-  },
-);
-
 class TimeLimitsScreen extends ConsumerStatefulWidget {
   const TimeLimitsScreen({super.key, required this.profileId});
   final String profileId;

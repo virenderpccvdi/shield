@@ -22,7 +22,7 @@ class DnsVpnService {
     try {
       final result = await _channel.invokeMethod<bool>('prepareVpnPermission');
       return result ?? false;
-    } on PlatformException catch (e) {
+    } on PlatformException catch (_) {
       // User denied or error
       return false;
     }

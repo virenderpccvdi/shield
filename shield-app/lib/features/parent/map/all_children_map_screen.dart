@@ -37,6 +37,7 @@ class AllChildrenMapScreen extends ConsumerStatefulWidget {
 }
 
 class _AllChildrenMapState extends ConsumerState<AllChildrenMapScreen> {
+  // ignore: unused_field — assigned in onMapCreated, reserved for future camera control
   GoogleMapController? _ctrl;
 
   @override

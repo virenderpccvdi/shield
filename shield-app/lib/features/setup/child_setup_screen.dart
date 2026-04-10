@@ -11,7 +11,6 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/services/dns_vpn_service.dart';
 import '../../core/services/background_service.dart';
 import '../../core/services/storage_service.dart';
-import '../../core/widgets/common_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ChildSetupScreen — run on the CHILD's device by a parent.
@@ -196,8 +195,7 @@ class _ChildSetupScreenState extends ConsumerState<ChildSetupScreen> {
     }
 
     // 4. Start background service (heartbeat + location)
-    final authState = ref.read(authProvider);
-    final token     = await _getChildToken();
+    final token = await _getChildToken();
     if (token != null) {
       await BackgroundServiceHelper.start(
         token: token, profileId: _selected!.id,

@@ -7,8 +7,6 @@ import '../../../app/theme.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/widgets/common_widgets.dart';
-
 final _pointsProvider =
     FutureProvider.autoDispose.family<int, String>((ref, pid) async {
   final resp = await ApiClient.instance.get(Endpoints.points(pid));

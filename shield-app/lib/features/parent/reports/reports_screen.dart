@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../../../app/theme.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
-import '../../../core/providers/auth_provider.dart';
 import '../../../core/widgets/common_widgets.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
