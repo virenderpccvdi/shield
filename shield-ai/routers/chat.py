@@ -63,11 +63,11 @@ def _get_anthropic_client():
 
 @router.post("/chat", response_model=ChatResponse)
 @limiter.limit("10/minute")
-async def chat_with_ai(http_request: Request, request: ChatRequest, db: AsyncSession = Depends(get_db)):
+async def chat_with_ai(request: Request, body: ChatRequest, db: AsyncSession = Depends(get_db)):
     """Answer parent questions about child activity using Claude AI."""
 
     # 1. Fetch child's recent stats from DB (last 7 days)
-    week_stats = await get_profile_week_stats(db, request.profileId)
+    week_stats = await get_profile_week_stats(db, body.profileId)
 
     # 2. Build context string
     has_data = week_stats.get("has_data", False)
@@ -127,18 +127,18 @@ async def chat_with_ai(http_request: Request, request: ChatRequest, db: AsyncSes
                     "max_tokens": 300,
                     "messages": [
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": f"{context}\n\nParent's question: {request.question}"},
+                        {"role": "user", "content": f"{context}\n\nParent's question: {body.question}"},
                     ],
                 },
                 timeout=30.0,
             )
             resp.raise_for_status()
             answer = resp.json()["choices"][0]["message"]["content"].strip()
-            logger.info("DeepSeek chat response for profile %s (%d chars)", request.profileId, len(answer))
+            logger.info("DeepSeek chat response for profile %s (%d chars)", body.profileId, len(answer))
         else:
             raise RuntimeError("DEEPSEEK_API_KEY not set")
     except Exception as ds_exc:
-        logger.warning("DeepSeek chat failed for profile %s: %s — trying Claude", request.profileId, ds_exc)
+        logger.warning("DeepSeek chat failed for profile %s: %s — trying Claude", body.profileId, ds_exc)
         try:
             client = _get_anthropic_client()
             model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
@@ -149,17 +149,17 @@ async def chat_with_ai(http_request: Request, request: ChatRequest, db: AsyncSes
                 messages=[
                     {
                         "role": "user",
-                        "content": f"{context}\n\nParent's question: {request.question}",
+                        "content": f"{context}\n\nParent's question: {body.question}",
                     }
                 ],
             )
             answer = message.content[0].text.strip()
-            logger.info("Claude chat response for profile %s (%d chars)", request.profileId, len(answer))
+            logger.info("Claude chat response for profile %s (%d chars)", body.profileId, len(answer))
         except Exception as exc:
-            logger.warning("Claude chat also failed for profile %s: %s", request.profileId, exc)
+            logger.warning("Claude chat also failed for profile %s: %s", body.profileId, exc)
 
     # 4. Generate context-aware follow-up suggestions
-    suggestions = _build_suggestions(request.question, week_stats)
+    suggestions = _build_suggestions(body.question, week_stats)
 
     return ChatResponse(answer=answer, suggestions=suggestions)
 
@@ -209,11 +209,11 @@ def _build_suggestions(question: str, stats: dict) -> list[str]:
 
 @router.post("/chat/stream")
 @limiter.limit("10/minute")
-async def chat_stream(http_request: Request, request: ChatRequest, db: AsyncSession = Depends(get_db)):
+async def chat_stream(request: Request, body: ChatRequest, db: AsyncSession = Depends(get_db)):
     """Stream Claude AI responses as Server-Sent Events (SSE)."""
 
     # Fetch child's recent stats
-    week_stats = await get_profile_week_stats(db, request.profileId)
+    week_stats = await get_profile_week_stats(db, body.profileId)
 
     # Build context string (same logic as /chat)
     has_data = week_stats.get("has_data", False)
@@ -262,7 +262,7 @@ async def chat_stream(http_request: Request, request: ChatRequest, db: AsyncSess
                 messages=[
                     {
                         "role": "user",
-                        "content": f"{context}\n\nParent's question: {request.question}",
+                        "content": f"{context}\n\nParent's question: {body.question}",
                     }
                 ],
             ) as stream:
@@ -270,7 +270,7 @@ async def chat_stream(http_request: Request, request: ChatRequest, db: AsyncSess
                     yield f"data: {json.dumps({'text': text})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as exc:
-            logger.error("Streaming chat failed for profile %s: %s", request.profileId, exc)
+            logger.error("Streaming chat failed for profile %s: %s", body.profileId, exc)
             yield f"data: {json.dumps({'error': 'Streaming unavailable, please use /chat instead'})}\n\n"
             yield "data: [DONE]\n\n"
 

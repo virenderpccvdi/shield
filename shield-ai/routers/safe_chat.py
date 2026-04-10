@@ -101,7 +101,7 @@ async def safe_chat_health():
 
 @router.post("/safe-chat", response_model=SafeChatResponse)
 @limiter.limit("10/minute")
-async def safe_chat(http_request: Request, req: SafeChatRequest):
+async def safe_chat(request: Request, req: SafeChatRequest):
     """
     Child-safe AI chatbot.
 
