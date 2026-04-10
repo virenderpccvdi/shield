@@ -3,9 +3,13 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from limiter import limiter
 
 from routers import health, insights, analysis, keywords, alerts, training, config, chat, safe_chat
 from services.anomaly_service import load_model
+from db.init import init_db
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -14,6 +18,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Shield AI Service starting up...")
+    await init_db()
     load_model()
     logger.info("Anomaly model loaded.")
     yield
@@ -26,6 +31,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 _ALLOWED_ORIGINS = [o.strip() for o in os.environ.get(
     "CORS_ALLOWED_ORIGINS",

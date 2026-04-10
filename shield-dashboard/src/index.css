@@ -5,11 +5,22 @@ html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
 body {
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: #F8FAFC;
-  color: #0F172A;
+  background: #F7F9FB;
+  color: #0F1F3D;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Guardian's Lens dual-font system */
+h1, h2, h3, h4 {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+h5, h6 {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 600;
 }
 
 #root { min-height: 100vh; }

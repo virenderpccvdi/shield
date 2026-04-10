@@ -33,7 +33,6 @@ import api from '../../api/axios';
 import AnimatedPage from '../../components/AnimatedPage';
 import StatCard from '../../components/StatCard';
 import PageHeader from '../../components/PageHeader';
-import { gradients } from '../../theme/theme';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -451,77 +450,92 @@ export default function PlatformDashboardPage() {
         </Alert>
       )}
 
+      {/* ── Hero Stats Bar ───────────────────────────────────────────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
+        gap: 2, mb: 4, p: 2.5, borderRadius: '16px',
+        background: 'linear-gradient(135deg, #003D72 0%, #005DAC 60%, #1976D2 100%)',
+        boxShadow: '0 8px 32px -4px rgba(0,61,114,0.28)',
+        position: 'relative', overflow: 'hidden',
+        '&::after': {
+          content: '""', position: 'absolute', top: -60, right: -60,
+          width: 200, height: 200, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.05)', pointerEvents: 'none',
+        },
+      }}>
+        {[
+          { label: 'ISP Tenants', value: d.totalIspTenants },
+          { label: 'Total Customers', value: d.totalCustomers.toLocaleString() },
+          { label: `DNS Queries (${days}d)`, value: fmt(d.totalQueries) },
+          { label: 'Active Profiles', value: d.activeProfiles.toLocaleString() },
+        ].map((stat, i) => (
+          <Box key={i} sx={{
+            textAlign: 'center', py: 1,
+            borderRight: { md: i < 3 ? '1px solid rgba(255,255,255,0.12)' : 'none' },
+          }}>
+            <Typography sx={{
+              fontFamily: '"Manrope", sans-serif', fontWeight: 800, fontSize: '1.75rem',
+              color: '#FFFFFF', letterSpacing: '-0.03em', lineHeight: 1.1,
+            }}>
+              {stat.value}
+            </Typography>
+            <Typography sx={{
+              fontFamily: '"Inter", sans-serif', fontSize: 12, fontWeight: 500,
+              color: 'rgba(255,255,255,0.72)', mt: 0.5, textTransform: 'uppercase', letterSpacing: '0.04em',
+            }}>
+              {stat.label}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
       {/* ── Row 1: KPI Cards ────────────────────────────────────────────── */}
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        {[
+          { title: 'ISP Tenants', value: d.totalIspTenants, icon: <BusinessIcon />, accentColor: '#005DAC', delay: 0 },
+          { title: 'Customers', value: d.totalCustomers, icon: <PeopleIcon />, accentColor: '#2E7D32', delay: 0.05 },
+          { title: 'Active Profiles', value: d.activeProfiles, icon: <ShieldIcon />, accentColor: '#0277BD', delay: 0.1 },
+          { title: `DNS Queries`, value: fmt(d.totalQueries), icon: <DnsIcon />, accentColor: '#005DAC', delay: 0.15 },
+          { title: 'Block Rate', value: `${Number(d.blockRate).toFixed(1)}%`, icon: <BlockIcon />, accentColor: Number(d.blockRate) > 30 ? '#C62828' : '#2E7D32', delay: 0.2 },
+          { title: 'Subscriptions', value: d.activeSubscriptions, icon: <CreditCardIcon />, accentColor: '#E65100', delay: 0.25 },
+          { title: 'Monthly Revenue', value: fmtMoney(d.monthlyRevenue), icon: <AttachMoneyIcon />, accentColor: '#2E7D32', delay: 0.3 },
+        ].map((card) => (
+          <Grid key={card.title} size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+            <StatCard
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              accentColor={card.accentColor}
+              delay={card.delay}
+            />
+          </Grid>
+        ))}
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <StatCard
-            title="ISP Tenants"
-            value={d.totalIspTenants}
-            icon={<BusinessIcon />}
-            gradient={gradients.blue}
-            delay={0}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <StatCard
-            title="Total Customers"
-            value={d.totalCustomers}
-            icon={<PeopleIcon />}
-            gradient={gradients.green}
-            delay={0.05}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <StatCard
-            title="Active Profiles"
-            value={d.activeProfiles}
-            icon={<ShieldIcon />}
-            gradient={gradients.teal}
-            delay={0.1}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <StatCard
-            title="DNS Queries (7d)"
-            value={fmt(d.totalQueries)}
-            icon={<DnsIcon />}
-            gradient={gradients.purple}
-            delay={0.15}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <StatCard
-            title="Block Rate"
-            value={Number(d.blockRate).toFixed(1)}
-            unit="%"
-            icon={<BlockIcon />}
-            gradient={gradients.orange}
-            delay={0.2}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <StatCard
-            title="Active Subscriptions"
-            value={d.activeSubscriptions}
-            icon={<CreditCardIcon />}
-            gradient={gradients.red}
-            delay={0.25}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <FadeCard delay={0.3}>
-            <Card sx={{ height: '100%', background: `linear-gradient(135deg, ${healthScoreColor}18 0%, ${healthScoreColor}08 100%)`, border: '1px solid', borderColor: `${healthScoreColor}30` }}>
+          <FadeCard delay={0.35}>
+            <Card sx={{
+              height: '100%', bgcolor: '#FFFFFF', border: 'none',
+              boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)', borderRadius: '12px',
+              overflow: 'hidden', position: 'relative',
+              '&::before': {
+                content: '""', position: 'absolute',
+                top: 0, left: 0, bottom: 0, width: 3,
+                background: healthScoreColor, borderRadius: '12px 0 0 12px',
+              },
+            }}>
               <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-                  <MonitorHeartIcon sx={{ fontSize: 18, color: healthScoreColor }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: `${healthScoreColor}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: healthScoreColor }}>
+                    <MonitorHeartIcon sx={{ fontSize: 17 }} />
+                  </Box>
+                  <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: 11, fontWeight: 500, color: '#4A6481', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Platform Health
                   </Typography>
                 </Box>
-                <Typography variant="h3" fontWeight={800} sx={{ color: healthScoreColor, lineHeight: 1.1 }}>
+                <Typography sx={{ fontFamily: '"Manrope", sans-serif', fontSize: '1.75rem', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.03em', color: '#005DAC' }}>
                   {healthScore}
                 </Typography>
-                <Typography variant="caption" sx={{ color: healthScoreColor, fontWeight: 700 }}>
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: 11.5, color: healthScoreColor, fontWeight: 700, mt: 0.3 }}>
                   {healthScoreLabel}
                 </Typography>
               </CardContent>
@@ -533,36 +547,12 @@ export default function PlatformDashboardPage() {
       {/* ── Alert/Anomaly chip summary row ──────────────────────────────── */}
       <Box sx={{ mb: 3, overflowX: 'auto' }}>
         <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'nowrap', pb: 0.5 }}>
-          <Chip
-            icon={<BusinessIcon sx={{ fontSize: '16px !important' }} />}
-            label={`${d.totalIspTenants} Active Tenants`}
-            sx={{ bgcolor: 'rgba(21,101,192,0.1)', color: '#1565C0', fontWeight: 600, border: '1px solid rgba(21,101,192,0.25)' }}
-          />
-          <Chip
-            icon={<FilterListIcon sx={{ fontSize: '16px !important' }} />}
-            label={`${Number(d.blockRate).toFixed(1)}% Block Rate`}
-            sx={{ bgcolor: Number(d.blockRate) > 30 ? 'rgba(229,57,53,0.1)' : 'rgba(251,140,0,0.1)', color: Number(d.blockRate) > 30 ? '#E53935' : '#FB8C00', fontWeight: 600, border: `1px solid ${Number(d.blockRate) > 30 ? 'rgba(229,57,53,0.25)' : 'rgba(251,140,0,0.25)'}` }}
-          />
-          <Chip
-            icon={<ShieldIcon sx={{ fontSize: '16px !important' }} />}
-            label={`${d.activeProfiles.toLocaleString()} Profiles`}
-            sx={{ bgcolor: 'rgba(0,137,123,0.1)', color: '#00897B', fontWeight: 600, border: '1px solid rgba(0,137,123,0.25)' }}
-          />
-          <Chip
-            icon={<PersonIcon sx={{ fontSize: '16px !important' }} />}
-            label={`${d.totalCustomers.toLocaleString()} Customers`}
-            sx={{ bgcolor: 'rgba(67,160,71,0.1)', color: '#43A047', fontWeight: 600, border: '1px solid rgba(67,160,71,0.25)' }}
-          />
-          <Chip
-            icon={<GroupIcon sx={{ fontSize: '16px !important' }} />}
-            label={`${d.totalUsers.toLocaleString()} Total Users`}
-            sx={{ bgcolor: 'rgba(123,31,162,0.1)', color: '#7B1FA2', fontWeight: 600, border: '1px solid rgba(123,31,162,0.25)' }}
-          />
-          <Chip
-            icon={<DnsIcon sx={{ fontSize: '16px !important' }} />}
-            label={`${fmt(d.totalQueries)} DNS Queries Today`}
-            sx={{ bgcolor: 'rgba(21,101,192,0.08)', color: '#1565C0', fontWeight: 600, border: '1px solid rgba(21,101,192,0.2)' }}
-          />
+          <Chip icon={<BusinessIcon sx={{ fontSize: '16px !important' }} />} label={`${d.totalIspTenants} Active Tenants`} sx={{ bgcolor: '#E3F2FD', color: '#005DAC', fontWeight: 600, border: 'none' }} />
+          <Chip icon={<FilterListIcon sx={{ fontSize: '16px !important' }} />} label={`${Number(d.blockRate).toFixed(1)}% Block Rate`} sx={{ bgcolor: Number(d.blockRate) > 30 ? '#FFEBEE' : '#FFF3E0', color: Number(d.blockRate) > 30 ? '#C62828' : '#E65100', fontWeight: 600, border: 'none' }} />
+          <Chip icon={<ShieldIcon sx={{ fontSize: '16px !important' }} />} label={`${d.activeProfiles.toLocaleString()} Profiles`} sx={{ bgcolor: '#E1F5FE', color: '#0277BD', fontWeight: 600, border: 'none' }} />
+          <Chip icon={<PersonIcon sx={{ fontSize: '16px !important' }} />} label={`${d.totalCustomers.toLocaleString()} Customers`} sx={{ bgcolor: '#E8F5E9', color: '#2E7D32', fontWeight: 600, border: 'none' }} />
+          <Chip icon={<GroupIcon sx={{ fontSize: '16px !important' }} />} label={`${d.totalUsers.toLocaleString()} Total Users`} sx={{ bgcolor: '#F0F4F8', color: '#4A6481', fontWeight: 600, border: 'none' }} />
+          <Chip icon={<DnsIcon sx={{ fontSize: '16px !important' }} />} label={`${fmt(d.totalQueries)} DNS Queries`} sx={{ bgcolor: '#E3F2FD', color: '#005DAC', fontWeight: 600, border: 'none' }} />
         </Stack>
       </Box>
 

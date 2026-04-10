@@ -1,0 +1,126 @@
+# PodDisruptionBudgets — ensure availability during voluntary disruptions
+# (node drain, cluster upgrades, etc.)
+# minAvailable: 1 guarantees at least one pod is always running.
+#
+# Applied to all stateless Shield services in shield-prod namespace.
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-gateway-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-gateway
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-auth-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-auth
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-tenant-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-tenant
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-profile-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-profile
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-dns-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-dns
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-location-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-location
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-notification-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-notification
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-rewards-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-rewards
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-analytics-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-analytics
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-admin-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-admin
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shield-ai-pdb
+  namespace: shield-prod
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: shield-ai

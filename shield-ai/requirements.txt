@@ -9,3 +9,4 @@ httpx==0.28.1
 python-jose==3.3.0
 numpy==2.2.2
 anthropic==0.45.2
+slowapi==0.1.9

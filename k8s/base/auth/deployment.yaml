@@ -6,7 +6,10 @@ metadata:
     app: shield-auth
 spec:
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   replicas: 1
   selector:
     matchLabels:
@@ -16,6 +19,18 @@ spec:
       labels:
         app: shield-auth
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - shield-auth
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: shield-auth
           image: REGISTRY/shield-auth:TAG

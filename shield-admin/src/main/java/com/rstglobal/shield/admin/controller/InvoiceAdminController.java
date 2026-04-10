@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -68,6 +69,18 @@ public class InvoiceAdminController {
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_HTML)
                 .body(result.getValue().getBytes(StandardCharsets.UTF_8));
+    }
+
+    @PostMapping("/{id}/refund")
+    @Operation(summary = "Issue a refund for a paid invoice (GLOBAL_ADMIN only)")
+    public ApiResponse<String> refundInvoice(
+            @RequestHeader("X-User-Role") String role,
+            @PathVariable UUID id,
+            @RequestBody(required = false) Map<String, String> body) {
+        requireGlobalAdmin(role);
+        String reason = body != null ? body.get("reason") : null;
+        billingService.processRefund(id, reason);
+        return ApiResponse.ok("Refund processed for invoice " + id);
     }
 
     private void requireGlobalAdmin(String role) {

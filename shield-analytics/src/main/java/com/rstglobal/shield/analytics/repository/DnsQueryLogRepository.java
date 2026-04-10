@@ -334,6 +334,23 @@ public interface DnsQueryLogRepository extends JpaRepository<DnsQueryLog, UUID> 
             @Param("from") Instant from,
             @Param("to") Instant to);
 
+    // ── DB12: Profile stats — single GROUP BY query to eliminate N+1 ─────────
+
+    /**
+     * Returns per-profile query counts for a tenant in one query.
+     * Replaces looping countByProfileId calls (N+1).
+     * Columns: profile_id (UUID string), total_count (LONG), blocked_count (LONG).
+     */
+    @Query(value = """
+            SELECT profile_id, COUNT(*) AS total_count,
+                   SUM(CASE WHEN action = 'BLOCKED' THEN 1 ELSE 0 END) AS blocked_count
+            FROM analytics.dns_query_logs
+            WHERE tenant_id = :tenantId
+              AND profile_id IS NOT NULL
+            GROUP BY profile_id
+            """, nativeQuery = true)
+    List<Object[]> countByTenantGrouped(@Param("tenantId") UUID tenantId);
+
     // ── IS-06: Tenant Usage Dashboard queries ─────────────────────────────────
 
     /**

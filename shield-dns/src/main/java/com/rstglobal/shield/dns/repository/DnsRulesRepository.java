@@ -42,4 +42,16 @@ public interface DnsRulesRepository extends JpaRepository<DnsRules, UUID> {
      */
     @Query("SELECT r FROM DnsRules r WHERE r.dailyBudgetMinutes IS NOT NULL AND r.dailyBudgetMinutes > 0")
     List<DnsRules> findAllWithDailyBudget();
+
+    /**
+     * Returns profiles where __schedule_blocked__ flag is currently TRUE.
+     * Used by ScheduleService to clear stale flags for profiles that no longer
+     * have active scheduled blocks (e.g. their blocked hour has ended).
+     */
+    @Query(value = """
+        SELECT * FROM dns.dns_rules
+        WHERE enabled_categories IS NOT NULL
+          AND (enabled_categories ->> '__schedule_blocked__')::boolean = TRUE
+        """, nativeQuery = true)
+    List<DnsRules> findAllWithScheduleBlocked();
 }

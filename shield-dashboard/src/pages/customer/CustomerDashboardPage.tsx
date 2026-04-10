@@ -114,44 +114,73 @@ function FeatureLockDialog({ open, featureName, requiredPlan, onClose, onUpgrade
   );
 }
 
-function StatCard({ label, value, color, bg, icon, subtitle, trend }: {
+function StatCard({ label, value, color, bg: _bg, icon, subtitle, trend }: {
   label: string; value: string | number; color: string; bg: string;
   icon: React.ReactNode; subtitle?: string; trend?: { direction: 'up' | 'down' | 'neutral'; label: string };
 }) {
   return (
     <Card sx={{
       height: '100%', overflow: 'hidden', position: 'relative',
-      border: '1px solid', borderColor: `${color}18`,
-      transition: 'all 0.2s ease',
-      '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 8px 24px ${color}18` },
+      bgcolor: '#FFFFFF',
+      border: 'none',
+      boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)',
+      borderRadius: '12px',
+      transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+      '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 32px -4px rgba(15,31,61,0.10)' },
+      // Left indicator stripe
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0, left: 0, bottom: 0,
+        width: 3,
+        background: color,
+        borderRadius: '12px 0 0 12px',
+      },
     }}>
-      {/* Top accent bar */}
-      <Box sx={{ height: 3, background: `linear-gradient(90deg, ${color}, ${color}80)` }} />
-      <Box sx={{ p: 2.5 }}>
-        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1} sx={{ mb: 1.5 }}>
-          <Box sx={{
-            width: 44, height: 44, borderRadius: '12px', flexShrink: 0,
-            background: `linear-gradient(135deg, ${bg}, ${color}15)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 4px 12px ${color}20`,
+      <Box sx={{ px: 2.5, py: 2.25 }}>
+        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1} sx={{ mb: 1.25 }}>
+          <Typography sx={{
+            fontFamily: '"Inter", sans-serif',
+            fontWeight: 500, fontSize: 12, color: '#4A6481',
+            textTransform: 'uppercase', letterSpacing: '0.02em',
           }}>
-            <Box sx={{ color, '& svg': { fontSize: 22 } }}>{icon}</Box>
+            {label}
+          </Typography>
+          <Box sx={{
+            width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
+            bgcolor: `${color}12`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color,
+            '& svg': { fontSize: 19 },
+          }}>
+            {icon}
           </Box>
-          {trend && (
+        </Stack>
+        <Typography sx={{
+          fontFamily: '"Manrope", sans-serif',
+          fontSize: '1.75rem', fontWeight: 800, lineHeight: 1.1,
+          letterSpacing: '-0.03em', color: '#005DAC', mb: 0.4,
+        }}>
+          {value}
+        </Typography>
+        {subtitle && (
+          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: 11.5, color: '#4A6481', mt: 0.3 }}>
+            {subtitle}
+          </Typography>
+        )}
+        {trend && (
+          <Box sx={{ mt: 0.75, display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Chip
               size="small"
               label={trend.label}
               sx={{
-                height: 20, fontSize: 10, fontWeight: 700,
-                bgcolor: trend.direction === 'up' ? 'rgba(34,197,94,0.1)' : trend.direction === 'down' ? 'rgba(239,68,68,0.1)' : 'rgba(107,114,128,0.1)',
-                color: trend.direction === 'up' ? '#16A34A' : trend.direction === 'down' ? '#DC2626' : '#6B7280',
+                height: 20, fontSize: 10, fontWeight: 700, border: 'none',
+                bgcolor: trend.direction === 'up' ? '#E8F5E9' : trend.direction === 'down' ? '#FFEBEE' : '#F0F4F8',
+                color: trend.direction === 'up' ? '#2E7D32' : trend.direction === 'down' ? '#C62828' : '#4A6481',
               }}
             />
-          )}
-        </Stack>
-        <Typography variant="h4" fontWeight={800} sx={{ color, lineHeight: 1, mb: 0.4 }}>{value}</Typography>
-        <Typography variant="body2" color="text.secondary" fontWeight={600} fontSize={12}>{label}</Typography>
-        {subtitle && <Typography variant="caption" color="text.disabled" display="block" fontSize={10} sx={{ mt: 0.25 }}>{subtitle}</Typography>}
+          </Box>
+        )}
       </Box>
     </Card>
   );
@@ -503,9 +532,9 @@ export default function CustomerDashboardPage() {
       {/* Greeting Banner */}
       <Box sx={{
         mb: 3, p: { xs: 2.5, sm: 3 }, borderRadius: '16px',
-        background: 'linear-gradient(135deg, #4F46E5 0%, #6D28D9 60%, #7C3AED 100%)',
+        background: 'linear-gradient(135deg, #003D72 0%, #005DAC 60%, #1976D2 100%)',
         position: 'relative', overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(79,70,229,0.3)',
+        boxShadow: '0 8px 32px -4px rgba(0,61,114,0.28)',
       }}>
         {/* decorative blobs */}
         <Box sx={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -605,18 +634,18 @@ export default function CustomerDashboardPage() {
       {/* Top stats row */}
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard label="Total Queries" value={totalQueriesFromStats > 0 ? totalQueriesFromStats.toLocaleString() : '—'} color="#4F46E5" bg="rgba(79,70,229,0.08)"
+          <StatCard label="Total Queries" value={totalQueriesFromStats > 0 ? totalQueriesFromStats.toLocaleString() : '—'} color="#0277BD" bg="#E1F5FE"
             icon={<DnsIcon />} subtitle={`${onlineCount} of ${children.length} online`}
             trend={totalQueriesFromStats > 0 ? { direction: 'neutral', label: 'Today' } : undefined} />
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
           <StatCard label="Blocked %" value={totalQueriesFromStats > 0 ? `${Math.round(totalBlocks / totalQueriesFromStats * 100)}%` : '0%'}
-            color="#E53935" bg="rgba(229,57,53,0.08)"
+            color="#C62828" bg="#FFEBEE"
             icon={<BlockIcon />} subtitle={`${totalBlocks.toLocaleString()} requests blocked today`}
             trend={totalBlocks > 10 ? { direction: 'up', label: 'High' } : { direction: 'down', label: 'Low' }} />
         </Grid>
         <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard label="Active Children" value={children.length} color="#06B6D4" bg="rgba(6,182,212,0.08)"
+          <StatCard label="Active Children" value={children.length} color="#005DAC" bg="#E3F2FD"
             icon={<FamilyRestroomIcon />} subtitle={`${onlineCount} online now`}
             trend={onlineCount > 0 ? { direction: 'up', label: `${onlineCount} online` } : { direction: 'neutral', label: 'All offline' }} />
         </Grid>
@@ -624,8 +653,8 @@ export default function CustomerDashboardPage() {
           <StatCard
             label="Alerts"
             value={alerts.length > 0 ? alerts.length : '0'}
-            color={alerts.length > 0 ? '#F59E0B' : '#43A047'}
-            bg={alerts.length > 0 ? 'rgba(245,158,11,0.08)' : 'rgba(67,160,71,0.08)'}
+            color={alerts.length > 0 ? '#E65100' : '#2E7D32'}
+            bg={alerts.length > 0 ? '#FFF3E0' : '#E8F5E9'}
             icon={<WarningAmberIcon />}
             subtitle={`7d block rate: ${blockRate7d.toFixed(1)}%`}
             trend={alerts.length > 0 ? { direction: 'down', label: `${alerts.length} unread` } : { direction: 'up', label: 'All clear' }}
@@ -679,12 +708,18 @@ export default function CustomerDashboardPage() {
                       onClick={() => navigate(`/profiles/${child.id}`)}
                       sx={{
                         cursor: 'pointer', overflow: 'hidden', position: 'relative',
-                        border: '1px solid', borderColor: `${accent}20`,
-                        transition: 'all 0.25s ease',
-                        '&:hover': { transform: 'translateY(-4px)', boxShadow: `0 12px 36px ${accent}28`, borderColor: `${accent}40` },
+                        bgcolor: '#FFFFFF', border: 'none',
+                        boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)',
+                        borderRadius: '12px',
+                        transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+                        '&:hover': { transform: 'translateY(-3px)', boxShadow: `0 12px 32px -4px rgba(15,31,61,0.12)` },
+                        '&::before': {
+                          content: '""', position: 'absolute',
+                          top: 0, left: 0, bottom: 0, width: 3,
+                          background: accent, borderRadius: '12px 0 0 12px',
+                        },
                       }}
                     >
-                      <Box sx={{ height: 4, background: `linear-gradient(90deg, ${accent}, ${GRADIENT_ACCENTS[(i+1) % GRADIENT_ACCENTS.length]})` }} />
                       <CardContent sx={{ pb: '12px !important' }}>
                         {/* Header */}
                         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
@@ -843,15 +878,16 @@ export default function CustomerDashboardPage() {
             <Grid size={{ xs: 12, sm: 6 }}>
               <AnimatedPage delay={0.1 + children.length * 0.07}>
                 <Card onClick={() => navigate('/profiles/new')} sx={{
-                  border: '2px dashed #C7D2FE', bgcolor: 'transparent', cursor: 'pointer',
+                  border: '2px dashed #C4D0DC', bgcolor: 'transparent', cursor: 'pointer',
                   transition: 'all 0.25s ease', minHeight: 180,
-                  '&:hover': { borderColor: '#4F46E5', bgcolor: 'rgba(79,70,229,0.02)', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(79,70,229,0.12)' },
+                  boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)',
+                  '&:hover': { borderColor: '#005DAC', bgcolor: 'rgba(0,93,172,0.02)', transform: 'translateY(-4px)', boxShadow: '0 12px 32px -4px rgba(0,93,172,0.12)' },
                 }}>
                   <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5, py: 4 }}>
-                    <Box sx={{ width: 48, height: 48, borderRadius: '12px', background: 'linear-gradient(135deg, rgba(79,70,229,0.1), rgba(124,58,237,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <AddIcon sx={{ fontSize: 24, color: '#4F46E5' }} />
+                    <Box sx={{ width: 48, height: 48, borderRadius: '12px', bgcolor: '#E3F2FD', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <AddIcon sx={{ fontSize: 24, color: '#005DAC' }} />
                     </Box>
-                    <Typography fontWeight={700} sx={{ color: '#4F46E5' }} fontSize={14}>Add Child Profile</Typography>
+                    <Typography fontWeight={700} sx={{ color: '#005DAC', fontFamily: '"Manrope", sans-serif' }} fontSize={14}>Add Child Profile</Typography>
                     <Typography variant="body2" textAlign="center" color="text.secondary" fontSize={12}>
                       Set up filtering, schedules & time limits
                     </Typography>
@@ -864,7 +900,7 @@ export default function CustomerDashboardPage() {
           {/* Activity Chart */}
           {chartData.length > 0 && (
             <AnimatedPage delay={0.2}>
-              <Card sx={{ mb: 3, border: '1px solid rgba(79,70,229,0.08)' }}>
+              <Card sx={{ mb: 3, bgcolor: '#FFFFFF', border: 'none', boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)', borderRadius: '12px' }}>
                 <CardContent>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
                     <Box>
@@ -1104,9 +1140,9 @@ export default function CustomerDashboardPage() {
                             }
                           }} sx={{
                             p: 1.5, borderRadius: '10px', cursor: 'pointer', textAlign: 'center',
-                            bgcolor: action.bg, border: '1px solid', borderColor: `${action.color}18`,
+                            bgcolor: action.bg, border: 'none',
                             transition: 'all 0.18s ease', position: 'relative',
-                            '&:hover': { transform: 'scale(1.04)', boxShadow: `0 4px 14px ${action.color}22`, borderColor: `${action.color}30` },
+                            '&:hover': { transform: 'scale(1.04)', boxShadow: `0 4px 14px ${action.color}22` },
                           }}>
                             {locked && (
                               <LockIcon sx={{ position: 'absolute', top: 4, right: 4, fontSize: 10, color: action.color, opacity: 0.6 }} />
@@ -1159,7 +1195,7 @@ export default function CustomerDashboardPage() {
 
             {/* Subscription info */}
             <AnimatedPage delay={0.25}>
-              <Card sx={{ background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)', boxShadow: '0 4px 20px rgba(79,70,229,0.3)' }}>
+              <Card sx={{ background: 'linear-gradient(135deg, #003D72 0%, #005DAC 100%)', boxShadow: '0 8px 32px -4px rgba(0,61,114,0.28)', border: 'none' }}>
                 <CardContent>
                   <Stack direction="row" alignItems="center" justifyContent="space-between">
                     <Box>

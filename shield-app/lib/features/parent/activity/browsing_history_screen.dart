@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
 import '../../../core/widgets/common_widgets.dart';
+import '../../../app/theme.dart';
 import 'package:intl/intl.dart';
 
 final _browsingProvider =
@@ -52,7 +53,7 @@ class _BrowsingHistoryState extends ConsumerState<BrowsingHistoryScreen> {
 
         Expanded(
           child: history.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const _BrowsingHistorySkeleton(),
             error:   (e, _) => ErrorView(
               message: 'Failed to load browsing history',
               onRetry: () => ref.invalidate(_browsingProvider(widget.profileId)),
@@ -64,9 +65,14 @@ class _BrowsingHistoryState extends ConsumerState<BrowsingHistoryScreen> {
                   message: 'No browsing history for this period',
                 );
               }
-              return ListView.builder(
-                itemCount:   list.length,
-                itemBuilder: (_, i) {
+              return RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(_browsingProvider(widget.profileId));
+                  await ref.read(_browsingProvider(widget.profileId).future);
+                },
+                child: ListView.builder(
+                  itemCount:   list.length,
+                  itemBuilder: (_, i) {
                   final item     = list[i];
                   final blocked  = item['isBlocked'] as bool? ?? false;
                   final dt       = DateTime.tryParse(item['visitedAt']?.toString() ?? '');
@@ -109,6 +115,7 @@ class _BrowsingHistoryState extends ConsumerState<BrowsingHistoryScreen> {
                     ),
                   );
                 },
+                ),
               );
             },
           ),
@@ -116,4 +123,73 @@ class _BrowsingHistoryState extends ConsumerState<BrowsingHistoryScreen> {
       ]),
     );
   }
+}
+
+// ── Skeleton loader ───────────────────────────────────────────────────────────
+
+class _BrowsingHistorySkeleton extends StatefulWidget {
+  const _BrowsingHistorySkeleton();
+  @override
+  State<_BrowsingHistorySkeleton> createState() => _BrowsingHistorySkeletonState();
+}
+
+class _BrowsingHistorySkeletonState extends State<_BrowsingHistorySkeleton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Widget _bone({double height = 14, double? width, double radius = 6}) =>
+      AnimatedBuilder(
+        animation: _anim,
+        builder: (_, __) => Container(
+          height: height,
+          width:  width,
+          decoration: BoxDecoration(
+            color: Color.lerp(
+              Ds.surfaceContainer,
+              Ds.surfaceContainerLowest,
+              _anim.value,
+            ),
+            borderRadius: BorderRadius.circular(radius),
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) => ListView.builder(
+    itemCount: 12,
+    itemBuilder: (_, __) => Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(children: [
+        _bone(height: 36, width: 36, radius: 18),
+        const SizedBox(width: 12),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _bone(height: 13),
+            const SizedBox(height: 6),
+            _bone(height: 11, width: 100),
+          ],
+        )),
+        const SizedBox(width: 12),
+        _bone(height: 11, width: 40),
+      ]),
+    ),
+  );
 }

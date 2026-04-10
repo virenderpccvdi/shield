@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shield-config
+  labels:
+    app: shield-config
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shield-config
+  template:
+    metadata:
+      labels:
+        app: shield-config
+    spec:
+      containers:
+        - name: shield-config
+          image: REGISTRY/shield-config:TAG
+          ports:
+            - containerPort: 8288
+          envFrom:
+            - secretRef:
+                name: shield-secrets
+          env:
+            - name: SERVER_PORT
+              value: "8288"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://eureka:ShieldEureka2026@shield-eureka:8261/eureka/"
+            - name: EUREKA_INSTANCE_PREFERIPADDRESS
+              value: "false"
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "shield-config"
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "50m"
+            limits:
+              memory: "512Mi"
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8288
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 8
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8288
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            failureThreshold: 5
+            timeoutSeconds: 10

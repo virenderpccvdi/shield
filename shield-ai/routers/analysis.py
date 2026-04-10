@@ -34,7 +34,8 @@ async def analyze_batch(
             from routers.alerts import register_alert
             # Normalize to 0-1 (IsolationForest decision_function is negative for anomalies)
             normalized_score = min(abs(result.score) * 2, 1.0)
-            register_alert(
+            await register_alert(
+                db=db,
                 profile_id=str(request.profileId),
                 alert_type="ANOMALY",
                 severity=result.severity.value,

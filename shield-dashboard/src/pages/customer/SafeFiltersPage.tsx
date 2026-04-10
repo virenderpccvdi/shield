@@ -230,9 +230,10 @@ export default function SafeFiltersPage() {
                 onClick={() => setSelectedChild(c.id)}
                 sx={{
                   fontWeight: 600,
-                  bgcolor: (profileId === c.id) ? '#1565C0' : 'rgba(21,101,192,0.08)',
-                  color: (profileId === c.id) ? 'white' : '#1565C0',
-                  '&:hover': { bgcolor: (profileId === c.id) ? '#0D47A1' : 'rgba(21,101,192,0.16)' },
+                  bgcolor: (profileId === c.id) ? '#005DAC' : '#E3F2FD',
+                  color: (profileId === c.id) ? 'white' : '#005DAC',
+                  border: 'none',
+                  '&:hover': { bgcolor: (profileId === c.id) ? '#004A8F' : '#BBDEFB' },
                 }}
               />
             ))}
@@ -244,9 +245,18 @@ export default function SafeFiltersPage() {
         {filters.map((filter, i) => (
           <AnimatedPage key={filter.key} delay={0.1 + i * 0.1}>
             <Card sx={{
-              border: '1px solid',
-              borderColor: filter.enabled ? 'success.light' : 'divider',
-              transition: 'border-color 0.2s ease',
+              bgcolor: '#FFFFFF', border: 'none',
+              boxShadow: filter.enabled
+                ? '0 8px 32px -4px rgba(46,125,50,0.10)'
+                : '0 8px 32px -4px rgba(15,31,61,0.06)',
+              borderRadius: '12px',
+              transition: 'box-shadow 0.22s ease',
+              position: 'relative', overflow: 'hidden',
+              '&::before': filter.enabled ? {
+                content: '""', position: 'absolute',
+                top: 0, left: 0, bottom: 0, width: 3,
+                background: '#2E7D32', borderRadius: '12px 0 0 12px',
+              } : {},
             }}>
               <CardContent>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between">
@@ -318,12 +328,12 @@ export default function SafeFiltersPage() {
 
       {/* Info card */}
       <AnimatedPage delay={0.35}>
-        <Card sx={{ bgcolor: 'rgba(21,101,192,0.04)', border: '1px solid rgba(21,101,192,0.15)' }}>
+        <Card sx={{ bgcolor: '#E1F5FE', border: 'none', boxShadow: 'none', borderRadius: '12px' }}>
           <CardContent>
             <Stack direction="row" spacing={1.5} alignItems="flex-start">
               <InfoOutlinedIcon sx={{ color: '#1565C0', mt: 0.25, flexShrink: 0 }} />
               <Box>
-                <Typography variant="subtitle2" fontWeight={700} color="#1565C0" sx={{ mb: 0.5 }}>
+                <Typography variant="subtitle2" fontWeight={700} color="#0277BD" sx={{ mb: 0.5 }}>
                   How safe filters work
                 </Typography>
                 <Typography variant="body2" color="text.secondary">

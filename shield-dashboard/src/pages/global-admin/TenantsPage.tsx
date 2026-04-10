@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell,
-  TableBody, TablePagination, Chip, TextField, InputAdornment, CircularProgress, Button,
+  TableBody, TablePagination, TableSortLabel, Chip, TextField, InputAdornment, CircularProgress, Button,
   Dialog, DialogTitle, DialogContent, DialogActions, Grid,
   MenuItem, IconButton, Tooltip, Alert, Snackbar, Stack, FormControlLabel, Switch,
 } from '@mui/material';
@@ -57,6 +57,17 @@ export default function TenantsPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [open, setOpen] = useState(false);
+  const [sortField, setSortField] = useState<string>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
 
   useEffect(() => { setPage(0); }, [search]);
   const [editing, setEditing] = useState<Tenant | null>(null);
@@ -70,8 +81,18 @@ export default function TenantsPage() {
     queryKey: ['tenants', page, rowsPerPage],
     queryFn: () => api.get(`/tenants?page=${page}&size=${rowsPerPage}`)
       .then(r => {
-        const d = r.data?.data ?? r.data;
-        return { tenants: (d?.content ?? d ?? EMPTY_TENANTS) as Tenant[], total: d?.totalElements ?? 0 };
+        const tenants: Tenant[] = (
+          r.data?.data?.content ??
+          r.data?.content ??
+          r.data?.data ??
+          r.data ??
+          EMPTY_TENANTS
+        ) as Tenant[];
+        const total: number =
+          r.data?.data?.totalElements ??
+          r.data?.totalElements ??
+          tenants.length;
+        return { tenants, total };
       })
       .catch(() => ({ tenants: EMPTY_TENANTS, total: 0 })),
   });
@@ -93,9 +114,17 @@ export default function TenantsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tenants'] }); setSnack('ISP tenant deleted'); setDeleteTarget(null); },
   });
 
-  const tenants = data.filter(t =>
-    `${t.name} ${t.slug} ${t.contactEmail}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const tenants = useMemo(() => {
+    const filtered = data.filter(t =>
+      `${t.name} ${t.slug} ${t.contactEmail}`.toLowerCase().includes(search.toLowerCase())
+    );
+    return [...filtered].sort((a, b) => {
+      const av = (a as Record<string, unknown>)[sortField] as string ?? '';
+      const bv = (b as Record<string, unknown>)[sortField] as string ?? '';
+      const cmp = String(av).localeCompare(String(bv));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [data, search, sortField, sortDir]);
 
   function openAdd() { setEditing(null); setForm(EMPTY_FORM); setFormError(''); setOpen(true); }
   function openEdit(t: Tenant) {
@@ -164,8 +193,28 @@ export default function TenantsPage() {
             <Table aria-label="ISP Tenants list">
               <TableHead>
                 <TableRow sx={{ bgcolor: 'background.default' }}>
-                  {['ISP Name', 'Slug', 'Contact Email', 'Plan', 'Max Customers', 'Sub Ends', 'Features', 'Status', 'Actions'].map(h => (
-                    <TableCell key={h} sx={{ fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>{h}</TableCell>
+                  {[
+                    { label: 'ISP Name', field: 'name' },
+                    { label: 'Slug', field: 'slug' },
+                    { label: 'Contact Email', field: 'contactEmail' },
+                    { label: 'Plan', field: 'plan' },
+                    { label: 'Max Customers', field: 'maxCustomers' },
+                    { label: 'Sub Ends', field: 'subscriptionEndsAt' },
+                    { label: 'Features', field: null },
+                    { label: 'Status', field: 'status' },
+                    { label: 'Actions', field: null },
+                  ].map(({ label, field }) => (
+                    <TableCell key={label} sx={{ fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
+                      {field ? (
+                        <TableSortLabel
+                          active={sortField === field}
+                          direction={sortField === field ? sortDir : 'asc'}
+                          onClick={() => handleSort(field)}
+                        >
+                          {label}
+                        </TableSortLabel>
+                      ) : label}
+                    </TableCell>
                   ))}
                 </TableRow>
               </TableHead>

@@ -510,13 +510,99 @@ public class AnalyticsService {
         return KNOWN_APPS.get(rootDomain.toLowerCase());
     }
 
+    // ── AN4: Weekly summary ──────────────────────────────────────────────────
+
+    /**
+     * Returns a 7-day summary for a child profile:
+     * total queries, blocks, top 5 categories, estimated screen time.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getWeeklySummary(UUID profileId) {
+        Instant from = Instant.now().minus(7, ChronoUnit.DAYS);
+        Instant to = Instant.now();
+
+        long total = dnsQueryLogRepository.countByProfileIdAndQueriedAtBetween(profileId, from, to);
+        long blocked = dnsQueryLogRepository.countByProfileIdAndActionAndQueriedAtBetween(profileId, "BLOCKED", from, to);
+        long allowed = total - blocked;
+        double blockRate = total > 0 ? (double) blocked / total * 100.0 : 0.0;
+
+        List<Object[]> catRows = dnsQueryLogRepository.findCategoryBreakdownByProfileId(profileId, from, to);
+        List<Map<String, Object>> topCategories = new ArrayList<>();
+        int catLimit = Math.min(catRows.size(), 5);
+        for (int i = 0; i < catLimit; i++) {
+            Object[] row = catRows.get(i);
+            Map<String, Object> cat = new java.util.LinkedHashMap<>();
+            cat.put("category", row[0]);
+            cat.put("count", ((Number) row[1]).longValue());
+            topCategories.add(cat);
+        }
+
+        // Rough screen time: assume each DNS query ≈ 30 seconds of activity
+        long screenTimeMinutes = (total * 30L) / 60L;
+
+        Map<String, Object> summary = new java.util.LinkedHashMap<>();
+        summary.put("profileId", profileId);
+        summary.put("period", "week");
+        summary.put("totalQueries", total);
+        summary.put("blockedQueries", blocked);
+        summary.put("allowedQueries", allowed);
+        summary.put("blockRate", Math.round(blockRate * 10.0) / 10.0);
+        summary.put("screenTimeMinutes", screenTimeMinutes);
+        summary.put("topCategories", topCategories);
+        return summary;
+    }
+
+    // ── AN5: Top categories by tenant ────────────────────────────────────────
+
+    /**
+     * Returns top N categories by block count for a tenant over the last 7 days.
+     */
+    @Transactional(readOnly = true)
+    public List<CategoryBreakdown> getTopCategoriesByTenant(UUID tenantId, int limit) {
+        Instant from = Instant.now().minus(7, ChronoUnit.DAYS);
+        Instant to = Instant.now();
+        List<Object[]> rows = dnsQueryLogRepository.findTenantBlockedCategories(tenantId, from, to);
+        List<CategoryBreakdown> result = new ArrayList<>();
+        int safeLimit = Math.min(limit, rows.size());
+        for (int i = 0; i < safeLimit; i++) {
+            Object[] row = rows.get(i);
+            result.add(new CategoryBreakdown((String) row[0], ((Number) row[1]).longValue()));
+        }
+        return result;
+    }
+
+    // ── AN3: validateAccess with ownership check ─────────────────────────────
+
+    /**
+     * Returns the profileId-to-tenantId mapping from the analytics DB for ownership checks.
+     * Used by the controller to verify that a CUSTOMER-role user owns the requested profile.
+     */
+    @Transactional(readOnly = true)
+    public UUID getProfileTenantId(UUID profileId) {
+        // Look up most recent log entry for this profile to get its tenantId
+        List<Object[]> rows = dnsQueryLogRepository.findActiveProfilesSince(
+                Instant.now().minus(365, ChronoUnit.DAYS));
+        for (Object[] row : rows) {
+            Object pid = row[0];
+            UUID foundId = pid instanceof UUID u ? u : UUID.fromString(pid.toString());
+            if (foundId.equals(profileId)) {
+                Object tid = row[1];
+                if (tid == null) return null;
+                return tid instanceof UUID u2 ? u2 : UUID.fromString(tid.toString());
+            }
+        }
+        return null;
+    }
+
     private Instant[] periodToRange(String period) {
         Instant now = Instant.now();
         Instant from = switch (period == null ? "today" : period.toLowerCase()) {
             case "week" -> now.minus(7, ChronoUnit.DAYS);
             case "month" -> now.minus(30, ChronoUnit.DAYS);
-            default -> now.truncatedTo(ChronoUnit.DAYS); // today
+            default -> now.truncatedTo(ChronoUnit.DAYS); // today: midnight to now
         };
+        // 'to' is always Instant.now() — ensures "today" returns data from midnight to this moment,
+        // not an empty range. Previously there was a risk of 'to' being midnight = empty range.
         return new Instant[]{from, now};
     }
 

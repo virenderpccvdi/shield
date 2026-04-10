@@ -5,11 +5,13 @@ namespace: shield-dev
 
 resources:
   - ../../base/eureka
+  - ../../base/config
   - ../../base/gateway
   - ../../base/auth
   - ../../base/tenant
   - ../../base/profile
   - ../../base/dns
+  - ../../base/dns-resolver
   - ../../base/location
   - ../../base/notification
   - ../../base/rewards
@@ -21,6 +23,9 @@ resources:
 images:
   - name: REGISTRY/shield-eureka
     newName: __ACR_LOGIN_SERVER__/shield-eureka
+    newTag: dev-latest
+  - name: REGISTRY/shield-config
+    newName: __ACR_LOGIN_SERVER__/shield-config
     newTag: dev-latest
   - name: REGISTRY/shield-gateway
     newName: __ACR_LOGIN_SERVER__/shield-gateway
@@ -36,6 +41,9 @@ images:
     newTag: dev-latest
   - name: REGISTRY/shield-dns
     newName: __ACR_LOGIN_SERVER__/shield-dns
+    newTag: dev-latest
+  - name: REGISTRY/shield-dns-resolver
+    newName: __ACR_LOGIN_SERVER__/shield-dns-resolver
     newTag: dev-latest
   - name: REGISTRY/shield-location
     newName: __ACR_LOGIN_SERVER__/shield-location

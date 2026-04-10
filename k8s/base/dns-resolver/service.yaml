@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shield-dns-resolver
+  annotations:
+    # External DNS clients point to this service for filtered DNS resolution
+    service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /actuator/health
+spec:
+  selector:
+    app: shield-dns-resolver
+  ports:
+    - name: http
+      port: 8292
+      targetPort: 8292
+      protocol: TCP
+    - name: dns-udp
+      port: 53
+      targetPort: 53
+      protocol: UDP
+    - name: dns-tcp
+      port: 53
+      targetPort: 53
+      protocol: TCP
+  # LoadBalancer so end-user devices can reach port 53 directly from the internet
+  type: LoadBalancer

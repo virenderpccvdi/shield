@@ -64,9 +64,9 @@ public class TenantController {
     @Operation(summary = "Get tenant by ID")
     public ApiResponse<TenantResponse> getById(
             @RequestHeader("X-User-Role") String role,
-            @RequestHeader(value = "X-Tenant-Id", required = false) UUID callerTenantId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String callerTenantIdStr,
             @PathVariable UUID id) {
-        requireGlobalAdminOrSelf(role, callerTenantId, id);
+        requireGlobalAdminOrSelf(role, parseUuid(callerTenantIdStr), id);
         return ApiResponse.ok(tenantService.getById(id));
     }
 

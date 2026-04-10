@@ -77,6 +77,7 @@ class _ScheduleBody extends ConsumerStatefulWidget {
 class _ScheduleBodyState extends ConsumerState<_ScheduleBody> {
   late Map<String, Map<String, String?>> _schedule;
   bool _saving = false;
+  final _toggling = <String, bool>{};
 
   @override
   void initState() {
@@ -141,17 +142,36 @@ class _ScheduleBodyState extends ConsumerState<_ScheduleBody> {
     ),
   ]);
 
+  Future<void> _toggleDay(String day, bool value) async {
+    if (_toggling.containsKey(day)) return;
+    setState(() => _toggling[day] = true);
+    try {
+      setState(() => _schedule[day]!['enabled'] = value.toString());
+    } finally {
+      if (mounted) setState(() => _toggling.remove(day));
+    }
+  }
+
   Widget _dayRow(String day, String label) {
     final enabled = _schedule[day]!['enabled'] == 'true';
+    final isToggling = _toggling.containsKey(day);
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(children: [
           SizedBox(width: 36, child: Text(label,
               style: const TextStyle(fontWeight: FontWeight.w600))),
+          if (isToggling)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: SizedBox(
+                width: 16, height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
           Switch(
             value:    enabled,
-            onChanged: (v) => setState(() => _schedule[day]!['enabled'] = v.toString()),
+            onChanged: isToggling ? null : (v) => _toggleDay(day, v),
           ),
           if (enabled) ...[
             const Spacer(),

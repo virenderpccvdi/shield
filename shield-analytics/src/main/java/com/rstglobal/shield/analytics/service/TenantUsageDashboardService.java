@@ -1,17 +1,18 @@
 package com.rstglobal.shield.analytics.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rstglobal.shield.analytics.dto.response.CategoryCount;
 import com.rstglobal.shield.analytics.dto.response.CustomerActivityItem;
 import com.rstglobal.shield.analytics.dto.response.HourlyCount;
 import com.rstglobal.shield.analytics.dto.response.TenantOverviewResponse;
 import com.rstglobal.shield.analytics.repository.DnsQueryLogRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,10 +26,19 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TenantUsageDashboardService {
 
     private final DnsQueryLogRepository dnsQueryLogRepository;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    public TenantUsageDashboardService(DnsQueryLogRepository dnsQueryLogRepository,
+                                        StringRedisTemplate redisTemplate,
+                                        ObjectMapper objectMapper) {
+        this.dnsQueryLogRepository = dnsQueryLogRepository;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
+    }
 
     // ── Overview ──────────────────────────────────────────────────────────────
 
@@ -40,6 +50,17 @@ public class TenantUsageDashboardService {
      */
     @Transactional(readOnly = true)
     public TenantOverviewResponse getTenantOverview(UUID tenantId) {
+        // DB8: Redis cache with 2-minute TTL for dashboard overview
+        String cacheKey = "shield:analytics:overview:" + tenantId;
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return objectMapper.readValue(cached, TenantOverviewResponse.class);
+            }
+        } catch (Exception e) {
+            log.debug("Redis cache miss for key={}: {}", cacheKey, e.getMessage());
+        }
+
         Instant now = Instant.now();
         Instant todayStart = now.truncatedTo(ChronoUnit.DAYS);
         Instant last24h = now.minus(24, ChronoUnit.HOURS);
@@ -91,7 +112,7 @@ public class TenantUsageDashboardService {
         // Bandwidth saved estimate: blocked queries * 0.05 MB
         double bandwidthSavedMb = blockedQueriesToday * 0.05;
 
-        return new TenantOverviewResponse(
+        TenantOverviewResponse result = new TenantOverviewResponse(
                 activeProfiles,
                 totalProfiles,
                 totalQueriesToday,
@@ -101,6 +122,16 @@ public class TenantUsageDashboardService {
                 0L, // activeAlerts — reserved for SOS/geofence integration
                 bandwidthSavedMb
         );
+
+        // Write to Redis with 2-minute TTL
+        try {
+            redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(result),
+                    Duration.ofMinutes(2));
+        } catch (Exception e) {
+            log.debug("Failed to cache overview for tenantId={}: {}", tenantId, e.getMessage());
+        }
+
+        return result;
     }
 
     // ── Customer Activity ─────────────────────────────────────────────────────

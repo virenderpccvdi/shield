@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shield-config
+spec:
+  selector:
+    app: shield-config
+  ports:
+    - port: 8288
+      targetPort: 8288
+  type: ClusterIP

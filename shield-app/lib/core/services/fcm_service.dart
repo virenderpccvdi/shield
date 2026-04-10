@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:go_router/go_router.dart';
 import '../api/api_client.dart';
 import '../api/endpoints.dart';
 
@@ -61,12 +62,35 @@ class FcmService {
   }
 
   static void _handleOpen(RemoteMessage msg) {
-    // Navigate based on notification type
-    final type = msg.data['type'] as String?;
-    final ctx  = navigatorKey.currentContext;
+    final notifType = msg.data['type'] as String? ?? '';
+    final ctx = navigatorKey.currentContext;
     if (ctx == null) return;
-    if (type == 'SOS' || type == 'PANIC') {
-      Navigator.of(ctx, rootNavigator: true).pushNamed('/alerts');
+    final router = GoRouter.of(ctx);
+    switch (notifType) {
+      case 'GEOFENCE':
+        router.go('/parent/location/map');
+        break;
+      case 'BUDGET_EXCEEDED':
+        router.go('/parent/controls/time-limits');
+        break;
+      case 'ANOMALY':
+        router.go('/parent/activity/ai-insights');
+        break;
+      case 'SOS':
+      case 'PANIC':
+        final childId = msg.data['childId'] as String?;
+        if (childId != null && childId.isNotEmpty) {
+          router.go('/parent/location/map?childId=$childId');
+        } else {
+          router.go('/parent/location/map');
+        }
+        break;
+      case 'BEDTIME':
+        router.go('/parent/controls/bedtime');
+        break;
+      default:
+        router.go('/parent/alerts');
+        break;
     }
   }
 

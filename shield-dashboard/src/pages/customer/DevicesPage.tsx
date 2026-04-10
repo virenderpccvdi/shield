@@ -574,8 +574,10 @@ export default function DevicesPage() {
           <Card
             onClick={() => activeChild && setSetupChild(activeChild)}
             sx={{
-              flex: '1 1 220px', cursor: 'pointer', border: '2px solid transparent',
-              transition: 'all 0.2s', '&:hover': { borderColor: 'secondary.main', transform: 'translateY(-2px)' },
+              flex: '1 1 220px', cursor: 'pointer',
+              bgcolor: '#FFFFFF', border: 'none',
+              boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)', borderRadius: '12px',
+              transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 32px -4px rgba(46,125,50,0.14)' },
             }}
           >
             <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: '12px !important' }}>
@@ -655,10 +657,18 @@ export default function DevicesPage() {
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={device.id}>
                 <AnimatedPage delay={0.1 + i * 0.05}>
                   <Card sx={{
-                    borderTop: `4px solid`,
-                    borderTopColor: isOnline(device) ? 'success.main' : 'divider',
-                    transition: 'all 0.2s ease',
-                    '&:hover': { transform: 'translateY(-3px)' },
+                    bgcolor: '#FFFFFF', border: 'none',
+                    boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)',
+                    borderRadius: '12px',
+                    overflow: 'hidden', position: 'relative',
+                    transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+                    '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 32px -4px rgba(15,31,61,0.10)' },
+                    '&::before': {
+                      content: '""', position: 'absolute',
+                      top: 0, left: 0, bottom: 0, width: 3,
+                      background: isOnline(device) ? '#2E7D32' : '#C4D0DC',
+                      borderRadius: '12px 0 0 12px',
+                    },
                   }}>
                     <CardContent>
                       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>

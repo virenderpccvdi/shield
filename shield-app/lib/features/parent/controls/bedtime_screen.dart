@@ -17,6 +17,7 @@ class _BedtimeScreenState extends ConsumerState<BedtimeScreen> {
   String _wakeTime    = '07:00';
   bool   _loading     = true;
   bool   _saving      = false;
+  bool   _togglingEnabled = false;
 
   @override
   void initState() {
@@ -85,7 +86,20 @@ class _BedtimeScreenState extends ConsumerState<BedtimeScreen> {
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: const Text('Blocks internet during sleep hours'),
                 value:    _enabled,
-                onChanged: (v) => setState(() => _enabled = v),
+                onChanged: _togglingEnabled ? null : (v) async {
+                  setState(() => _togglingEnabled = true);
+                  try {
+                    setState(() => _enabled = v);
+                  } finally {
+                    if (mounted) setState(() => _togglingEnabled = false);
+                  }
+                },
+                secondary: _togglingEnabled
+                    ? const SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
               ),
 
               if (_enabled) ...[

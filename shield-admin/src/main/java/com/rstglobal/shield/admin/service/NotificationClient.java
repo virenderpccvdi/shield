@@ -110,6 +110,157 @@ public class NotificationClient {
         }
     }
 
+    /**
+     * Send payment-failed notification email with dunning context (async).
+     */
+    @Async
+    public void sendPaymentFailedEmail(String email, String name, String invoiceId,
+                                        BigDecimal amount, String currency,
+                                        int attemptNumber, java.time.Instant nextRetryDate,
+                                        java.util.UUID tenantId) {
+        try {
+            String baseUrl = resolveBaseUrl();
+            if (baseUrl == null) return;
+
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("email", email);
+            payload.put("name", name != null ? name : email);
+            payload.put("invoiceId", invoiceId);
+            payload.put("amount", amount != null ? amount.toPlainString() : "0");
+            payload.put("currency", currency != null ? currency : "INR");
+            payload.put("attemptNumber", attemptNumber);
+            payload.put("updatePaymentUrl", "https://shield.rstglobal.in/app/billing");
+            if (nextRetryDate != null) {
+                payload.put("nextRetryDate", java.time.OffsetDateTime.ofInstant(nextRetryDate,
+                        java.time.ZoneOffset.UTC).format(DATE_FMT));
+            }
+            if (tenantId != null) payload.put("tenantId", tenantId.toString());
+
+            restClient.post()
+                    .uri(baseUrl + "/internal/notifications/billing/payment-failed")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Payment-failed email request sent for invoice {} (attempt {})", invoiceId, attemptNumber);
+        } catch (Exception e) {
+            log.warn("Failed to send payment-failed email for {}: {}", invoiceId, e.getMessage());
+        }
+    }
+
+    /**
+     * Backward-compatible overload (no dunning info) — used by legacy callers.
+     */
+    @Async
+    public void sendPaymentFailedEmail(String email, String name, String invoiceId,
+                                        BigDecimal amount, String currency,
+                                        java.util.UUID tenantId) {
+        sendPaymentFailedEmail(email, name, invoiceId, amount, currency, 1, null, tenantId);
+    }
+
+    /**
+     * Send refund notification email (async).
+     */
+    @Async
+    public void sendRefundNotificationEmail(String email, String name, String invoiceReference,
+                                             BigDecimal amount, String currency,
+                                             java.util.UUID tenantId) {
+        try {
+            String baseUrl = resolveBaseUrl();
+            if (baseUrl == null) return;
+
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("email", email);
+            payload.put("name", name != null ? name : email);
+            payload.put("invoiceReference", invoiceReference);
+            payload.put("amount", amount != null ? amount.toPlainString() : "0");
+            payload.put("currency", currency != null ? currency : "INR");
+            payload.put("dashboardUrl", "https://shield.rstglobal.in/app/billing");
+            if (tenantId != null) payload.put("tenantId", tenantId.toString());
+
+            restClient.post()
+                    .uri(baseUrl + "/internal/notifications/billing/refund-issued")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Refund notification email sent for invoice {}", invoiceReference);
+        } catch (Exception e) {
+            log.warn("Failed to send refund notification email for {}: {}", invoiceReference, e.getMessage());
+        }
+    }
+
+    /**
+     * Send subscription renewal reminder email (async).
+     */
+    @Async
+    public void sendRenewalReminderEmail(String email, String name, String planName,
+                                          BigDecimal amount, String currency,
+                                          java.time.Instant renewalDate,
+                                          java.util.UUID tenantId) {
+        try {
+            String baseUrl = resolveBaseUrl();
+            if (baseUrl == null) return;
+
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("email", email);
+            payload.put("name", name != null ? name : email);
+            payload.put("planName", planName);
+            payload.put("amount", amount != null ? amount.toPlainString() : "0");
+            payload.put("currency", currency != null ? currency : "INR");
+            payload.put("dashboardUrl", "https://shield.rstglobal.in/app/billing");
+            if (renewalDate != null) {
+                payload.put("renewalDate", java.time.OffsetDateTime.ofInstant(renewalDate,
+                        java.time.ZoneOffset.UTC).format(DATE_FMT));
+            }
+            if (tenantId != null) payload.put("tenantId", tenantId.toString());
+
+            restClient.post()
+                    .uri(baseUrl + "/internal/notifications/billing/renewal-reminder")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Renewal reminder email sent to {} for plan {}", email, planName);
+        } catch (Exception e) {
+            log.warn("Failed to send renewal reminder email to {}: {}", email, e.getMessage());
+        }
+    }
+
+    /**
+     * Send payment-action-required notification email (async).
+     */
+    @Async
+    public void sendPaymentActionRequiredEmail(String email, String name,
+                                                String paymentIntentId,
+                                                java.util.UUID tenantId) {
+        try {
+            String baseUrl = resolveBaseUrl();
+            if (baseUrl == null) return;
+
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("email", email);
+            payload.put("name", name != null ? name : email);
+            payload.put("paymentIntentId", paymentIntentId);
+            payload.put("actionUrl", "https://shield.rstglobal.in/app/billing");
+            if (tenantId != null) payload.put("tenantId", tenantId.toString());
+
+            restClient.post()
+                    .uri(baseUrl + "/internal/notifications/billing/payment-action-required")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Payment-action-required email sent for paymentIntent {}", paymentIntentId);
+        } catch (Exception e) {
+            log.warn("Failed to send payment-action-required email: {}", e.getMessage());
+        }
+    }
+
     private String resolveBaseUrl() {
         List<ServiceInstance> instances = discoveryClient.getInstances(SERVICE_ID);
         if (instances.isEmpty()) {

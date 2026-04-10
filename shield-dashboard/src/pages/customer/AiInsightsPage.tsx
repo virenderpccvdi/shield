@@ -206,17 +206,29 @@ function StatCard({ icon, label, value, sub, color }: {
   icon: React.ReactNode; label: string; value: string; sub: string; color: string;
 }) {
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ py: 2.5 }}>
+    <Card sx={{
+      height: '100%', bgcolor: '#FFFFFF', border: 'none',
+      boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)', borderRadius: '12px',
+      overflow: 'hidden', position: 'relative',
+      '&::before': {
+        content: '""', position: 'absolute',
+        top: 0, left: 0, bottom: 0, width: 3,
+        background: color, borderRadius: '12px 0 0 12px',
+      },
+    }}>
+      <CardContent sx={{ py: 2.25, px: 2.5 }}>
         <Box sx={{
-          width: 36, height: 36, borderRadius: 2, bgcolor: `${color}18`,
+          width: 36, height: 36, borderRadius: '10px', bgcolor: `${color}12`,
           display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5,
+          color,
         }}>
-          <Box sx={{ color, '& .MuiSvgIcon-root': { fontSize: 20 } }}>{icon}</Box>
+          <Box sx={{ color, '& .MuiSvgIcon-root': { fontSize: 19 } }}>{icon}</Box>
         </Box>
-        <Typography variant="h5" fontWeight={800} sx={{ color, lineHeight: 1.1 }}>{value}</Typography>
-        <Typography variant="body2" fontWeight={600} sx={{ mt: 0.3 }}>{label}</Typography>
-        <Typography variant="caption" color="text.secondary">{sub}</Typography>
+        <Typography sx={{ fontFamily: '"Manrope", sans-serif', fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.03em', color: '#005DAC' }}>
+          {value}
+        </Typography>
+        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: 12.5, fontWeight: 600, color: '#0F1F3D', mt: 0.3 }}>{label}</Typography>
+        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: 11.5, color: '#4A6481' }}>{sub}</Typography>
       </CardContent>
     </Card>
   );
@@ -226,17 +238,24 @@ function RecommendationCard({ rec }: { rec: Recommendation }) {
   const color = REC_ICON_COLORS[rec.type] || '#7B1FA2';
   return (
     <Card sx={{
-      border: '1px solid',
-      borderColor: `${color}30`,
-      '&:hover': { boxShadow: 3, transform: 'translateY(-1px)', transition: 'all .15s' },
+      bgcolor: '#FFFFFF', border: 'none',
+      boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)', borderRadius: '12px',
+      overflow: 'hidden', position: 'relative',
+      transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+      '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 32px -4px rgba(15,31,61,0.10)' },
+      '&::before': {
+        content: '""', position: 'absolute',
+        top: 0, left: 0, bottom: 0, width: 3,
+        background: color, borderRadius: '12px 0 0 12px',
+      },
     }}>
       <CardContent sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
         <Box sx={{
-          width: 44, height: 44, borderRadius: 2, flexShrink: 0,
-          background: `linear-gradient(135deg, ${color}cc, ${color})`,
+          width: 40, height: 40, borderRadius: '10px', flexShrink: 0,
+          bgcolor: `${color}12`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <LightbulbIcon sx={{ color: 'white', fontSize: 22 }} />
+          <LightbulbIcon sx={{ color, fontSize: 20 }} />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="body1" fontWeight={700}>{rec.title}</Typography>
@@ -866,17 +885,22 @@ export default function AiInsightsPage() {
       {activeTab !== 3 && (
         isLoading ? (
           <Grid container spacing={2.5}>
-            {[1, 2, 3, 4].map(i => (
-              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
-                <Skeleton variant="rounded" height={160} />
+            {/* 3 stat card skeletons */}
+            {[1, 2, 3].map(i => (
+              <Grid size={{ xs: 12, sm: 4 }} key={i}>
+                <Skeleton variant="rounded" height={100} />
               </Grid>
             ))}
-            <Grid size={{ xs: 12, md: 8 }}>
-              <Skeleton variant="rounded" height={260} />
+            {/* Chart area skeleton */}
+            <Grid size={12}>
+              <Skeleton variant="rounded" height={280} />
             </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Skeleton variant="rounded" height={260} />
-            </Grid>
+            {/* 3 recommendation card skeletons */}
+            {[1, 2, 3].map(i => (
+              <Grid size={12} key={`rec-${i}`}>
+                <Skeleton variant="rounded" height={60} />
+              </Grid>
+            ))}
           </Grid>
         ) : showNoData ? (
           <NoDataEmptyState profileName={selectedChildObj?.name} onRefresh={handleRefreshAnalysis} />
@@ -1014,8 +1038,8 @@ export default function AiInsightsPage() {
                   <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
                     Weekly Usage Trend
                   </Typography>
-                  <Box sx={{ height: 250 }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                  <Box sx={{ height: 250, minHeight: 200 }}>
+                    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                       <AreaChart data={weeklyChartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
                         <XAxis dataKey="day" tick={{ fontSize: 12 }} />

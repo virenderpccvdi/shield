@@ -112,26 +112,32 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         long   tokenIat = claims.getIssuedAt() != null
                           ? claims.getIssuedAt().toInstant().getEpochSecond() : 0;
 
+        // Reject tokens missing required claims — prevents null header injection to downstream services
+        if (userId == null || userId.isBlank()) {
+            log.debug("JWT missing subject (userId) claim — rejecting");
+            return unauthorized(exchange, "Token missing required claims");
+        }
+        if (role == null || role.isBlank()) {
+            log.debug("JWT missing role claim for userId={} — rejecting", userId);
+            return unauthorized(exchange, "Token missing required claims");
+        }
+
         // Child app tokens carry CHILD_APP role — downstream services expect CUSTOMER.
         // Map it here so no service needs to know about the CHILD_APP role.
         // X-Profile-Id is also injected so child-specific services can identify the profile.
         String profileId = claims.get("profile_id", String.class);
         String effectiveRole = "CHILD_APP".equals(role) ? "CUSTOMER" : role;
 
-        // Build the mutated request (same regardless of blacklist outcome)
+        // Build the mutated request with validated, non-null claim values
         ServerHttpRequest mutated = exchange.getRequest().mutate()
-                .header("X-User-Id",    userId      != null ? userId      : "")
-                .header("X-User-Role",  effectiveRole != null ? effectiveRole : "")
+                .header("X-User-Id",    userId)
+                .header("X-User-Role",  effectiveRole)
                 .header("X-Tenant-Id",  tenantId    != null ? tenantId    : "")
                 .header("X-Profile-Id", profileId   != null ? profileId   : "")
                 .headers(h -> h.remove(HttpHeaders.AUTHORIZATION))
                 .build();
 
         ServerWebExchange mutatedExchange = exchange.mutate().request(mutated).build();
-
-        if (userId == null) {
-            return chain.filter(mutatedExchange);
-        }
 
         // Check Redis blacklist: key = shield:auth:blacklist:{userId}, value = epoch second of logout
         return redis.opsForValue().get(BLACKLIST_PREFIX + userId)

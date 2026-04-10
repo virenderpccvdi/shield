@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -169,6 +170,28 @@ public class RewardBankService {
             rewardBankRepository.save(bank);
             log.info("Updated streak for profile {} to {} days", profileId, bank.getStreakDays());
         });
+    }
+
+    /**
+     * A6: Family leaderboard — all children in a tenant sorted by total points, highest first.
+     * Returns list of maps: { profileId, totalPoints, rank, streak }.
+     * Note: name is not stored in reward_bank; callers can enrich via profile service if needed.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getLeaderboard(UUID tenantId) {
+        List<RewardBank> banks = rewardBankRepository.findByTenantIdOrderByTotalEarnedPointsDesc(tenantId);
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        int rank = 1;
+        for (RewardBank bank : banks) {
+            Map<String, Object> entry = new java.util.LinkedHashMap<>();
+            entry.put("profileId",    bank.getProfileId());
+            entry.put("totalPoints",  bank.getTotalEarnedPoints());
+            entry.put("pointsBalance", bank.getPointsBalance());
+            entry.put("rank",         rank++);
+            entry.put("streak",       bank.getStreakDays());
+            result.add(entry);
+        }
+        return result;
     }
 
     @Transactional(readOnly = true)

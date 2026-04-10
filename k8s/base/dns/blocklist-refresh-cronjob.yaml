@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: shield-blocklist-refresh
+  namespace: shield-prod
+spec:
+  schedule: "0 2 * * 0"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: blocklist-updater
+              image: curlimages/curl:latest
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  curl -sf -X POST http://shield-dns:8284/internal/dns/blocklist/refresh \
+                    -H "X-Internal-Token: ${INTERNAL_TOKEN}" || exit 1
+              env:
+                - name: INTERNAL_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: shield-secrets
+                      key: INTERNAL_TOKEN
+                      optional: true

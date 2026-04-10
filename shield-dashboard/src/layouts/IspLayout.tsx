@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText,
@@ -105,6 +105,9 @@ export default function IspLayout() {
   const toggleSection = (title: string) => {
     setExpandedSections(prev => ({ ...prev, [title]: !prev[title] }));
   };
+
+  // RD9: Close mobile drawer on route change
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const drawerWidth = collapsed && !isMobile ? DRAWER_COLLAPSED : DRAWER_EXPANDED;
 

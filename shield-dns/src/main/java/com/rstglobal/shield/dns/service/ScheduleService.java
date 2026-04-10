@@ -147,7 +147,9 @@ public class ScheduleService {
             case SUNDAY    -> "sunday";
         };
 
-        List<Schedule> schedules = scheduleRepo.findAllSchedules();
+        // Performance fix: only load profiles that have blocked hours today OR an active override.
+        // This avoids a full-table scan on every minute tick for platforms with many profiles.
+        List<Schedule> schedules = scheduleRepo.findSchedulesActiveForDay(dayKey);
         int blocked = 0, allowed = 0;
 
         for (Schedule s : schedules) {
@@ -199,6 +201,25 @@ public class ScheduleService {
         if (!schedules.isEmpty()) {
             log.debug("Schedule enforcement tick: {} profiles blocked, {} allowed", blocked, allowed);
         }
+
+        // Clear stale __schedule_blocked__ flags for profiles that are no longer in the
+        // active-for-day set (e.g. their blocked hour just ended). We only touch rows
+        // where the flag is currently TRUE to avoid unnecessary DB writes.
+        Set<UUID> activeProfileIds = schedules.stream()
+                .map(Schedule::getProfileId)
+                .collect(java.util.stream.Collectors.toSet());
+        dnsRulesRepo.findAllWithScheduleBlocked().forEach(rules -> {
+            if (!activeProfileIds.contains(rules.getProfileId())) {
+                Map<String, Boolean> cats = rules.getEnabledCategories();
+                if (cats != null && Boolean.TRUE.equals(cats.get(SCHEDULE_BLOCKED_KEY))) {
+                    cats = new LinkedHashMap<>(cats);
+                    cats.put(SCHEDULE_BLOCKED_KEY, false);
+                    rules.setEnabledCategories(cats);
+                    dnsRulesRepo.save(rules);
+                    log.info("Schedule enforcement: cleared stale block for profileId={}", rules.getProfileId());
+                }
+            }
+        });
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -88,6 +88,8 @@ class AnomalyResult(BaseModel):
     is_anomaly: bool
     score: float
     severity: RiskLevel
+    confidence_score: Optional[float] = None   # 0-100 confidence it IS an anomaly
+    explanation: Optional[str] = None          # human-readable reason
 
 
 class HealthResponse(BaseModel):

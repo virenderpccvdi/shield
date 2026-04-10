@@ -225,12 +225,23 @@ public class RulesCacheService {
     }
 
     /**
+     * Returns true if SafeSearch enforcement is enabled for this profile.
+     * Redis key: shield:dns:profile:{profileId}:safe_search → "true"/"false"
+     */
+    public Mono<Boolean> getProfileSafeSearch(String profileId) {
+        return redisTemplate.opsForValue().get(PROFILE_KEY + profileId + ":safe_search")
+            .map("true"::equalsIgnoreCase)
+            .defaultIfEmpty(false);
+    }
+
+    /**
      * Invalidate all cached rules for a profile.
      */
     public Mono<Void> invalidateProfile(String profileId) {
         String baseKey = PROFILE_KEY + profileId;
         return redisTemplate.delete(baseKey + ":blocklist", baseKey + ":allowlist",
-                baseKey + ":categories", baseKey + ":schedule", baseKey + ":level")
+                baseKey + ":categories", baseKey + ":schedule", baseKey + ":level",
+                baseKey + ":safe_search")
             .then();
     }
 
@@ -300,6 +311,11 @@ public class RulesCacheService {
                         if (schedule instanceof String s && !s.isEmpty()) {
                             ops = ops.then(redisTemplate.opsForValue().set(baseKey + ":schedule", s, ttl).then());
                         }
+
+                        // SafeSearch flag
+                        Object safeSearch = rules.get("safeSearch");
+                        String safeSearchVal = Boolean.TRUE.equals(safeSearch) ? "true" : "false";
+                        ops = ops.then(redisTemplate.opsForValue().set(baseKey + ":safe_search", safeSearchVal, ttl).then());
 
                         return ops;
                     });

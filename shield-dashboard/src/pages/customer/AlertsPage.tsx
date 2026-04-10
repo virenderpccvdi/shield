@@ -341,7 +341,13 @@ export default function AlertsPage() {
     queryKey: ['notification-history'],
     queryFn: async () => {
       const r = await api.get('/notifications/my?page=0&size=50');
-      const items: NotificationRecord[] = r.data?.data?.content ?? r.data?.data ?? r.data ?? [];
+      const items: NotificationRecord[] = (
+        r.data?.data?.content ??
+        r.data?.content ??
+        r.data?.data ??
+        r.data ??
+        []
+      ) as NotificationRecord[];
       return items.map(n => notifToAlert(n, profileMap));
     },
     staleTime: 30000,
@@ -431,9 +437,9 @@ export default function AlertsPage() {
 
       {/* Notifications section */}
       <AnimatedPage delay={0.1}>
-        <Card>
+        <Card sx={{ bgcolor: '#FFFFFF', border: 'none', boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)', borderRadius: '12px' }}>
           {/* Tabs + search */}
-          <Box sx={{ px: 2, pt: 1.5, pb: 0, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ px: 2, pt: 1.5, pb: 0, borderBottom: '1px solid', borderColor: 'rgba(196,208,220,0.5)' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} sx={{ mb: 1 }}>
               <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{
                 minHeight: 36,
@@ -472,10 +478,10 @@ export default function AlertsPage() {
                     onClick={() => setTypeFilter(group)}
                     sx={{
                       fontWeight: 600, fontSize: 11, cursor: 'pointer', flexShrink: 0,
-                      bgcolor: selected ? color : `${color}18`,
+                      bgcolor: selected ? color : `${color}14`,
                       color: selected ? '#fff' : color,
-                      border: `1px solid ${color}40`,
-                      '&:hover': { bgcolor: selected ? color : `${color}30` },
+                      border: 'none',
+                      '&:hover': { bgcolor: selected ? color : `${color}28` },
                     }}
                   />
                 );

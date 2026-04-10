@@ -90,6 +90,44 @@ def _normalize_features(features: dict) -> list:
     ]
 
 
+def _compute_confidence(raw_score: float) -> float:
+    """Convert IsolationForest decision_function score to 0-100 confidence.
+
+    decision_function: positive = normal, negative = anomaly.
+    Normalize to a 0-1 probability that the sample IS an anomaly, then scale to 0-100.
+    """
+    confidence = max(0.0, min(1.0, 0.5 - raw_score))
+    return round(confidence * 100, 1)
+
+
+def _explain_anomaly(features: dict, is_anomaly: bool) -> str:
+    """Generate human-readable explanation for why a session was flagged."""
+    reasons = []
+
+    hour = features.get('hour_of_day', features.get('hour', 12))
+    if hour < 6 or hour > 22:
+        reasons.append("unusual browsing time (outside normal hours)")
+
+    unique_domains = features.get('unique_domains', 0)
+    if unique_domains > 50:
+        reasons.append(f"unusually high number of sites visited ({unique_domains})")
+
+    block_rate = features.get('block_rate', 0)
+    if block_rate > 0.3:
+        reasons.append("high proportion of blocked content attempts")
+
+    query_count = max(features.get('query_count', 1), 1)
+    new_domains = features.get('new_domains', 0)
+    new_domains_ratio = new_domains / query_count if query_count > 0 else 0
+    if new_domains_ratio > 0.7:
+        reasons.append("many previously unvisited sites")
+
+    if not reasons:
+        reasons.append("unusual pattern compared to historical baseline")
+
+    return "Flagged because: " + "; ".join(reasons)
+
+
 def detect_anomaly(features: dict) -> AnomalyResult:
     model = load_model()
     n_features = model.n_features_in_ if hasattr(model, 'n_features_in_') else 11
@@ -101,6 +139,12 @@ def detect_anomaly(features: dict) -> AnomalyResult:
     score = float(model.decision_function(X)[0])
     is_anomaly = model.predict(X)[0] == -1
 
+    # Confidence score: 0-100 probability that this sample IS an anomaly
+    confidence_score = _compute_confidence(score)
+
+    # Human-readable explanation
+    explanation = _explain_anomaly(features, is_anomaly)
+
     if score < -0.3:
         severity = RiskLevel.HIGH
     elif score < -0.1:
@@ -108,7 +152,13 @@ def detect_anomaly(features: dict) -> AnomalyResult:
     else:
         severity = RiskLevel.LOW
 
-    return AnomalyResult(is_anomaly=is_anomaly, score=score, severity=severity)
+    return AnomalyResult(
+        is_anomaly=is_anomaly,
+        score=score,
+        severity=severity,
+        confidence_score=confidence_score,
+        explanation=explanation,
+    )
 
 
 def reload_model(model_data: dict) -> None:

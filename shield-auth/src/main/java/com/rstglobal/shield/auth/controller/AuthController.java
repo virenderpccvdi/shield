@@ -3,6 +3,7 @@ package com.rstglobal.shield.auth.controller;
 import com.rstglobal.shield.auth.dto.request.*;
 import com.rstglobal.shield.auth.dto.response.AuthResponse;
 import com.rstglobal.shield.auth.dto.response.MfaSetupResponse;
+import com.rstglobal.shield.auth.dto.response.SessionResponse;
 import com.rstglobal.shield.auth.dto.response.UserResponse;
 import com.rstglobal.shield.auth.entity.UserRole;
 import com.rstglobal.shield.auth.service.AuthService;
@@ -16,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 import java.util.Map;
 import java.util.UUID;
@@ -41,7 +44,7 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Login and receive JWT tokens")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest req, HttpServletRequest httpReq) {
-        return ApiResponse.ok(authService.login(req, extractIp(httpReq)));
+        return ApiResponse.ok(authService.login(req, extractIp(httpReq), httpReq.getHeader("User-Agent")));
     }
 
     /** Public: Refresh access token using a valid refresh token. */
@@ -96,6 +99,31 @@ public class AuthController {
         return ApiResponse.ok(null, "Logged out successfully.");
     }
 
+    /** Authenticated: Logout all sessions — revokes all tokens for this account. */
+    @DeleteMapping("/sessions")
+    @Operation(summary = "Logout all sessions — revoke every active session and blacklist all tokens")
+    public ApiResponse<Void> logoutAll(@RequestHeader("X-User-Id") UUID userId) {
+        authService.logoutAll(userId);
+        return ApiResponse.ok(null, "All sessions revoked.");
+    }
+
+    /** Authenticated: List all active sessions. */
+    @GetMapping("/sessions")
+    @Operation(summary = "List all active sessions for the current user")
+    public ApiResponse<List<SessionResponse>> getSessions(@RequestHeader("X-User-Id") UUID userId) {
+        return ApiResponse.ok(authService.getSessions(userId));
+    }
+
+    /** Authenticated: Revoke a specific session by id. */
+    @DeleteMapping("/sessions/{id}")
+    @Operation(summary = "Revoke a specific session by id")
+    public ApiResponse<Void> revokeSession(
+            @PathVariable UUID id,
+            @RequestHeader("X-User-Id") UUID userId) {
+        authService.revokeSession(id, userId);
+        return ApiResponse.ok(null, "Session revoked.");
+    }
+
     /** Authenticated: Change password. */
     @PostMapping("/change-password")
     @Operation(summary = "Change password (requires current password)")
@@ -141,13 +169,13 @@ public class AuthController {
         return ApiResponse.ok(null, "MFA enabled successfully.");
     }
 
-    /** Authenticated: Disable MFA — requires current TOTP code or backup code. */
+    /** Authenticated: Disable MFA — requires current TOTP code or backup code AND current password. */
     @PostMapping("/mfa/disable")
-    @Operation(summary = "Disable MFA (requires TOTP or backup code)")
+    @Operation(summary = "Disable MFA (requires TOTP or backup code + current password re-authentication)")
     public ApiResponse<Void> mfaDisable(
             @RequestHeader("X-User-Id") UUID userId,
             @Valid @RequestBody MfaVerifyRequest req) {
-        mfaService.disable(userId, req.getCode());
+        mfaService.disable(userId, req.getCode(), req.getCurrentPassword());
         return ApiResponse.ok(null, "MFA disabled successfully.");
     }
 

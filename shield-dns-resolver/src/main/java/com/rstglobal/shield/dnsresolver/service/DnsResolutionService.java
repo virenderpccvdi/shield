@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Map;
 
 /**
  * Core DNS resolution logic:
@@ -21,8 +22,9 @@ import java.time.Instant;
  * 2. Extract domain name
  * 3. Enrich domain (app name, category)
  * 4. Check rules (allowlist → blocklist → category → schedule)
- * 5. Block (return 0.0.0.0) or forward to upstream DNS (pure Java UDP)
- * 6. Log query asynchronously
+ * 5. SafeSearch redirect — return CNAME to safe variant for search engines
+ * 6. Block (return 0.0.0.0) or forward to upstream DNS (pure Java UDP)
+ * 7. Log query asynchronously
  */
 @Slf4j
 @Service
@@ -37,6 +39,18 @@ public class DnsResolutionService {
     private final Counter queriesBlocked;
     private final Counter queriesForwarded;
     private final Timer queryTimer;
+
+    /**
+     * Search engine root domains → their SafeSearch CNAME targets.
+     * When safeSearch is enabled, queries for these domains get a CNAME redirect
+     * to the provider's enforced-safe-search subdomain instead of normal resolution.
+     */
+    private static final Map<String, String> SAFESEARCH_REDIRECTS = Map.of(
+        "google.com",    "forcesafesearch.google.com",
+        "youtube.com",   "restrict.youtube.com",
+        "bing.com",      "strict.bing.com",
+        "duckduckgo.com","safe.duckduckgo.com"
+    );
 
     public DnsResolutionService(RulesCacheService rulesCacheService,
                                  DnsUpstreamService dnsUpstreamService,
@@ -117,6 +131,29 @@ public class DnsResolutionService {
                             return Mono.just(buildBlockResponse(query, queryType));
                         }
 
+                        // SafeSearch: redirect search engines to their safe-search CNAME
+                        String safeTarget = SAFESEARCH_REDIRECTS.get(info.getRootDomain());
+                        if (safeTarget != null) {
+                            return rulesCacheService.getProfileSafeSearch(profileId)
+                                .flatMap(safeSearch -> {
+                                    if (Boolean.TRUE.equals(safeSearch)) {
+                                        log.debug("SafeSearch redirect: {} → {}", info.getRootDomain(), safeTarget);
+                                        queriesForwarded.increment();
+                                        logQueryAsync(profileId, dnsClientId, info, queryTypeName,
+                                            BlockDecision.allowed(), System.currentTimeMillis() - startTime);
+                                        return Mono.fromCallable(() -> buildCnameResponse(query, safeTarget));
+                                    }
+                                    // SafeSearch not enabled — fall through to normal forward
+                                    queriesForwarded.increment();
+                                    return dnsUpstreamService.forward(queryPacket)
+                                        .doOnNext(resp -> {
+                                            long totalLatency = System.currentTimeMillis() - startTime;
+                                            queryTimer.record(java.time.Duration.ofMillis(totalLatency));
+                                            logQueryAsync(profileId, dnsClientId, info, queryTypeName, decision, totalLatency);
+                                        });
+                                });
+                        }
+
                         // Forward to upstream
                         queriesForwarded.increment();
                         return dnsUpstreamService.forward(queryPacket)
@@ -145,6 +182,32 @@ public class DnsResolutionService {
             log.error("Domain enrichment error for domain={}: {}", domain, e.getMessage());
             return dnsUpstreamService.forward(queryPacket);
         });
+    }
+
+    /**
+     * Build a CNAME redirect response for SafeSearch enforcement.
+     * The client follows the CNAME and resolves the safe-search target normally.
+     */
+    private byte[] buildCnameResponse(Message query, String targetHostname) {
+        try {
+            Message response = new Message(query.getHeader().getID());
+            response.getHeader().setFlag(Flags.QR);
+            response.getHeader().setFlag(Flags.AA);
+            response.getHeader().setRcode(Rcode.NOERROR);
+            response.addRecord(query.getQuestion(), Section.QUESTION);
+
+            Name targetName = Name.fromString(targetHostname.endsWith(".")
+                ? targetHostname : targetHostname + ".");
+            Name originalName = query.getQuestion().getName();
+            response.addRecord(
+                new CNAMERecord(originalName, DClass.IN, 300, targetName),
+                Section.ANSWER
+            );
+            return response.toWire();
+        } catch (Exception e) {
+            log.error("Failed to build CNAME response for target={}", targetHostname, e);
+            return DnsUpstreamService.buildServFail(query.toWire());
+        }
     }
 
     /**

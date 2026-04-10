@@ -4,6 +4,135 @@ from datetime import datetime, timedelta, date
 from typing import Optional, List, Dict, Any
 
 
+# ── AI Alert DB operations ────────────────────────────────────────────────────
+
+async def create_alert(
+    db: AsyncSession,
+    profile_id: str,
+    alert_type: str,
+    severity: str,
+    score: float,
+    description: str,
+) -> str:
+    """Insert a new alert row; returns the generated UUID string."""
+    result = await db.execute(text("""
+        INSERT INTO ai.ai_alerts (profile_id, alert_type, severity, score, description)
+        VALUES (:profile_id, :alert_type, :severity, :score, :description)
+        RETURNING id::text
+    """), {
+        "profile_id": profile_id,
+        "alert_type": alert_type,
+        "severity": severity,
+        "score": score,
+        "description": description,
+    })
+    await db.commit()
+    return result.scalar()
+
+
+async def list_alerts(
+    db: AsyncSession,
+    min_score: float = 0.3,
+    severity: Optional[str] = None,
+    limit: int = 50,
+) -> List[Dict[str, Any]]:
+    """Fetch alerts above min_score, optionally filtered by severity."""
+    filters = "score >= :min_score"
+    params: Dict[str, Any] = {"min_score": min_score, "limit": limit}
+    if severity:
+        filters += " AND severity = :severity"
+        params["severity"] = severity
+    result = await db.execute(text(f"""
+        SELECT id::text, profile_id, alert_type, severity, score, description,
+               detected_at, feedback_given
+        FROM ai.ai_alerts
+        WHERE {filters}
+        ORDER BY score DESC
+        LIMIT :limit
+    """), params)
+    rows = result.fetchall()
+    return [
+        {
+            "id": row.id,
+            "profileId": row.profile_id,
+            "alertType": row.alert_type,
+            "severity": row.severity,
+            "score": float(row.score),
+            "description": row.description,
+            "detectedAt": row.detected_at,
+            "feedbackGiven": bool(row.feedback_given),
+        }
+        for row in rows
+    ]
+
+
+async def get_alert(db: AsyncSession, alert_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch a single alert by ID."""
+    result = await db.execute(text("""
+        SELECT id::text, profile_id, alert_type, severity, score, description,
+               detected_at, feedback_given
+        FROM ai.ai_alerts
+        WHERE id = :alert_id::uuid
+    """), {"alert_id": alert_id})
+    row = result.fetchone()
+    if not row:
+        return None
+    return {
+        "id": row.id,
+        "profileId": row.profile_id,
+        "alertType": row.alert_type,
+        "severity": row.severity,
+        "score": float(row.score),
+        "description": row.description,
+        "detectedAt": row.detected_at,
+        "feedbackGiven": bool(row.feedback_given),
+    }
+
+
+async def upsert_alert_feedback(
+    db: AsyncSession,
+    alert_id: str,
+    accurate: bool,
+    comment: Optional[str],
+) -> None:
+    """Record or update feedback for an alert and mark alert.feedback_given=true."""
+    await db.execute(text("""
+        INSERT INTO ai.ai_alert_feedback (alert_id, accurate, comment)
+        VALUES (:alert_id::uuid, :accurate, :comment)
+        ON CONFLICT (alert_id) DO UPDATE
+            SET accurate = EXCLUDED.accurate,
+                comment  = EXCLUDED.comment,
+                submitted_at = NOW()
+    """), {"alert_id": alert_id, "accurate": accurate, "comment": comment})
+    await db.execute(text("""
+        UPDATE ai.ai_alerts SET feedback_given = TRUE WHERE id = :alert_id::uuid
+    """), {"alert_id": alert_id})
+    await db.commit()
+
+
+# ── AI Keyword DB operations ──────────────────────────────────────────────────
+
+async def get_keywords_db(db: AsyncSession, profile_id: str) -> List[str]:
+    """Return the monitored keyword list for a profile (empty list if none)."""
+    result = await db.execute(text("""
+        SELECT keywords FROM ai.ai_keywords WHERE profile_id = :profile_id
+    """), {"profile_id": profile_id})
+    row = result.fetchone()
+    return list(row.keywords) if row and row.keywords else []
+
+
+async def set_keywords_db(db: AsyncSession, profile_id: str, keywords: List[str]) -> None:
+    """Replace (upsert) the keyword list for a profile."""
+    await db.execute(text("""
+        INSERT INTO ai.ai_keywords (profile_id, keywords, updated_at)
+        VALUES (:profile_id, :keywords, NOW())
+        ON CONFLICT (profile_id) DO UPDATE
+            SET keywords = EXCLUDED.keywords,
+                updated_at = NOW()
+    """), {"profile_id": profile_id, "keywords": keywords})
+    await db.commit()
+
+
 async def get_profile_stats(
     db: AsyncSession,
     profile_id: str,

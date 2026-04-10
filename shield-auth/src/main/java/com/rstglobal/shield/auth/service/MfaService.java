@@ -11,6 +11,7 @@ import com.rstglobal.shield.common.exception.ShieldException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,7 @@ public class MfaService {
     private final UserRepository      userRepository;
     private final StringRedisTemplate redis;
     private final NotificationClient  notificationClient;
+    private final PasswordEncoder     passwordEncoder;
     private final GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
 
     /**
@@ -111,15 +113,22 @@ public class MfaService {
     }
 
     /**
-     * Disable MFA — requires a valid TOTP code or backup code.
+     * Disable MFA — requires a valid TOTP code or backup code AND the user's current password.
+     * Both checks must pass; this prevents an attacker with a stolen session from disabling MFA.
      */
     @Transactional
-    public void disable(UUID userId, String code) {
+    public void disable(UUID userId, String code, String currentPassword) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ShieldException.notFound("User", userId));
 
         if (!user.isMfaEnabled()) {
             throw ShieldException.badRequest("MFA is not enabled");
+        }
+
+        // Re-authentication: verify current password before allowing MFA to be disabled
+        if (currentPassword == null || currentPassword.isBlank()
+                || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw ShieldException.badRequest("Incorrect password");
         }
 
         if (!validateCode(user, code)) {

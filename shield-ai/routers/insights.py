@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
@@ -7,6 +7,7 @@ from db.queries import get_profile_week_stats
 from services.weekly_digest import WeeklyStats, generate_digest
 from services.risk_scorer import ProfileStats, generate_insights
 from schemas.response import WeeklyDigestResponse, InsightsResponse
+from limiter import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,8 @@ router = APIRouter(prefix="/api/v1/ai", tags=["insights"])
 
 
 @router.get("/{profile_id}/weekly", response_model=WeeklyDigestResponse)
-async def get_weekly_digest(profile_id: str, db: AsyncSession = Depends(get_db)):
+@limiter.limit("30/minute")
+async def get_weekly_digest(request: Request, profile_id: str, db: AsyncSession = Depends(get_db)):
     """Return an LLM-enhanced weekly digest using real DB stats where available."""
     week_stats = await get_profile_week_stats(db, profile_id)
 
@@ -48,7 +50,8 @@ async def get_weekly_digest(profile_id: str, db: AsyncSession = Depends(get_db))
 
 
 @router.get("/{profile_id}/insights", response_model=InsightsResponse)
-async def get_insights(profile_id: str, db: AsyncSession = Depends(get_db)):
+@limiter.limit("30/minute")
+async def get_insights(request: Request, profile_id: str, db: AsyncSession = Depends(get_db)):
     """Return enriched AI insights using real DB stats where available.
 
     Falls back gracefully when no data exists (new profile).

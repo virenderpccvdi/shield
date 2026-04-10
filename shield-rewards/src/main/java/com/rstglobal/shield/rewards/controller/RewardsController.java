@@ -225,4 +225,17 @@ public class RewardsController {
     public ResponseEntity<List<TransactionResponse>> getTransactions(@PathVariable UUID profileId) {
         return ResponseEntity.ok(rewardBankService.getTransactions(profileId));
     }
+
+    // ── A6: Family Leaderboard ─────────────────────────────────────────────────
+
+    /**
+     * GET /api/v1/rewards/leaderboard?tenantId={tenantId}
+     * Returns all child profiles for the tenant sorted by total points descending.
+     * Response: [{ "profileId": "...", "totalPoints": 450, "rank": 1, "streak": 7, "pointsBalance": 120 }]
+     */
+    @GetMapping("/leaderboard")
+    public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getLeaderboard(
+            @RequestParam UUID tenantId) {
+        return ResponseEntity.ok(rewardBankService.getLeaderboard(tenantId));
+    }
 }

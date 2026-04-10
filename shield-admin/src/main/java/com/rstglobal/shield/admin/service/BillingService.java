@@ -14,6 +14,8 @@ import com.rstglobal.shield.admin.repository.PaymentTransactionRepository;
 import com.rstglobal.shield.admin.repository.StripeCustomerRepository;
 import com.rstglobal.shield.admin.repository.SubscriptionPlanRepository;
 import com.rstglobal.shield.common.exception.ShieldException;
+import com.stripe.model.Charge;
+import com.stripe.model.PaymentIntent;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import jakarta.persistence.EntityManager;
@@ -24,11 +26,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.stripe.model.Refund;
+import com.stripe.param.RefundCreateParams;
+import org.springframework.scheduling.annotation.Scheduled;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -94,7 +102,11 @@ public class BillingService {
                 .build());
 
         // Update customer subscription via cross-schema query (also handles ISP admin tenant update)
-        updateCustomerSubscription(inv.getUserId(), inv.getTenantId(), inv.getPlanName(), "ACTIVE", session.getSubscription());
+        SubscriptionResponse existingSub = getSubscription(inv.getUserId(), inv.getTenantId());
+        String newSubStatus = SubscriptionStateMachine.transition(
+            existingSub.getStatus(), SubscriptionStateMachine.ACTIVE,
+            "checkout.session.completed:" + session.getId());
+        updateCustomerSubscription(inv.getUserId(), inv.getTenantId(), inv.getPlanName(), newSubStatus, session.getSubscription());
 
         log.info("Checkout completed: invoice={}, user={}, plan={}", inv.getId(), inv.getUserId(), inv.getPlanName());
         auditLogService.log("SUBSCRIPTION_CREATED", "Invoice", inv.getId().toString(),
@@ -190,10 +202,175 @@ public class BillingService {
     public void handleInvoicePaymentFailed(com.stripe.model.Invoice stripeInvoice) {
         String custId = stripeInvoice.getCustomer();
         Optional<StripeCustomer> sc = stripeCustomerRepo.findByStripeCustomerId(custId);
-        if (sc.isEmpty()) return;
+        if (sc.isEmpty()) {
+            log.warn("Unknown Stripe customer {} for payment_failed invoice {}", custId, stripeInvoice.getId());
+            return;
+        }
+        StripeCustomer stripeCust = sc.get();
 
-        log.warn("Payment failed for Stripe customer {} invoice {}", custId, stripeInvoice.getId());
-        // Could mark customer as past_due or send notification
+        // --- Dunning: read current dunning_count and increment ---
+        int currentDunningCount = 0;
+        try {
+            Object row = entityManager.createNativeQuery(
+                    "SELECT dunning_count FROM profile.customers WHERE user_id = :uid")
+                    .setParameter("uid", stripeCust.getUserId())
+                    .getSingleResult();
+            if (row != null) currentDunningCount = ((Number) row).intValue();
+        } catch (Exception e) {
+            log.debug("Could not read dunning_count for user {}: {}", stripeCust.getUserId(), e.getMessage());
+        }
+        int newDunningCount = currentDunningCount + 1;
+
+        // Determine next retry delay: attempt 1 → +2d, attempt 2 → +4d, attempt 3+ → +7d
+        int retryDays = switch (newDunningCount) {
+            case 1  -> 2;
+            case 2  -> 4;
+            default -> 7;
+        };
+        Instant nextRetryAt = Instant.now().plus(retryDays, ChronoUnit.DAYS);
+
+        // After 3 attempts → SUSPENDED + grace period
+        boolean suspend = newDunningCount >= 3;
+        Instant gracePeriodEndsAt = suspend ? Instant.now().plus(30, ChronoUnit.DAYS) : null;
+
+        // Determine new subscription status
+        SubscriptionResponse current = getSubscription(stripeCust.getUserId(), stripeCust.getTenantId());
+        String targetStatus = suspend ? SubscriptionStateMachine.SUSPENDED : SubscriptionStateMachine.PAST_DUE;
+        String newStatus = SubscriptionStateMachine.transition(
+            current.getStatus(), targetStatus,
+            "invoice.payment_failed:" + stripeInvoice.getId());
+
+        updateCustomerSubscription(stripeCust.getUserId(), stripeCust.getTenantId(),
+            current.getPlanName() != null ? current.getPlanName() : "FREE",
+            newStatus, current.getStripeSubscriptionId());
+
+        // Persist dunning fields on the customer row
+        try {
+            if (gracePeriodEndsAt != null) {
+                entityManager.createNativeQuery(
+                        "UPDATE profile.customers SET dunning_count = :dc, next_retry_at = :nra, " +
+                        "grace_period_ends_at = :gpa, updated_at = now() WHERE user_id = :uid")
+                        .setParameter("dc", newDunningCount)
+                        .setParameter("nra", java.sql.Timestamp.from(nextRetryAt))
+                        .setParameter("gpa", java.sql.Timestamp.from(gracePeriodEndsAt))
+                        .setParameter("uid", stripeCust.getUserId())
+                        .executeUpdate();
+            } else {
+                entityManager.createNativeQuery(
+                        "UPDATE profile.customers SET dunning_count = :dc, next_retry_at = :nra, " +
+                        "updated_at = now() WHERE user_id = :uid")
+                        .setParameter("dc", newDunningCount)
+                        .setParameter("nra", java.sql.Timestamp.from(nextRetryAt))
+                        .setParameter("uid", stripeCust.getUserId())
+                        .executeUpdate();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update dunning fields for user {}: {}", stripeCust.getUserId(), e.getMessage());
+        }
+
+        // Record the failed invoice
+        BigDecimal amount = BigDecimal.valueOf(stripeInvoice.getAmountDue() != null
+            ? stripeInvoice.getAmountDue() : 0L).divide(BigDecimal.valueOf(100));
+
+        Invoice inv = Invoice.builder()
+            .userId(stripeCust.getUserId())
+            .tenantId(stripeCust.getTenantId())
+            .userEmail(stripeCust.getEmail())
+            .planName(current.getPlanName() != null ? current.getPlanName() : "UNKNOWN")
+            .amount(amount)
+            .currency(stripeInvoice.getCurrency() != null ? stripeInvoice.getCurrency().toUpperCase() : "INR")
+            .status("FAILED")
+            .stripeInvoiceId(stripeInvoice.getId())
+            .stripeSubscriptionId(stripeInvoice.getSubscription())
+            .build();
+        invoiceRepo.save(inv);
+
+        log.warn("Payment failed (attempt={}) → {}: user={}, invoice={}, nextRetry={}",
+            newDunningCount, newStatus, stripeCust.getUserId(), stripeInvoice.getId(), nextRetryAt);
+        auditLogService.log("PAYMENT_FAILED", "Invoice", stripeInvoice.getId(),
+            stripeCust.getUserId(), stripeCust.getEmail(), null,
+            java.util.Map.of("amount", amount.toString(), "status", newStatus,
+                "dunningCount", String.valueOf(newDunningCount)));
+
+        if (suspend) {
+            auditLogService.log("SUBSCRIPTION_SUSPENDED", "Customer", stripeCust.getUserId().toString(),
+                stripeCust.getUserId(), stripeCust.getEmail(), null,
+                java.util.Map.of("reason", "dunning_exhausted", "gracePeriodEndsAt", gracePeriodEndsAt.toString()));
+        }
+
+        // Send payment-failed notification email with attempt info (async)
+        notificationClient.sendPaymentFailedEmail(
+            stripeCust.getEmail(), null, stripeInvoice.getId(),
+            amount, inv.getCurrency(), newDunningCount, nextRetryAt, stripeCust.getTenantId());
+    }
+
+    @Transactional
+    public void handleSubscriptionUpdated(Subscription subscription) {
+        String custId = subscription.getCustomer();
+        Optional<StripeCustomer> sc = stripeCustomerRepo.findByStripeCustomerId(custId);
+        if (sc.isEmpty()) {
+            log.debug("No StripeCustomer found for subscription.updated event, customerId={}", custId);
+            return;
+        }
+        StripeCustomer stripeCust = sc.get();
+
+        // Map Stripe subscription status to Shield subscription status
+        String stripeStatus = subscription.getStatus(); // active, past_due, unpaid, canceled, incomplete
+        String targetStatus = switch (stripeStatus) {
+            case "active", "trialing"   -> SubscriptionStateMachine.ACTIVE;
+            case "past_due", "unpaid"   -> SubscriptionStateMachine.PAST_DUE;
+            case "canceled"             -> SubscriptionStateMachine.CANCELLED;
+            case "incomplete_expired"   -> SubscriptionStateMachine.SUSPENDED;
+            default -> null; // incomplete etc. — no state change
+        };
+
+        if (targetStatus == null) {
+            log.debug("Ignoring subscription.updated with status={}", stripeStatus);
+            return;
+        }
+
+        SubscriptionResponse current = getSubscription(stripeCust.getUserId(), stripeCust.getTenantId());
+        String newStatus = SubscriptionStateMachine.transition(
+            current.getStatus(), targetStatus,
+            "subscription.updated:" + subscription.getId());
+
+        if (!newStatus.equals(current.getStatus())) {
+            updateCustomerSubscription(stripeCust.getUserId(), stripeCust.getTenantId(),
+                current.getPlanName() != null ? current.getPlanName() : "FREE",
+                newStatus, subscription.getId());
+            log.info("Subscription updated: user={}, {} → {}", stripeCust.getUserId(), current.getStatus(), newStatus);
+        }
+    }
+
+    @Transactional
+    public void handleChargeRefunded(Charge charge) {
+        String stripePaymentIntentId = charge.getPaymentIntent();
+        if (stripePaymentIntentId == null || stripePaymentIntentId.isBlank()) {
+            log.debug("charge.refunded with no paymentIntent — skipping");
+            return;
+        }
+
+        // Mark matching invoice as REFUNDED
+        invoiceRepo.findByStripePaymentIntentId(stripePaymentIntentId).ifPresent(inv -> {
+            inv.setStatus("REFUNDED");
+            invoiceRepo.save(inv);
+            log.info("Invoice {} marked REFUNDED (charge={})", inv.getId(), charge.getId());
+            auditLogService.log("PAYMENT_REFUNDED", "Invoice", inv.getId().toString(),
+                inv.getUserId(), inv.getUserEmail(), null,
+                java.util.Map.of("chargeId", charge.getId()));
+        });
+    }
+
+    @Transactional
+    public void handlePaymentActionRequired(PaymentIntent paymentIntent) {
+        String custId = paymentIntent.getCustomer();
+        if (custId == null || custId.isBlank()) return;
+
+        stripeCustomerRepo.findByStripeCustomerId(custId).ifPresent(sc ->
+            notificationClient.sendPaymentActionRequiredEmail(
+                sc.getEmail(), null, paymentIntent.getId(), sc.getTenantId())
+        );
+        log.info("payment_intent.requires_action for customer={}, intent={}", custId, paymentIntent.getId());
     }
 
     @Transactional
@@ -202,8 +379,118 @@ public class BillingService {
         Optional<StripeCustomer> sc = stripeCustomerRepo.findByStripeCustomerId(custId);
         if (sc.isEmpty()) return;
 
-        updateCustomerSubscription(sc.get().getUserId(), sc.get().getTenantId(), "FREE", "CANCELLED", null);
-        log.info("Subscription cancelled for user {}", sc.get().getUserId());
+        StripeCustomer stripeCust = sc.get();
+        SubscriptionResponse current = getSubscription(stripeCust.getUserId(), stripeCust.getTenantId());
+        String newStatus = SubscriptionStateMachine.transition(
+            current.getStatus(), SubscriptionStateMachine.CANCELLED,
+            "subscription.deleted:" + subscription.getId());
+        updateCustomerSubscription(stripeCust.getUserId(), stripeCust.getTenantId(), "FREE", newStatus, null);
+        log.info("Subscription cancelled for user {}", stripeCust.getUserId());
+    }
+
+    /**
+     * Process a refund for a paid invoice.
+     * Creates a Stripe refund (if stripePaymentIntentId is present) and marks the invoice REFUNDED.
+     */
+    @Transactional
+    public void processRefund(UUID invoiceId, String reason) {
+        Invoice invoice = invoiceRepo.findById(invoiceId)
+                .orElseThrow(() -> ShieldException.notFound("Invoice", invoiceId));
+        if (!"PAID".equals(invoice.getStatus())) {
+            throw ShieldException.badRequest("Only paid invoices can be refunded");
+        }
+
+        // Create Stripe refund if we have a payment intent
+        if (invoice.getStripePaymentIntentId() != null && !invoice.getStripePaymentIntentId().isBlank()) {
+            try {
+                RefundCreateParams params = RefundCreateParams.builder()
+                        .setPaymentIntent(invoice.getStripePaymentIntentId())
+                        .setReason(mapRefundReason(reason))
+                        .build();
+                Refund.create(params);
+                log.info("Stripe refund created for paymentIntent={}, invoiceId={}", invoice.getStripePaymentIntentId(), invoiceId);
+            } catch (Exception e) {
+                log.error("Failed to create Stripe refund for invoice {}: {}", invoiceId, e.getMessage(), e);
+                throw new RuntimeException("Failed to process Stripe refund: " + e.getMessage(), e);
+            }
+        } else {
+            log.warn("No Stripe paymentIntentId on invoice {} — marking REFUNDED locally only", invoiceId);
+        }
+
+        invoice.setStatus("REFUNDED");
+        invoiceRepo.save(invoice);
+
+        auditLogService.log("PAYMENT_REFUNDED", "Invoice", invoiceId.toString(),
+                invoice.getUserId(), invoice.getUserEmail(), null,
+                java.util.Map.of("reason", reason != null ? reason : "admin_initiated"));
+
+        // Notify the customer
+        notificationClient.sendRefundNotificationEmail(
+                invoice.getUserEmail(), null, invoice.getStripeInvoiceId() != null
+                        ? invoice.getStripeInvoiceId() : invoiceId.toString(),
+                invoice.getAmount(), invoice.getCurrency(), invoice.getTenantId());
+
+        log.info("Invoice {} marked REFUNDED (reason={})", invoiceId, reason);
+    }
+
+    private RefundCreateParams.Reason mapRefundReason(String reason) {
+        if (reason == null) return RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER;
+        return switch (reason.toLowerCase()) {
+            case "duplicate"       -> RefundCreateParams.Reason.DUPLICATE;
+            case "fraudulent"      -> RefundCreateParams.Reason.FRAUDULENT;
+            default                -> RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER;
+        };
+    }
+
+    /**
+     * Daily job at 09:00 — sends renewal reminder emails to users whose subscription
+     * renews in approximately 7 days (between now+6d and now+8d).
+     */
+    @Scheduled(cron = "0 0 9 * * *")
+    public void sendRenewalReminders() {
+        log.info("Running subscription renewal reminder job");
+        try {
+            Instant windowStart = Instant.now().plus(6, ChronoUnit.DAYS);
+            Instant windowEnd   = Instant.now().plus(8, ChronoUnit.DAYS);
+
+            @SuppressWarnings("unchecked")
+            List<Object[]> rows = (List<Object[]>) entityManager.createNativeQuery(
+                    "SELECT c.user_id, c.tenant_id, c.subscription_plan, c.subscription_expires_at, " +
+                    "u.email, u.name " +
+                    "FROM profile.customers c " +
+                    "JOIN auth.users u ON u.id = c.user_id " +
+                    "WHERE c.subscription_status = 'ACTIVE' " +
+                    "  AND c.subscription_expires_at >= :ws " +
+                    "  AND c.subscription_expires_at <= :we")
+                    .setParameter("ws", java.sql.Timestamp.from(windowStart))
+                    .setParameter("we", java.sql.Timestamp.from(windowEnd))
+                    .getResultList();
+
+            log.info("Found {} subscriptions renewing in ~7 days", rows.size());
+            for (Object[] row : rows) {
+                try {
+                    UUID userId      = row[0] instanceof UUID u ? u : UUID.fromString(row[0].toString());
+                    UUID tenantId    = row[1] != null ? (row[1] instanceof UUID u ? u : UUID.fromString(row[1].toString())) : null;
+                    String planName  = (String) row[2];
+                    Instant renewsAt = row[3] != null ? ((java.sql.Timestamp) row[3]).toInstant() : null;
+                    String email     = (String) row[4];
+                    String name      = (String) row[5];
+
+                    if (email == null || email.isBlank()) continue;
+
+                    SubscriptionPlan plan = planRepo.findByName(planName).orElse(null);
+                    BigDecimal amount = plan != null ? plan.getPrice() : BigDecimal.ZERO;
+                    String currency   = "INR";
+
+                    notificationClient.sendRenewalReminderEmail(email, name, planName, amount, currency, renewsAt, tenantId);
+                    log.debug("Renewal reminder queued for user={}, plan={}, renewsAt={}", userId, planName, renewsAt);
+                } catch (Exception e) {
+                    log.warn("Failed to send renewal reminder for row: {}", e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Renewal reminder job failed: {}", e.getMessage(), e);
+        }
     }
 
     public SubscriptionResponse getSubscription(UUID userId) {

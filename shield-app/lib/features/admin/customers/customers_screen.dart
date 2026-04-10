@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../app/theme.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
@@ -38,13 +39,16 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   Widget build(BuildContext context) {
     final auth      = ref.watch(authProvider);
     final customers = ref.watch(customersProvider);
+    final cs        = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: Ds.surface,
       appBar: AppBar(
-        title: Text(auth.isGlobalAdmin ? 'All Customers' : 'Customers'),
+        title: Text(auth.isGlobalAdmin ? 'All Customers' : 'Customers',
+            style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add_outlined),
+            icon:    const Icon(Icons.person_add_rounded),
             tooltip: 'Invite Customer',
             onPressed: () => _showInviteDialog(context),
           ),
@@ -53,24 +57,22 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       body: Column(children: [
         // Search bar
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
           child: TextField(
             controller: _search,
             onChanged:  (v) => setState(() => _query = v.toLowerCase()),
             decoration: InputDecoration(
-              hintText:    'Search by name or email…',
-              prefixIcon:  const Icon(Icons.search, size: 20),
-              suffixIcon:  _query.isNotEmpty
+              hintText:   'Search by name or email…',
+              prefixIcon: const Icon(Icons.search_rounded, size: 20),
+              suffixIcon: _query.isNotEmpty
                   ? IconButton(
-                      icon:      const Icon(Icons.clear, size: 18),
+                      icon:      const Icon(Icons.clear_rounded, size: 18),
                       onPressed: () {
                         _search.clear();
                         setState(() => _query = '');
                       },
                     )
                   : null,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 12),
             ),
           ),
         ),
@@ -93,24 +95,35 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
 
               if (filtered.isEmpty) {
                 return EmptyView(
-                  icon:    Icons.people_outline,
+                  icon:    Icons.people_outline_rounded,
                   message: _query.isNotEmpty
                       ? 'No customers match "$_query"'
                       : 'No customers yet.',
+                  action: _query.isEmpty
+                      ? GuardianButton(
+                          label:     'Invite First Customer',
+                          icon:      Icons.person_add_rounded,
+                          onPressed: () => _showInviteDialog(context),
+                        )
+                      : null,
                 );
               }
 
               return RefreshIndicator(
+                color:     cs.primary,
                 onRefresh: () async => ref.invalidate(customersProvider),
                 child: ListView.builder(
-                  padding:     const EdgeInsets.only(bottom: 24),
+                  padding:     const EdgeInsets.fromLTRB(24, 4, 24, 24),
                   itemCount:   filtered.length,
-                  itemBuilder: (_, i) => _CustomerTile(
-                    customer: filtered[i],
-                    onTap: () => context.push(
-                        '/admin/customers/${filtered[i]['id']}'),
-                    onDelete: () => _confirmDelete(
-                        context, ref, filtered[i]),
+                  itemBuilder: (_, i) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _CustomerTile(
+                      customer: filtered[i],
+                      onTap:    () => context.push(
+                          '/admin/customers/${filtered[i]['id']}'),
+                      onDelete: () => _confirmDelete(
+                          context, ref, filtered[i]),
+                    ),
                   ),
                 ),
               );
@@ -132,7 +145,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           TextField(controller: nameCtrl,
               decoration: const InputDecoration(
                   labelText: 'Full name',
-                  prefixIcon: Icon(Icons.person_outline))),
+                  prefixIcon: Icon(Icons.person_outline_rounded))),
           const SizedBox(height: 12),
           TextField(controller: emailCtrl,
               keyboardType: TextInputType.emailAddress,
@@ -156,8 +169,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                   Navigator.pop(context);
                   ref.invalidate(customersProvider);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Invitation sent'),
-                        backgroundColor: Colors.green));
+                    const SnackBar(content: Text('Invitation sent')));
                 }
               } catch (_) {
                 if (context.mounted) {
@@ -188,7 +200,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Ds.danger),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Remove'),
           ),
@@ -227,77 +239,99 @@ class _CustomerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name      = customer['name']?.toString() ?? 'Unknown';
-    final email     = customer['email']?.toString() ?? '';
-    final children  = customer['childCount'] as num? ?? 0;
-    final active    = customer['isActive'] as bool? ?? true;
+    final cs       = Theme.of(context).colorScheme;
+    final name     = customer['name']?.toString()    ?? 'Unknown';
+    final email    = customer['email']?.toString()   ?? '';
+    final children = customer['childCount'] as num?  ?? 0;
+    final active   = customer['isActive'] as bool?   ?? true;
+    final initial  = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: ShieldTheme.primary.withOpacity(0.12),
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                    color: ShieldTheme.primary,
-                    fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(name, style: const TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 15)),
-              const SizedBox(height: 2),
-              Text(email, style: const TextStyle(
-                  color: Colors.black45, fontSize: 12)),
-              if (children > 0) ...[
-                const SizedBox(height: 4),
-                Row(children: [
-                  const Icon(Icons.child_care, size: 12, color: Colors.black54),
-                  const SizedBox(width: 3),
-                  Text('$children child${children > 1 ? 'ren' : ''}',
-                      style: const TextStyle(fontSize: 11, color: Colors.black45)),
-                ]),
-              ],
-            ])),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color:        cs.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(Ds.radiusDefault),
+        boxShadow:    Ds.guardianShadow(opacity: 0.05),
+      ),
+      child: Material(
+        color:        Colors.transparent,
+        borderRadius: BorderRadius.circular(Ds.radiusDefault),
+        child: InkWell(
+          onTap:        onTap,
+          borderRadius: BorderRadius.circular(Ds.radiusDefault),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              // Avatar: tonal circle
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                width:  44, height: 44,
                 decoration: BoxDecoration(
-                  color:        active ? Colors.green.shade50 : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(6),
+                  shape: BoxShape.circle,
+                  color: Ds.primary.withOpacity(0.10),
                 ),
-                child: Text(active ? 'Active' : 'Inactive',
-                    style: TextStyle(
-                        fontSize: 10, fontWeight: FontWeight.w600,
-                        color: active ? Colors.green.shade700 : Colors.grey)),
+                child: Center(
+                  child: Text(initial,
+                      style: GoogleFonts.manrope(
+                          color: Ds.primary,
+                          fontWeight: FontWeight.w700, fontSize: 18)),
+                ),
               ),
-              const SizedBox(height: 4),
-              PopupMenuButton<String>(
-                iconSize: 18,
-                itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'view',
-                      child: Text('View details')),
-                  const PopupMenuItem(value: 'delete',
-                      child: Text('Remove', style: TextStyle(color: Colors.red))),
+              const SizedBox(width: 14),
+
+              // Info
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name,
+                      style: GoogleFonts.manrope(
+                          fontWeight: FontWeight.w700, fontSize: 15,
+                          color: cs.onSurface)),
+                  const SizedBox(height: 2),
+                  Text(email,
+                      style: GoogleFonts.inter(
+                          color: cs.onSurfaceVariant, fontSize: 12)),
+                  if (children > 0) ...[
+                    const SizedBox(height: 5),
+                    Row(children: [
+                      Icon(Icons.child_care_rounded,
+                          size: 12, color: cs.onSurfaceVariant),
+                      const SizedBox(width: 3),
+                      Text('$children child${children > 1 ? 'ren' : ''}',
+                          style: GoogleFonts.inter(
+                              fontSize: 11, color: cs.onSurfaceVariant)),
+                    ]),
+                  ],
                 ],
-                onSelected: (v) {
-                  if (v == 'view')   onTap();
-                  if (v == 'delete') onDelete();
-                },
+              )),
+
+              // Status chip + menu (far right — asymmetric)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  StatusChip(
+                    active ? 'Active' : 'Inactive',
+                    color: active ? Ds.success : cs.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 4),
+                  PopupMenuButton<String>(
+                    iconSize:  18,
+                    iconColor: cs.onSurfaceVariant,
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(value: 'view',
+                          child: Text('View details')),
+                      PopupMenuItem(value: 'delete',
+                          child: Text('Remove',
+                              style: TextStyle(color: Ds.danger))),
+                    ],
+                    onSelected: (v) {
+                      if (v == 'view')   onTap();
+                      if (v == 'delete') onDelete();
+                    },
+                  ),
+                ],
               ),
             ]),
-          ]),
+          ),
         ),
       ),
     );

@@ -17,6 +17,7 @@ import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,9 @@ public class StripeService {
     private final StripeConfig stripeConfig;
     private final StripeCustomerRepository stripeCustomerRepo;
     private final SubscriptionPlanRepository planRepo;
+
+    @Value("${shield.billing.currency:inr}")
+    private String defaultCurrency;
 
     public String getOrCreateStripeCustomer(UUID userId, UUID tenantId, String email, String name) {
         return stripeCustomerRepo.findByUserId(userId)
@@ -58,6 +62,8 @@ public class StripeService {
 
     public Session createCheckoutSession(String stripeCustomerId, SubscriptionPlan plan, UUID userId) {
         try {
+            String currency = defaultCurrency != null ? defaultCurrency.toLowerCase() : "inr";
+
             SessionCreateParams.Builder builder = SessionCreateParams.builder()
                     .setCustomer(stripeCustomerId)
                     .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
@@ -67,6 +73,12 @@ public class StripeService {
                     .putMetadata("shield_plan_id", plan.getId().toString())
                     .putMetadata("shield_plan_name", plan.getName());
 
+            // Add payment method types — UPI only available for INR
+            builder.addPaymentMethodType(SessionCreateParams.PaymentMethodType.CARD);
+            if ("inr".equals(currency)) {
+                builder.addPaymentMethodType(SessionCreateParams.PaymentMethodType.UPI);
+            }
+
             if (plan.getStripePriceId() != null && !plan.getStripePriceId().isBlank()) {
                 builder.addLineItem(SessionCreateParams.LineItem.builder()
                         .setPrice(plan.getStripePriceId())
@@ -75,7 +87,7 @@ public class StripeService {
                 // Create inline price if no Stripe price ID configured
                 builder.addLineItem(SessionCreateParams.LineItem.builder()
                         .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
-                                .setCurrency("inr")
+                                .setCurrency(currency)
                                 .setUnitAmount(plan.getPrice().multiply(BigDecimal.valueOf(100)).longValue())
                                 .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                         .setName("Shield " + plan.getDisplayName() + " Plan")
@@ -91,7 +103,7 @@ public class StripeService {
             }
 
             Session session = Session.create(builder.build());
-            log.info("Created checkout session {} for plan {} user {}", session.getId(), plan.getName(), userId);
+            log.info("Created checkout session {} for plan {} user {} currency={}", session.getId(), plan.getName(), userId, currency);
             return session;
         } catch (Exception e) {
             throw new RuntimeException("Failed to create checkout session", e);
@@ -142,9 +154,10 @@ public class StripeService {
             }
 
             // Create price
+            String currency = defaultCurrency != null ? defaultCurrency.toLowerCase() : "inr";
             Price price = Price.create(PriceCreateParams.builder()
                     .setProduct(productId)
-                    .setCurrency("inr")
+                    .setCurrency(currency)
                     .setUnitAmount(plan.getPrice().multiply(BigDecimal.valueOf(100)).longValue())
                     .setRecurring(PriceCreateParams.Recurring.builder()
                             .setInterval(plan.getBillingCycle().equalsIgnoreCase("YEARLY")

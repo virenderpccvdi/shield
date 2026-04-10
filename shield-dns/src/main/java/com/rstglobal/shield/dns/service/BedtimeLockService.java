@@ -5,9 +5,13 @@ import com.rstglobal.shield.dns.entity.DnsRules;
 import com.rstglobal.shield.dns.repository.DnsRulesRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
 
 import java.time.LocalTime;
 import java.util.LinkedHashMap;
@@ -36,8 +40,12 @@ public class BedtimeLockService {
     /** Sentinel key stored in {@code dns_rules.enabled_categories} to signal bedtime lock. */
     public static final String BEDTIME_LOCKED_KEY = "__bedtime_locked__";
 
+    private static final String NOTIFICATION_SERVICE = "SHIELD-NOTIFICATION";
+
     private final DnsRulesRepository dnsRulesRepository;
     private final DnsRulesService dnsRulesService;
+    private final DiscoveryClient discoveryClient;
+    private final RestClient restClient = RestClient.builder().build();
 
     // ── Configure ─────────────────────────────────────────────────────────────
 
@@ -121,6 +129,77 @@ public class BedtimeLockService {
             } catch (Exception e) {
                 log.warn("Bedtime enforcement failed for profileId={}: {}", rules.getProfileId(), e.getMessage());
             }
+        }
+    }
+
+    // ── Bedtime warning — 5 minutes before bedtime starts ─────────────────────
+
+    /**
+     * Every minute: find profiles whose bedtime lock is configured and will activate
+     * in exactly 5 minutes. Sends a push notification to the child's profile topic
+     * so the app can display a "Internet pauses in 5 minutes" warning.
+     *
+     * <p>Only fires once per bedtime cycle — if the warning was already sent this
+     * cycle (i.e. the lock is already active), the check is skipped.
+     */
+    @Scheduled(fixedDelay = 60_000)
+    @Transactional(readOnly = true)
+    public void sendBedtimeWarnings() {
+        List<DnsRules> allRules = dnsRulesRepository.findAllWithBedtimeEnabled();
+        if (allRules.isEmpty()) return;
+
+        LocalTime now         = LocalTime.now();
+        LocalTime warningTime = now.plusMinutes(5);
+
+        for (DnsRules rules : allRules) {
+            try {
+                // Skip if already locked — warning already shown
+                Map<String, Boolean> cats = rules.getEnabledCategories();
+                boolean alreadyLocked = cats != null && Boolean.TRUE.equals(cats.get(BEDTIME_LOCKED_KEY));
+                if (alreadyLocked) continue;
+
+                LocalTime start = rules.getBedtimeStart();
+                if (start == null) continue;
+
+                // Check if bedtime start falls within [now, now+5min]
+                // Use a 1-minute tolerance window to account for scheduler jitter
+                boolean warnNow = !warningTime.isBefore(start) && now.isBefore(start);
+                if (!warnNow) continue;
+
+                sendBedtimeWarningPush(rules.getProfileId());
+
+            } catch (Exception e) {
+                log.warn("Bedtime warning check failed for profileId={}: {}", rules.getProfileId(), e.getMessage());
+            }
+        }
+    }
+
+    private void sendBedtimeWarningPush(UUID profileId) {
+        try {
+            List<ServiceInstance> instances = discoveryClient.getInstances(NOTIFICATION_SERVICE);
+            if (instances.isEmpty()) {
+                log.debug("Bedtime warning: notification service not found in Eureka — skipping profileId={}", profileId);
+                return;
+            }
+            String baseUrl = instances.get(0).getUri().toString();
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("topic", "profile-" + profileId);
+            payload.put("title", "Bedtime soon");
+            payload.put("body", "Internet pauses in 5 minutes");
+            payload.put("priority", "HIGH");
+            payload.put("data", Map.of("type", "BEDTIME_WARNING", "profileId", profileId.toString()));
+
+            restClient.post()
+                    .uri(baseUrl + "/internal/notifications/push")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Bedtime warning push sent for profileId={}", profileId);
+        } catch (Exception e) {
+            log.warn("Failed to send bedtime warning push for profileId={}: {}", profileId, e.getMessage());
         }
     }
 

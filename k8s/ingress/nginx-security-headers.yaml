@@ -1,0 +1,32 @@
+# Nginx Ingress Controller global security config
+# Points to the per-namespace headers ConfigMap below.
+# Apply with: kubectl apply -f nginx-security-headers.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-security-config
+  namespace: ingress-nginx
+data:
+  add-headers: "shield-prod/shield-security-headers"
+---
+# Per-response security headers injected by the ingress controller
+# for all requests routed through the shield-prod namespace ingress.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shield-security-headers
+  namespace: shield-prod
+data:
+  Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
+  X-Content-Type-Options: "nosniff"
+  X-Frame-Options: "SAMEORIGIN"
+  X-XSS-Protection: "1; mode=block"
+  Referrer-Policy: "strict-origin-when-cross-origin"
+  Permissions-Policy: "geolocation=(self), microphone=(), camera=()"
+  Content-Security-Policy: >-
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: https:;
+    connect-src 'self' wss: https:;

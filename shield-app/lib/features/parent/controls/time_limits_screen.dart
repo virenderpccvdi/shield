@@ -25,6 +25,7 @@ class _TimeLimitsState extends ConsumerState<TimeLimitsScreen> {
   bool _loading      = false;
   bool _saving       = false;
   bool _noLimit      = false;
+  bool _togglingNoLimit = false;
 
   @override
   void initState() {
@@ -107,12 +108,24 @@ class _TimeLimitsState extends ConsumerState<TimeLimitsScreen> {
                 ),
 
               SwitchListTile(
-                secondary:  const Icon(Icons.timer_off_outlined),
+                secondary: _togglingNoLimit
+                    ? const SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.timer_off_outlined),
                 title:      const Text('No daily limit',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle:   const Text('Child can use internet without restriction'),
                 value:      _noLimit,
-                onChanged:  (v) => setState(() => _noLimit = v),
+                onChanged:  _togglingNoLimit ? null : (v) async {
+                  setState(() => _togglingNoLimit = true);
+                  try {
+                    setState(() => _noLimit = v);
+                  } finally {
+                    if (mounted) setState(() => _togglingNoLimit = false);
+                  }
+                },
               ),
 
               if (!_noLimit) ...[

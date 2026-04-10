@@ -4,9 +4,12 @@ import com.rstglobal.shield.auth.client.AuditClient;
 import com.rstglobal.shield.auth.client.NotificationClient;
 import com.rstglobal.shield.auth.dto.request.*;
 import com.rstglobal.shield.auth.dto.response.AuthResponse;
+import com.rstglobal.shield.auth.dto.response.SessionResponse;
 import com.rstglobal.shield.auth.dto.response.UserResponse;
+import com.rstglobal.shield.auth.entity.Session;
 import com.rstglobal.shield.auth.entity.User;
 import com.rstglobal.shield.auth.entity.UserRole;
+import com.rstglobal.shield.auth.repository.SessionRepository;
 import com.rstglobal.shield.auth.repository.UserRepository;
 import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.common.security.JwtUtils;
@@ -22,8 +25,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -36,10 +41,13 @@ public class AuthService {
     private static final String REFRESH_PREFIX    = "shield:auth:refresh:";
     private static final String OTP_PREFIX        = "shield:auth:otp:";
     private static final String BLACKLIST_PREFIX  = "shield:auth:blacklist:";
+    private static final String FAILURES_PREFIX   = "shield:auth:failures:";
     private static final int    MAX_FAIL_ATTEMPTS = 5;
     private static final int    LOCK_MINUTES      = 30;
+    private static final int    RATE_LOCK_MINUTES = 15;
 
     private final UserRepository      userRepository;
+    private final SessionRepository   sessionRepository;
     private final PasswordEncoder     passwordEncoder;
     private final JwtUtils            jwtUtils;
     private final StringRedisTemplate redis;
@@ -191,7 +199,12 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest req) {
-        return login(req, null);
+        return login(req, null, null);
+    }
+
+    @Transactional
+    public AuthResponse login(LoginRequest req, String ipAddress) {
+        return login(req, ipAddress, null);
     }
 
     // Dummy hash used to run bcrypt even when the email doesn't exist,
@@ -200,11 +213,28 @@ public class AuthService {
         "$2b$12$8K1p/a0dR1xqM2LnvwBFMeS5DJmN3oZ7rL0vXkYtP4hGcQmUA8iwq";
 
     @Transactional
-    public AuthResponse login(LoginRequest req, String ipAddress) {
-        java.util.Optional<User> userOpt = userRepository.findByEmail(req.getEmail().toLowerCase());
+    public AuthResponse login(LoginRequest req, String ipAddress, String userAgent) {
+        String email = req.getEmail().toLowerCase();
+
+        // Redis-based brute-force protection: track failures per email with a 15-min sliding window.
+        // Check before hitting the DB so locked-out requests fail fast.
+        String failKey = FAILURES_PREFIX + email;
+        String failCountStr = redis.opsForValue().get(failKey);
+        int redisFailCount = failCountStr != null ? Integer.parseInt(failCountStr) : 0;
+        if (redisFailCount >= MAX_FAIL_ATTEMPTS) {
+            throw new ShieldException("TOO_MANY_REQUESTS",
+                    "Too many failed attempts. Try again in 15 minutes.", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        java.util.Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
             // Always run bcrypt to prevent timing-based user enumeration attacks
             passwordEncoder.matches(req.getPassword(), DUMMY_HASH);
+            // Increment Redis failure counter even for non-existent emails to prevent enumeration
+            Long newCount = redis.opsForValue().increment(failKey);
+            if (newCount != null && newCount == 1) {
+                redis.expire(failKey, RATE_LOCK_MINUTES, TimeUnit.MINUTES);
+            }
             throw new ShieldException("UNAUTHORIZED", "Invalid credentials", HttpStatus.UNAUTHORIZED);
         }
         User user = userOpt.get();
@@ -223,6 +253,11 @@ public class AuthService {
         }
 
         if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
+            // Increment Redis failure counter
+            Long newCount = redis.opsForValue().increment(failKey);
+            if (newCount != null && newCount == 1) {
+                redis.expire(failKey, RATE_LOCK_MINUTES, TimeUnit.MINUTES);
+            }
             int attempts  = user.getFailedLoginAttempts() + 1;
             Instant lockUntil = attempts >= MAX_FAIL_ATTEMPTS
                     ? Instant.now().plus(LOCK_MINUTES, ChronoUnit.MINUTES) : null;
@@ -230,6 +265,8 @@ public class AuthService {
             throw new ShieldException("UNAUTHORIZED", "Invalid credentials", HttpStatus.UNAUTHORIZED);
         }
 
+        // Successful login — clear the Redis failure counter and DB lock state
+        redis.delete(failKey);
         userRepository.resetLoginState(user.getId(), Instant.now());
 
         // ── MFA check ─────────────────────────────────────────────────────
@@ -251,6 +288,11 @@ public class AuthService {
         String refresh = UUID.randomUUID().toString();
 
         redis.opsForValue().set(REFRESH_PREFIX + refresh, user.getId().toString(), refreshDays, TimeUnit.DAYS);
+        // Track current active refresh token per userId for revocation support
+        redis.opsForValue().set(REFRESH_PREFIX + "user:" + user.getId(), refresh, refreshDays, TimeUnit.DAYS);
+
+        // Create session record with device info and fingerprint
+        createSessionWithFingerprint(user, userAgent, ipAddress);
 
         auditClient.log("USER_LOGIN", "User", user.getId().toString(),
                 user.getId(), user.getName(), ipAddress,
@@ -272,6 +314,11 @@ public class AuthService {
         String refresh = UUID.randomUUID().toString();
 
         redis.opsForValue().set(REFRESH_PREFIX + refresh, user.getId().toString(), refreshDays, TimeUnit.DAYS);
+        // Track current active refresh token per userId for revocation support
+        redis.opsForValue().set(REFRESH_PREFIX + "user:" + user.getId(), refresh, refreshDays, TimeUnit.DAYS);
+
+        // Create session for MFA-completed login (no userAgent/IP available here)
+        createSessionWithFingerprint(user, null, null);
 
         auditClient.log("USER_LOGIN_MFA", "User", user.getId().toString(),
                 user.getId(), user.getName(), null,
@@ -297,9 +344,15 @@ public class AuthService {
             throw ShieldException.forbidden("Account is disabled");
         }
 
+        // Invalidate old refresh token immediately (rotation)
         redis.delete(key);
+
+        // Generate and store new refresh token
         String newRefresh = UUID.randomUUID().toString();
         redis.opsForValue().set(REFRESH_PREFIX + newRefresh, user.getId().toString(), refreshDays, TimeUnit.DAYS);
+
+        // Track the current active refresh token per userId for family-wide revocation
+        redis.opsForValue().set(REFRESH_PREFIX + "user:" + user.getId(), newRefresh, refreshDays, TimeUnit.DAYS);
 
         String access = jwtUtils.generateAccessToken(
                 user.getId(), user.getEmail(), user.getRole().name(), user.getTenantId());
@@ -590,6 +643,53 @@ public class AuthService {
                 .build();
     }
 
+    // ── Session management ───────────────────────────────────────────────────
+
+    /**
+     * Revokes ALL active sessions for the user — sets a Redis blacklist timestamp
+     * so the gateway rejects any access token issued before this moment.
+     */
+    @Transactional
+    public void logoutAll(UUID userId) {
+        // 1. Set a blacklist timestamp — gateway rejects any token issued before this
+        redis.opsForValue().set(
+                BLACKLIST_PREFIX + userId,
+                String.valueOf(Instant.now().getEpochSecond()),
+                Duration.ofDays(31));
+        // 2. Delete the active refresh token index
+        redis.delete(REFRESH_PREFIX + "user:" + userId);
+        // 3. Revoke all active DB sessions
+        sessionRepository.revokeAllForUser(userId, Instant.now());
+        log.info("Logged out all sessions for userId={}", userId);
+        auditClient.log("USER_LOGOUT_ALL", "User", userId.toString(),
+                userId, null, null, Map.of());
+    }
+
+    /** Returns all non-revoked sessions for the given user. */
+    public List<SessionResponse> getSessions(UUID userId) {
+        return sessionRepository.findByUserIdAndRevokedFalse(userId).stream()
+                .map(this::toSessionResponse)
+                .toList();
+    }
+
+    /** Revokes a specific session by id, also blacklists tokens issued before now. */
+    @Transactional
+    public void revokeSession(UUID sessionId, UUID userId) {
+        Session session = sessionRepository.findByIdAndUserIdAndRevokedFalse(sessionId, userId)
+                .orElseThrow(() -> ShieldException.notFound("Session", sessionId));
+        session.setRevoked(true);
+        session.setRevokedAt(Instant.now());
+        sessionRepository.save(session);
+        // Blacklist tokens — if this is the only device the effect is same as logout
+        redis.opsForValue().set(
+                BLACKLIST_PREFIX + userId,
+                String.valueOf(Instant.now().getEpochSecond()),
+                Duration.ofDays(31));
+        log.info("Revoked sessionId={} for userId={}", sessionId, userId);
+        auditClient.log("SESSION_REVOKED", "Session", sessionId.toString(),
+                userId, null, null, Map.of("sessionId", sessionId.toString()));
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private AuthResponse buildAuthResponse(User user, String accessToken, String refreshToken) {
@@ -620,5 +720,76 @@ public class AuthService {
                 .lastLoginAt(u.getLastLoginAt())
                 .createdAt(u.getCreatedAt())
                 .build();
+    }
+
+    private SessionResponse toSessionResponse(Session s) {
+        return SessionResponse.builder()
+                .id(s.getId())
+                .deviceName(s.getDeviceName())
+                .deviceType(s.getDeviceType())
+                .ipAddress(s.getIpAddress())
+                .lastActive(s.getLastActive())
+                .createdAt(s.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * Persists a session row for the login event.
+     * Computes a SHA-256 fingerprint from userAgent + ipAddress.
+     * If the fingerprint is new for this user, sends a push notification.
+     */
+    @Transactional
+    void createSessionWithFingerprint(User user, String userAgent, String ipAddress) {
+        String fingerprint = computeFingerprint(userAgent, ipAddress);
+        boolean isNewDevice = !sessionRepository.existsByUserIdAndFingerprintHash(user.getId(), fingerprint);
+
+        String deviceType = detectDeviceType(userAgent);
+
+        Session session = new Session();
+        session.setUserId(user.getId());
+        session.setDeviceName(buildDeviceName(userAgent));
+        session.setDeviceType(deviceType);
+        session.setIpAddress(ipAddress);
+        session.setUserAgent(userAgent);
+        session.setFingerprintHash(fingerprint);
+        sessionRepository.save(session);
+
+        if (isNewDevice) {
+            log.info("New device detected for userId={} fingerprint={}", user.getId(), fingerprint);
+            notificationClient.sendNewDeviceNotification(user.getId(), user.getEmail(),
+                    user.getName(), ipAddress, deviceType);
+        }
+    }
+
+    private static String computeFingerprint(String userAgent, String ipAddress) {
+        try {
+            String raw = (userAgent != null ? userAgent : "") + ":" + (ipAddress != null ? ipAddress : "");
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            return UUID.randomUUID().toString().replace("-", "");
+        }
+    }
+
+    private static String detectDeviceType(String userAgent) {
+        if (userAgent == null) return "DESKTOP";
+        String ua = userAgent.toLowerCase();
+        if (ua.contains("mobile") || ua.contains("android") || ua.contains("iphone")) return "MOBILE";
+        if (ua.contains("tablet") || ua.contains("ipad")) return "TABLET";
+        return "DESKTOP";
+    }
+
+    private static String buildDeviceName(String userAgent) {
+        if (userAgent == null) return "Unknown Device";
+        if (userAgent.toLowerCase().contains("android")) return "Android Device";
+        if (userAgent.toLowerCase().contains("iphone"))  return "iPhone";
+        if (userAgent.toLowerCase().contains("ipad"))    return "iPad";
+        if (userAgent.toLowerCase().contains("windows")) return "Windows Device";
+        if (userAgent.toLowerCase().contains("mac"))     return "Mac Device";
+        if (userAgent.toLowerCase().contains("linux"))   return "Linux Device";
+        return "Unknown Device";
     }
 }

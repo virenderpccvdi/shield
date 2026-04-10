@@ -278,10 +278,56 @@ export default function IspDashboardPage() {
 
       <PlatformSosBanner />
 
+      {/* ── Hero Stats Bar ────────────────────────────────────────────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
+        gap: 2,
+        mb: 4,
+        p: 2.5,
+        borderRadius: '16px',
+        background: 'linear-gradient(135deg, #003D72 0%, #005DAC 60%, #1976D2 100%)',
+        boxShadow: '0 8px 32px -4px rgba(0,61,114,0.28)',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::after': {
+          content: '""',
+          position: 'absolute', top: -60, right: -60,
+          width: 200, height: 200, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.05)',
+          pointerEvents: 'none',
+        },
+      }}>
+        {[
+          { label: 'Total Customers', value: customerCount, suffix: '', color: '#E3F2FD' },
+          { label: 'Active Profiles', value: profileCount, suffix: '', color: '#E1F5FE' },
+          { label: `DNS Queries (${days}d)`, value: formatK(totalQueries), suffix: '', color: '#E8F5E9' },
+          { label: 'Block Rate', value: `${Number(blockRate).toFixed(1)}%`, suffix: '', color: blockRate > 15 ? '#FFEBEE' : '#E8F5E9' },
+        ].map((stat, i) => (
+          <Box key={i} sx={{
+            textAlign: 'center', py: 1,
+            borderRight: { md: i < 3 ? '1px solid rgba(255,255,255,0.12)' : 'none' },
+          }}>
+            <Typography sx={{
+              fontFamily: '"Manrope", sans-serif', fontWeight: 800, fontSize: '1.75rem',
+              color: '#FFFFFF', letterSpacing: '-0.03em', lineHeight: 1.1,
+            }}>
+              {stat.value}
+            </Typography>
+            <Typography sx={{
+              fontFamily: '"Inter", sans-serif', fontSize: 12, fontWeight: 500,
+              color: 'rgba(255,255,255,0.72)', mt: 0.5, textTransform: 'uppercase', letterSpacing: '0.04em',
+            }}>
+              {stat.label}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
       {/* Getting Started card — shown when no customers yet */}
       {customerCount === 0 && (
         <AnimatedPage delay={0.1}>
-          <Card sx={{ mb: 4, border: '1px dashed', borderColor: '#00897B60', bgcolor: '#00897B05' }}>
+          <Card sx={{ mb: 4, bgcolor: '#F7FBF8', border: 'none', boxShadow: '0 8px 32px -4px rgba(15,31,61,0.04)', borderRadius: '12px' }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                 <RocketLaunchIcon sx={{ color: '#00897B', fontSize: 28 }} />
@@ -333,27 +379,32 @@ export default function IspDashboardPage() {
         </AnimatedPage>
       )}
 
-      {/* Stat Cards — redesigned with new design system */}
+      {/* Stat Cards */}
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
         {[
           {
-            title: 'Total Customers', value: customerCount, color: '#06B6D4',
-            icon: <PeopleIcon sx={{ fontSize: 22 }} />, subtitle: 'registered accounts',
+            title: 'Total Customers', value: customerCount, color: '#0277BD',
+            iconBg: '#E1F5FE',
+            icon: <PeopleIcon sx={{ fontSize: 20 }} />, subtitle: 'registered accounts',
             trend: customerCount > 0 ? 'active' : 'none',
           },
           {
-            title: 'Active Profiles', value: profileCount, color: '#4F46E5',
-            icon: <ShieldIcon sx={{ fontSize: 22 }} />, subtitle: 'child profiles protected',
+            title: 'Active Profiles', value: profileCount, color: '#005DAC',
+            iconBg: '#E3F2FD',
+            icon: <ShieldIcon sx={{ fontSize: 20 }} />, subtitle: 'child profiles protected',
             trend: profileCount > 0 ? 'active' : 'none',
           },
           {
-            title: `DNS Queries (${days}d)`, value: formatK(totalQueries), color: '#7C3AED',
-            icon: <DnsIcon sx={{ fontSize: 22 }} />, subtitle: 'queries processed',
+            title: `DNS Queries (${days}d)`, value: formatK(totalQueries), color: '#005DAC',
+            iconBg: '#E3F2FD',
+            icon: <DnsIcon sx={{ fontSize: 20 }} />, subtitle: 'queries processed',
             trend: totalQueries > 1000 ? 'high' : 'normal',
           },
           {
-            title: 'Block Rate', value: `${Number(blockRate).toFixed(1)}%`, color: blockRate > 15 ? '#EF4444' : '#10B981',
-            icon: <BlockIcon sx={{ fontSize: 22 }} />, subtitle: blockRate > 15 ? 'elevated — review rules' : 'healthy range',
+            title: 'Block Rate', value: `${Number(blockRate).toFixed(1)}%`,
+            color: blockRate > 15 ? '#C62828' : '#2E7D32',
+            iconBg: blockRate > 15 ? '#FFEBEE' : '#E8F5E9',
+            icon: <BlockIcon sx={{ fontSize: 20 }} />, subtitle: blockRate > 15 ? 'elevated — review rules' : 'healthy range',
             trend: blockRate > 15 ? 'high' : 'low',
           },
         ].map((card, i) => (
@@ -361,34 +412,41 @@ export default function IspDashboardPage() {
             <AnimatedPage delay={0.1 + i * 0.08}>
               <Card sx={{
                 height: '100%', overflow: 'hidden', position: 'relative',
-                border: '1px solid', borderColor: `${card.color}18`,
-                transition: 'all 0.2s ease',
-                '&:hover': { transform: 'translateY(-3px)', boxShadow: `0 10px 28px ${card.color}20` },
+                bgcolor: '#FFFFFF', border: 'none',
+                boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)',
+                borderRadius: '12px',
+                transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+                '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 32px -4px rgba(15,31,61,0.10)' },
+                '&::before': {
+                  content: '""', position: 'absolute',
+                  top: 0, left: 0, bottom: 0, width: 3,
+                  background: card.color, borderRadius: '12px 0 0 12px',
+                },
               }}>
-                <Box sx={{ height: 4, background: `linear-gradient(90deg, ${card.color}, ${card.color}80)` }} />
-                <Box sx={{ p: 2.5 }}>
-                  <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 1.5 }}>
-                    <Box sx={{
-                      width: 44, height: 44, borderRadius: '12px',
-                      background: `linear-gradient(135deg, ${card.color}15, ${card.color}25)`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: `0 4px 12px ${card.color}20`,
-                    }}>
-                      <Box sx={{ color: card.color }}>{card.icon}</Box>
+                <Box sx={{ px: 2.5, py: 2.25 }}>
+                  <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 1.25 }}>
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: 12, color: '#4A6481', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                      {card.title}
+                    </Typography>
+                    <Box sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: card.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color, flexShrink: 0 }}>
+                      {card.icon}
                     </Box>
+                  </Stack>
+                  <Typography sx={{ fontFamily: '"Manrope", sans-serif', fontSize: '1.75rem', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.03em', color: '#005DAC', mb: 0.4 }}>
+                    {card.value}
+                  </Typography>
+                  <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: 11.5, color: '#4A6481', mt: 0.3 }}>{card.subtitle}</Typography>
+                  <Box sx={{ mt: 0.75 }}>
                     <Chip
                       size="small"
                       label={card.trend === 'high' ? 'High' : card.trend === 'active' ? 'Active' : card.trend === 'low' ? 'Low' : 'Normal'}
                       sx={{
-                        height: 20, fontSize: 10, fontWeight: 700,
-                        bgcolor: card.trend === 'high' ? 'rgba(239,68,68,0.08)' : card.trend === 'active' ? 'rgba(16,185,129,0.08)' : 'rgba(107,114,128,0.08)',
-                        color: card.trend === 'high' ? '#DC2626' : card.trend === 'active' ? '#059669' : '#6B7280',
+                        height: 20, fontSize: 10, fontWeight: 700, border: 'none',
+                        bgcolor: card.trend === 'high' ? '#FFEBEE' : card.trend === 'active' ? '#E8F5E9' : '#F0F4F8',
+                        color: card.trend === 'high' ? '#C62828' : card.trend === 'active' ? '#2E7D32' : '#4A6481',
                       }}
                     />
-                  </Stack>
-                  <Typography variant="h4" fontWeight={800} sx={{ color: card.color, lineHeight: 1, mb: 0.5 }}>{card.value}</Typography>
-                  <Typography variant="body2" fontWeight={600} color="text.primary" fontSize={13}>{card.title}</Typography>
-                  <Typography variant="caption" color="text.disabled" fontSize={11}>{card.subtitle}</Typography>
+                  </Box>
                 </Box>
               </Card>
             </AnimatedPage>
@@ -398,7 +456,7 @@ export default function IspDashboardPage() {
 
       {/* Quick Actions Row */}
       <AnimatedPage delay={0.25}>
-        <Card sx={{ mb: 3, border: '1px solid rgba(79,70,229,0.08)' }}>
+        <Card sx={{ mb: 3, bgcolor: '#FFFFFF', border: 'none', boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)', borderRadius: '12px' }}>
           <CardContent sx={{ py: 2 }}>
             <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
               <Typography fontWeight={700} fontSize={13} letterSpacing="-0.2px" sx={{ mr: 1 }}>Quick Actions</Typography>
@@ -435,7 +493,7 @@ export default function IspDashboardPage() {
         {/* DNS Query Trend Chart */}
         <Grid size={{ xs: 12, md: 8 }}>
           <AnimatedPage delay={0.3}>
-            <Card sx={{ border: '1px solid rgba(79,70,229,0.08)' }}>
+            <Card sx={{ bgcolor: '#FFFFFF', border: 'none', boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)', borderRadius: '12px' }}>
               <CardContent>
                 <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 2.5 }}>
                   <Box>
@@ -459,8 +517,8 @@ export default function IspDashboardPage() {
                     <AreaChart data={trend} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                       <defs>
                         <linearGradient id="ispDashGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.25} />
-                          <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.01} />
+                          <stop offset="5%" stopColor="#005DAC" stopOpacity={0.22} />
+                          <stop offset="95%" stopColor="#005DAC" stopOpacity={0.01} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
@@ -470,9 +528,9 @@ export default function IspDashboardPage() {
                         contentStyle={{ borderRadius: 10, border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', fontSize: 12 }}
                         formatter={(v: number) => [formatK(v), 'Queries']}
                       />
-                      <Area type="monotone" dataKey="queries" stroke="#4F46E5" strokeWidth={2.5}
-                        fill="url(#ispDashGrad)" dot={{ r: 4, fill: '#4F46E5', strokeWidth: 2, stroke: '#fff' }}
-                        activeDot={{ r: 6, stroke: '#4F46E5', strokeWidth: 2, fill: '#fff' }} />
+                      <Area type="monotone" dataKey="queries" stroke="#005DAC" strokeWidth={2.5}
+                        fill="url(#ispDashGrad)" dot={{ r: 4, fill: '#005DAC', strokeWidth: 2, stroke: '#fff' }}
+                        activeDot={{ r: 6, stroke: '#005DAC', strokeWidth: 2, fill: '#fff' }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
@@ -484,7 +542,7 @@ export default function IspDashboardPage() {
         {/* Recent Signups */}
         <Grid size={{ xs: 12, md: 4 }}>
           <AnimatedPage delay={0.4}>
-            <Card sx={{ height: '100%', border: '1px solid rgba(79,70,229,0.08)' }}>
+            <Card sx={{ height: '100%', bgcolor: '#FFFFFF', border: 'none', boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)', borderRadius: '12px' }}>
               <CardContent>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

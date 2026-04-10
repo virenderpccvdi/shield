@@ -10,6 +10,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -23,26 +25,21 @@ import java.util.UUID;
  *   GET    /api/v1/dns/history/{profileId}?page=0&amp;size=50&amp;blockedOnly=false&amp;period=TODAY
  *   GET    /api/v1/dns/history/{profileId}/stats
  *   DELETE /api/v1/dns/history/{profileId}
+ *   GET    /api/v1/dns/profiles/{profileId}/usage/today  (A3: screen time minutes today)
  * </pre>
  */
 @RestController
-@RequestMapping("/api/v1/dns/history")
 @RequiredArgsConstructor
 public class BrowsingHistoryController {
 
     private final BrowsingHistoryService historyService;
 
+    // ── History endpoints (base path: /api/v1/dns/history) ───────────────────
+
     /**
      * Retrieve paginated browsing history for a child profile.
-     *
-     * @param profileId  child profile UUID (path variable)
-     * @param page       zero-based page index (default 0)
-     * @param size       page size, capped at 200 internally (default 50)
-     * @param blockedOnly when present, filter to only blocked (true) or allowed (false) entries
-     * @param period     optional window: TODAY | WEEK | MONTH (omit for all time)
-     * @param role       injected by gateway
      */
-    @GetMapping("/{profileId}")
+    @GetMapping("/api/v1/dns/history/{profileId}")
     public ResponseEntity<ApiResponse<Page<BrowsingHistoryResponse>>> getHistory(
             @PathVariable UUID profileId,
             @RequestParam(defaultValue = "0")  int     page,
@@ -60,11 +57,8 @@ public class BrowsingHistoryController {
     /**
      * Retrieve today's summary statistics for a child profile.
      * Returns: totalToday, blockedToday, allowedToday, topDomains (up to 10).
-     *
-     * @param profileId child profile UUID
-     * @param role      injected by gateway
      */
-    @GetMapping("/{profileId}/stats")
+    @GetMapping("/api/v1/dns/history/{profileId}/stats")
     public ResponseEntity<ApiResponse<BrowsingStatsResponse>> getStats(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role) {
@@ -75,12 +69,8 @@ public class BrowsingHistoryController {
 
     /**
      * Delete all browsing history for a child profile.
-     * Only the owning CUSTOMER (or an admin) may clear history.
-     *
-     * @param profileId child profile UUID
-     * @param role      injected by gateway
      */
-    @DeleteMapping("/{profileId}")
+    @DeleteMapping("/api/v1/dns/history/{profileId}")
     public ResponseEntity<ApiResponse<Void>> deleteHistory(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role) {
@@ -88,6 +78,35 @@ public class BrowsingHistoryController {
         requireCustomer(role);
         historyService.deleteHistory(profileId);
         return ResponseEntity.ok(ApiResponse.ok(null, "Browsing history cleared for profile " + profileId));
+    }
+
+    // ── A3: Screen time / usage today ────────────────────────────────────────
+
+    /**
+     * GET /api/v1/dns/profiles/{profileId}/usage/today
+     * Returns today's DNS query count, block count, and estimated screen time in minutes.
+     * Screen time estimate: each DNS query ≈ 30 seconds of active browsing.
+     */
+    @GetMapping("/api/v1/dns/profiles/{profileId}/usage/today")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUsageToday(
+            @PathVariable UUID profileId,
+            @RequestHeader("X-User-Role") String role) {
+
+        requireCustomer(role);
+
+        BrowsingStatsResponse stats = historyService.getStats(profileId);
+        long queries = stats.getTotalToday();
+        long blocks  = stats.getBlockedToday();
+
+        // Rough screen time estimate: each DNS query ≈ 30 seconds = 0.5 minutes
+        long screenTimeMinutes = (queries * 30L) / 60L;
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("profileId",          profileId);
+        body.put("screenTimeMinutes",  screenTimeMinutes);
+        body.put("queriesCount",       queries);
+        body.put("blocksCount",        blocks);
+        return ResponseEntity.ok(ApiResponse.ok(body));
     }
 
     // ── Role guard ────────────────────────────────────────────────────────────

@@ -145,8 +145,10 @@ public class ChildProfileService {
     }
 
     /**
-     * Returns the online status, last seen time, and battery level for a child profile.
-     * Checks all devices associated with the profile.
+     * A4/A5: Returns the online status, last seen time, device name, and battery level for a child profile.
+     * Checks Redis key shield:profile:{profileId}:last_seen (set by location service on GPS ping)
+     * for real-time status, falling back to DB device records.
+     * Online = last_seen within the last 5 minutes.
      */
     public Map<String, Object> getChildStatus(UUID id, UUID customerId) {
         ChildProfile profile = findOrThrow(id);
@@ -155,18 +157,50 @@ public class ChildProfileService {
         }
 
         List<com.rstglobal.shield.profile.entity.Device> devices = deviceRepository.findByProfileId(id);
-        boolean online = devices.stream().anyMatch(com.rstglobal.shield.profile.entity.Device::isOnline);
-        Instant lastSeen = devices.stream()
+
+        // Check Redis for real-time last_seen (set by location service on GPS pings)
+        Instant redisLastSeen = null;
+        try {
+            String redisKey = "shield:profile:" + id + ":last_seen";
+            String redisVal = redis.opsForValue().get(redisKey);
+            if (redisVal != null && !redisVal.isBlank()) {
+                redisLastSeen = Instant.ofEpochSecond(Long.parseLong(redisVal));
+            }
+        } catch (Exception e) {
+            log.debug("Redis last_seen check failed for profile {}: {}", id, e.getMessage());
+        }
+
+        // DB device last_seen
+        Instant dbLastSeen = devices.stream()
                 .map(com.rstglobal.shield.profile.entity.Device::getLastSeenAt)
                 .filter(Objects::nonNull)
                 .max(Instant::compareTo)
                 .orElse(null);
 
+        // Use the more recent of Redis vs DB
+        Instant lastSeen = (redisLastSeen != null && (dbLastSeen == null || redisLastSeen.isAfter(dbLastSeen)))
+                ? redisLastSeen : dbLastSeen;
+
+        // Online if last_seen within last 5 minutes (Redis) or device marked online in DB
+        boolean redisOnline = redisLastSeen != null &&
+                redisLastSeen.isAfter(Instant.now().minus(5, java.time.temporal.ChronoUnit.MINUTES));
+        boolean dbOnline = devices.stream().anyMatch(com.rstglobal.shield.profile.entity.Device::isOnline);
+        boolean online = redisOnline || dbOnline;
+
+        // Pick the name of the most recently seen online device
+        String deviceName = devices.stream()
+                .filter(com.rstglobal.shield.profile.entity.Device::isOnline)
+                .map(com.rstglobal.shield.profile.entity.Device::getName)
+                .findFirst()
+                .orElseGet(() -> devices.isEmpty() ? null : devices.get(0).getName());
+
         Map<String, Object> status = new LinkedHashMap<>();
         status.put("profileId", id);
         status.put("name", profile.getName());
         status.put("online", online);
-        status.put("lastSeenAt", lastSeen);
+        status.put("lastSeen", lastSeen);
+        status.put("lastSeenAt", lastSeen);   // alias for backward compat
+        status.put("deviceName", deviceName);
         status.put("deviceCount", devices.size());
         status.put("onlineDevices", devices.stream().filter(com.rstglobal.shield.profile.entity.Device::isOnline).count());
         return status;

@@ -1,0 +1,62 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: shield-alerts
+  namespace: shield-prod
+  labels:
+    prometheus: shield
+    role: alert-rules
+spec:
+  groups:
+    - name: shield.platform
+      interval: 30s
+      rules:
+        - alert: ServiceHighErrorRate
+          expr: |
+            rate(http_server_requests_seconds_count{status=~"5..", namespace="shield-prod"}[5m])
+            / rate(http_server_requests_seconds_count{namespace="shield-prod"}[5m]) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High error rate on {{ $labels.service }}"
+            description: "Error rate > 5% for 2 minutes"
+
+        - alert: PodRestarting
+          expr: increase(kube_pod_container_status_restarts_total{namespace="shield-prod"}[15m]) > 2
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.pod }} restarting"
+
+        - alert: HighMemoryUsage
+          expr: |
+            container_memory_working_set_bytes{namespace="shield-prod", container!=""}
+            / container_spec_memory_limit_bytes{namespace="shield-prod", container!=""} > 0.85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory: {{ $labels.pod }}"
+
+        - alert: DatabaseConnectionsHigh
+          expr: hikaricp_connections_active{namespace="shield-prod"} > 6
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "DB connections high: {{ $labels.application }}"
+
+        - alert: AiServiceLatencyHigh
+          expr: |
+            histogram_quantile(0.95,
+              rate(http_server_requests_seconds_bucket{
+                service="shield-ai", namespace="shield-prod"
+              }[5m])
+            ) > 10
+          for: 3m
+          labels:
+            severity: warning
+          annotations:
+            summary: "AI service p95 latency > 10s"

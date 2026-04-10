@@ -2,7 +2,9 @@ package com.rstglobal.shield.admin.controller;
 
 import com.rstglobal.shield.admin.config.StripeConfig;
 import com.rstglobal.shield.admin.service.BillingService;
+import com.stripe.model.Charge;
 import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
@@ -61,10 +63,25 @@ public class StripeWebhookController {
                             .getObject().orElse(null);
                     if (invoice != null) billingService.handleInvoicePaymentFailed(invoice);
                 }
+                case "customer.subscription.updated" -> {
+                    Subscription sub = (Subscription) event.getDataObjectDeserializer()
+                            .getObject().orElse(null);
+                    if (sub != null) billingService.handleSubscriptionUpdated(sub);
+                }
                 case "customer.subscription.deleted" -> {
                     Subscription sub = (Subscription) event.getDataObjectDeserializer()
                             .getObject().orElse(null);
                     if (sub != null) billingService.handleSubscriptionDeleted(sub);
+                }
+                case "charge.refunded" -> {
+                    Charge charge = (Charge) event.getDataObjectDeserializer()
+                            .getObject().orElse(null);
+                    if (charge != null) billingService.handleChargeRefunded(charge);
+                }
+                case "payment_intent.requires_action" -> {
+                    PaymentIntent pi = (PaymentIntent) event.getDataObjectDeserializer()
+                            .getObject().orElse(null);
+                    if (pi != null) billingService.handlePaymentActionRequired(pi);
                 }
                 default -> log.debug("Unhandled Stripe event type: {}", event.getType());
             }

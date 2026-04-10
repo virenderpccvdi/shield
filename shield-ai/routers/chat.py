@@ -9,12 +9,15 @@ import logging
 import os
 from typing import Optional
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, field_validator, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+import json
 
 from db.database import get_db
 from db.queries import get_profile_week_stats
+from limiter import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +27,15 @@ router = APIRouter(prefix="/api/v1/ai", tags=["chat"])
 
 class ChatRequest(BaseModel):
     profileId: str
-    question: str
+    question: str = Field(..., max_length=2000, description="Parent chat message")
     tenantId: Optional[str] = None
+
+    @field_validator('question')
+    @classmethod
+    def question_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError('Message cannot be empty')
+        return v.strip()
 
 
 class ChatResponse(BaseModel):
@@ -52,7 +62,8 @@ def _get_anthropic_client():
 # ─── Endpoint ─────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat_with_ai(request: ChatRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def chat_with_ai(http_request: Request, request: ChatRequest, db: AsyncSession = Depends(get_db)):
     """Answer parent questions about child activity using Claude AI."""
 
     # 1. Fetch child's recent stats from DB (last 7 days)
@@ -192,3 +203,75 @@ def _build_suggestions(question: str, stats: dict) -> list[str]:
             seen.add(s)
 
     return prioritised[:3]
+
+
+# ─── Streaming chat endpoint ──────────────────────────────────────────────────
+
+@router.post("/chat/stream")
+@limiter.limit("10/minute")
+async def chat_stream(http_request: Request, request: ChatRequest, db: AsyncSession = Depends(get_db)):
+    """Stream Claude AI responses as Server-Sent Events (SSE)."""
+
+    # Fetch child's recent stats
+    week_stats = await get_profile_week_stats(db, request.profileId)
+
+    # Build context string (same logic as /chat)
+    has_data = week_stats.get("has_data", False)
+    top_cats = week_stats.get("top_categories", [])
+    top_cats_str = ", ".join(c["name"] for c in top_cats[:5]) if top_cats else "No data yet"
+    total_blocked = week_stats.get("total_blocked", 0)
+    total_allowed = week_stats.get("total_allowed", 0)
+    late_night = week_stats.get("late_night_count", 0)
+    bypass_attempts = week_stats.get("bypass_attempts", 0)
+    unique_domains = week_stats.get("unique_domains", 0)
+    days_over_budget = week_stats.get("days_over_budget", 0)
+    screen_hours = round((total_allowed + total_blocked) * 10 / 3600, 1)
+
+    context = (
+        f"CHILD ACTIVITY DATA (last 7 days):\n"
+        f"- Data available: {'Yes' if has_data else 'No — new profile or device not yet connected'}\n"
+        f"- Total DNS queries allowed: {total_allowed}\n"
+        f"- Total DNS queries blocked: {total_blocked}\n"
+        f"- Estimated screen time: {screen_hours} hours\n"
+        f"- Top blocked categories: {top_cats_str}\n"
+        f"- Late-night sessions (after 10 PM): {late_night}\n"
+        f"- Bypass/VPN attempts: {bypass_attempts}\n"
+        f"- Unique domains visited: {unique_domains}\n"
+        f"- Days where usage exceeded budget: {days_over_budget} out of 7\n"
+    )
+
+    system_prompt = (
+        "You are Shield AI, a helpful parental control assistant. "
+        "Answer the parent's question about their child's online activity based on the provided data. "
+        "Be concise, supportive, and actionable. Never be alarmist. Limit to 150 words."
+    )
+
+    async def generate():
+        try:
+            import anthropic
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+            if not api_key:
+                yield f"data: {json.dumps({'error': 'AI service not configured'})}\n\n"
+                return
+            async_client = anthropic.AsyncAnthropic(api_key=api_key)
+            model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
+            async with async_client.messages.stream(
+                model=model,
+                max_tokens=1024,
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"{context}\n\nParent's question: {request.question}",
+                    }
+                ],
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as exc:
+            logger.error("Streaming chat failed for profile %s: %s", request.profileId, exc)
+            yield f"data: {json.dumps({'error': 'Streaming unavailable, please use /chat instead'})}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")

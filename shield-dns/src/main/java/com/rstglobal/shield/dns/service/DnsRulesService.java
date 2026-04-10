@@ -1,5 +1,6 @@
 package com.rstglobal.shield.dns.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.common.service.FeatureGateService;
 import com.rstglobal.shield.dns.config.ContentCategories;
@@ -14,24 +15,66 @@ import com.rstglobal.shield.dns.entity.RulesAuditLog;
 import com.rstglobal.shield.dns.repository.DnsRulesRepository;
 import com.rstglobal.shield.dns.repository.PlatformDefaultsRepository;
 import com.rstglobal.shield.dns.repository.RulesAuditLogRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.*;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class DnsRulesService {
+
+    // ── Domain format validation ───────────────────────────────────────────────
+    private static final Pattern DOMAIN_PATTERN =
+            Pattern.compile("^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,}$",
+                    Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Normalises a domain entered by a user:
+     * - strips leading/trailing whitespace
+     * - strips http:// or https:// prefix
+     * - strips any path, query or fragment
+     * - lowercases
+     * Then validates the result against RFC 1123 label rules.
+     *
+     * @throws ShieldException (400) if the cleaned value is not a valid domain.
+     */
+    private String normalizeDomain(String input) {
+        if (input == null) return null;
+        String d = input.trim().toLowerCase()
+                .replaceAll("^https?://", "")
+                .replaceAll("[/?#].*$", "");
+        if (!DOMAIN_PATTERN.matcher(d).matches()) {
+            throw ShieldException.badRequest("Invalid domain format: " + input);
+        }
+        return d;
+    }
 
     private final DnsRulesRepository rulesRepo;
     private final PlatformDefaultsRepository platformRepo;
     private final FeatureGateService featureGate;
     private final DnsBroadcastService dnsBroadcast;
     private final RulesAuditLogRepository auditLogRepo;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    public DnsRulesService(DnsRulesRepository rulesRepo, PlatformDefaultsRepository platformRepo,
+                            FeatureGateService featureGate, DnsBroadcastService dnsBroadcast,
+                            RulesAuditLogRepository auditLogRepo,
+                            StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+        this.rulesRepo = rulesRepo;
+        this.platformRepo = platformRepo;
+        this.featureGate = featureGate;
+        this.dnsBroadcast = dnsBroadcast;
+        this.auditLogRepo = auditLogRepo;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
+    }
 
     @Value("${shield.app.domain:shield.rstglobal.in}")
     private String appDomain;
@@ -58,8 +101,25 @@ public class DnsRulesService {
     @Transactional
     public DnsRulesResponse getRules(UUID profileId, UUID tenantId) {
         requireFeature(tenantId, "dns_filtering");
+        // DB9: Check Redis cache first (30-sec TTL)
+        String cacheKey = "shield:dns:profile:" + profileId + ":rules";
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return objectMapper.readValue(cached, DnsRulesResponse.class);
+            }
+        } catch (Exception e) {
+            log.debug("DNS rules cache miss for profileId={}: {}", profileId, e.getMessage());
+        }
         DnsRules rules = findOrInit(profileId, tenantId);
-        return toResponse(rules);
+        DnsRulesResponse response = toResponse(rules);
+        try {
+            redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(response),
+                    Duration.ofSeconds(30));
+        } catch (Exception e) {
+            log.debug("Failed to cache DNS rules for profileId={}: {}", profileId, e.getMessage());
+        }
+        return response;
     }
 
     @Transactional
@@ -71,6 +131,7 @@ public class DnsRulesService {
         cats.putAll(req.getCategories());
         rules.setEnabledCategories(cats);
         DnsRules saved = rulesRepo.save(rules);
+        evictRulesCache(profileId);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         audit(profileId, tenantId, null, "CATEGORIES_CHANGED",
                 "Categories updated: " + req.getCategories().keySet());
@@ -81,8 +142,12 @@ public class DnsRulesService {
     public DnsRulesResponse updateAllowlist(UUID profileId, UUID tenantId, UpdateListRequest req) {
         requireFeature(tenantId, "dns_filtering");
         DnsRules rules = findOrInit(profileId, tenantId);
-        rules.setCustomAllowlist(req.getDomains());
+        List<String> normalized = req.getDomains().stream()
+                .map(this::normalizeDomain)
+                .collect(java.util.stream.Collectors.toList());
+        rules.setCustomAllowlist(normalized);
         DnsRules saved = rulesRepo.save(rules);
+        evictRulesCache(profileId);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         audit(profileId, tenantId, null, "ALLOWLIST_CHANGED",
                 req.getDomains().size() + " domains in allowlist");
@@ -93,8 +158,12 @@ public class DnsRulesService {
     public DnsRulesResponse updateBlocklist(UUID profileId, UUID tenantId, UpdateListRequest req) {
         requireFeature(tenantId, "dns_filtering");
         DnsRules rules = findOrInit(profileId, tenantId);
-        rules.setCustomBlocklist(req.getDomains());
+        List<String> normalized = req.getDomains().stream()
+                .map(this::normalizeDomain)
+                .collect(java.util.stream.Collectors.toList());
+        rules.setCustomBlocklist(normalized);
         DnsRules saved = rulesRepo.save(rules);
+        evictRulesCache(profileId);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         audit(profileId, tenantId, null, "BLOCKLIST_CHANGED",
                 req.getDomains().size() + " domains in blocklist");
@@ -108,6 +177,7 @@ public class DnsRulesService {
         if (blocklist != null) rules.setCustomBlocklist(blocklist);
         if (allowlist != null) rules.setCustomAllowlist(allowlist);
         DnsRules saved = rulesRepo.save(rules);
+        evictRulesCache(profileId);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         return toResponse(saved);
     }
@@ -135,6 +205,7 @@ public class DnsRulesService {
         rules.setEnabledCategories(cats);
         rules.setFilterLevel(filterLevel.toUpperCase());
         DnsRules saved = rulesRepo.save(rules);
+        evictRulesCache(profileId);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         audit(profileId, tenantId, null, "FILTER_LEVEL_CHANGED", "Filter level set to " + filterLevel);
         return toResponse(saved);
@@ -144,7 +215,7 @@ public class DnsRulesService {
     public DnsRulesResponse domainAction(UUID profileId, UUID tenantId, DomainActionRequest req) {
         requireFeature(tenantId, "dns_filtering");
         DnsRules rules = findOrInit(profileId, tenantId);
-        String domain = req.getDomain().toLowerCase().trim();
+        String domain = normalizeDomain(req.getDomain());
         if ("ALLOW".equals(req.getAction())) {
             List<String> allow = new ArrayList<>(Optional.ofNullable(rules.getCustomAllowlist()).orElse(List.of()));
             if (!allow.contains(domain)) allow.add(domain);
@@ -162,6 +233,7 @@ public class DnsRulesService {
             rules.setCustomAllowlist(allow);
         }
         DnsRules saved = rulesRepo.save(rules);
+        evictRulesCache(profileId);
         dnsBroadcast.broadcastRulesChanged(saved.getProfileId(), tenantId);
         return toResponse(saved);
     }
@@ -260,6 +332,7 @@ public class DnsRulesService {
         cats.put("__paused__", paused);
         rules.setEnabledCategories(cats);
         DnsRules saved = rulesRepo.save(rules);
+        evictRulesCache(profileId);
         log.info("Filtering {} for profileId={}", paused ? "paused" : "resumed", profileId);
         audit(profileId, null, null, paused ? "PAUSE" : "RESUME",
                 "Internet filtering " + (paused ? "paused" : "resumed"));
@@ -388,6 +461,7 @@ public class DnsRulesService {
                 .orElseThrow(() -> ShieldException.notFound("dns-rules", profileId.toString()));
         rules.setYoutubeSafeMode(enabled);
         rules = rulesRepo.save(rules);
+        evictRulesCache(profileId);
         log.info("YouTube safe mode {} for profile={}", enabled ? "ENABLED" : "DISABLED", profileId);
         return toResponse(rules);
     }
@@ -404,6 +478,7 @@ public class DnsRulesService {
                 .orElseThrow(() -> ShieldException.notFound("dns-rules", profileId.toString()));
         rules.setSafeSearch(enabled);
         rules = rulesRepo.save(rules);
+        evictRulesCache(profileId);
         log.info("Safe search {} for profile={}", enabled ? "ENABLED" : "DISABLED", profileId);
         return toResponse(rules);
     }
@@ -427,6 +502,7 @@ public class DnsRulesService {
         }
         rules = rulesRepo.save(rules);
         applySocialBlock(rules);
+        evictRulesCache(profileId);
         log.info("Social block {} {} for profile={}", platform, enabled ? "ENABLED" : "DISABLED", profileId);
         audit(profileId, null, null, "SOCIAL_BLOCK_CHANGED",
                 platform + " blocking " + (enabled ? "enabled" : "disabled"));
@@ -459,6 +535,15 @@ public class DnsRulesService {
             }
         } else {
             block.removeAll(domains);
+        }
+    }
+
+    /** Evict DNS rules cache entry for a profile. Silently ignores Redis errors. */
+    private void evictRulesCache(UUID profileId) {
+        try {
+            redisTemplate.delete("shield:dns:profile:" + profileId + ":rules");
+        } catch (Exception e) {
+            log.debug("Failed to evict DNS rules cache for profileId={}: {}", profileId, e.getMessage());
         }
     }
 

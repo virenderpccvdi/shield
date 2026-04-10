@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shield-dns-resolver
+  labels:
+    app: shield-dns-resolver
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shield-dns-resolver
+  template:
+    metadata:
+      labels:
+        app: shield-dns-resolver
+    spec:
+      containers:
+        - name: shield-dns-resolver
+          image: REGISTRY/shield-dns-resolver:TAG
+          ports:
+            - name: http
+              containerPort: 8292
+              protocol: TCP
+            - name: dns-udp
+              containerPort: 53
+              protocol: UDP
+            - name: dns-tcp
+              containerPort: 53
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: shield-config
+            - secretRef:
+                name: shield-secrets
+          env:
+            - name: SERVER_PORT
+              value: "8292"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://eureka:ShieldEureka2026@shield-eureka:8261/eureka/"
+            - name: EUREKA_INSTANCE_PREFERIPADDRESS
+              value: "false"
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "shield-dns-resolver"
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:"
+            - name: SHIELD_DNS_SERVICE_URL
+              value: "http://shield-dns:8284"
+            - name: SHIELD_ANALYTICS_SERVICE_URL
+              value: "http://shield-analytics:8289"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "400m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8292
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 8
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8292
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            failureThreshold: 5
+            timeoutSeconds: 10

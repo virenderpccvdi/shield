@@ -14,30 +14,42 @@ import com.rstglobal.shield.dns.service.DnsRulesService;
 import com.rstglobal.shield.dns.service.HomeworkModeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestClient;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/dns")
 @RequiredArgsConstructor
 public class DnsRulesController {
 
+    private static final String PROFILE_SERVICE = "SHIELD-PROFILE";
+
     private final DnsRulesService rulesService;
     private final HomeworkModeService homeworkModeService;
     private final BedtimeLockService bedtimeLockService;
     private final RulesAuditLogRepository auditLogRepo;
+    private final DiscoveryClient discoveryClient;
+    private final RestClient restClient = RestClient.builder().build();
 
     @GetMapping("/rules/{profileId}")
     public ResponseEntity<ApiResponse<DnsRulesResponse>> getRules(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         return ResponseEntity.ok(ApiResponse.ok(rulesService.getRules(profileId, parseUuid(tenantIdStr))));
     }
 
@@ -45,9 +57,11 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateCategories(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @Valid @RequestBody UpdateCategoriesRequest req) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         return ResponseEntity.ok(ApiResponse.ok(rulesService.updateCategories(profileId, parseUuid(tenantIdStr), req)));
     }
 
@@ -55,9 +69,11 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateAllowlist(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @Valid @RequestBody UpdateListRequest req) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         return ResponseEntity.ok(ApiResponse.ok(rulesService.updateAllowlist(profileId, parseUuid(tenantIdStr), req)));
     }
 
@@ -65,9 +81,11 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateBlocklist(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @Valid @RequestBody UpdateListRequest req) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         return ResponseEntity.ok(ApiResponse.ok(rulesService.updateBlocklist(profileId, parseUuid(tenantIdStr), req)));
     }
 
@@ -76,9 +94,11 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateCustomLists(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @RequestBody Map<String, Object> body) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         @SuppressWarnings("unchecked")
         java.util.List<String> blocklist = (java.util.List<String>) body.get("customBlocklist");
         @SuppressWarnings("unchecked")
@@ -92,9 +112,11 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> updateFilterLevel(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @RequestBody Map<String, String> body) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         String level = body.getOrDefault("filterLevel", "MODERATE").toUpperCase();
         return ResponseEntity.ok(ApiResponse.ok(
                 rulesService.updateFilterLevel(profileId, parseUuid(tenantIdStr), level)));
@@ -104,9 +126,11 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> domainAction(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @Valid @RequestBody DomainActionRequest req) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         return ResponseEntity.ok(ApiResponse.ok(rulesService.domainAction(profileId, parseUuid(tenantIdStr), req)));
     }
 
@@ -123,9 +147,11 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<java.util.List<Map<String, Object>>>> getActivity(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @RequestParam(defaultValue = "50") int limit) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         com.rstglobal.shield.dns.entity.DnsRules rules = rulesService.getRulesEntity(profileId, parseUuid(tenantIdStr));
         String clientId = rules != null ? rules.getDnsClientId() : null;
         java.util.List<Map<String, Object>> activity = rulesService.getActivity(clientId, limit);
@@ -137,8 +163,10 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<com.rstglobal.shield.dns.dto.response.DnsRulesResponse>> forceSync(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         return ResponseEntity.ok(ApiResponse.ok(rulesService.forceSync(profileId, parseUuid(tenantIdStr))));
     }
 
@@ -148,8 +176,10 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> pauseFiltering(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         DnsRulesResponse response = rulesService.setFilteringPaused(profileId, parseUuid(tenantIdStr), true);
         return ResponseEntity.ok(ApiResponse.ok(response, "Filtering paused for profile"));
     }
@@ -158,8 +188,10 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> resumeFiltering(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         DnsRulesResponse response = rulesService.setFilteringPaused(profileId, parseUuid(tenantIdStr), false);
         return ResponseEntity.ok(ApiResponse.ok(response, "Filtering resumed for profile"));
     }
@@ -217,8 +249,10 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> startHomework(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestBody Map<String, Integer> body) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         int durationMinutes = body.getOrDefault("durationMinutes", 60);
         if (durationMinutes < 1 || durationMinutes > 480) {
             throw ShieldException.badRequest("Duration must be between 1 and 480 minutes");
@@ -235,8 +269,10 @@ public class DnsRulesController {
     @PostMapping("/rules/{profileId}/homework/stop")
     public ResponseEntity<ApiResponse<Map<String, Object>>> stopHomework(
             @PathVariable UUID profileId,
-            @RequestHeader("X-User-Role") String role) {
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         homeworkModeService.deactivate(profileId);
         return ResponseEntity.ok(ApiResponse.ok(
                 homeworkModeService.getStatus(profileId),
@@ -249,8 +285,10 @@ public class DnsRulesController {
     @GetMapping("/rules/{profileId}/homework/status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> homeworkStatus(
             @PathVariable UUID profileId,
-            @RequestHeader("X-User-Role") String role) {
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         return ResponseEntity.ok(ApiResponse.ok(homeworkModeService.getStatus(profileId)));
     }
 
@@ -264,8 +302,10 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> setYoutubeSafeMode(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestBody Map<String, Boolean> body) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
         DnsRulesResponse response = rulesService.setYoutubeSafeMode(profileId, enabled);
         return ResponseEntity.ok(ApiResponse.ok(response,
@@ -283,8 +323,10 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> setSafeSearch(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestBody Map<String, Boolean> body) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
         DnsRulesResponse response = rulesService.setSafeSearch(profileId, enabled);
         return ResponseEntity.ok(ApiResponse.ok(response,
@@ -302,9 +344,11 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<DnsRulesResponse>> setSocialBlock(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdStr,
             @RequestBody Map<String, Object> body) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         String platform = String.valueOf(body.getOrDefault("platform", ""));
         boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
         DnsRulesResponse response = rulesService.setSocialBlock(profileId, platform, enabled);
@@ -322,8 +366,10 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> configureBedtime(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestBody Map<String, Object> body) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
         String start = (String) body.get("bedtimeStart");
         String end   = (String) body.get("bedtimeEnd");
@@ -337,8 +383,10 @@ public class DnsRulesController {
     @GetMapping("/rules/{profileId}/bedtime/status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> bedtimeStatus(
             @PathVariable UUID profileId,
-            @RequestHeader("X-User-Role") String role) {
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         return ResponseEntity.ok(ApiResponse.ok(bedtimeLockService.getStatus(profileId)));
     }
 
@@ -347,9 +395,11 @@ public class DnsRulesController {
     public ResponseEntity<ApiResponse<Page<RulesAuditLog>>> getAuditLog(
             @PathVariable UUID profileId,
             @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         Page<RulesAuditLog> log = auditLogRepo.findByProfileIdOrderByCreatedAtDesc(
                 profileId, PageRequest.of(page, Math.min(size, 200)));
         return ResponseEntity.ok(ApiResponse.ok(log));
@@ -362,8 +412,10 @@ public class DnsRulesController {
     @GetMapping("/{profileId}/status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getDnsStatus(
             @PathVariable UUID profileId,
-            @RequestHeader("X-User-Role") String role) {
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
         requireCustomer(role);
+        requireProfileOwnership(profileId, role, userId);
         DnsRulesResponse rules = rulesService.getRules(profileId, null);
         boolean paused = rules.getEnabledCategories() != null
                 && Boolean.TRUE.equals(rules.getEnabledCategories().get("__paused__"));
@@ -386,6 +438,60 @@ public class DnsRulesController {
         if (!"CUSTOMER".equals(role) && !"ISP_ADMIN".equals(role) && !"GLOBAL_ADMIN".equals(role)) {
             throw ShieldException.forbidden("Customer role required");
         }
+    }
+
+    /**
+     * For CUSTOMER role: verifies that the given profileId belongs to the calling user.
+     * Calls the profile service internal endpoint to resolve the owner's userId.
+     * ISP_ADMIN and GLOBAL_ADMIN bypass this check (they manage by tenantId).
+     *
+     * Throws {@link ShieldException#forbidden} if the caller does not own this profile.
+     */
+    private void requireProfileOwnership(UUID profileId, String role, String callerUserIdStr) {
+        if (!"CUSTOMER".equals(role)) {
+            // ISP_ADMIN and GLOBAL_ADMIN are not subject to per-user profile isolation
+            return;
+        }
+        if (callerUserIdStr == null || callerUserIdStr.isBlank()) {
+            throw ShieldException.forbidden("Missing caller identity");
+        }
+        try {
+            String profileBase = resolveServiceUrl(PROFILE_SERVICE);
+            if (profileBase == null) {
+                // Profile service unavailable — fail closed for security
+                log.warn("Profile service unavailable — rejecting DNS rules access for profileId={}", profileId);
+                throw ShieldException.forbidden("Cannot verify profile ownership");
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> parentInfo = restClient.get()
+                    .uri(profileBase + "/internal/profiles/" + profileId + "/parent")
+                    .retrieve()
+                    .body(Map.class);
+            if (parentInfo == null) {
+                throw ShieldException.forbidden("Profile not found");
+            }
+            String ownerUserId = (String) parentInfo.get("userId");
+            if (!callerUserIdStr.equals(ownerUserId)) {
+                log.warn("Ownership check failed: caller={} ownerOfProfile={} profileId={}",
+                        callerUserIdStr, ownerUserId, profileId);
+                throw ShieldException.forbidden("You do not own this child profile");
+            }
+        } catch (ShieldException se) {
+            throw se;
+        } catch (Exception e) {
+            log.warn("Profile ownership check failed for profileId={}: {}", profileId, e.getMessage());
+            throw ShieldException.forbidden("Cannot verify profile ownership");
+        }
+    }
+
+    private String resolveServiceUrl(String serviceName) {
+        List<ServiceInstance> instances = discoveryClient.getInstances(serviceName);
+        if (instances.isEmpty()) {
+            log.warn("No instances of {} found in Eureka", serviceName);
+            return null;
+        }
+        ServiceInstance instance = instances.get(0);
+        return instance.getUri().toString();
     }
 
     private static UUID parseUuid(String s) {

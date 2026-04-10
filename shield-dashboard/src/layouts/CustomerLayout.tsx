@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Drawer, AppBar, Toolbar, List, ListItemIcon,
@@ -143,6 +143,9 @@ export default function CustomerLayout() {
   useRealtimeSync();
 
   const [bottomNav, setBottomNav] = useState(0);
+
+  // RD9: Close mobile drawer on route change
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
     () => Object.fromEntries(sections.map(s => [s.title, true]))

@@ -13,6 +13,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID>,
         JpaSpecificationExecutor<Invoice> {
     Optional<Invoice> findByStripeInvoiceId(String stripeInvoiceId);
     Optional<Invoice> findByStripeCheckoutSessionId(String sessionId);
+    Optional<Invoice> findByStripePaymentIntentId(String stripePaymentIntentId);
     Page<Invoice> findByTenantId(UUID tenantId, Pageable pageable);
     Page<Invoice> findByUserId(UUID userId, Pageable pageable);
 }

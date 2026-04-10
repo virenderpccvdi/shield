@@ -1,4 +1,4 @@
-import { Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody, TablePagination, Chip, TextField, InputAdornment, Avatar, Button, Stack, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Typography, Card, Paper, Table, TableHead, TableRow, TableCell, TableBody, TablePagination, TableSortLabel, Chip, TextField, InputAdornment, Avatar, Button, Stack, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -7,7 +7,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
@@ -68,6 +68,17 @@ export default function CustomersPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [addOpen, setAddOpen] = useState(false);
+  const [sortField, setSortField] = useState<string>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
 
   useEffect(() => { setPage(0); }, [search]);
   const [snack, setSnack] = useState('');
@@ -113,9 +124,17 @@ export default function CustomersPage() {
     queryKey: ['isp-customers', page, rowsPerPage],
     queryFn: async () => {
       const r = await api.get(`/profiles/customers?page=${page}&size=${rowsPerPage}`).catch(() => ({ data: { data: [] } }));
-      const d = r.data?.data;
-      const list: Customer[] = (d?.content ?? d) as Customer[];
-      const total: number = d?.totalElements ?? list.length;
+      const list: Customer[] = (
+        r.data?.data?.content ??
+        r.data?.content ??
+        r.data?.data ??
+        r.data ??
+        []
+      ) as Customer[];
+      const total: number =
+        r.data?.data?.totalElements ??
+        r.data?.totalElements ??
+        list.length;
       // Enrich with user name/email for records that don't have them stored
       const missing = list.filter(c => !c.name && !c.email && c.userId);
       if (missing.length > 0) {
@@ -136,9 +155,17 @@ export default function CustomersPage() {
   });
   const allCustomers = data?.list ?? [];
   const totalElements = data?.total ?? 0;
-  const customers = allCustomers.filter(c =>
-    `${c.name ?? ''} ${c.email ?? ''} ${c.userId ?? ''} ${c.subscriptionPlan ?? ''}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const customers = useMemo(() => {
+    const filtered = allCustomers.filter(c =>
+      `${c.name ?? ''} ${c.email ?? ''} ${c.userId ?? ''} ${c.subscriptionPlan ?? ''}`.toLowerCase().includes(search.toLowerCase())
+    );
+    return [...filtered].sort((a, b) => {
+      const av = (a as Record<string, unknown>)[sortField] as string ?? '';
+      const bv = (b as Record<string, unknown>)[sortField] as string ?? '';
+      const cmp = String(av).localeCompare(String(bv));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [allCustomers, search, sortField, sortDir]);
 
   return (
     <AnimatedPage>
@@ -175,13 +202,13 @@ export default function CustomersPage() {
       />
 
       <AnimatedPage delay={0.15}>
-        <Card>
-          <Paper elevation={0}>
+        <Card sx={{ bgcolor: '#FFFFFF', border: 'none', boxShadow: '0 8px 32px -4px rgba(15,31,61,0.06)', borderRadius: '12px' }}>
+          <Paper elevation={0} sx={{ borderRadius: '12px', bgcolor: 'transparent' }}>
             {isLoading ? (
               <SkeletonTable rows={5} columns={5} />
             ) : customers.length === 0 ? (
               <EmptyState
-                icon={<PeopleIcon sx={{ fontSize: 36, color: '#00897B' }} />}
+                icon={<PeopleIcon sx={{ fontSize: 36, color: '#005DAC' }} />}
                 title="No customers found"
                 description={search ? 'Try adjusting your search terms' : 'Get started by adding your first customer'}
                 action={search ? undefined : { label: 'Add Customer', onClick: () => setAddOpen(true) }}
@@ -190,9 +217,27 @@ export default function CustomersPage() {
               <Box sx={{ overflowX: 'auto' }}>
               <Table>
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#F8FAFC' }}>
-                    {['Customer', 'Email', 'Plan', 'Profiles', 'Status', 'Joined', 'Actions'].map(h => (
-                      <TableCell key={h} sx={{ fontWeight: 600, color: '#64748B', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                  <TableRow sx={{ bgcolor: '#F0F4F8' }}>
+                    {[
+                      { label: 'Customer', field: 'name' },
+                      { label: 'Email', field: 'email' },
+                      { label: 'Plan', field: 'subscriptionPlan' },
+                      { label: 'Profiles', field: 'profileCount' },
+                      { label: 'Status', field: 'subscriptionStatus' },
+                      { label: 'Joined', field: 'createdAt' },
+                      { label: 'Actions', field: null },
+                    ].map(({ label, field }) => (
+                      <TableCell key={label} sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, color: '#4A6481', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        {field ? (
+                          <TableSortLabel
+                            active={sortField === field}
+                            direction={sortField === field ? sortDir : 'asc'}
+                            onClick={() => handleSort(field)}
+                          >
+                            {label}
+                          </TableSortLabel>
+                        ) : label}
+                      </TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
@@ -204,14 +249,14 @@ export default function CustomersPage() {
                       sx={{
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        '&:hover': { bgcolor: '#F5F9FF' },
+                        '&:hover': { bgcolor: '#F0F4F8' },
                         '@keyframes fadeInUp': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
                         animation: `fadeInUp 0.3s ease ${0.1 + i * 0.05}s both`,
                       }}
                     >
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Avatar sx={{ width: 34, height: 34, fontSize: 13, fontWeight: 700, bgcolor: 'secondary.main' }}>
+                          <Avatar sx={{ width: 34, height: 34, fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg, #003D72 0%, #005DAC 100%)' }}>
                             {getInitials(c.name)}
                           </Avatar>
                           <Box sx={{ minWidth: 0 }}>

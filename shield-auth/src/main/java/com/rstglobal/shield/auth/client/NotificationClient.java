@@ -182,6 +182,35 @@ public class NotificationClient {
         }
     }
 
+    /**
+     * Sends a push + email notification when a new device/fingerprint is detected at login.
+     * Fire-and-forget — failure is only logged, never rethrown.
+     */
+    @Async
+    public void sendNewDeviceNotification(UUID userId, String email, String name,
+                                          String ipAddress, String deviceType) {
+        try {
+            // Push notification via WebSocket topic
+            Map<String, Object> pushPayload = new HashMap<>();
+            pushPayload.put("topic",   "user-" + userId);
+            pushPayload.put("title",   "New device login");
+            pushPayload.put("body",    "Your account was accessed from a new " +
+                                       deviceType.toLowerCase() + " (" + (ipAddress != null ? ipAddress : "unknown IP") + ")");
+            pushPayload.put("type",    "NEW_DEVICE_LOGIN");
+
+            restClient.post()
+                    .uri(notificationBaseUrl + "/internal/notifications/push")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(pushPayload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("New-device push notification sent for userId={}", userId);
+        } catch (Exception e) {
+            log.warn("Failed to send new-device notification for userId={}: {}", userId, e.getMessage());
+        }
+    }
+
     /** Sends a password-reset email from an admin reset action, containing the new plaintext password. */
     @Async
     public void sendAdminPasswordResetEmail(String email, String name, String newPassword) {

@@ -12,8 +12,9 @@ server's perspective; the client passes conversationHistory each request.
 import logging
 import os
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, field_validator, Field
+from limiter import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +57,16 @@ _FALLBACK_POST = (
 
 class SafeChatRequest(BaseModel):
     profileId: str
-    message: str
+    message: str = Field(..., max_length=500, description="Child chat message")
     ageGroup: str = "child"                  # "child" (6-12) or "teen" (13-17)
     conversationHistory: list[dict] = []     # [{"role": "user/assistant", "content": "..."}]
+
+    @field_validator('message')
+    @classmethod
+    def message_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError('Message cannot be empty')
+        return v.strip()
 
 
 class SafeChatResponse(BaseModel):
@@ -92,7 +100,8 @@ async def safe_chat_health():
 
 
 @router.post("/safe-chat", response_model=SafeChatResponse)
-async def safe_chat(req: SafeChatRequest):
+@limiter.limit("10/minute")
+async def safe_chat(http_request: Request, req: SafeChatRequest):
     """
     Child-safe AI chatbot.
 
