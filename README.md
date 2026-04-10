@@ -6,7 +6,7 @@
 [![Shield QA Pipeline](https://github.com/virenderpccvdi/shield/actions/workflows/qa.yml/badge.svg)](https://github.com/virenderpccvdi/shield/actions/workflows/qa.yml)
 [![CodeQL](https://github.com/virenderpccvdi/shield/actions/workflows/codeql.yml/badge.svg)](https://github.com/virenderpccvdi/shield/actions/workflows/codeql.yml)
 [![Trivy Security](https://github.com/virenderpccvdi/shield/actions/workflows/trivy.yml/badge.svg)](https://github.com/virenderpccvdi/shield/actions/workflows/trivy.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 
 **Live:** https://shield.rstglobal.in &nbsp;|&nbsp; **Docs:** [doc/](doc/README.md)
 
@@ -216,4 +216,7 @@ Report vulnerabilities via [SECURITY.md](.github/SECURITY.md).
 
 ## License
 
-[MIT](LICENSE) — Copyright (c) 2026 RST Global (Virender Kumar)
+[Proprietary](LICENSE) — Copyright (c) 2026 Rostan Technologies. All rights reserved.
+
+This software is the confidential and proprietary information of Rostan Technologies.
+Unauthorised copying, distribution, or use is strictly prohibited.

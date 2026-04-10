@@ -1,21 +1,30 @@
-MIT License
+PROPRIETARY SOFTWARE LICENSE
 
-Copyright (c) 2026 RST Global (Virender Kumar)
+Copyright (c) 2026 Rostan Technologies. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+NOTICE: All information contained herein is, and remains the property of
+Rostan Technologies. The intellectual and technical concepts contained herein
+are proprietary to Rostan Technologies and may be covered by patents, patent
+applications, and are protected by trade secret or copyright law.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Dissemination of this information, reproduction of this material, or any
+derivative work based on this source code is strictly forbidden unless prior
+written permission is obtained from Rostan Technologies.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+RESTRICTIONS:
+1. This software and its source code may not be copied, modified, merged,
+   published, distributed, sublicensed, or sold without express written
+   permission from Rostan Technologies.
+2. The software is provided solely for authorised use by licensed customers
+   and employees of Rostan Technologies.
+3. Reverse engineering, decompilation, or disassembly of this software is
+   strictly prohibited.
+4. Any breach of these restrictions will result in immediate termination of
+   any licence granted and may subject the breaching party to civil and
+   criminal penalties.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. IN NO EVENT SHALL ROSTAN TECHNOLOGIES BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF THIS SOFTWARE.
+
+For licensing enquiries contact: legal@rostan.tech
