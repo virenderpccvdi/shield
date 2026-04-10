@@ -43,10 +43,19 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+      # CVE-2026-22733: disable Health Groups endpoint to prevent info disclosure
+      group:
+        readiness:
+          include: []
+        liveness:
+          include: []
   metrics:
     export:
       prometheus:
         enabled: true
+  # CVE-2026-22733: disable Cloud Foundry actuator (exposes /cloudfoundryapplication)
+  cloudfoundry:
+    enabled: false
 
 shield:
   jwt:

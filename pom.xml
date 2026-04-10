@@ -45,6 +45,10 @@
         <lombok.version>1.18.36</lombok.version>
         <springdoc.version>3.0.2</springdoc.version>
         <logstash-logback.version>8.0</logstash-logback.version>
+
+        <!-- ── Security CVE overrides ───────────────────────────────────────── -->
+        <!-- CVE-2026-33871 / CVE-2025-55163: Netty HTTP/2 header handling -->
+        <netty.version>4.2.12.Final</netty.version>
     </properties>
 
     <dependencyManagement>
@@ -119,6 +123,26 @@
                 <groupId>org.springframework.retry</groupId>
                 <artifactId>spring-retry</artifactId>
                 <version>2.0.11</version>
+            </dependency>
+
+            <!-- ── CVE overrides for transitive deps ────────────────────────── -->
+            <!-- Pin HttpClient to latest 4.5.x (fixes multiple GHSA advisories) -->
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.5.14</version>
+            </dependency>
+            <!-- commons-fileupload: pin to 1.5 (latest on Maven Central as of Apr 2026) -->
+            <dependency>
+                <groupId>commons-fileupload</groupId>
+                <artifactId>commons-fileupload</artifactId>
+                <version>1.5</version>
+            </dependency>
+            <!-- spring-cloud-config-server: pin to 5.0.1 (Spring Cloud 2025.1.1) -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-config-server</artifactId>
+                <version>5.0.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
