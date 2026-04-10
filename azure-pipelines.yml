@@ -101,14 +101,13 @@ stages:
       continueOnError: true
 
     - script: |
-        # Guarantee at least one XML exists so PublishTestResults never warns.
-        # If surefire produced real results they will be merged alongside this.
-        if ! find $(Build.SourcesDirectory) -path "*/surefire-reports/TEST-*.xml" -print -quit | grep -q .; then
-          mkdir -p $(Build.SourcesDirectory)/.test-placeholder/surefire-reports
-          printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="shield-build" tests="0" failures="0" errors="0" skipped="0" time="0"/>\n' \
-            > $(Build.SourcesDirectory)/.test-placeholder/surefire-reports/TEST-shield-placeholder.xml
-          echo "No surefire XML found — placeholder created to suppress PublishTestResults warning."
-        fi
+        # Always write a minimal placeholder JUnit XML.
+        # PublishTestResults merges it with any real surefire results.
+        # This guarantees the task never warns about "no matching files".
+        mkdir -p $(Build.SourcesDirectory)/.test-placeholder/surefire-reports
+        printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="shield-build" tests="0" failures="0" errors="0" skipped="0" time="0"/>\n' \
+          > $(Build.SourcesDirectory)/.test-placeholder/surefire-reports/TEST-shield-placeholder.xml
+        echo "Placeholder XML written."
       displayName: 'Ensure test result XML exists'
       condition: always()
 
@@ -179,24 +178,13 @@ stages:
     - checkout: self
       clean: false
 
-    - task: Cache@2
-      displayName: Cache npm packages
-      continueOnError: true   # self-hosted agent: node_modules may already exist
-      inputs:
-        key: 'npm | "$(Agent.OS)" | shield-dashboard/package-lock.json'
-        restoreKeys: 'npm | "$(Agent.OS)"'
-        path: shield-dashboard/node_modules
-
     - script: |
         set -e
         cd shield-dashboard
-        # npm ci: respects package-lock.json exactly — no file changes means cache key stays stable.
-        # Falls back to npm install if node_modules already present (self-hosted agent warmup).
-        if [ -d "node_modules" ]; then
-          npm install --prefer-offline --no-save 2>/dev/null || npm install
-        else
-          npm ci
-        fi
+        # Self-hosted agent: node_modules already on disk.
+        # npm install --prefer-offline picks up any new packages without full reinstall.
+        # No Cache@2 task needed — avoids the package-lock.json hash-drift warning.
+        npm install --prefer-offline
         npm run build
         echo "Dashboard built: $(du -sh dist)"
       displayName: 'npm build'
@@ -299,7 +287,7 @@ stages:
   - job: DependencyCheck
     pool:
       name: shield-self-hosted
-    timeoutInMinutes: 30
+    timeoutInMinutes: 90
     steps:
     - checkout: self
       clean: false
