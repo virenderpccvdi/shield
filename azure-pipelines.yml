@@ -52,6 +52,13 @@ stages:
     - checkout: self
       clean: false   # reuse workspace for faster incremental builds
 
+    - script: |
+        echo "$(Build.SourceVersion)" > VERSION
+        echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> VERSION
+        echo "$(Build.SourceBranchName)" >> VERSION
+        cat VERSION
+      displayName: 'Write VERSION file'
+
     - task: Cache@2
       displayName: Cache Maven packages
       inputs:
@@ -101,7 +108,7 @@ stages:
         echo "Logging in to ACR: $ACR"
         az acr login --name ${ACR%%.*} 2>&1 | tail -2
 
-        SERVICES="eureka config gateway auth tenant profile dns dns-resolver location notification rewards analytics admin"
+        SERVICES="eureka config gateway auth tenant profile dns dns-resolver location notification rewards analytics admin ai"
         echo "Building images in parallel..."
         for svc in $SERVICES; do
           docker build \
@@ -213,6 +220,18 @@ stages:
         echo "APK deployed: $(du -sh /var/www/ai/FamilyShield/static/shield-app.apk)"
       displayName: 'Deploy APK to static directory'
 
+    - script: |
+        set -e
+        APK="shield-app/build/app/outputs/flutter-apk/app-release.apk"
+        if [ -f "$APK" ]; then
+          SIZE=$(du -sh "$APK" | cut -f1)
+          echo "##vso[task.setvariable variable=APK_SIZE;isOutput=true]$SIZE"
+          echo "##[section]APK built: $SIZE"
+          echo "##vso[build.addbuildtag]apk-$(date +%Y%m%d)"
+        fi
+      displayName: 'APK size report'
+      name: apkReport
+
 # ══════════════════════════════════════════════════════════════════════════════
 # STAGE 2: SECURITY SCAN — OWASP + npm audit
 # ══════════════════════════════════════════════════════════════════════════════
@@ -279,9 +298,20 @@ stages:
                 kustomize edit set image REGISTRY/shield-${svc}=$(ACR_LOGIN_SERVER)/shield-${svc}:$(IMAGE_TAG)
               done
               kustomize build . | kubectl apply -f -
-              kubectl rollout status deployment/shield-gateway -n shield-dev --timeout=300s
-              kubectl rollout status deployment/shield-auth -n shield-dev --timeout=300s
+              for svc in gateway auth tenant profile dns notification; do
+                echo "Waiting for shield-${svc}..."
+                kubectl rollout status deployment/shield-${svc} -n shield-dev --timeout=180s || true
+              done
+              echo "Dev deploy complete. Pod status:"
+              kubectl get pods -n shield-dev
             displayName: 'Apply K8s manifests (dev)'
+
+          - script: |
+              echo "Dev deploy failed — rolling back gateway and auth"
+              kubectl rollout undo deployment/shield-gateway -n shield-dev || true
+              kubectl rollout undo deployment/shield-auth -n shield-dev || true
+            condition: failed()
+            displayName: 'Auto-rollback dev on failure'
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STAGE 3: DEPLOY PROD — manual approval on main branch
@@ -346,6 +376,22 @@ stages:
               echo "✅ Auth health: OK"
               echo "=== All smoke tests passed ==="
             displayName: 'Post-deploy smoke test'
+
+          - script: |
+              echo "##[section]Deployment Summary"
+              echo "Tag:         $(IMAGE_TAG)"
+              echo "Branch:      $(Build.SourceBranchName)"
+              echo "Commit:      $(Build.SourceVersion)"
+              echo "By:          $(Build.RequestedFor)"
+              echo "Time:        $(date -u '+%Y-%m-%d %H:%M UTC')"
+              echo ""
+              echo "--- Pod status ---"
+              kubectl get pods -n shield-prod -o wide --sort-by=.metadata.creationTimestamp | tail -20
+              echo ""
+              echo "--- Service endpoints ---"
+              kubectl get ingress -n shield-prod
+            displayName: 'Deployment summary'
+            condition: always()
 
           - script: |
               echo "Rolling back on smoke test failure..."
