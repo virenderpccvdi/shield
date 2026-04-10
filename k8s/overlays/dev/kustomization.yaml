@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: shield-dev
 
 resources:
+  - ingress-dev.yaml
   - ../../base/eureka
   - ../../base/config
   - ../../base/gateway

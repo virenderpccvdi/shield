@@ -1,6 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - namespace.yaml
   - configmap.yaml
   - pdb.yaml
+# namespace.yaml excluded: both namespaces are pre-created in AKS.
+# Including Namespace resources causes kustomize namespace-transformer
+# to rename shield-prod → shield-dev in dev overlays (ID conflict).
