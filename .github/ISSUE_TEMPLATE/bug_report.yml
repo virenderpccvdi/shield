@@ -1,0 +1,95 @@
+name: Bug Report
+description: Report a defect in the Shield platform
+labels: ["bug", "needs-triage"]
+assignees:
+  - virenderpccvdi
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before submitting:** Check if the issue is already reported in [open issues](../../issues).
+        For **security vulnerabilities**, follow the [Security Policy](../SECURITY.md) — do NOT file a public issue.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      description: Which part of Shield is broken?
+      options:
+        - shield-auth (login, JWT, MFA)
+        - shield-gateway (routing, rate limiting)
+        - shield-dns (DNS rules, content filtering)
+        - shield-profile (child profiles, devices)
+        - shield-location (maps, geofences)
+        - shield-notification (push, email, WebSocket)
+        - shield-rewards (points, tasks)
+        - shield-analytics (reports, charts)
+        - shield-admin (tenant management)
+        - shield-ai (AI insights, safe chat)
+        - shield-dashboard (React web app)
+        - shield-app (Flutter mobile app)
+        - shield-website (landing page)
+        - CI / Pipelines / Deployment
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical — data loss or security issue
+        - High — core feature broken, no workaround
+        - Medium — feature degraded, workaround exists
+        - Low — cosmetic or minor UX issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Clear description of what is wrong
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Log in as CUSTOMER role
+        2. Navigate to DNS Rules page
+        3. Click "Add Rule"
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: Paste error messages, stack traces, or attach screenshots
+      render: shell
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "prod / dev / local | Android 14 / Chrome 122 | Shield v2.0.0"

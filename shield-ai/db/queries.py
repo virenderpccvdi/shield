@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from typing import Optional, List, Dict, Any
 
 
@@ -188,8 +188,8 @@ async def get_profile_week_stats(
         daily_trend: [{date, allowed, blocked}] for last 7 days,
         has_data: bool (False when no rows found)
     """
-    period_start = datetime.utcnow() - timedelta(days=7)
-    period_end = datetime.utcnow()
+    period_start = datetime.now(timezone.utc) - timedelta(days=7)
+    period_end = datetime.now(timezone.utc)
 
     empty: Dict[str, Any] = {
         "has_data": False,
@@ -265,7 +265,7 @@ async def get_profile_week_stats(
         # Fill missing days with zeros so we always return 7 entries
         trend = []
         for i in range(7, 0, -1):
-            d = (datetime.utcnow() - timedelta(days=i)).date()
+            d = (datetime.now(timezone.utc) - timedelta(days=i)).date()
             key = str(d)
             trend.append({
                 "date": key,

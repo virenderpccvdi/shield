@@ -1,0 +1,49 @@
+# CODEOWNERS — Shield Platform
+#
+# Each line is a pattern followed by one or more GitHub usernames.
+# The last matching pattern takes precedence.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything not matched below
+*                           @virenderpccvdi
+
+# ── CI / CD ────────────────────────────────────────────────────────────────
+/.github/                   @virenderpccvdi
+/azure-pipelines*.yml       @virenderpccvdi
+
+# ── Infrastructure / Kubernetes ────────────────────────────────────────────
+/k8s/                       @virenderpccvdi
+
+# ── Java Microservices ──────────────────────────────────────────────────────
+/shield-auth/               @virenderpccvdi
+/shield-gateway/            @virenderpccvdi
+/shield-tenant/             @virenderpccvdi
+/shield-profile/            @virenderpccvdi
+/shield-dns/                @virenderpccvdi
+/shield-dns-resolver/       @virenderpccvdi
+/shield-location/           @virenderpccvdi
+/shield-notification/       @virenderpccvdi
+/shield-rewards/            @virenderpccvdi
+/shield-analytics/          @virenderpccvdi
+/shield-admin/              @virenderpccvdi
+/shield-config/             @virenderpccvdi
+/shield-eureka/             @virenderpccvdi
+
+# ── AI Service ─────────────────────────────────────────────────────────────
+/shield-ai/                 @virenderpccvdi
+
+# ── Mobile App ─────────────────────────────────────────────────────────────
+/shield-app/                @virenderpccvdi
+
+# ── Dashboard ──────────────────────────────────────────────────────────────
+/shield-dashboard/          @virenderpccvdi
+
+# ── Website ────────────────────────────────────────────────────────────────
+/shield-website/            @virenderpccvdi
+
+# ── Security-sensitive files — require explicit review ─────────────────────
+/shield-auth/src/main/java/com/rstglobal/shield/auth/security/  @virenderpccvdi
+/shield-gateway/src/main/java/com/rstglobal/shield/gateway/filter/  @virenderpccvdi
+/shield-ai/routers/safe_chat.py                                  @virenderpccvdi
+/.github/SECURITY.md                                             @virenderpccvdi
+/owasp-suppressions.xml                                          @virenderpccvdi

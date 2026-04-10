@@ -11,7 +11,7 @@ endpoint can poll it without holding a database connection.
 import json
 import logging
 import pickle
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import os
@@ -37,7 +37,7 @@ def _update_status(status: str, progress: int, message: str | None) -> None:
                 "status": status,
                 "progress": progress,
                 "message": message,
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
             }
         )
     )
@@ -80,7 +80,7 @@ async def run_retraining(days_back: int, db: AsyncSession = None) -> None:
 async def _run_retraining_inner(days_back: int, db) -> None:
     """db is a raw asyncpg connection"""
     try:
-        cutoff = datetime.utcnow() - timedelta(days=days_back)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days_back)
 
         sql = """
             SELECT
@@ -178,7 +178,7 @@ async def _run_retraining_inner(days_back: int, db) -> None:
         # ------------------------------------------------------------------
         # Stage 5 — persist to disk with metadata.
         # ------------------------------------------------------------------
-        version_tag = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        version_tag = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         model_data = {
             "model": model,
             "feature_names": [
@@ -191,7 +191,7 @@ async def _run_retraining_inner(days_back: int, db) -> None:
                 "streaming_ratio",
                 "vpn_ratio",
             ],
-            "trained_at": datetime.utcnow().isoformat(),
+            "trained_at": datetime.now(timezone.utc).isoformat(),
             "training_samples": len(X),
             "days_back": days_back,
             "version": version_tag,

@@ -1,0 +1,60 @@
+name: Feature Request
+description: Propose a new feature or improvement
+labels: ["enhancement", "needs-triage"]
+assignees:
+  - virenderpccvdi
+
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Target component
+      options:
+        - shield-auth
+        - shield-dns (content filtering)
+        - shield-profile / devices
+        - shield-location / geofences
+        - shield-notification / alerts
+        - shield-rewards / gamification
+        - shield-analytics / reports
+        - shield-admin / ISP management
+        - shield-ai (AI insights)
+        - shield-dashboard (web)
+        - shield-app (mobile)
+        - Infrastructure / CI
+        - New service / component
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem does this solve? Who is affected (parent, child, ISP admin, global admin)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How should it work? Include UI mockups or API contracts if possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you consider and why did you reject them?
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - High — blocks a customer or business goal
+        - Medium — meaningful improvement
+        - Low — nice to have
+    validations:
+      required: true

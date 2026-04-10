@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/virenderpccvdi/shield/security/advisories/new
+    about: Report a vulnerability privately — do NOT use a public issue
+  - name: General question / discussion
+    url: https://github.com/virenderpccvdi/shield/discussions
+    about: Ask questions about the Shield platform

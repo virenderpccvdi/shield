@@ -1,0 +1,174 @@
+name: Quality Gate
+
+# Runs on every PR to main — must pass before merge is allowed
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '21'
+  NODE_VERSION: '25'
+  PYTHON_VERSION: '3.13'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+
+  # ── 1. Dependency vulnerability check ─────────────────────────────────────
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: shield-dashboard/package-lock.json
+
+      - name: npm audit (dashboard)
+        working-directory: shield-dashboard
+        run: |
+          npm ci --prefer-offline
+          AUDIT=$(npm audit --json 2>/dev/null || true)
+          CRITICAL=$(echo "$AUDIT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('metadata',{}).get('vulnerabilities',{}).get('critical',0))" 2>/dev/null || echo "0")
+          HIGH=$(echo "$AUDIT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('metadata',{}).get('vulnerabilities',{}).get('high',0))" 2>/dev/null || echo "0")
+          echo "Critical: $CRITICAL  High: $HIGH"
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::npm audit found $CRITICAL critical vulnerabilities — fix before merging"
+            exit 1
+          fi
+          if [ "$HIGH" -gt 0 ]; then
+            echo "::warning::npm audit found $HIGH high vulnerabilities — review required"
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: pip-audit (shield-ai)
+        run: |
+          pip install pip-audit --quiet
+          pip-audit -r shield-ai/requirements.txt \
+            --ignore-vuln PYSEC-2022-42969 \
+            --format json \
+            --output /tmp/pip-audit.json || true
+          python3 - <<'EOF'
+          import json
+          with open('/tmp/pip-audit.json') as f:
+              data = json.load(f)
+          vulns = [v for d in data.get('dependencies', []) for v in d.get('vulns', [])]
+          if vulns:
+              for v in vulns:
+                  print(f"::warning::pip-audit: {v.get('id')} in {v.get('package','?')} — {v.get('description','')[:80]}")
+          EOF
+
+  # ── 2. Code style and lint ─────────────────────────────────────────────────
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: shield-dashboard/package-lock.json
+
+      - name: TypeScript type check (dashboard)
+        working-directory: shield-dashboard
+        run: |
+          npm ci --prefer-offline
+          npx tsc --noEmit
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.0'
+          channel: 'stable'
+
+      - name: Flutter analyze (mobile app)
+        working-directory: shield-app
+        run: flutter analyze --no-fatal-infos
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Ruff lint (shield-ai)
+        run: |
+          pip install ruff --quiet
+          ruff check shield-ai/ --output-format=github || true
+
+  # ── 3. Build verification ──────────────────────────────────────────────────
+  build-verify:
+    name: Build Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Maven build (all services, skip tests)
+        run: mvn package -DskipTests -q --no-transfer-progress
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: shield-dashboard/package-lock.json
+
+      - name: Dashboard production build
+        working-directory: shield-dashboard
+        run: |
+          npm ci --prefer-offline
+          npm run build
+
+      - name: Upload build artifacts summary
+        if: always()
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | JAR size |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|----------|" >> $GITHUB_STEP_SUMMARY
+          for svc in shield-auth shield-gateway shield-tenant shield-profile shield-dns shield-analytics shield-admin; do
+            JAR=$(ls $svc/target/*.jar 2>/dev/null | head -1)
+            if [ -n "$JAR" ]; then
+              SIZE=$(du -sh "$JAR" | cut -f1)
+              echo "| $svc | $SIZE |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+  # ── 4. Docker build check ──────────────────────────────────────────────────
+  docker-lint:
+    name: Dockerfile Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint all Dockerfiles with Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          recursive: true
+          failure-threshold: error
+          ignore: DL3008,DL3009,DL3018
+          # DL3008/3009/3018: apt/apk version pinning — intentionally not pinned (base image handles it)

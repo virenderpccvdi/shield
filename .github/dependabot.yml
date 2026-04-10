@@ -1,0 +1,117 @@
+version: 2
+
+updates:
+  # ── Maven (all Java microservices) ─────────────────────────────────────────
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "java"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      spring-boot:
+        patterns:
+          - "org.springframework.boot:*"
+      spring-cloud:
+        patterns:
+          - "org.springframework.cloud:*"
+      security:
+        patterns:
+          - "io.jsonwebtoken:*"
+          - "org.springframework.security:*"
+
+  # ── npm (React dashboard) ──────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/shield-dashboard"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router-dom"
+          - "@types/react*"
+      mui:
+        patterns:
+          - "@mui/*"
+          - "@emotion/*"
+      vite-toolchain:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "typescript"
+    ignore:
+      # Only patch/minor updates for major UI libraries — avoid breaking changes
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@mui/material"
+        update-types: ["version-update:semver-major"]
+
+  # ── pip (shield-ai Python service) ─────────────────────────────────────────
+  - package-ecosystem: "pip"
+    directory: "/shield-ai"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # python-jose is unmaintained — do not update, migration tracked separately
+      - dependency-name: "python-jose"
+
+  # ── Flutter (mobile app) ───────────────────────────────────────────────────
+  - package-ecosystem: "pub"
+    directory: "/shield-app"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "flutter"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # Only minor/patch for Firebase — major versions require manual migration
+      - dependency-name: "firebase_core"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "firebase_messaging"
+        update-types: ["version-update:semver-major"]
+
+  # ── GitHub Actions ─────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"

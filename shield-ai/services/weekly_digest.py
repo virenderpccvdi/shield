@@ -11,7 +11,7 @@ synchronous version from the caller's perspective.
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from schemas.response import RiskLevel, UsageTrend, WeeklyDigestResponse
@@ -68,7 +68,7 @@ async def generate_digest(stats: WeeklyStats) -> WeeklyDigestResponse:
         from services.llm_digest import enhance_digest_with_llm
 
         llm_stats = {
-            "week_label": stats.week_label or datetime.utcnow().strftime("Week of %B %d, %Y"),
+            "week_label": stats.week_label or datetime.now(timezone.utc).strftime("Week of %B %d, %Y"),
             "total_hours": stats.total_screen_hours,
             "change_pct": stats.usage_change_pct,
             "days_within_budget": stats.days_within_budget,
@@ -93,7 +93,7 @@ async def generate_digest(stats: WeeklyStats) -> WeeklyDigestResponse:
 
     return WeeklyDigestResponse(
         profileId=stats.profile_id,
-        weekOf=datetime.utcnow().strftime("%Y-%m-%d"),
+        weekOf=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         summary=summary,
         llm_summary=llm_summary,
         rule_based_summary=rule_based,
@@ -103,7 +103,7 @@ async def generate_digest(stats: WeeklyStats) -> WeeklyDigestResponse:
         usageTrend=trend,
         topInsight=top_insight,
         recommendedAction=recommended_action,
-        generatedAt=datetime.utcnow(),
+        generatedAt=datetime.now(timezone.utc),
     )
 
 

@@ -1,6 +1,6 @@
 import logging
 from fastapi import APIRouter, Depends, Request
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 from db.queries import get_profile_week_stats
@@ -44,7 +44,7 @@ async def get_weekly_digest(request: Request, profile_id: str, db: AsyncSession 
         age=10,
         unique_domains=week_stats.get("unique_domains", 0),
         top_categories=top_cats,
-        week_label=datetime.utcnow().strftime("Week of %B %d, %Y"),
+        week_label=datetime.now(timezone.utc).strftime("Week of %B %d, %Y"),
     )
     return await generate_digest(stats)
 

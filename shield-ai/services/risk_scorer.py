@@ -4,7 +4,7 @@ from schemas.response import (
     RiskLevel, RiskIndicator, InsightsResponse,
     CategoryStat, Recommendation, AnomalyEvent, DayTrend,
 )
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 @dataclass
@@ -122,7 +122,7 @@ def _build_recommendations(stats: ProfileStats, risk_level: RiskLevel) -> List[R
 
 def _build_anomaly_events(stats: ProfileStats) -> List[AnomalyEvent]:
     events: List[AnomalyEvent] = []
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
 
     if stats.late_night_session_count >= 3:
         events.append(AnomalyEvent(
@@ -169,7 +169,7 @@ def generate_insights(stats: ProfileStats) -> InsightsResponse:
             type="LATE_NIGHT_USAGE",
             description=f"Internet usage detected after 11pm on {stats.late_night_session_count} nights this week",
             severity=RiskLevel.MEDIUM if stats.late_night_session_count < 5 else RiskLevel.HIGH,
-            detectedAt=datetime.utcnow()
+            detectedAt=datetime.now(timezone.utc)
         ))
 
     if stats.schedule_violation_count > 0:
@@ -177,7 +177,7 @@ def generate_insights(stats: ProfileStats) -> InsightsResponse:
             type="SCHEDULE_VIOLATIONS",
             description=f"{stats.schedule_violation_count} attempts to access internet outside allowed hours",
             severity=RiskLevel.LOW if stats.schedule_violation_count < 5 else RiskLevel.MEDIUM,
-            detectedAt=datetime.utcnow()
+            detectedAt=datetime.now(timezone.utc)
         ))
 
     if stats.bypass_attempt_count > 0:
@@ -185,7 +185,7 @@ def generate_insights(stats: ProfileStats) -> InsightsResponse:
             type="BYPASS_ATTEMPTS",
             description=f"{stats.bypass_attempt_count} VPN/proxy bypass attempt(s) detected",
             severity=RiskLevel.HIGH,
-            detectedAt=datetime.utcnow()
+            detectedAt=datetime.now(timezone.utc)
         ))
 
     if stats.adult_query_count > 5:
@@ -193,7 +193,7 @@ def generate_insights(stats: ProfileStats) -> InsightsResponse:
             type="ADULT_CONTENT_ATTEMPTS",
             description=f"{stats.adult_query_count} attempts to access adult content this week",
             severity=RiskLevel.HIGH,
-            detectedAt=datetime.utcnow()
+            detectedAt=datetime.now(timezone.utc)
         ))
 
     addiction_score = calculate_addiction_score(stats)

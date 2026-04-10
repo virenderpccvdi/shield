@@ -10,7 +10,7 @@ POST /ai/alerts/{alert_id}/feedback  — rate an alert for accuracy (persisted t
 """
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -106,7 +106,7 @@ async def get_mental_health(profile_id: str, db: AsyncSession = Depends(get_db))
     insights = generate_insights(stats)
 
     signals: List[MentalHealthSignal] = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     if after_hours > 30:
         signals.append(MentalHealthSignal(
