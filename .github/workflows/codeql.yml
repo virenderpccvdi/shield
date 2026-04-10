@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # Weekly full scan — Wednesday 03:00 UTC (8:30 AM IST), offset from other nightly jobs
+    # Weekly full scan — Wednesday 03:00 UTC (8:30 AM IST)
     - cron: '0 3 * * 3'
 
 concurrency:
@@ -34,12 +34,12 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: 'maven'               # cache ~/.m2 — prevents 10+ min download on each run
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: java
-          # Shield-specific security queries + defaults
           queries: security-extended,security-and-quality
 
       - name: Build for CodeQL (skip tests)
@@ -79,8 +79,9 @@ jobs:
         working-directory: shield-dashboard
         run: npm ci --prefer-offline
 
-      - name: Build dashboard for analysis
+      - name: Build dashboard (for CodeQL flow analysis)
         working-directory: shield-dashboard
+        continue-on-error: true        # build failure must not block the security scan
         run: npm run build
 
       - name: Perform CodeQL analysis
@@ -105,15 +106,7 @@ jobs:
         with:
           languages: python
           queries: security-extended,security-and-quality
-
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install shield-ai dependencies
-        working-directory: shield-ai
-        run: pip install -r requirements.txt
+          # CodeQL Python analysis works on source files — no pip install needed
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3
@@ -132,9 +125,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # full history for secret scan
+          fetch-depth: 0  # full history required for complete secret scan
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false   # don't comment on PRs — just fail the check

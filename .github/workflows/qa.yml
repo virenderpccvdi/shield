@@ -89,6 +89,7 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: 'maven'
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -100,6 +101,8 @@ jobs:
 
       - name: Build all services (skip tests)
         run: mvn package -DskipTests -q --no-transfer-progress
+        env:
+          MAVEN_OPTS: "-Xmx1g"
 
       - name: Start services
         env:
@@ -107,14 +110,26 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           # Start each service in background
+          declare -A SVC_PORTS=(
+            [shield-eureka]=8261
+            [shield-config]=8288
+            [shield-auth]=8281
+            [shield-tenant]=8282
+            [shield-profile]=8283
+            [shield-dns]=8284
+            [shield-analytics]=8289
+            [shield-admin]=8290
+            [shield-gateway]=8280
+          )
           for svc in shield-eureka shield-config shield-auth shield-tenant shield-profile shield-dns shield-analytics shield-admin shield-gateway; do
             JAR=$(ls $svc/target/*.jar 2>/dev/null | head -1)
-            if [ -n "$JAR" ]; then
+            PORT=${SVC_PORTS[$svc]}
+            if [ -n "$JAR" ] && [ -n "$PORT" ]; then
               java -jar "$JAR" \
                 --spring.profiles.active=ci \
-                --server.port=$(grep "port" $svc/src/main/resources/application.yml | head -1 | awk '{print $2}') \
+                --server.port="$PORT" \
                 > /tmp/$svc.log 2>&1 &
-              echo "Started $svc (PID $!)"
+              echo "Started $svc on port $PORT (PID $!)"
             fi
           done
           # Wait for gateway to be healthy
@@ -172,6 +187,7 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: 'maven'
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -228,6 +244,8 @@ jobs:
       - name: Comment PR with QA summary
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
+        permissions:
+          pull-requests: write
         with:
           script: |
             const fs = require('fs');

@@ -78,6 +78,7 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: 'maven'               # shared cache across matrix jobs
 
       - name: Build JAR for ${{ matrix.service }}
         run: |

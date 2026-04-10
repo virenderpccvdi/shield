@@ -62,15 +62,22 @@ jobs:
             --ignore-vuln PYSEC-2022-42969 \
             --format json \
             --output /tmp/pip-audit.json || true
-          python3 - <<'EOF'
-          import json
-          with open('/tmp/pip-audit.json') as f:
-              data = json.load(f)
-          vulns = [v for d in data.get('dependencies', []) for v in d.get('vulns', [])]
-          if vulns:
-              for v in vulns:
-                  print(f"::warning::pip-audit: {v.get('id')} in {v.get('package','?')} — {v.get('description','')[:80]}")
-          EOF
+          python3 /dev/stdin <<'PYEOF'
+import json, sys
+try:
+    with open('/tmp/pip-audit.json') as f:
+        data = json.load(f)
+    vulns = [v for d in data.get('dependencies', []) for v in d.get('vulns', [])]
+    if vulns:
+        for v in vulns:
+            pkg = v.get('package', '?')
+            desc = v.get('description', '')[:80]
+            print(f"::warning::pip-audit: {v.get('id')} in {pkg} — {desc}")
+    else:
+        print("pip-audit: no vulnerabilities found")
+except Exception as e:
+    print(f"::warning::pip-audit parse error: {e}")
+PYEOF
 
   # ── 2. Code style and lint ─────────────────────────────────────────────────
   lint:
@@ -109,9 +116,10 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Ruff lint (shield-ai)
+        continue-on-error: true          # report findings without blocking merge
         run: |
           pip install ruff --quiet
-          ruff check shield-ai/ --output-format=github || true
+          ruff check shield-ai/ --output-format=github
 
   # ── 3. Build verification ──────────────────────────────────────────────────
   build-verify:
@@ -126,6 +134,7 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: 'maven'               # restores ~/.m2 cache between runs
 
       - name: Maven build (all services, skip tests)
         run: mvn package -DskipTests -q --no-transfer-progress
@@ -143,13 +152,13 @@ jobs:
           npm ci --prefer-offline
           npm run build
 
-      - name: Upload build artifacts summary
+      - name: Build summary
         if: always()
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Service | JAR size |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|----------|" >> $GITHUB_STEP_SUMMARY
-          for svc in shield-auth shield-gateway shield-tenant shield-profile shield-dns shield-analytics shield-admin; do
+          echo "| Service | JAR |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-----|" >> $GITHUB_STEP_SUMMARY
+          for svc in shield-auth shield-gateway shield-tenant shield-profile shield-dns shield-analytics shield-admin shield-notification shield-rewards shield-location shield-ai-placeholder; do
             JAR=$(ls $svc/target/*.jar 2>/dev/null | head -1)
             if [ -n "$JAR" ]; then
               SIZE=$(du -sh "$JAR" | cut -f1)
@@ -157,7 +166,7 @@ jobs:
             fi
           done
 
-  # ── 4. Docker build check ──────────────────────────────────────────────────
+  # ── 4. Dockerfile lint ─────────────────────────────────────────────────────
   docker-lint:
     name: Dockerfile Lint
     runs-on: ubuntu-latest
@@ -171,4 +180,4 @@ jobs:
           recursive: true
           failure-threshold: error
           ignore: DL3008,DL3009,DL3018
-          # DL3008/3009/3018: apt/apk version pinning — intentionally not pinned (base image handles it)
+          # DL3008/3009/3018: apt/apk version pinning — base image handles security patches
