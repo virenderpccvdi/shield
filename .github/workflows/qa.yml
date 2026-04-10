@@ -109,48 +109,14 @@ jobs:
         env:
           MAVEN_OPTS: "-Xmx1g"
 
-      - name: Start services
+      - name: Start services and wait for readiness
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          # CI-only values — not production secrets
           JWT_SECRET: "ci-shield-test-only-7a9f3b2c8d5e1f4a6b0c3d7e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a"
           DB_PASSWORD: "Shield@2026#Secure"
           CONFIG_REPO_PATH: "file:${{ github.workspace }}/config-repo/"
-        run: |
-          # Start each service in background
-          declare -A SVC_PORTS=(
-            [shield-eureka]=8261
-            [shield-config]=8288
-            [shield-auth]=8281
-            [shield-tenant]=8282
-            [shield-profile]=8283
-            [shield-dns]=8284
-            [shield-analytics]=8289
-            [shield-admin]=8290
-            [shield-gateway]=8280
-          )
-          for svc in shield-eureka shield-config shield-auth shield-tenant shield-profile shield-dns shield-analytics shield-admin shield-gateway; do
-            JAR=$(ls $svc/target/*.jar 2>/dev/null | head -1)
-            PORT=${SVC_PORTS[$svc]}
-            if [ -n "$JAR" ] && [ -n "$PORT" ]; then
-              java -jar "$JAR" \
-                --spring.profiles.active=ci \
-                --server.port="$PORT" \
-                --shield.jwt.secret="${JWT_SECRET}" \
-                --spring.datasource.password="${DB_PASSWORD}" \
-                > /tmp/$svc.log 2>&1 &
-              echo "Started $svc on port $PORT (PID $!)"
-            fi
-          done
-          # Wait for gateway to be healthy (up to 60s)
-          for i in $(seq 1 30); do
-            if curl -s http://localhost:8280/actuator/health > /dev/null 2>&1; then
-              echo "Gateway ready after $((i*2))s"
-              break
-            fi
-            sleep 2
-          done
+        run: bash qa/ci/start_services.sh
 
       - name: Run fast QA gate
         working-directory: qa

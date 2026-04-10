@@ -15,6 +15,11 @@ updates:
       - "java"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # stripe-java 32.x removed Invoice.getSubscription/getPaymentIntent + InvoiceLineItem.getPrice
+      # WebhookProcessingService must be migrated manually before allowing a major upgrade
+      - dependency-name: "com.stripe:stripe-java"
+        update-types: ["version-update:semver-major"]
     groups:
       spring-boot:
         patterns:
