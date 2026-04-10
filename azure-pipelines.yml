@@ -68,7 +68,7 @@ stages:
         echo "Java: $(java -version 2>&1 | head -1)"
         echo "Maven: $(/usr/share/maven/bin/mvn -version 2>&1 | head -1)"
         /usr/share/maven/bin/mvn package -DskipTests -T 4 -q \
-          -Dmaven.repo.local=$(HOME)/.m2/repository
+          -Dmaven.repo.local=$HOME/.m2/repository
       displayName: 'Maven Build (all services)'
 
     - script: |
