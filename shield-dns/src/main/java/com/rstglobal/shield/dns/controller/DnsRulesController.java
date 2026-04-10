@@ -13,7 +13,6 @@ import com.rstglobal.shield.dns.service.BedtimeLockService;
 import com.rstglobal.shield.dns.service.DnsRulesService;
 import com.rstglobal.shield.dns.service.HomeworkModeService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

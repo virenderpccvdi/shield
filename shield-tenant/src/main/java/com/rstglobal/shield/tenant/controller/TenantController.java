@@ -12,7 +12,6 @@ import com.rstglobal.shield.tenant.entity.Tenant;
 import com.rstglobal.shield.tenant.repository.TenantRepository;
 import com.rstglobal.shield.tenant.service.TenantService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityManager;
@@ -44,9 +43,9 @@ public class TenantController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a new ISP tenant")
     @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Tenant created"),
-        @ApiResponse(responseCode = "409", description = "Slug or domain already in use"),
-        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Tenant created"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Slug or domain already in use"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
     })
     public ApiResponse<TenantResponse> create(
             @RequestHeader("X-User-Role") String role,
@@ -58,8 +57,8 @@ public class TenantController {
     @GetMapping
     @Operation(summary = "List all tenants (paginated)", description = "Supports optional text search via ?q= parameter.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Tenant list returned"),
-        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tenant list returned"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required")
     })
     public ApiResponse<PagedResponse<TenantResponse>> list(
             @RequestHeader("X-User-Role") String role,
@@ -93,9 +92,9 @@ public class TenantController {
     @PutMapping("/{id}")
     @Operation(summary = "Update tenant details", description = "Automatically re-applies plan feature defaults when the plan field changes.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Tenant updated"),
-        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN or ISP_ADMIN (own tenant) required"),
-        @ApiResponse(responseCode = "404", description = "Tenant not found")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tenant updated"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN or ISP_ADMIN (own tenant) required"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Tenant not found")
     })
     public ApiResponse<TenantResponse> update(
             @RequestHeader("X-User-Role") String role,
@@ -122,9 +121,9 @@ public class TenantController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Soft-delete a tenant")
     @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Tenant deleted"),
-        @ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required"),
-        @ApiResponse(responseCode = "404", description = "Tenant not found")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Tenant deleted"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "GLOBAL_ADMIN role required"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Tenant not found")
     })
     public void delete(
             @RequestHeader("X-User-Role") String role,

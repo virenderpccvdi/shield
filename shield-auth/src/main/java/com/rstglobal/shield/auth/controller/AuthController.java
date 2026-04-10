@@ -10,7 +10,6 @@ import com.rstglobal.shield.auth.service.AuthService;
 import com.rstglobal.shield.auth.service.MfaService;
 import com.rstglobal.shield.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,8 +38,8 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Register a new customer account", description = "Creates a CUSTOMER account and sends a verification email.")
     @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Account created"),
-        @ApiResponse(responseCode = "409", description = "Email already registered")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Account created"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Email already registered")
     })
     public ApiResponse<UserResponse> register(@Valid @RequestBody RegisterRequest req, HttpServletRequest httpReq) {
         return ApiResponse.ok(authService.register(req, UserRole.CUSTOMER, extractIp(httpReq)));
@@ -50,9 +49,9 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Login and receive JWT tokens", description = "Authenticates credentials and returns JWT access + refresh tokens. Returns mfaRequired=true if MFA is enabled on the account.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Login successful"),
-        @ApiResponse(responseCode = "401", description = "Invalid credentials"),
-        @ApiResponse(responseCode = "429", description = "Too many failed attempts")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login successful"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Invalid credentials"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "Too many failed attempts")
     })
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest req, HttpServletRequest httpReq) {
         return ApiResponse.ok(authService.login(req, extractIp(httpReq), httpReq.getHeader("User-Agent")));
@@ -62,8 +61,8 @@ public class AuthController {
     @PostMapping("/refresh")
     @Operation(summary = "Refresh access token", description = "Issues a new access token given a valid, non-expired refresh token.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "New access token issued"),
-        @ApiResponse(responseCode = "401", description = "Refresh token invalid or expired")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "New access token issued"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Refresh token invalid or expired")
     })
     public ApiResponse<AuthResponse> refresh(@Valid @RequestBody RefreshRequest req) {
         return ApiResponse.ok(authService.refresh(req));
@@ -91,7 +90,7 @@ public class AuthController {
     /** Public: Request a password reset OTP (sent via notification service). */
     @PostMapping("/forgot-password")
     @Operation(summary = "Request password reset OTP", description = "Sends a password reset OTP to the registered email address; always returns 200 to prevent email enumeration.")
-    @ApiResponse(responseCode = "200", description = "OTP sent if email is registered")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "OTP sent if email is registered")
     public ApiResponse<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
         authService.forgotPassword(req);
         return ApiResponse.ok(null, "If this email is registered, a reset code has been sent.");
@@ -101,8 +100,8 @@ public class AuthController {
     @PostMapping("/reset-password")
     @Operation(summary = "Reset password with token")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Password reset successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid or expired token")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Password reset successfully"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid or expired token")
     })
     public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
         authService.resetPassword(req);
@@ -112,7 +111,7 @@ public class AuthController {
     /** Authenticated: Logout — invalidates the refresh token and blacklists the access token. */
     @PostMapping("/logout")
     @Operation(summary = "Logout — revoke refresh token and blacklist access token")
-    @ApiResponse(responseCode = "200", description = "Logged out successfully")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Logged out successfully")
     public ApiResponse<Void> logout(
             @RequestHeader(value = "X-User-Id", required = false) UUID userId,
             @RequestBody(required = false) RefreshRequest req) {

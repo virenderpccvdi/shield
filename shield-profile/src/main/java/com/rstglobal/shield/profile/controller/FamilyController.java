@@ -8,7 +8,6 @@ import com.rstglobal.shield.profile.dto.response.FamilyInviteResponse;
 import com.rstglobal.shield.profile.dto.response.FamilyMemberResponse;
 import com.rstglobal.shield.profile.service.FamilyService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -31,8 +30,8 @@ public class FamilyController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Send a co-parent / family invite by email", description = "Generates a 7-day invite token and emails the invitee to join the family group.")
     @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Invite sent"),
-        @ApiResponse(responseCode = "409", description = "Invitee is already a member")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Invite sent"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Invitee is already a member")
     })
     public ApiResponse<FamilyInviteResponse> invite(
             @RequestHeader("X-User-Id") UUID userId,
@@ -46,8 +45,8 @@ public class FamilyController {
     @PostMapping("/accept")
     @Operation(summary = "Accept a family invite using the invite token")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Invite accepted, member added"),
-        @ApiResponse(responseCode = "400", description = "Token invalid or expired")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Invite accepted, member added"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Token invalid or expired")
     })
     public ApiResponse<FamilyMemberResponse> accept(
             @RequestHeader("X-User-Id") UUID userId,
