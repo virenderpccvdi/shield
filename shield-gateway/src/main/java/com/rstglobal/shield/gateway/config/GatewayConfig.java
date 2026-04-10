@@ -11,7 +11,6 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Objects;
 
 @Configuration
 public class GatewayConfig {
@@ -50,9 +49,11 @@ public class GatewayConfig {
             if (userId != null && !userId.isBlank()) {
                 return Mono.just("user:" + userId);
             }
-            String ip = Objects.requireNonNull(
-                    exchange.getRequest().getRemoteAddress()).getAddress().getHostAddress();
-            return Mono.just("ip:" + ip);
+            var remoteAddr = exchange.getRequest().getRemoteAddress();
+            if (remoteAddr == null) {
+                return Mono.just("ip:global");
+            }
+            return Mono.just("ip:" + remoteAddr.getAddress().getHostAddress());
         };
     }
 
@@ -61,13 +62,20 @@ public class GatewayConfig {
      * (login, register) to prevent brute-force and abuse.
      * Marked @Primary so Spring can auto-wire the single required KeyResolver bean
      * for RequestRateLimiterGatewayFilterFactory.
+     *
+     * NOTE: Must never throw or return empty — Spring Cloud Gateway fails-open on
+     * key resolver errors, silently bypassing rate limiting. Fallback to "global"
+     * keeps rate limiting active even when remote address is unavailable.
      */
     @Bean
     @Primary
     public KeyResolver ipKeyResolver() {
-        return exchange -> Mono.just(
-            Objects.requireNonNull(
-                exchange.getRequest().getRemoteAddress()).getAddress().getHostAddress()
-        );
+        return exchange -> {
+            var remoteAddr = exchange.getRequest().getRemoteAddress();
+            if (remoteAddr == null) {
+                return Mono.just("global"); // all requests share one bucket — still rate-limited
+            }
+            return Mono.just(remoteAddr.getAddress().getHostAddress());
+        };
     }
 }
