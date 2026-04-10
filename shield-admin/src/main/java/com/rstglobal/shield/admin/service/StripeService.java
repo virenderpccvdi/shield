@@ -73,11 +73,11 @@ public class StripeService {
                     .putMetadata("shield_plan_id", plan.getId().toString())
                     .putMetadata("shield_plan_name", plan.getName());
 
-            // Add payment method types — UPI only available for INR
+            // Use Stripe automatic payment methods — includes UPI for INR, card everywhere.
+            // PaymentMethodType.UPI was removed in stripe-java 28.x; automatic detection
+            // is the recommended approach for multi-method support.
+            builder.setPaymentMethodConfiguration(null);
             builder.addPaymentMethodType(SessionCreateParams.PaymentMethodType.CARD);
-            if ("inr".equals(currency)) {
-                builder.addPaymentMethodType(SessionCreateParams.PaymentMethodType.UPI);
-            }
 
             if (plan.getStripePriceId() != null && !plan.getStripePriceId().isBlank()) {
                 builder.addLineItem(SessionCreateParams.LineItem.builder()
