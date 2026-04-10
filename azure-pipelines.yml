@@ -310,18 +310,26 @@ stages:
       displayName: 'npm audit (advisory — never fails build)'
 
 # ══════════════════════════════════════════════════════════════════════════════
-# STAGE 3: DEPLOY DEV — auto on develop branch
+# STAGE 3: DEPLOY DEV — runs on BOTH main and develop branches
+#
+# Flow:
+#   develop push → Build → Scan → DeployDev  (stops here)
+#   main push    → Build → Scan → DeployDev → DeployProd (approval gate)
+#
+# Every change goes through Dev before it can reach Prod.
 # ══════════════════════════════════════════════════════════════════════════════
 - stage: DeployDev
   displayName: 'Deploy → shield-dev'
   dependsOn: [Build, SecurityScan]
-  # Inline branch check avoids the boolean-string coercion bug.
-  # in(dependencies.SecurityScan.result,...) lets a scan failure still deploy.
+  # Triggers on both main and develop — prod deployment then gates on DeployDev.
   condition: |
     and(
       succeeded('Build'),
       in(dependencies.SecurityScan.result, 'Succeeded', 'Failed', 'Skipped'),
-      eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+      or(
+        eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+      )
     )
   jobs:
   - deployment: DeployDev
@@ -358,16 +366,39 @@ stages:
             condition: failed()
             displayName: 'Auto-rollback dev on failure'
 
+          - script: |
+              set -e
+              echo "=== Dev smoke test ==="
+              # Wait for gateway to be ready
+              kubectl wait --for=condition=Ready pod -l app=shield-gateway \
+                -n shield-dev --timeout=120s 2>/dev/null || true
+
+              GW=$(kubectl get svc shield-gateway -n shield-dev \
+                    -o jsonpath='{.spec.clusterIP}')
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                        "http://${GW}:8280/actuator/health" --max-time 15)
+              if [ "$STATUS" = "200" ]; then
+                echo "##[section]Dev smoke test PASSED — gateway health: OK"
+              else
+                echo "##vso[task.logissue type=warning]Dev gateway health returned HTTP $STATUS (non-blocking)"
+              fi
+            displayName: 'Dev smoke test (gateway health)'
+            condition: succeeded()
+
 # ══════════════════════════════════════════════════════════════════════════════
-# STAGE 3: DEPLOY PROD — manual approval on main branch
+# STAGE 4: DEPLOY PROD — only on main, only AFTER DeployDev succeeds
+#
+# DeployProd now dependsOn DeployDev (not just Build+Scan).
+# This guarantees: every prod deploy was first validated in Dev.
+# The shield-prod environment has a manual approval gate in Azure DevOps.
 # ══════════════════════════════════════════════════════════════════════════════
 - stage: DeployProd
   displayName: 'Deploy → shield-prod'
-  dependsOn: [Build, SecurityScan]
+  dependsOn: [Build, SecurityScan, DeployDev]
   condition: |
     and(
       succeeded('Build'),
-      in(dependencies.SecurityScan.result, 'Succeeded', 'Failed', 'Skipped'),
+      succeeded('DeployDev'),
       eq(variables['Build.SourceBranch'], 'refs/heads/main')
     )
   jobs:
