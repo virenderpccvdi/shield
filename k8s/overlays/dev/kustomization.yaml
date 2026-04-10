@@ -18,50 +18,54 @@ resources:
   - ../../base/analytics
   - ../../base/admin
   - ../../base/ai
+  - ../../base/website
   - ../../base
 
 images:
   - name: REGISTRY/shield-eureka
-    newName: __ACR_LOGIN_SERVER__/shield-eureka
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-eureka
     newTag: dev-latest
   - name: REGISTRY/shield-config
-    newName: __ACR_LOGIN_SERVER__/shield-config
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-config
     newTag: dev-latest
   - name: REGISTRY/shield-gateway
-    newName: __ACR_LOGIN_SERVER__/shield-gateway
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-gateway
     newTag: dev-latest
   - name: REGISTRY/shield-auth
-    newName: __ACR_LOGIN_SERVER__/shield-auth
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-auth
     newTag: dev-latest
   - name: REGISTRY/shield-tenant
-    newName: __ACR_LOGIN_SERVER__/shield-tenant
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-tenant
     newTag: dev-latest
   - name: REGISTRY/shield-profile
-    newName: __ACR_LOGIN_SERVER__/shield-profile
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-profile
     newTag: dev-latest
   - name: REGISTRY/shield-dns
-    newName: __ACR_LOGIN_SERVER__/shield-dns
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-dns
     newTag: dev-latest
   - name: REGISTRY/shield-dns-resolver
-    newName: __ACR_LOGIN_SERVER__/shield-dns-resolver
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-dns-resolver
     newTag: dev-latest
   - name: REGISTRY/shield-location
-    newName: __ACR_LOGIN_SERVER__/shield-location
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-location
     newTag: dev-latest
   - name: REGISTRY/shield-notification
-    newName: __ACR_LOGIN_SERVER__/shield-notification
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-notification
     newTag: dev-latest
   - name: REGISTRY/shield-rewards
-    newName: __ACR_LOGIN_SERVER__/shield-rewards
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-rewards
     newTag: dev-latest
   - name: REGISTRY/shield-analytics
-    newName: __ACR_LOGIN_SERVER__/shield-analytics
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-analytics
     newTag: dev-latest
   - name: REGISTRY/shield-admin
-    newName: __ACR_LOGIN_SERVER__/shield-admin
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-admin
     newTag: dev-latest
   - name: REGISTRY/shield-ai
-    newName: __ACR_LOGIN_SERVER__/shield-ai
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-ai
+    newTag: dev-latest
+  - name: REGISTRY/shield-website
+    newName: shieldacrh44d4fynx4l2c.azurecr.io/shield-website
     newTag: dev-latest
 
 patches:
