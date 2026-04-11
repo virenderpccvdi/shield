@@ -442,12 +442,19 @@ def generate_report(
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
 <title>Shield QA Report — {timestamp[:10]}</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   * {{ box-sizing:border-box; margin:0; padding:0 }}
-  body {{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-         background:{COLOURS['bg']};color:{COLOURS['text']};padding:32px }}
+  body {{ font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:{COLOURS['bg']};color:{COLOURS['text']};padding:32px;
+         -webkit-font-smoothing:antialiased }}
+  h1, h2, h3, h4 {{ font-family:'Manrope','Inter',sans-serif; font-weight:800 }}
   table {{ width:100%;border-collapse:collapse }}
   th {{ text-align:left;padding:10px 16px;color:{COLOURS['muted']};
         font-size:11px;text-transform:uppercase;letter-spacing:.5px;
@@ -458,13 +465,30 @@ def generate_report(
 </head>
 <body>
 
+<!-- Shield header bar -->
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:32px;
+            padding-bottom:20px;border-bottom:1px solid {COLOURS['border']}">
+  <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:{COLOURS['text']}">
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#3B6FE0"/>
+      <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#6B9BF5"/>
+      <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span style="font-family:'Manrope',sans-serif;font-weight:800;font-size:18px">Shield</span>
+  </a>
+  <div style="flex:1"></div>
+  <span style="font-size:11px;color:{COLOURS['muted']};text-transform:uppercase;letter-spacing:.8px">
+    Internal QA Dashboard
+  </span>
+</div>
+
 <!-- Executive Summary -->
 {exec_summary_html}
 
 <!-- Header -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px">
   <div>
-    <h1 style="font-size:28px;font-weight:700">🛡 Shield Platform — QA Report</h1>
+    <h1 style="font-size:28px;font-weight:800">🛡 Shield Platform — QA Report</h1>
     <div style="color:{COLOURS['muted']};margin-top:4px">Generated: {timestamp} | Version: {run_meta.get('version','2.1.4')}</div>
   </div>
   <div style="background:{status_colour};color:#fff;padding:12px 24px;border-radius:8px;font-weight:700;font-size:16px">

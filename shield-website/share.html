@@ -3,196 +3,400 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shield — Location Share</title>
+  <title>Shield — Live Location Share</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1E4FC4"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="/tokens.css?v=3"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; }
-    .header { background: linear-gradient(135deg, #1976D2, #1565C0); color: white; padding: 16px 24px; }
-    .header h1 { font-size: 20px; font-weight: 700; }
-    .header .subtitle { font-size: 13px; opacity: 0.85; margin-top: 2px; }
-    #map { height: calc(100vh - 140px); width: 100%; }
-    .info-bar {
-      background: white;
-      padding: 12px 24px;
-      display: flex;
-      gap: 24px;
-      border-top: 1px solid #e0e0e0;
-      flex-wrap: wrap;
-    }
-    .info-item { display: flex; flex-direction: column; }
-    .info-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-    .info-value { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-top: 2px; }
-    .error-state {
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font-body);
+      background: var(--ink-50);
+      color: var(--ink-900);
       display: flex;
       flex-direction: column;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Header ─────────────────────────────────────────────── */
+    .share-header {
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 30%, rgba(107,155,245,0.25) 0%, transparent 65%),
+        linear-gradient(135deg, var(--brand-900) 0%, var(--brand-700) 100%);
+      color: var(--white);
+      padding: var(--s-5) var(--s-6);
+      display: flex;
+      align-items: center;
+      gap: var(--s-4);
+    }
+    .share-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-lg);
+      color: var(--white);
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .share-title-group {
+      flex: 1;
+      min-width: 0;
+    }
+    .share-title {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      flex-wrap: wrap;
+    }
+    .share-subtitle {
+      font-size: var(--text-xs);
+      color: rgba(255, 255, 255, 0.75);
+      margin-top: 2px;
+    }
+    .share-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-1);
+      padding: 2px var(--s-2);
+      border-radius: var(--r-full);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(6px);
+    }
+    .share-live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success-600);
+      animation: share-live 2s var(--ease-in-out) infinite;
+    }
+    @keyframes share-live {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.5; }
+    }
+    .share-refresh {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--white);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      display: flex;
       align-items: center;
       justify-content: center;
-      height: calc(100vh - 60px);
-      gap: 16px;
-      color: #555;
+      transition: background var(--d-fast);
+      flex-shrink: 0;
     }
-    .error-state h2 { font-size: 22px; color: #c62828; }
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 12px;
+    .share-refresh:hover { background: rgba(255, 255, 255, 0.22); }
+
+    /* ─── Map ────────────────────────────────────────────────── */
+    #map-wrap {
+      flex: 1;
+      position: relative;
+    }
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ─── Info bar (bottom) ──────────────────────────────────── */
+    .info-bar {
+      background: var(--white);
+      padding: var(--s-4) var(--s-6);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--s-5);
+      border-top: 1px solid var(--ink-200);
+      box-shadow: 0 -8px 24px -12px rgba(15, 23, 42, 0.08);
+    }
+    .info-item { min-width: 0; }
+    .info-label {
+      font-family: var(--font-display);
+      font-size: var(--text-xs);
       font-weight: 600;
-      background: #e3f2fd;
-      color: #1565c0;
-      margin-left: 8px;
+      color: var(--ink-500);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wider);
+    }
+    .info-value {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--ink-900);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ─── Error state ───────────────────────────────────────── */
+    .error-state {
+      display: none;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      padding: var(--s-8);
+    }
+    .error-state.show { display: flex; }
+    .error-card {
+      max-width: 440px;
+      text-align: center;
+      background: var(--white);
+      padding: var(--s-10) var(--s-8);
+      border-radius: var(--r-xl);
+      border: 1px solid var(--ink-200);
+      box-shadow: var(--shadow-md);
+    }
+    .error-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--danger-100);
+      color: var(--danger-600);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--s-5);
+    }
+    .error-card h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      color: var(--ink-900);
+      margin-bottom: var(--s-3);
+    }
+    .error-card p {
+      font-size: var(--text-sm);
+      color: var(--ink-600);
+      line-height: var(--leading-relaxed);
+      margin-bottom: var(--s-6);
+    }
+    .error-card a {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-2);
+      padding: 10px var(--s-5);
+      background: var(--brand-600);
+      color: var(--white);
+      text-decoration: none;
+      border-radius: var(--r-md);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--text-sm);
+      transition: background var(--d-fast);
+    }
+    .error-card a:hover { background: var(--brand-700); }
+
+    /* ─── Leaflet tweaks ────────────────────────────────────── */
+    .leaflet-container { background: var(--ink-100); }
+
+    /* ─── Mobile ─────────────────────────────────────────────── */
+    @media (max-width: 720px) {
+      .info-bar {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--s-3);
+      }
+      .share-title { font-size: var(--text-base); }
+      .share-header { padding: var(--s-4); }
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>Shield &mdash; Location Share <span class="badge" id="shareLabel"></span></h1>
-    <div class="subtitle" id="headerSubtitle">Loading&hellip;</div>
-  </div>
 
-  <div id="mapContainer">
-    <div id="map"></div>
-    <div class="info-bar">
-      <div class="info-item">
-        <span class="info-label">Child</span>
-        <span class="info-value" id="childName">&mdash;</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Last Updated</span>
-        <span class="info-value" id="lastUpdated">&mdash;</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Accuracy</span>
-        <span class="info-value" id="accuracy">&mdash;</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Expires</span>
-        <span class="info-value" id="expiresAt">&mdash;</span>
-      </div>
+<header class="share-header">
+  <a href="/" class="share-logo" aria-label="Shield home">
+    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="rgba(255,255,255,0.18)"/>
+      <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="rgba(255,255,255,0.4)"/>
+      <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Shield
+  </a>
+  <div class="share-title-group">
+    <div class="share-title">
+      Location share
+      <span class="share-badge" id="shareBadge">
+        <span class="share-live-dot"></span>
+        <span id="shareBadgeLabel">Live</span>
+      </span>
     </div>
+    <div class="share-subtitle" id="headerSubtitle">Loading location…</div>
   </div>
+  <button class="share-refresh" id="refreshBtn" aria-label="Refresh location">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M23 4v6h-6M1 20v-6h6"/>
+      <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+    </svg>
+  </button>
+</header>
 
-  <div id="errorState" class="error-state" style="display:none">
-    <h2>Link Unavailable</h2>
+<main id="map-wrap">
+  <div id="map"></div>
+</main>
+
+<section class="info-bar" id="infoBar">
+  <div class="info-item">
+    <div class="info-label">Child</div>
+    <div class="info-value" id="childName">—</div>
+  </div>
+  <div class="info-item">
+    <div class="info-label">Last updated</div>
+    <div class="info-value" id="lastUpdated">—</div>
+  </div>
+  <div class="info-item">
+    <div class="info-label">Accuracy</div>
+    <div class="info-value" id="accuracy">—</div>
+  </div>
+  <div class="info-item">
+    <div class="info-label">Expires</div>
+    <div class="info-value" id="expiresAt">—</div>
+  </div>
+</section>
+
+<div class="error-state" id="errorState">
+  <div class="error-card">
+    <div class="error-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <h2>Link unavailable</h2>
     <p id="errorMessage">This location share link has expired or is no longer valid.</p>
-    <a href="https://shield.rstglobal.in" style="color:#1976D2">Return to Shield</a>
+    <a href="/">
+      Return to Shield
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </a>
   </div>
+</div>
 
-  <script>
-    // Extract token from path: /share/{token}
-    var pathParts = window.location.pathname.replace(/\/+$/, '').split('/');
-    var token = pathParts[pathParts.length - 1];
+<script>
+  const pathParts = window.location.pathname.replace(/\/+$/, '').split('/');
+  const token = pathParts[pathParts.length - 1];
 
-    var map = null;
-    var marker = null;
+  let map = null;
+  let marker = null;
+  let accuracyCircle = null;
 
-    function formatRelativeTime(isoString) {
-      var d = new Date(isoString);
-      var minutesAgo = Math.round((Date.now() - d.getTime()) / 60000);
-      if (minutesAgo < 2) return 'Just now';
-      if (minutesAgo < 60) return minutesAgo + ' min ago';
-      var hoursAgo = Math.round(minutesAgo / 60);
-      return hoursAgo + ' hr ago';
+  const fmtRelative = (iso) => {
+    const d = new Date(iso);
+    const minutesAgo = Math.round((Date.now() - d.getTime()) / 60000);
+    if (minutesAgo < 2) return 'Just now';
+    if (minutesAgo < 60) return minutesAgo + ' min ago';
+    const hoursAgo = Math.round(minutesAgo / 60);
+    return hoursAgo + ' hr ago';
+  };
+  const fmtDateTime = (iso) => iso ? new Date(iso).toLocaleString(undefined, {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  }) : '—';
+
+  function showError(message) {
+    document.getElementById('map-wrap').style.display = 'none';
+    document.getElementById('infoBar').style.display = 'none';
+    document.getElementById('errorState').classList.add('show');
+    document.getElementById('errorMessage').textContent =
+      message || 'This location share link has expired or is no longer valid.';
+  }
+
+  async function loadLocation() {
+    if (!token || token === 'share') {
+      showError('No share token found in the URL.');
+      return;
     }
+    try {
+      const res = await fetch('/public/location/share/' + encodeURIComponent(token));
+      if (res.status === 404) throw new Error('This link does not exist or has already been removed.');
+      if (res.status === 410) throw new Error('This location share link has expired.');
+      if (!res.ok) throw new Error('Unable to load location data (HTTP ' + res.status + ').');
 
-    function formatDateTime(isoString) {
-      if (!isoString) return '\u2014';
-      return new Date(isoString).toLocaleString(undefined, {
-        month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      });
-    }
-
-    function showError(message) {
-      document.getElementById('mapContainer').style.display = 'none';
-      document.getElementById('errorState').style.display = 'flex';
-      document.getElementById('errorMessage').textContent =
-        message || 'This location share link has expired or is no longer valid.';
-    }
-
-    async function loadLocation() {
-      if (!token || token === 'share') {
-        showError('No share token found in the URL.');
-        return;
+      const json = await res.json();
+      const d = json.data || json;
+      if (!d || d.latitude == null || d.longitude == null) {
+        throw new Error('Location data is not available at this time.');
       }
 
-      try {
-        var res = await fetch('/public/location/share/' + encodeURIComponent(token));
+      document.getElementById('childName').textContent   = d.name || 'Child';
+      document.getElementById('accuracy').textContent    = d.accuracy != null ? Math.round(d.accuracy) + '\u202fm' : 'N/A';
+      document.getElementById('expiresAt').textContent   = fmtDateTime(d.expiresAt);
+      document.getElementById('lastUpdated').textContent = fmtRelative(d.recordedAt);
+      document.getElementById('headerSubtitle').textContent = 'Sharing ' + (d.name || 'child') + "'s live location";
+      if (d.shareLabel) document.getElementById('shareBadgeLabel').textContent = d.shareLabel;
 
-        if (res.status === 404) throw new Error('This link does not exist or has already been removed.');
-        if (res.status === 410) throw new Error('This location share link has expired.');
-        if (!res.ok) throw new Error('Unable to load location data (HTTP ' + res.status + ').');
+      const lat = parseFloat(d.latitude);
+      const lng = parseFloat(d.longitude);
 
-        var json = await res.json();
-        var d = json.data || json;
+      if (!map) {
+        map = L.map('map', { zoomControl: true }).setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '\u00a9 <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19
+        }).addTo(map);
+      }
 
-        if (!d || d.latitude == null || d.longitude == null) {
-          throw new Error('Location data is not available at this time.');
-        }
+      const icon = L.divIcon({
+        html: '<div style="background:#1E4FC4;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 10px rgba(15,23,42,0.35)"></div>',
+        className: '',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      });
 
-        // Populate info bar
-        document.getElementById('childName').textContent = d.name || 'Child';
-        document.getElementById('shareLabel').textContent = d.shareLabel || '';
-        document.getElementById('accuracy').textContent =
-          d.accuracy != null ? Math.round(d.accuracy) + '\u202fm' : 'N/A';
-        document.getElementById('expiresAt').textContent = formatDateTime(d.expiresAt);
-        document.getElementById('lastUpdated').textContent = formatRelativeTime(d.recordedAt);
-        document.getElementById('headerSubtitle').textContent =
-          'Sharing ' + (d.name || 'child') + '\u2019s live location';
+      if (marker) marker.setLatLng([lat, lng]);
+      else marker = L.marker([lat, lng], { icon }).addTo(map).bindPopup(d.name || 'Child');
 
-        var lat = parseFloat(d.latitude);
-        var lng = parseFloat(d.longitude);
-
-        if (!map) {
-          map = L.map('map').setView([lat, lng], 15);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '\u00a9 <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
+      if (d.accuracy != null && d.accuracy > 0) {
+        if (accuracyCircle) {
+          accuracyCircle.setLatLng([lat, lng]).setRadius(d.accuracy);
+        } else {
+          accuracyCircle = L.circle([lat, lng], {
+            radius: d.accuracy,
+            color: '#1E4FC4',
+            fillColor: '#3B6FE0',
+            fillOpacity: 0.12,
+            weight: 1.5
           }).addTo(map);
         }
-
-        var icon = L.divIcon({
-          html: '<div style="background:#1976D2;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>',
-          className: '',
-          iconSize: [16, 16],
-          iconAnchor: [8, 8]
-        });
-
-        if (marker) {
-          marker.setLatLng([lat, lng]);
-        } else {
-          marker = L.marker([lat, lng], { icon: icon })
-            .addTo(map)
-            .bindPopup(d.name || 'Child');
-        }
-
-        // Draw accuracy circle if available
-        if (d.accuracy != null && d.accuracy > 0) {
-          if (window._accuracyCircle) {
-            window._accuracyCircle.setLatLng([lat, lng]).setRadius(d.accuracy);
-          } else {
-            window._accuracyCircle = L.circle([lat, lng], {
-              radius: d.accuracy,
-              color: '#1976D2',
-              fillColor: '#1976D2',
-              fillOpacity: 0.10,
-              weight: 1
-            }).addTo(map);
-          }
-        }
-
-        map.setView([lat, lng], map.getZoom() || 15);
-
-      } catch (err) {
-        showError(err.message);
       }
-    }
 
+      map.setView([lat, lng], map.getZoom() || 15);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', loadLocation);
+
+  // Kick off once Leaflet has loaded
+  if (typeof L !== 'undefined') {
     loadLocation();
-    // Refresh every 30 seconds for live tracking
-    setInterval(loadLocation, 30000);
-  </script>
+  } else {
+    window.addEventListener('load', loadLocation);
+  }
+  // Refresh every 30 seconds for live tracking
+  setInterval(loadLocation, 30000);
+</script>
 </body>
 </html>
