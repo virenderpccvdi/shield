@@ -317,39 +317,19 @@ stages:
         PYEOF
       displayName: 'npm audit (advisory)'
 
-    # ── Step 2: OWASP Dependency Check ───────────────────────────────────────
-    # NVD data is cached at /home/azureagent/.owasp-nvd-data between runs.
-    # First run: downloads full NVD database (~600 MB, may take up to 15 min).
-    # Subsequent runs: downloads daily delta only (1-3 min) — cache is warm.
-    # continueOnError: true — OWASP result never blocks Build → Deploy flow.
+    # ── Step 2: OWASP Dependency Check — SKIPPED on CI path ──────────────────
+    # OWASP dep-check runs in azure-pipelines-security.yml nightly.
+    # CVE coverage on every push is already provided by two separate GitHub
+    # Actions workflows: .github/workflows/trivy.yml (image CVEs) and
+    # .github/workflows/codeql.yml (code + dependency CVEs). Running OWASP
+    # here on the only self-hosted agent blocks DeployDev for ~30 min per run.
     - script: |
-        export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-        export PATH=$JAVA_HOME/bin:$PATH
-        NVD_DIR=/home/azureagent/.owasp-nvd-data
-        mkdir -p "$NVD_DIR"
-
-        echo "##[section]OWASP Dependency Check"
-        echo "NVD cache: $(du -sh $NVD_DIR 2>/dev/null || echo 'empty — first run will download ~600 MB')"
-        echo ""
-
-        /usr/share/maven/bin/mvn \
-          org.owasp:dependency-check-maven:10.0.4:check \
-          -DfailBuildOnCVSS=9 \
-          -DsuppressionFile=owasp-suppressions.xml \
-          -DdataDirectory="$NVD_DIR" \
-          -DnvdApiDelay=6000 \
-          -DautoUpdate=true \
-          --no-transfer-progress \
-          -Dmaven.repo.local=/home/azureagent/.m2/repository \
-          2>&1 | grep -E "^\[INFO\] (Checking|One|Dependency|OWASP|Starting|Finished|Analyzing|Writing)|^\[WARN\]|^\[ERROR\]|CVE-|CVSS" \
-               | grep -v "^\[INFO\] Checking" \
-          || true
-
-        echo ""
-        echo "OWASP scan complete. Reports in target/dependency-check-report.*"
-      displayName: 'OWASP dependency check (CVSS≥9 = warning)'
-      continueOnError: true
-      timeoutInMinutes: 15
+        echo "##[section]OWASP scan skipped on CI path"
+        echo "Nightly full OWASP scan: azure-pipelines-security.yml"
+        echo "Per-commit CVE scanning:"
+        echo "  - GitHub Trivy Security Scan  (.github/workflows/trivy.yml)"
+        echo "  - GitHub CodeQL Security Scan (.github/workflows/codeql.yml)"
+      displayName: 'OWASP dependency check (nightly only — see note)'
 
     # ── Step 3: Publish OWASP HTML report as pipeline artifact ───────────────
     - script: |
