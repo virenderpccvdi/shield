@@ -31,6 +31,10 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8
+        // Flutter 3.41+ tools pull in AGP 8.11.1 which depends on kotlin-stdlib 2.3.x.
+        // Our project uses Kotlin 2.1.20 (reads up to 2.2.x metadata). Skip the check
+        // so the 2.3.x stdlib from the Flutter tools classpath doesn't fail our build.
+        freeCompilerArgs += ['-Xskip-metadata-version-check']
     }
 
     signingConfigs {
@@ -49,7 +53,11 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders = [
-            MAPS_API_KEY: localProperties.getProperty('MAPS_API_KEY', '')
+            MAPS_API_KEY   : localProperties.getProperty('MAPS_API_KEY', ''),
+            // Flutter 3.41+ uses ${applicationName} in the manifest template.
+            // The Flutter Gradle plugin sets this, but manifest merger runs first.
+            // Set the Flutter default explicitly to avoid "no value provided" errors.
+            applicationName: 'android.app.Application'
         ]
     }
 
@@ -80,6 +88,14 @@ android {
         language { enableSplit = true }
         density { enableSplit = true }
         abi { enableSplit = true }
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        // androidx.core 1.18.0+ requires AGP 8.9.1; force a version compatible with AGP 8.7
+        force 'androidx.core:core:1.15.0'
+        force 'androidx.core:core-ktx:1.15.0'
     }
 }
 
