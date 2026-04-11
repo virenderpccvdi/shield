@@ -208,6 +208,8 @@ stages:
     - script: |
         set -e
         export PATH="/opt/flutter/bin:$PATH"
+        export ANDROID_HOME=/usr/lib/android-sdk
+        export ANDROID_SDK_ROOT=/usr/lib/android-sdk
         # google-services.json is gitignored (contains Firebase credentials).
         # On this self-hosted agent the source repo lives at the same path.
         GSF="/var/www/ai/FamilyShield/shield-app/android/app/google-services.json"
@@ -216,6 +218,8 @@ stages:
           cp "$GSF" "$DEST"
           echo "Copied google-services.json from server repo"
         fi
+        # Write local.properties so Gradle finds the SDK without needing to install it
+        echo "sdk.dir=/usr/lib/android-sdk" > shield-app/android/local.properties
         cd shield-app
         flutter pub get
         # Debug build — no keystore required in CI.
