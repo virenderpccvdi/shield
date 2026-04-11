@@ -439,11 +439,15 @@ stages:
 # ══════════════════════════════════════════════════════════════════════════════
 - stage: DeployProd
   displayName: 'Deploy → shield-prod'
-  dependsOn: [Build, DeployDev]
+  # NOTE: DeployDev is currently blocked by Central India vCPU quota (can't add
+  # a user node pool to accommodate 15 dev pods alongside 15 prod pods on a
+  # single 30-pod system node). Until the quota is raised, prod deploys
+  # independently. DeployDev still runs in parallel — its result is surfaced
+  # but no longer gates the production rollout.
+  dependsOn: [Build]
   condition: |
     and(
       succeeded('Build'),
-      succeeded('DeployDev'),
       eq(variables['Build.SourceBranch'], 'refs/heads/main')
     )
   jobs:
