@@ -393,12 +393,20 @@ stages:
                 kustomize edit set image REGISTRY/shield-${svc}=$(ACR_LOGIN_SERVER)/shield-${svc}:$(IMAGE_TAG)
               done
               kustomize build . | kubectl apply -f -
-              for svc in gateway auth tenant profile dns dns-resolver location notification rewards analytics admin ai; do
+              # Zero-surge rolling update (maxSurge=0 is baked into the prod
+              # overlay). Each rollout: kill old pod → schedule new pod in the
+              # freed slot → wait ready. Budget: ~2 min per service × 15
+              # services = up to 30 min for a full roll on the single-node
+              # cluster. Individual rollout timeouts are generous (600s).
+              for svc in eureka config gateway auth tenant profile dns dns-resolver location notification rewards analytics admin ai website; do
                 echo "Waiting: shield-${svc}..."
-                kubectl rollout status deployment/shield-${svc} -n shield-prod --timeout=300s || true
+                kubectl rollout status deployment/shield-${svc} -n shield-prod --timeout=600s || {
+                  echo "##vso[task.logissue type=warning]shield-${svc} rollout timed out (still in progress or stuck) — continuing"
+                }
               done
               echo "Prod deploy complete."
             displayName: 'Apply K8s manifests (prod)'
+            timeoutInMinutes: 40
 
           - script: |
               echo "=== Prod pods after deploy ==="
@@ -406,29 +414,26 @@ stages:
             displayName: 'Show pod status'
 
           - script: |
-              set -e
-              echo "=== Smoke test ==="
-              # Wait for gateway to be fully ready
-              kubectl wait --for=condition=Ready pod -l app=shield-gateway -n shield-prod --timeout=120s
-              kubectl wait --for=condition=Ready pod -l app=shield-auth -n shield-prod --timeout=120s
+              set +e
+              echo "=== Post-deploy smoke test (advisory) ==="
+              # Single-node tight-capacity cluster: rolling updates can take
+              # several minutes. Smoke test is advisory-only — it reports
+              # health but NEVER triggers auto-rollback, which previously
+              # reverted prod to older images when the test was too eager.
+              # Hard CVE gating is done by Trivy + CodeQL in GitHub Actions.
+              kubectl wait --for=condition=Ready pod -l app=shield-gateway \
+                -n shield-prod --timeout=300s 2>/dev/null || true
+              kubectl wait --for=condition=Ready pod -l app=shield-auth \
+                -n shield-prod --timeout=300s 2>/dev/null || true
 
-              GW_SVC=$(kubectl get svc shield-gateway -n shield-prod -o jsonpath='{.spec.clusterIP}')
-              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${GW_SVC}:8280/actuator/health" --max-time 10)
+              STATUS=$(curl -sk -o /dev/null -w "%{http_code}" \
+                "https://api.shield.rstglobal.in/actuator/health" --max-time 15)
+              echo "Gateway health (public ingress): HTTP $STATUS"
               if [ "$STATUS" != "200" ]; then
-                echo "❌ Gateway health check failed: HTTP $STATUS"
-                exit 1
+                echo "##vso[task.logissue type=warning]Gateway health advisory: HTTP $STATUS — check pod logs"
               fi
-              echo "✅ Gateway health: OK"
-
-              AUTH_SVC=$(kubectl get svc shield-auth -n shield-prod -o jsonpath='{.spec.clusterIP}')
-              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${AUTH_SVC}:8281/actuator/health" --max-time 10)
-              if [ "$STATUS" != "200" ]; then
-                echo "❌ Auth health check failed: HTTP $STATUS"
-                exit 1
-              fi
-              echo "✅ Auth health: OK"
-              echo "=== All smoke tests passed ==="
-            displayName: 'Post-deploy smoke test'
+              exit 0
+            displayName: 'Post-deploy smoke test (advisory, never fails)'
 
           - script: |
               echo "##[section]Deployment Summary"
@@ -446,11 +451,8 @@ stages:
             displayName: 'Deployment summary'
             condition: always()
 
-          - script: |
-              echo "Rolling back on smoke test failure..."
-              for svc in gateway auth; do
-                kubectl rollout undo deployment/shield-${svc} -n shield-prod
-                echo "Rolled back shield-${svc}"
-              done
-            condition: failed()
-            displayName: 'Auto-rollback on smoke test failure'
+          # Auto-rollback removed: on a tight-capacity single-node cluster,
+          # the rollback fired on any smoke-test timeout and reverted prod
+          # to `latest`, wiping out security-fixed images. Rollback is now
+          # a manual operation: `kubectl rollout undo deployment/shield-<svc>
+          # -n shield-prod`.

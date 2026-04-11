@@ -77,6 +77,13 @@ images:
   # NOTE: All services at 1 replica — vCPU quota in Central India is 4 (1 node).
   # Request quota increase at https://portal.azure.com to enable 2+ replicas for HA.
   # HPA will auto-scale when quota allows cluster autoscaler to add nodes.
+  #
+  # maxSurge: 0 is required on this tight-capacity node — the default maxSurge=1
+  # would require one free pod slot per deployment during rollouts, but all 30
+  # pod slots are consumed by prod + kube-system. Zero-surge = kill old pod
+  # first, schedule new pod in the freed slot. Trade-off: brief (~60s) outage
+  # per service during rollouts. Flip back to default once a user node pool
+  # with higher max-pods is added.
 patches:
 - patch: |-
     apiVersion: v1
@@ -86,3 +93,14 @@ patches:
     data:
       LOG_LEVEL: "WARN"
       SPRING_PROFILES_ACTIVE: "kubernetes,prod"
+- patch: |-
+    - op: replace
+      path: /spec/strategy
+      value:
+        type: RollingUpdate
+        rollingUpdate:
+          maxSurge: 0
+          maxUnavailable: 1
+  target:
+    kind: Deployment
+    name: "shield-.*"
