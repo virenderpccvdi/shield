@@ -386,10 +386,13 @@ stages:
   displayName: 'Deploy → shield-dev'
   dependsOn: [Build, SecurityScan]
   # Triggers on both main and develop — prod deployment then gates on DeployDev.
+  # SecurityScan runs OWASP dep-check with continueOnError=true; result often
+  # comes back as 'SucceededWithIssues' (warnings, not failures) — that MUST
+  # count as "scan ran" for the deploy to proceed.
   condition: |
     and(
       succeeded('Build'),
-      in(dependencies.SecurityScan.result, 'Succeeded', 'Failed', 'Skipped'),
+      in(dependencies.SecurityScan.result, 'Succeeded', 'SucceededWithIssues', 'Failed', 'Skipped'),
       or(
         eq(variables['Build.SourceBranch'], 'refs/heads/main'),
         eq(variables['Build.SourceBranch'], 'refs/heads/develop')
