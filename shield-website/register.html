@@ -10,502 +10,346 @@
   <meta property="og:type" content="website"/>
   <meta property="og:url" content="https://shield.rstglobal.in/register.html"/>
   <meta property="og:title" content="Create Free Account — Shield Family Protection"/>
-  <meta property="og:description" content="Join Shield free. DNS filtering, screen time, and real-time alerts to keep your children safe online. No credit card."/>
+  <meta property="og:description" content="Join Shield. DNS filtering, screen time, and real-time alerts to keep your children safe online."/>
   <meta property="og:image" content="https://shield.rstglobal.in/og-image.svg"/>
+  <meta name="theme-color" content="#1E4FC4"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="manifest" href="/manifest.json"/>
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "RegisterAction",
     "name": "Create Shield Account",
-    "description": "Create a free Shield account to protect your children online",
+    "description": "Create a Shield account to protect your children online",
     "target": "https://shield.rstglobal.in/register.html",
     "agent": { "@type": "Organization", "name": "RST Global" }
   }
   </script>
-  <link rel="manifest" href="/manifest.json"/>
-  <meta name="theme-color" content="#005DAC"/>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="/tokens.css?v=3"/>
+  <link rel="stylesheet" href="/components.css?v=3"/>
+
   <style>
-    :root {
-      --primary: #005DAC;
-      --primary-dark: #003D72;
-      --surface: #F7F9FB;
-      --surface-low: #F0F4F8;
-      --on-surface: #0F1F3D;
-      --on-variant: #4A6481;
-      --outline: #C4D0DC;
-      --shadow: 0 8px 32px -4px rgba(15,31,61,0.06);
-      --r: 12px;
-      --success: #2E7D32;
-      --danger: #C62828;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    /* Same page layout as login.html — could be extracted to auth.css
+       in a later pass. Kept inline for now to keep each page
+       individually deployable. */
     body {
-      font-family: 'Inter', sans-serif;
-      background: var(--surface);
-      color: var(--on-surface);
       min-height: 100vh;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 16px;
+      background:
+        radial-gradient(ellipse 60% 45% at 85% 15%, rgba(30,79,196,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 10% 90%, rgba(107,155,245,0.10) 0%, transparent 60%),
+        var(--ink-50);
     }
-
-    /* ── Auth card ── */
-    .auth-card {
+    .auth-shell {
       display: flex;
       width: 100%;
-      max-width: 980px;
-      min-height: 620px;
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 24px 64px -12px rgba(15,31,61,0.14);
+      max-width: var(--container-auth);
+      margin: auto;
+      padding: var(--s-8) var(--s-6);
+      gap: var(--s-12);
+      align-items: flex-start;
+      min-height: 100vh;
     }
-
-    /* ── Left brand panel ── */
     .auth-brand {
+      flex: 1;
+      position: relative;
+      padding: var(--s-10);
+      border-radius: var(--r-2xl);
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 15%, rgba(107,155,245,0.35) 0%, transparent 65%),
+        linear-gradient(155deg, var(--brand-900) 0%, var(--brand-800) 45%, var(--brand-700) 100%);
+      color: var(--white);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      width: 42%;
-      background: var(--primary);
-      color: #fff;
-      padding: 48px 44px;
-      position: relative;
-      overflow: hidden;
+      position: sticky;
+      top: var(--s-8);
     }
-
     .auth-brand::before {
       content: '';
       position: absolute;
-      top: -100px; right: -80px;
-      width: 280px; height: 280px;
+      top: -140px; right: -100px;
+      width: 320px; height: 320px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.06);
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
       pointer-events: none;
     }
-
     .auth-brand::after {
       content: '';
       position: absolute;
-      bottom: -70px; left: -50px;
-      width: 220px; height: 220px;
+      bottom: -100px; left: -80px;
+      width: 260px; height: 260px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.04);
+      background: radial-gradient(circle, rgba(107,155,245,0.15) 0%, transparent 70%);
       pointer-events: none;
     }
 
     .brand-logo {
-      display: flex;
+      position: relative;
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
-      font-family: 'Manrope', sans-serif;
+      gap: var(--s-3);
+      font-family: var(--font-display);
       font-weight: 800;
-      font-size: 20px;
-      color: #fff;
-      text-decoration: none;
-      margin-bottom: 40px;
-      position: relative;
-      z-index: 1;
+      font-size: var(--text-xl);
+      color: var(--white);
+      margin-bottom: var(--s-10);
     }
-
     .brand-headline {
-      font-family: 'Manrope', sans-serif;
-      font-weight: 800;
-      font-size: 28px;
-      line-height: 1.22;
-      margin-bottom: 12px;
       position: relative;
-      z-index: 1;
+      font-family: var(--font-display);
+      font-size: clamp(var(--text-3xl), 3.5vw, var(--text-4xl));
+      font-weight: 800;
+      line-height: var(--leading-tight);
+      letter-spacing: var(--tracking-tight);
+      color: var(--white);
+      margin-bottom: var(--s-4);
     }
-
     .brand-headline em {
       font-style: normal;
-      opacity: 0.78;
+      color: var(--brand-300);
     }
-
     .brand-sub {
-      font-size: 14px;
-      line-height: 1.65;
-      opacity: 0.78;
-      margin-bottom: 34px;
       position: relative;
-      z-index: 1;
+      font-size: var(--text-base);
+      line-height: var(--leading-normal);
+      color: rgba(255, 255, 255, 0.78);
+      max-width: 460px;
+      margin-bottom: var(--s-8);
     }
 
     .brand-steps {
+      position: relative;
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      flex: 1;
-      position: relative;
-      z-index: 1;
+      gap: var(--s-5);
+      margin-bottom: var(--s-8);
     }
-
     .brand-step {
       display: flex;
       align-items: flex-start;
-      gap: 14px;
+      gap: var(--s-4);
     }
-
     .brand-step-num {
       flex-shrink: 0;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: rgba(255,255,255,0.16);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-xs);
+      color: var(--brand-300);
     }
-
     .brand-step-text strong {
       display: block;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 3px;
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 2px;
     }
-
     .brand-step-text span {
-      font-size: 12px;
-      opacity: 0.72;
-      line-height: 1.5;
+      font-size: var(--text-xs);
+      line-height: var(--leading-normal);
+      color: rgba(255, 255, 255, 0.7);
     }
 
-    .brand-badge {
+    .brand-trust {
+      position: relative;
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-top: 26px;
-      padding: 13px 16px;
-      border-radius: var(--r);
-      background: rgba(255,255,255,0.11);
-      border: 1px solid rgba(255,255,255,0.15);
-      position: relative;
-      z-index: 1;
+      gap: var(--s-4);
+      padding: var(--s-4) var(--s-5);
+      border-radius: var(--r-lg);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
     }
-
-    .brand-badge-icon { font-size: 22px; line-height: 1; }
-
-    .brand-badge-text strong {
+    .brand-trust-icon {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border-radius: var(--r-sm);
+      background: var(--success-600);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--white);
+    }
+    .brand-trust-text strong {
       display: block;
-      font-size: 13px;
-      font-weight: 600;
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: 700;
+      color: var(--white);
+    }
+    .brand-trust-text span {
+      font-size: var(--text-xs);
+      color: rgba(255, 255, 255, 0.72);
     }
 
-    .brand-badge-text {
-      font-size: 12px;
-      opacity: 0.78;
-    }
-
-    /* ── Right form panel ── */
+    /* ─── Right: form panel ─────────────────────────────────────── */
     .auth-form-wrap {
       flex: 1;
-      background: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 52px;
-      overflow-y: auto;
+      max-width: 500px;
     }
-
     .auth-form-box {
-      width: 100%;
-      max-width: 390px;
+      background: var(--white);
+      border-radius: var(--r-2xl);
+      border: 1px solid var(--ink-200);
+      box-shadow: var(--shadow-lg);
+      padding: var(--s-10) var(--s-10) var(--s-8);
     }
-
     .form-back {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: var(--on-variant);
-      text-decoration: none;
-      margin-bottom: 28px;
-      transition: color .15s;
+      gap: var(--s-2);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--ink-500);
+      margin-bottom: var(--s-6);
+      transition: color var(--d-fast);
     }
-
-    .form-back:hover { color: var(--primary); }
+    .form-back:hover { color: var(--brand-600); }
 
     .form-title {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-display);
+      font-size: var(--text-3xl);
       font-weight: 800;
-      font-size: 28px;
-      color: var(--on-surface);
-      margin-bottom: 6px;
+      color: var(--ink-900);
+      letter-spacing: var(--tracking-tight);
+      margin-bottom: var(--s-2);
     }
-
     .form-subtitle {
-      font-size: 14px;
-      color: var(--on-variant);
-      margin-bottom: 24px;
+      font-size: var(--text-sm);
+      color: var(--ink-500);
+      margin-bottom: var(--s-7);
     }
+    .form-subtitle a { color: var(--brand-600); font-weight: 500; }
 
-    .form-subtitle a {
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    /* Alert */
-    .alert {
-      display: none;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 12px 14px;
-      border-radius: var(--r);
-      font-size: 13.5px;
-      line-height: 1.45;
-      margin-bottom: 18px;
-    }
-
-    .alert.show { display: flex; }
-
-    .alert-error {
-      background: #fef2f2;
-      color: var(--danger);
-      border: 1px solid #fecaca;
-    }
-
-    .alert-success {
-      background: #f0fdf4;
-      color: var(--success);
-      border: 1px solid #bbf7d0;
-    }
-
-    /* Fields */
-    .field { margin-bottom: 15px; }
-
-    .field label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--on-surface);
-      margin-bottom: 6px;
-    }
-
-    .label-opt {
-      font-weight: 400;
-      color: var(--on-variant);
-    }
-
-    .input-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .input-wrap > svg:first-child {
-      position: absolute;
-      left: 14px;
-      color: var(--on-variant);
-      pointer-events: none;
-    }
-
-    .input-wrap input {
-      width: 100%;
-      background: var(--surface-low);
-      border: none;
-      border-radius: 10px;
-      padding: 12px 16px 12px 42px;
-      font-size: 14px;
-      font-family: 'Inter', sans-serif;
-      color: var(--on-surface);
-      outline: none;
-      transition: box-shadow .15s;
-    }
-
-    .input-wrap input:focus {
-      box-shadow: 0 0 0 2px var(--primary);
-    }
-
-    .input-wrap input.error {
-      box-shadow: 0 0 0 2px var(--danger);
-    }
-
-    .input-wrap input::placeholder { color: var(--outline); }
-
-    .pwd-toggle {
-      position: absolute;
-      right: 12px;
-      background: none;
-      border: none;
+    /* Phone prefix row */
+    .phone-row { display: flex; gap: var(--s-2); }
+    .phone-prefix {
+      flex: 0 0 110px;
+      padding: 13px 10px;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--ink-900);
+      background: var(--white);
+      border: 1.5px solid var(--ink-300);
+      border-radius: var(--r-md);
       cursor: pointer;
-      padding: 4px;
-      color: var(--on-variant);
-      display: flex;
-      align-items: center;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='%23475569'><path d='M5 7L1 3h8z'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 28px;
     }
-
-    .field-error {
-      display: none;
-      font-size: 12px;
-      color: var(--danger);
-      margin-top: 5px;
+    .phone-prefix:focus {
+      outline: none;
+      border-color: var(--brand-600);
+      box-shadow: var(--shadow-ring);
     }
+    .phone-row .input-wrap { flex: 1; }
 
-    .field-error.show { display: block; }
-
-    /* Password strength */
-    .pwd-strength { margin-top: 8px; }
-
+    /* Password strength meter */
+    .pwd-strength { margin-top: var(--s-2); display: none; }
+    .pwd-strength.show { display: block; }
     .pwd-strength-bar {
       height: 4px;
-      background: var(--outline);
-      border-radius: 4px;
+      background: var(--ink-200);
+      border-radius: var(--r-full);
       overflow: hidden;
-      margin-bottom: 4px;
     }
-
     .pwd-strength-fill {
       height: 100%;
-      border-radius: 4px;
-      transition: width .3s, background .3s;
       width: 0;
+      border-radius: var(--r-full);
+      transition: width var(--d-mid) var(--ease-out-quart), background var(--d-mid);
     }
-
     .pwd-strength-label {
-      font-size: 11.5px;
+      margin-top: var(--s-2);
+      font-size: var(--text-xs);
       font-weight: 500;
+      color: var(--ink-500);
     }
 
-    /* Phone row */
-    .phone-wrap { display: flex; gap: 8px; }
-
-    .phone-prefix {
-      background: var(--surface-low);
-      border: none;
-      border-radius: 10px;
-      padding: 12px 10px;
-      font-size: 13px;
-      font-family: 'Inter', sans-serif;
-      color: var(--on-surface);
-      cursor: pointer;
-      outline: none;
-      flex-shrink: 0;
-    }
-
-    /* Checkbox */
-    .checkbox-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      font-size: 13px;
-      color: var(--on-variant);
-    }
-
-    .checkbox-wrap input[type="checkbox"] { accent-color: var(--primary); }
-
-    .checkbox-wrap a {
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    /* Submit button */
     .btn-submit {
-      width: 100%;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 14px;
-      font-size: 15px;
-      font-weight: 600;
-      font-family: 'Inter', sans-serif;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background .15s, transform .1s;
       position: relative;
-      overflow: hidden;
-      margin-top: 6px;
+      width: 100%;
+      padding: 14px 24px;
+      font-size: var(--text-base);
+      font-weight: 700;
+      border-radius: var(--r-md);
+      margin-top: var(--s-2);
     }
-
-    .btn-submit:hover:not(:disabled) { background: var(--primary-dark); }
-    .btn-submit:active:not(:disabled) { transform: scale(0.99); }
-    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
-
-    .spinner {
-      display: none;
-      width: 17px; height: 17px;
-      border: 2px solid rgba(255,255,255,0.35);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .65s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
+    .btn-submit .btn-text { transition: opacity var(--d-fast); }
     .btn-submit.loading .btn-text { opacity: 0; }
-    .btn-submit.loading .spinner { display: block; position: absolute; }
+    .btn-submit .spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin: -9px 0 0 -9px;
+      display: none;
+    }
+    .btn-submit.loading .spinner { display: block; }
 
-    /* Bottom links */
     .form-switch {
       text-align: center;
-      font-size: 13.5px;
-      color: var(--on-variant);
-      margin-top: 20px;
+      font-size: var(--text-sm);
+      color: var(--ink-500);
+      margin-top: var(--s-6);
     }
+    .form-switch a { color: var(--brand-600); font-weight: 600; }
 
-    .form-switch a {
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .form-trust {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 22px;
-      margin-top: 22px;
-      padding-top: 20px;
-      border-top: 1px solid var(--outline);
-    }
-
-    .form-trust-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11.5px;
-      color: var(--on-variant);
-    }
-
-    /* ── Mobile ── */
-    @media (max-width: 768px) {
-      body { padding: 16px; align-items: flex-start; }
-
-      .auth-card {
+    /* ─── Mobile ────────────────────────────────────────────────── */
+    @media (max-width: 860px) {
+      .auth-shell {
         flex-direction: column;
-        min-height: unset;
-        border-radius: var(--r);
+        padding: var(--s-5) var(--s-4);
+        gap: var(--s-5);
+        min-height: auto;
       }
+      .auth-brand {
+        padding: var(--s-7) var(--s-6);
+        position: static;
+        width: 100%;
+        order: -1;
+      }
+      .brand-logo { margin-bottom: var(--s-5); font-size: var(--text-lg); }
+      .brand-headline { font-size: var(--text-2xl); margin-bottom: var(--s-3); }
+      .brand-sub { font-size: var(--text-sm); margin-bottom: var(--s-5); }
+      .brand-steps {
+        gap: var(--s-3);
+        margin-bottom: var(--s-4);
+      }
+      .brand-step-text span { display: none; }
+      .brand-step-num { width: 30px; height: 30px; }
+      .brand-trust { padding: var(--s-3) var(--s-4); }
 
-      .auth-brand { display: none; }
-
-      .auth-form-wrap { padding: 36px 28px; }
+      .auth-form-wrap { width: 100%; max-width: none; }
+      .auth-form-box { padding: var(--s-7) var(--s-6); border-radius: var(--r-xl); }
+      .form-title { font-size: var(--text-2xl); }
     }
   </style>
 </head>
 <body>
 
-<div class="auth-card">
+<a href="#main" class="skip-link">Skip to content</a>
 
-  <!-- LEFT — Brand Panel -->
+<div class="auth-shell">
+
   <aside class="auth-brand">
-    <a href="/" class="brand-logo">
-      <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+    <a href="/" class="brand-logo" aria-label="Shield home">
+      <svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true">
         <path d="M16 2L4 8v8c0 7.18 5.16 13.9 12 15.5C22.84 29.9 28 23.18 28 16V8L16 2z" fill="rgba(255,255,255,.18)"/>
         <path d="M16 6L7 11v5c0 5.15 3.7 9.96 9 11.35C21.3 25.96 25 21.15 25 16v-5L16 6z" fill="rgba(255,255,255,.42)"/>
         <path d="M13 15.5l2 2 4-4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -513,116 +357,130 @@
       Shield
     </a>
 
-    <h1 class="brand-headline">Join Shield —<br/><em>protect your family</em><br/>in 2 minutes.</h1>
-    <p class="brand-sub">Join thousands of parents protecting their children — completely free, no credit card required.</p>
+    <h1 class="brand-headline">
+      Join Shield —<br/>
+      <em>protect your family</em><br/>
+      in minutes.
+    </h1>
+    <p class="brand-sub">
+      Set up DNS filtering, screen-time rules and real-time alerts for your kids. Start on the free tier — upgrade any time.
+    </p>
 
     <div class="brand-steps">
       <div class="brand-step">
         <div class="brand-step-num">01</div>
         <div class="brand-step-text">
-          <strong>Create Your Free Account</strong>
-          <span>Sign up in under a minute. Always free — no credit card, no trial.</span>
+          <strong>Create Your Account</strong>
+          <span>Sign up in under a minute. No credit card required on the free plan.</span>
         </div>
       </div>
       <div class="brand-step">
         <div class="brand-step-num">02</div>
         <div class="brand-step-text">
           <strong>Add Your Child's Profile</strong>
-          <span>Set age, choose blocked categories, and configure their schedule.</span>
+          <span>Set age, blocked categories, and schedule. Shield adapts automatically.</span>
         </div>
       </div>
       <div class="brand-step">
         <div class="brand-step-num">03</div>
         <div class="brand-step-text">
-          <strong>Scan QR on Child's Device</strong>
-          <span>One QR scan sets Private DNS. Protection starts immediately on all networks.</span>
+          <strong>Install on Child's Device</strong>
+          <span>One Android install. DNS protection kicks in on WiFi and 4G/5G.</span>
         </div>
       </div>
       <div class="brand-step">
         <div class="brand-step-num">04</div>
         <div class="brand-step-text">
-          <strong>Full Protection — Everywhere</strong>
-          <span>Works on home WiFi, school WiFi, and 4G/5G without any VPN or app.</span>
+          <strong>You're Protected</strong>
+          <span>Monitor from the parent dashboard. Adjust rules any time.</span>
         </div>
       </div>
     </div>
 
-    <div class="brand-badge">
-      <div class="brand-badge-icon">🔒</div>
-      <div class="brand-badge-text">
-        <strong>Privacy First</strong>
-        We filter DNS queries — we never store your child's browsing history.
+    <div class="brand-trust">
+      <div class="brand-trust-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>
+        </svg>
+      </div>
+      <div class="brand-trust-text">
+        <strong>Privacy first</strong>
+        <span>We filter DNS queries — we never store browsing history.</span>
       </div>
     </div>
   </aside>
 
-  <!-- RIGHT — Form Panel -->
-  <main class="auth-form-wrap">
+  <main class="auth-form-wrap" id="main">
     <div class="auth-form-box">
 
       <a href="/" class="form-back">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
         </svg>
         Back to home
       </a>
 
-      <h2 class="form-title">Create Account</h2>
+      <h2 class="form-title">Create account</h2>
       <p class="form-subtitle">
         Already have an account? <a href="login.html">Sign in</a>
       </p>
 
-      <!-- Alerts -->
-      <div class="alert alert-error" id="alertBox" role="alert">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      <div class="alert alert-error" id="alertBox" role="alert" aria-live="assertive">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
         <span id="alertMsg"></span>
       </div>
-      <div class="alert alert-success" id="successBox" role="status">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">
-          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+      <div class="alert alert-success" id="successBox" role="status" aria-live="polite">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
         </svg>
         <span id="successMsg"></span>
       </div>
 
       <form id="registerForm" novalidate>
 
-        <!-- Full name -->
         <div class="field">
-          <label for="name">Full name</label>
+          <label class="field-label" for="name">Full name</label>
           <div class="input-wrap">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
+            <span class="input-icon" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </span>
             <input type="text" id="name" name="name" placeholder="e.g. Sarah Johnson"
-                   autocomplete="name" autocapitalize="words"/>
+                   autocomplete="name" autocapitalize="words"
+                   aria-describedby="nameError"/>
           </div>
           <div class="field-error" id="nameError">Please enter your full name.</div>
         </div>
 
-        <!-- Email -->
         <div class="field">
-          <label for="email">Email address</label>
+          <label class="field-label" for="email">Email address</label>
           <div class="input-wrap">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
+            <span class="input-icon" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </span>
             <input type="email" id="email" name="email" placeholder="you@example.com"
-                   autocomplete="email" autocapitalize="none" spellcheck="false"/>
+                   autocomplete="email" autocapitalize="none" spellcheck="false"
+                   aria-describedby="emailError"/>
           </div>
           <div class="field-error" id="emailError">Please enter a valid email address.</div>
         </div>
 
-        <!-- Phone (optional) -->
         <div class="field">
-          <label for="phone">
+          <label class="field-label" for="phone">
             Phone number
-            <span class="label-opt">— optional</span>
+            <span class="field-label-optional">optional</span>
           </label>
-          <div class="phone-wrap">
+          <div class="phone-row">
             <select class="phone-prefix" id="phonePrefix" aria-label="Country code">
               <option value="+91">🇮🇳 +91</option>
               <option value="+1">🇺🇸 +1</option>
@@ -632,54 +490,62 @@
               <option value="+61">🇦🇺 +61</option>
               <option value="+65">🇸🇬 +65</option>
             </select>
-            <div class="input-wrap" style="flex:1">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.06 1.22 2 2 0 012.03 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
-              </svg>
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.06 1.22 2 2 0 012.03 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                </svg>
+              </span>
               <input type="tel" id="phone" name="phone" placeholder="98765 43210"
                      autocomplete="tel-national" inputmode="numeric"/>
             </div>
           </div>
         </div>
 
-        <!-- Password -->
         <div class="field">
-          <label for="password">Password</label>
+          <label class="field-label" for="password">Password</label>
           <div class="input-wrap">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
+            <span class="input-icon" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </span>
             <input type="password" id="password" name="password"
                    placeholder="Min. 8 characters"
                    autocomplete="new-password"
+                   aria-describedby="passwordError"
                    oninput="checkStrength(this.value)"/>
-            <button type="button" class="pwd-toggle" onclick="togglePwd('password','eyeIcon1')" aria-label="Show password">
-              <svg id="eyeIcon1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" class="input-action" onclick="togglePwd('password','eye1')" aria-label="Show password">
+              <svg id="eye1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
             </button>
           </div>
-          <div class="pwd-strength" id="pwdStrength" style="display:none;">
-            <div class="pwd-strength-bar"><div class="pwd-strength-fill" id="pwdFill"></div></div>
+          <div class="pwd-strength" id="pwdStrength">
+            <div class="pwd-strength-bar">
+              <div class="pwd-strength-fill" id="pwdFill"></div>
+            </div>
             <div class="pwd-strength-label" id="pwdLabel"></div>
           </div>
           <div class="field-error" id="passwordError">Password must be at least 8 characters.</div>
         </div>
 
-        <!-- Confirm Password -->
         <div class="field">
-          <label for="confirmPassword">Confirm password</label>
+          <label class="field-label" for="confirmPassword">Confirm password</label>
           <div class="input-wrap">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
+            <span class="input-icon" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </span>
             <input type="password" id="confirmPassword" name="confirmPassword"
                    placeholder="Repeat your password"
-                   autocomplete="new-password"/>
-            <button type="button" class="pwd-toggle" onclick="togglePwd('confirmPassword','eyeIcon2')" aria-label="Show confirm password">
-              <svg id="eyeIcon2" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   autocomplete="new-password"
+                   aria-describedby="confirmPasswordError"/>
+            <button type="button" class="input-action" onclick="togglePwd('confirmPassword','eye2')" aria-label="Show confirm password">
+              <svg id="eye2" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
@@ -688,48 +554,24 @@
           <div class="field-error" id="confirmPasswordError">Passwords do not match.</div>
         </div>
 
-        <!-- Terms -->
-        <div class="field" style="margin-bottom:20px;">
+        <div class="field">
           <label class="checkbox-wrap">
             <input type="checkbox" id="terms" name="terms"/>
             I agree to Shield's
-            <a href="/terms" target="_blank">Terms of Service</a>
-            and <a href="/privacy" target="_blank">Privacy Policy</a>
+            <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a>
+            and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
           </label>
           <div class="field-error" id="termsError">You must accept the terms to continue.</div>
         </div>
 
-        <button type="submit" class="btn-submit" id="submitBtn">
-          <span class="btn-text">Create Free Account</span>
+        <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">
+          <span class="btn-text">Create free account</span>
           <div class="spinner"></div>
         </button>
-
       </form>
 
       <div class="form-switch">
-        Already have an account? <a href="login.html">Sign in</a>
-      </div>
-
-      <div class="form-trust">
-        <div class="form-trust-item">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-          </svg>
-          SSL Encrypted
-        </div>
-        <div class="form-trust-item">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>
-          </svg>
-          Privacy First
-        </div>
-        <div class="form-trust-item">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-            <polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-          Always Free
-        </div>
+        Already a member? <a href="login.html">Sign in</a>
       </div>
 
     </div>
@@ -743,43 +585,55 @@ const API = '/api/v1/auth';
 function togglePwd(inputId, iconId) {
   const inp = document.getElementById(inputId);
   const svg = document.getElementById(iconId);
+  const btn = svg.closest('button');
   const show = inp.type === 'password';
   inp.type = show ? 'text' : 'password';
+  btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
   svg.innerHTML = show
     ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
     : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
 }
 
-function checkStrength(val) {
-  const bar   = document.getElementById('pwdStrength');
-  const fill  = document.getElementById('pwdFill');
-  const label = document.getElementById('pwdLabel');
-  if (!val) { bar.style.display = 'none'; return; }
-  bar.style.display = 'block';
+function checkStrength(v) {
+  const strength = document.getElementById('pwdStrength');
+  const fill     = document.getElementById('pwdFill');
+  const label    = document.getElementById('pwdLabel');
+  if (!v) { strength.classList.remove('show'); return; }
+  strength.classList.add('show');
+
   let score = 0;
-  if (val.length >= 8)             score++;
-  if (val.length >= 12)            score++;
-  if (/[A-Z]/.test(val))           score++;
-  if (/[0-9]/.test(val))           score++;
-  if (/[^A-Za-z0-9]/.test(val))    score++;
+  if (v.length >= 8) score++;
+  if (v.length >= 12) score++;
+  if (/[A-Z]/.test(v)) score++;
+  if (/[0-9]/.test(v)) score++;
+  if (/[^A-Za-z0-9]/.test(v)) score++;
+
   const levels = [
-    { pct:'20%', color:'#ef4444', text:'Very weak' },
-    { pct:'40%', color:'#f97316', text:'Weak'      },
-    { pct:'60%', color:'#eab308', text:'Fair'      },
-    { pct:'80%', color:'#84cc16', text:'Strong'    },
-    { pct:'100%',color:'#22c55e', text:'Very strong'},
+    { w: '15%',  c: 'var(--danger-600)',  t: 'Very weak'  },
+    { w: '30%',  c: 'var(--danger-600)',  t: 'Weak'       },
+    { w: '55%',  c: 'var(--warning-600)', t: 'Fair'       },
+    { w: '80%',  c: 'var(--warning-600)', t: 'Good'       },
+    { w: '100%', c: 'var(--success-600)', t: 'Strong'     },
+    { w: '100%', c: 'var(--success-600)', t: 'Very strong'}
   ];
-  const lvl = levels[Math.min(score - 1, 4)] || levels[0];
-  fill.style.width      = lvl.pct;
-  fill.style.background = lvl.color;
-  label.textContent     = lvl.text;
-  label.style.color     = lvl.color;
+  const lvl = levels[Math.min(score, levels.length - 1)];
+  fill.style.width = lvl.w;
+  fill.style.background = lvl.c;
+  label.textContent = lvl.t;
+  label.style.color = lvl.c;
 }
 
-function showAlert(msg, type = 'error') {
-  document.getElementById('alertBox').classList.toggle('show',    type === 'error');
-  document.getElementById('successBox').classList.toggle('show',  type === 'success');
-  document.getElementById(type === 'error' ? 'alertMsg' : 'successMsg').textContent = msg;
+function showAlert(msg) {
+  document.getElementById('successBox').classList.remove('show');
+  const box = document.getElementById('alertBox');
+  box.classList.add('show');
+  document.getElementById('alertMsg').textContent = msg;
+}
+function showSuccess(msg) {
+  document.getElementById('alertBox').classList.remove('show');
+  const box = document.getElementById('successBox');
+  box.classList.add('show');
+  document.getElementById('successMsg').textContent = msg;
 }
 function hideAlerts() {
   document.getElementById('alertBox').classList.remove('show');
@@ -788,11 +642,14 @@ function hideAlerts() {
 
 function validateEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
 
-function showFieldError(id, show, msg) {
-  const el  = document.getElementById(id + 'Error');
+function showFieldError(id, show) {
+  const el = document.getElementById(id + 'Error');
   const inp = document.getElementById(id);
-  if (el)  { el.classList.toggle('show', show); if (msg) el.textContent = msg; }
-  if (inp)   inp.classList.toggle('error', show);
+  if (el) el.classList.toggle('show', show);
+  if (inp) {
+    const wrap = inp.closest('.input-wrap');
+    if (wrap) wrap.classList.toggle('error', show);
+  }
 }
 
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
@@ -801,82 +658,70 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 
   const name            = document.getElementById('name').value.trim();
   const email           = document.getElementById('email').value.trim();
-  const phoneRaw        = document.getElementById('phone').value.trim();
-  const prefix          = document.getElementById('phonePrefix').value;
+  const phonePrefix     = document.getElementById('phonePrefix').value;
+  const phoneVal        = document.getElementById('phone').value.trim();
+  const phone           = phoneVal ? phonePrefix + phoneVal.replace(/\D/g, '') : '';
   const password        = document.getElementById('password').value;
   const confirmPassword = document.getElementById('confirmPassword').value;
   const terms           = document.getElementById('terms').checked;
 
   let valid = true;
-  if (name.length < 2)              { showFieldError('name', true);            valid = false; }
-  else                                showFieldError('name', false);
-  if (!validateEmail(email))        { showFieldError('email', true);           valid = false; }
-  else                                showFieldError('email', false);
-  if (password.length < 8)         { showFieldError('password', true);        valid = false; }
-  else                                showFieldError('password', false);
-  if (password !== confirmPassword) { showFieldError('confirmPassword', true, 'Passwords do not match.'); valid = false; }
-  else                                showFieldError('confirmPassword', false);
-  if (!terms)                       { showFieldError('terms', true);           valid = false; }
-  else                                showFieldError('terms', false);
-
+  if (!name)                       { showFieldError('name', true);            valid = false; } else showFieldError('name', false);
+  if (!validateEmail(email))       { showFieldError('email', true);           valid = false; } else showFieldError('email', false);
+  if (password.length < 8)         { showFieldError('password', true);        valid = false; } else showFieldError('password', false);
+  if (password !== confirmPassword){ showFieldError('confirmPassword', true); valid = false; } else showFieldError('confirmPassword', false);
+  if (!terms) {
+    document.getElementById('termsError').classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('termsError').classList.remove('show');
+  }
   if (!valid) return;
 
   const btn = document.getElementById('submitBtn');
   btn.classList.add('loading');
   btn.disabled = true;
 
-  const phone = phoneRaw ? prefix + phoneRaw.replace(/\s/g, '') : undefined;
-  const body  = { name, email, password };
-  if (phone) body.phone = phone;
-
   try {
-    const res  = await fetch(API + '/register', {
+    const payload = { name, email, password };
+    if (phone) payload.phone = phone;
+
+    const res = await fetch(API + '/register', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body)
+      body:    JSON.stringify(payload)
     });
     const data = await res.json();
 
     if (!res.ok) {
-      const msg = data?.message || 'Registration failed. Please try again.';
-      showAlert(msg.includes('already') ? 'An account with this email already exists. Please sign in.' : msg);
+      showAlert(data?.message || 'Registration failed. Please try again.');
       return;
     }
 
-    showAlert('Account created! Signing you in…', 'success');
-
-    const loginRes  = await fetch(API + '/login', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email, password })
-    });
-    const loginData = await loginRes.json();
-
-    if (loginRes.ok) {
-      const { accessToken, refreshToken, name: n, email: ue, role, userId, tenantId } = loginData.data || {};
-      if (accessToken) {
-        localStorage.setItem('shield_access_token',  accessToken);
-        if (refreshToken) localStorage.setItem('shield_refresh_token', refreshToken);
-        if (n)            localStorage.setItem('shield_name',  n);
-        if (ue)           localStorage.setItem('shield_email', ue);
-        if (role)         localStorage.setItem('shield_role',  role);
-        // Zustand persist key (for React /app/ dashboard)
-        localStorage.setItem('shield-auth', JSON.stringify({
-          state: {
-            user: { id: userId, name: n || '', email: ue || '', role: role || 'CUSTOMER', tenantId: tenantId || null },
-            accessToken,
-            refreshToken: refreshToken || null
-          },
-          version: 0
-        }));
-      }
-      setTimeout(() => { window.location.href = '/app/'; }, 800);
+    const { accessToken, refreshToken, name: respName, email: respEmail, role, userId, tenantId } = data.data || {};
+    if (accessToken) {
+      localStorage.setItem('shield_access_token', accessToken);
+      if (refreshToken) localStorage.setItem('shield_refresh_token', refreshToken);
+      if (respName)     localStorage.setItem('shield_name', respName);
+      if (respEmail)    localStorage.setItem('shield_email', respEmail);
+      if (role)         localStorage.setItem('shield_role', role);
+      localStorage.setItem('shield-auth', JSON.stringify({
+        state: {
+          user: { id: userId, name: respName || name, email: respEmail || email, role: role || 'CUSTOMER', tenantId: tenantId || null },
+          accessToken,
+          refreshToken: refreshToken || null
+        },
+        version: 0
+      }));
+      showSuccess('Account created — redirecting to your dashboard…');
+      setTimeout(() => { window.location.href = '/app/'; }, 900);
     } else {
-      setTimeout(() => { window.location.href = 'login.html?registered=1'; }, 1200);
+      showSuccess('Account created. Redirecting to sign in…');
+      setTimeout(() => { window.location.href = '/login.html'; }, 1200);
     }
 
   } catch {
-    showAlert('Unable to connect. Please check your internet connection and try again.');
+    showAlert('Unable to connect. Please check your internet connection.');
   } finally {
     btn.classList.remove('loading');
     btn.disabled = false;
@@ -884,9 +729,14 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 });
 
 ['name','email','password','confirmPassword'].forEach(id => {
-  document.getElementById(id)?.addEventListener('input', () => showFieldError(id, false));
+  document.getElementById(id)?.addEventListener('input', () => {
+    showFieldError(id, false);
+    hideAlerts();
+  });
 });
-document.getElementById('terms').addEventListener('change', () => showFieldError('terms', false));
+document.getElementById('terms')?.addEventListener('change', () => {
+  document.getElementById('termsError').classList.remove('show');
+});
 
 if (localStorage.getItem('shield_access_token')) {
   window.location.href = '/app/';

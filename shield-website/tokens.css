@@ -1,0 +1,143 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Shield Design System — Tokens
+   Single source of truth for colors, typography, spacing, motion.
+   Every page imports this file.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── Brand (navy → cobalt → sky) ─────────────────────────────── */
+  --brand-950: #061430;   /* deepest — footer, hero text shadow */
+  --brand-900: #0A1F44;
+  --brand-800: #0F2A5E;   /* hero gradient start */
+  --brand-700: #1538A0;   /* button hover, link hover */
+  --brand-600: #1E4FC4;   /* PRIMARY — CTA, active nav, focus ring */
+  --brand-500: #3B6FE0;   /* primary hover, badges */
+  --brand-400: #6B9BF5;   /* secondary accent */
+  --brand-300: #9DBEFB;
+  --brand-200: #C7D9FD;
+  --brand-100: #E0EBFF;   /* tinted card bg */
+  --brand-50:  #F0F6FF;   /* tinted page bg */
+
+  /* ─── Neutrals (slate) ────────────────────────────────────────── */
+  --ink-950: #020617;
+  --ink-900: #0F172A;     /* headings */
+  --ink-800: #1E293B;
+  --ink-700: #334155;     /* body text */
+  --ink-600: #475569;
+  --ink-500: #64748B;     /* muted text */
+  --ink-400: #94A3B8;
+  --ink-300: #CBD5E1;     /* borders */
+  --ink-200: #E2E8F0;     /* subtle borders */
+  --ink-100: #F1F5F9;     /* subtle bg */
+  --ink-50:  #F8FAFC;     /* page bg */
+  --white:   #FFFFFF;
+
+  /* ─── Status ──────────────────────────────────────────────────── */
+  --success-700: #15803D;
+  --success-600: #16A34A;
+  --success-100: #DCFCE7;
+  --warning-600: #F59E0B;
+  --warning-100: #FEF3C7;
+  --danger-700:  #B91C1C;
+  --danger-600:  #DC2626;
+  --danger-100:  #FEE2E2;
+  --info-600:    #0EA5E9;
+  --info-100:    #E0F2FE;
+
+  /* ─── Typography ──────────────────────────────────────────────── */
+  --font-display: 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:    ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --text-xs:   0.75rem;    /*  12px */
+  --text-sm:   0.875rem;   /*  14px */
+  --text-base: 1rem;       /*  16px */
+  --text-lg:   1.125rem;   /*  18px */
+  --text-xl:   1.25rem;    /*  20px */
+  --text-2xl:  1.5rem;     /*  24px */
+  --text-3xl:  1.875rem;   /*  30px */
+  --text-4xl:  2.25rem;    /*  36px */
+  --text-5xl:  3rem;       /*  48px */
+  --text-6xl:  3.75rem;    /*  60px */
+
+  --leading-tight:   1.15;
+  --leading-snug:    1.3;
+  --leading-normal:  1.55;
+  --leading-relaxed: 1.7;
+
+  --tracking-tight:   -0.02em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.02em;
+  --tracking-wider:   0.08em;
+  --tracking-widest:  0.12em;
+
+  /* ─── Spacing (4-point scale) ─────────────────────────────────── */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-7:  28px;
+  --s-8:  32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-14: 56px;
+  --s-16: 64px;
+  --s-20: 80px;
+  --s-24: 96px;
+  --s-32: 128px;
+
+  /* ─── Radii ───────────────────────────────────────────────────── */
+  --r-sm:   6px;
+  --r-md:   10px;
+  --r-lg:   14px;
+  --r-xl:   20px;
+  --r-2xl:  28px;
+  --r-full: 9999px;
+
+  /* ─── Shadows (layered) ───────────────────────────────────────── */
+  --shadow-xs:  0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm:  0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md:  0 6px 16px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg:  0 16px 40px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
+  --shadow-xl:  0 32px 72px -12px rgba(15, 23, 42, 0.18);
+  --shadow-2xl: 0 48px 96px -16px rgba(15, 23, 42, 0.22);
+  --shadow-ring: 0 0 0 4px rgba(30, 79, 196, 0.18);  /* focus ring */
+  --shadow-ring-danger: 0 0 0 4px rgba(220, 38, 38, 0.18);
+
+  /* ─── Motion ──────────────────────────────────────────────────── */
+  --ease-out-quart:  cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
+
+  --d-fast:      150ms;
+  --d-mid:       250ms;
+  --d-slow:      400ms;
+  --d-very-slow: 700ms;
+
+  /* ─── Layout ──────────────────────────────────────────────────── */
+  --container:        1200px;
+  --container-narrow: 820px;
+  --container-auth:   1040px;
+
+  /* ─── Z-index ─────────────────────────────────────────────────── */
+  --z-base:    1;
+  --z-drawer:  50;
+  --z-nav:     100;
+  --z-overlay: 1000;
+  --z-modal:   1100;
+  --z-tooltip: 1200;
+  --z-toast:   1300;
+}
+
+/* ─── Reduced motion respect ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:  0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -12,449 +12,383 @@
   <meta property="og:title" content="Sign In — Shield Family Protection"/>
   <meta property="og:description" content="Sign in to your Shield parental control dashboard."/>
   <meta property="og:image" content="https://shield.rstglobal.in/og-image.svg"/>
-  <link rel="manifest" href="/manifest.json"/>
-  <meta name="theme-color" content="#005DAC"/>
+  <meta name="theme-color" content="#1E4FC4"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="manifest" href="/manifest.json"/>
+
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="/tokens.css?v=3"/>
+  <link rel="stylesheet" href="/components.css?v=3"/>
+
   <style>
-    :root {
-      --primary: #005DAC;
-      --primary-dark: #003D72;
-      --surface: #F7F9FB;
-      --surface-low: #F0F4F8;
-      --on-surface: #0F1F3D;
-      --on-variant: #4A6481;
-      --outline: #C4D0DC;
-      --shadow: 0 8px 32px -4px rgba(15,31,61,0.06);
-      --r: 12px;
-      --success: #2E7D32;
-      --danger: #C62828;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    /* ─── Page layout ───────────────────────────────────────────── */
     body {
-      font-family: 'Inter', sans-serif;
-      background: var(--surface);
-      color: var(--on-surface);
       min-height: 100vh;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 16px;
+      background:
+        radial-gradient(ellipse 60% 45% at 85% 15%, rgba(30,79,196,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 10% 90%, rgba(107,155,245,0.10) 0%, transparent 60%),
+        var(--ink-50);
     }
 
-    /* ── Auth card ── */
-    .auth-card {
+    .auth-shell {
       display: flex;
       width: 100%;
-      max-width: 960px;
-      min-height: 580px;
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 24px 64px -12px rgba(15,31,61,0.14);
+      max-width: var(--container-auth);
+      margin: auto;
+      padding: var(--s-8) var(--s-6);
+      gap: var(--s-12);
+      align-items: center;
+      min-height: 100vh;
     }
 
-    /* ── Left brand panel ── */
+    /* ─── Left: brand panel (desktop only — mobile gets compact header) ─── */
     .auth-brand {
+      flex: 1;
+      position: relative;
+      padding: var(--s-10);
+      border-radius: var(--r-2xl);
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 15%, rgba(107,155,245,0.35) 0%, transparent 65%),
+        linear-gradient(155deg, var(--brand-900) 0%, var(--brand-800) 45%, var(--brand-700) 100%);
+      color: var(--white);
+      overflow: hidden;
+      min-height: 600px;
       display: flex;
       flex-direction: column;
-      width: 42%;
-      background: var(--primary);
-      color: #fff;
-      padding: 48px 44px;
-      position: relative;
-      overflow: hidden;
     }
-
     .auth-brand::before {
       content: '';
       position: absolute;
-      top: -100px; right: -80px;
-      width: 280px; height: 280px;
+      top: -140px; right: -100px;
+      width: 320px; height: 320px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.06);
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
       pointer-events: none;
     }
-
     .auth-brand::after {
       content: '';
       position: absolute;
-      bottom: -70px; left: -50px;
-      width: 220px; height: 220px;
+      bottom: -100px; left: -80px;
+      width: 260px; height: 260px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.04);
+      background: radial-gradient(circle, rgba(107,155,245,0.15) 0%, transparent 70%);
       pointer-events: none;
     }
 
     .brand-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-family: 'Manrope', sans-serif;
-      font-weight: 800;
-      font-size: 20px;
-      color: #fff;
-      text-decoration: none;
-      margin-bottom: 44px;
       position: relative;
-      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--s-3);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-xl);
+      color: var(--white);
+      margin-bottom: var(--s-10);
     }
 
     .brand-headline {
-      font-family: 'Manrope', sans-serif;
-      font-weight: 800;
-      font-size: 30px;
-      line-height: 1.22;
-      margin-bottom: 14px;
       position: relative;
-      z-index: 1;
+      font-family: var(--font-display);
+      font-size: clamp(var(--text-3xl), 3.5vw, var(--text-4xl));
+      font-weight: 800;
+      line-height: var(--leading-tight);
+      letter-spacing: var(--tracking-tight);
+      color: var(--white);
+      margin-bottom: var(--s-4);
     }
-
     .brand-headline em {
       font-style: normal;
-      opacity: 0.78;
+      color: var(--brand-300);
     }
 
     .brand-sub {
-      font-size: 14px;
-      line-height: 1.65;
-      opacity: 0.78;
-      margin-bottom: 38px;
       position: relative;
-      z-index: 1;
+      font-size: var(--text-base);
+      line-height: var(--leading-normal);
+      color: rgba(255, 255, 255, 0.78);
+      max-width: 460px;
+      margin-bottom: var(--s-10);
     }
 
     .brand-features {
+      position: relative;
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      position: relative;
-      z-index: 1;
+      gap: var(--s-6);
+      margin-bottom: var(--s-10);
       flex: 1;
     }
-
     .brand-feature {
       display: flex;
       align-items: flex-start;
-      gap: 14px;
+      gap: var(--s-4);
     }
-
     .brand-feat-icon {
       flex-shrink: 0;
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
-      background: rgba(255,255,255,0.14);
+      width: 40px;
+      height: 40px;
+      border-radius: var(--r-md);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       display: flex;
       align-items: center;
       justify-content: center;
+      color: var(--brand-300);
     }
-
     .brand-feat-text strong {
       display: block;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 3px;
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 2px;
     }
-
     .brand-feat-text span {
-      font-size: 12px;
-      opacity: 0.72;
-      line-height: 1.5;
+      font-size: var(--text-xs);
+      line-height: var(--leading-normal);
+      color: rgba(255, 255, 255, 0.7);
     }
 
-    .brand-badge {
+    .brand-trust {
+      position: relative;
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-top: 30px;
-      padding: 13px 16px;
-      border-radius: var(--r);
-      background: rgba(255,255,255,0.11);
-      border: 1px solid rgba(255,255,255,0.15);
-      position: relative;
-      z-index: 1;
+      gap: var(--s-4);
+      padding: var(--s-4) var(--s-5);
+      border-radius: var(--r-lg);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
     }
-
-    .brand-badge-icon { font-size: 22px; line-height: 1; }
-
-    .brand-badge-text strong {
+    .brand-trust-icon {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border-radius: var(--r-sm);
+      background: var(--success-600);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--white);
+    }
+    .brand-trust-text strong {
       display: block;
-      font-size: 13px;
-      font-weight: 600;
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: 700;
+      color: var(--white);
+    }
+    .brand-trust-text span {
+      font-size: var(--text-xs);
+      color: rgba(255, 255, 255, 0.72);
     }
 
-    .brand-badge-text {
-      font-size: 12px;
-      opacity: 0.78;
-    }
-
-    /* ── Right form panel ── */
+    /* ─── Right: form panel ─────────────────────────────────────── */
     .auth-form-wrap {
       flex: 1;
-      background: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 44px 52px;
+      max-width: 460px;
     }
-
     .auth-form-box {
-      width: 100%;
-      max-width: 380px;
+      background: var(--white);
+      border-radius: var(--r-2xl);
+      border: 1px solid var(--ink-200);
+      box-shadow: var(--shadow-lg);
+      padding: var(--s-10) var(--s-10) var(--s-8);
     }
 
     .form-back {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: var(--on-variant);
-      text-decoration: none;
-      margin-bottom: 32px;
-      transition: color .15s;
+      gap: var(--s-2);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--ink-500);
+      margin-bottom: var(--s-6);
+      transition: color var(--d-fast);
     }
+    .form-back:hover { color: var(--brand-600); }
 
-    .form-back:hover { color: var(--primary); }
+    .form-mobile-logo {
+      display: none;
+      align-items: center;
+      gap: var(--s-3);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-lg);
+      color: var(--brand-700);
+      margin-bottom: var(--s-6);
+    }
 
     .form-title {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-display);
+      font-size: var(--text-3xl);
       font-weight: 800;
-      font-size: 28px;
-      color: var(--on-surface);
-      margin-bottom: 6px;
+      color: var(--ink-900);
+      letter-spacing: var(--tracking-tight);
+      margin-bottom: var(--s-2);
     }
-
     .form-subtitle {
-      font-size: 14px;
-      color: var(--on-variant);
-      margin-bottom: 28px;
+      font-size: var(--text-sm);
+      color: var(--ink-500);
+      margin-bottom: var(--s-7);
     }
-
     .form-subtitle a {
-      color: var(--primary);
-      text-decoration: none;
+      color: var(--brand-600);
       font-weight: 500;
     }
 
-    /* Alert */
-    .alert {
-      display: none;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 12px 14px;
-      border-radius: var(--r);
-      font-size: 13.5px;
-      line-height: 1.45;
-      margin-bottom: 20px;
-    }
-
-    .alert.show { display: flex; }
-
-    .alert-error {
-      background: #fef2f2;
-      color: var(--danger);
-      border: 1px solid #fecaca;
-    }
-
-    .alert-success {
-      background: #f0fdf4;
-      color: var(--success);
-      border: 1px solid #bbf7d0;
-    }
-
-    /* Fields */
-    .field { margin-bottom: 18px; }
-
-    .field label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--on-surface);
-      margin-bottom: 7px;
-    }
-
-    .input-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .input-wrap > svg:first-child {
-      position: absolute;
-      left: 14px;
-      color: var(--on-variant);
-      pointer-events: none;
-    }
-
-    .input-wrap input {
-      width: 100%;
-      background: var(--surface-low);
-      border: none;
-      border-radius: 10px;
-      padding: 12px 16px 12px 42px;
-      font-size: 14px;
-      font-family: 'Inter', sans-serif;
-      color: var(--on-surface);
-      outline: none;
-      transition: box-shadow .15s;
-    }
-
-    .input-wrap input:focus {
-      box-shadow: 0 0 0 2px var(--primary);
-    }
-
-    .input-wrap input.error {
-      box-shadow: 0 0 0 2px var(--danger);
-    }
-
-    .input-wrap input::placeholder { color: var(--outline); }
-
-    .pwd-toggle {
-      position: absolute;
-      right: 12px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px;
-      color: var(--on-variant);
-      display: flex;
-      align-items: center;
-    }
-
-    .field-error {
-      display: none;
-      font-size: 12px;
-      color: var(--danger);
-      margin-top: 5px;
-    }
-
-    .field-error.show { display: block; }
-
-    /* Field extras */
     .field-extras {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 22px;
-      font-size: 13px;
+      margin: -8px 0 var(--s-6);
+      font-size: var(--text-xs);
     }
-
-    .checkbox-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      color: var(--on-variant);
-    }
-
-    .checkbox-wrap input[type="checkbox"] { accent-color: var(--primary); }
-
+    .field-extras .checkbox-wrap { font-size: var(--text-xs); }
+    .field-extras .checkbox-wrap input { width: 16px; height: 16px; }
     .forgot-link {
-      color: var(--primary);
-      text-decoration: none;
+      color: var(--brand-600);
       font-weight: 500;
     }
 
-    /* Submit button */
     .btn-submit {
+      position: relative;
       width: 100%;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 14px;
-      font-size: 15px;
+      padding: 14px 24px;
+      font-size: var(--text-base);
+      font-weight: 700;
+      border-radius: var(--r-md);
+    }
+    .btn-submit .btn-text { transition: opacity var(--d-fast); }
+    .btn-submit.loading .btn-text { opacity: 0; }
+    .btn-submit .spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin: -9px 0 0 -9px;
+      display: none;
+    }
+    .btn-submit.loading .spinner { display: block; }
+
+    .form-divider {
+      display: flex;
+      align-items: center;
+      gap: var(--s-4);
+      margin: var(--s-6) 0;
+      font-size: var(--text-xs);
+      color: var(--ink-500);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wider);
       font-weight: 600;
-      font-family: 'Inter', sans-serif;
-      cursor: pointer;
+    }
+    .form-divider::before,
+    .form-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--ink-200);
+    }
+
+    .social-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--s-3);
+    }
+    .btn-social {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      transition: background .15s, transform .1s;
-      position: relative;
-      overflow: hidden;
+      gap: var(--s-2);
+      padding: 11px 16px;
+      background: var(--white);
+      color: var(--ink-700);
+      border: 1.5px solid var(--ink-200);
+      border-radius: var(--r-md);
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: var(--text-sm);
+      cursor: pointer;
+      transition: background var(--d-fast), border-color var(--d-fast);
     }
-
-    .btn-submit:hover:not(:disabled) { background: var(--primary-dark); }
-    .btn-submit:active:not(:disabled) { transform: scale(0.99); }
-    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
-
-    .spinner {
-      display: none;
-      width: 17px; height: 17px;
-      border: 2px solid rgba(255,255,255,0.35);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .65s linear infinite;
+    .btn-social:hover {
+      background: var(--ink-50);
+      border-color: var(--ink-300);
     }
+    .btn-social svg { flex-shrink: 0; }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .btn-submit.loading .btn-text { opacity: 0; }
-    .btn-submit.loading .spinner { display: block; position: absolute; }
-
-    /* Bottom links */
     .form-switch {
       text-align: center;
-      font-size: 13.5px;
-      color: var(--on-variant);
-      margin-top: 22px;
+      font-size: var(--text-sm);
+      color: var(--ink-500);
+      margin-top: var(--s-6);
     }
-
     .form-switch a {
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 500;
+      color: var(--brand-600);
+      font-weight: 600;
     }
 
-    .form-trust {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 22px;
-      margin-top: 26px;
-      padding-top: 22px;
-      border-top: 1px solid var(--outline);
-    }
-
-    .form-trust-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11.5px;
-      color: var(--on-variant);
-    }
-
-    /* ── Mobile ── */
-    @media (max-width: 768px) {
-      body { padding: 16px; }
-
-      .auth-card {
+    /* ─── Mobile (≤ 860px) ──────────────────────────────────────── */
+    @media (max-width: 860px) {
+      .auth-shell {
         flex-direction: column;
-        min-height: unset;
-        border-radius: var(--r);
+        padding: var(--s-5) var(--s-4);
+        gap: var(--s-5);
+        min-height: auto;
       }
+      .auth-brand {
+        padding: var(--s-7) var(--s-6);
+        min-height: auto;
+        width: 100%;
+        order: -1;   /* brand band above the form */
+      }
+      .brand-logo { margin-bottom: var(--s-5); font-size: var(--text-lg); }
+      .brand-headline { font-size: var(--text-2xl); margin-bottom: var(--s-3); }
+      .brand-sub { font-size: var(--text-sm); margin-bottom: var(--s-5); }
+      .brand-features {
+        flex-direction: row;
+        gap: var(--s-4);
+        overflow-x: auto;
+        margin-bottom: var(--s-4);
+        padding-bottom: var(--s-2);
+        scrollbar-width: none;
+      }
+      .brand-features::-webkit-scrollbar { display: none; }
+      .brand-feature {
+        flex: 0 0 200px;
+        min-width: 0;
+      }
+      .brand-feat-text strong { font-size: var(--text-xs); }
+      .brand-feat-text span { display: none; }
+      .brand-trust { padding: var(--s-3) var(--s-4); }
 
-      .auth-brand { display: none; }
+      .auth-form-wrap { width: 100%; max-width: none; }
+      .auth-form-box { padding: var(--s-7) var(--s-6); border-radius: var(--r-xl); }
+      .form-mobile-logo { display: none; } /* brand panel handles it */
+      .form-title { font-size: var(--text-2xl); }
+    }
 
-      .auth-form-wrap { padding: 36px 28px; }
+    /* ─── Very small phones (≤ 420px) ───────────────────────────── */
+    @media (max-width: 420px) {
+      .auth-brand { padding: var(--s-5) var(--s-4); }
+      .brand-features { gap: var(--s-3); }
+      .brand-feature { flex: 0 0 170px; }
+      .social-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
-<div class="auth-card">
+<a href="#main" class="skip-link">Skip to content</a>
 
-  <!-- LEFT — Brand Panel -->
+<div class="auth-shell">
+
+  <!-- LEFT — Brand Panel (becomes a horizontal band on mobile via `order: -1`) -->
   <aside class="auth-brand">
-    <a href="/" class="brand-logo">
-      <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+    <a href="/" class="brand-logo" aria-label="Shield home">
+      <svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true">
         <path d="M16 2L4 8v8c0 7.18 5.16 13.9 12 15.5C22.84 29.9 28 23.18 28 16V8L16 2z" fill="rgba(255,255,255,.18)"/>
         <path d="M16 6L7 11v5c0 5.15 3.7 9.96 9 11.35C21.3 25.96 25 21.15 25 16v-5L16 6z" fill="rgba(255,255,255,.42)"/>
         <path d="M13 15.5l2 2 4-4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -462,118 +396,125 @@
       Shield
     </a>
 
-    <h1 class="brand-headline">Your family's<br/><em>safety starts</em><br/>here.</h1>
-    <p class="brand-sub">DNS-level protection that follows your child everywhere — home WiFi, school, and 4G.</p>
+    <h1 class="brand-headline">
+      Your family's<br/>
+      <em>safety starts</em><br/>
+      here.
+    </h1>
+    <p class="brand-sub">
+      DNS-level protection that follows your child everywhere — home WiFi, school, and 4G/5G mobile data.
+    </p>
 
     <ul class="brand-features">
       <li class="brand-feature">
-        <div class="brand-feat-icon">
+        <div class="brand-feat-icon" aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>
           </svg>
         </div>
         <div class="brand-feat-text">
-          <strong>Works on Every Network</strong>
-          <span>DNS-over-HTTPS filters content on WiFi, school &amp; 4G/5G simultaneously.</span>
+          <strong>Works Everywhere</strong>
+          <span>DoH filtering across WiFi, school networks and 4G/5G.</span>
         </div>
       </li>
       <li class="brand-feature">
-        <div class="brand-feat-icon">
+        <div class="brand-feat-icon" aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
         </div>
         <div class="brand-feat-text">
-          <strong>Smart Schedules &amp; Time Budgets</strong>
-          <span>Hour-by-hour internet access with per-app daily time limits.</span>
+          <strong>Smart Schedules</strong>
+          <span>Hour-by-hour rules and per-app daily time limits.</span>
         </div>
       </li>
       <li class="brand-feature">
-        <div class="brand-feat-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 01-3.46 0"/>
-          </svg>
-        </div>
-        <div class="brand-feat-text">
-          <strong>Instant Alerts</strong>
-          <span>Know the moment your child tries to access blocked content.</span>
-        </div>
-      </li>
-      <li class="brand-feature">
-        <div class="brand-feat-icon">
+        <div class="brand-feat-icon" aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
             <circle cx="12" cy="10" r="3"/>
           </svg>
         </div>
         <div class="brand-feat-text">
-          <strong>Live GPS &amp; Geofence Alerts</strong>
-          <span>Know where your child is. Get alerts when they enter or leave safe zones.</span>
+          <strong>Live Location</strong>
+          <span>Real-time GPS with geofence alerts for safe zones.</span>
         </div>
       </li>
     </ul>
 
-    <div class="brand-badge">
-      <div class="brand-badge-icon">🛡️</div>
-      <div class="brand-badge-text">
-        <strong>100% Free for Families</strong>
-        No credit card · No subscription · No limits
+    <div class="brand-trust">
+      <div class="brand-trust-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="brand-trust-text">
+        <strong>Privacy first</strong>
+        <span>We filter DNS queries. Browsing history is never stored.</span>
       </div>
     </div>
   </aside>
 
   <!-- RIGHT — Form Panel -->
-  <main class="auth-form-wrap">
+  <main class="auth-form-wrap" id="main">
     <div class="auth-form-box">
 
       <a href="/" class="form-back">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
         </svg>
         Back to home
       </a>
 
-      <h2 class="form-title">Welcome Back</h2>
+      <h2 class="form-title">Welcome back</h2>
       <p class="form-subtitle">
         Don't have an account? <a href="register.html">Create one free</a>
       </p>
 
-      <!-- Alert box -->
-      <div class="alert alert-error" id="alertBox" role="alert">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      <!-- Alerts -->
+      <div class="alert alert-error" id="alertBox" role="alert" aria-live="assertive">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
         <span id="alertMsg"></span>
       </div>
 
       <form id="loginForm" novalidate>
-
         <div class="field">
-          <label for="email">Email address</label>
+          <label class="field-label" for="email">Email address</label>
           <div class="input-wrap">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
+            <span class="input-icon" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </span>
             <input type="email" id="email" name="email" placeholder="you@example.com"
-                   autocomplete="email" autocapitalize="none" spellcheck="false"/>
+                   autocomplete="email" autocapitalize="none" spellcheck="false"
+                   aria-describedby="emailError"/>
           </div>
           <div class="field-error" id="emailError">Please enter a valid email address.</div>
         </div>
 
         <div class="field">
-          <label for="password">Password</label>
+          <label class="field-label" for="password">Password</label>
           <div class="input-wrap">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
+            <span class="input-icon" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </span>
             <input type="password" id="password" name="password" placeholder="Your password"
-                   autocomplete="current-password"/>
-            <button type="button" class="pwd-toggle" onclick="togglePwd('password','eyeIcon1')" aria-label="Show password">
-              <svg id="eyeIcon1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   autocomplete="current-password"
+                   aria-describedby="passwordError"/>
+            <button type="button" class="input-action" onclick="togglePwd('password','eye1')" aria-label="Show password">
+              <svg id="eye1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
@@ -587,40 +528,37 @@
             <input type="checkbox" id="remember" name="remember"/>
             Remember me
           </label>
-          <a href="forgot-password.html" class="forgot-link">Forgot password?</a>
+          <a href="/forgot-password.html" class="forgot-link">Forgot password?</a>
         </div>
 
-        <button type="submit" class="btn-submit" id="submitBtn">
-          <span class="btn-text">Sign In</span>
+        <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">
+          <span class="btn-text">Sign in</span>
           <div class="spinner"></div>
         </button>
-
       </form>
+
+      <div class="form-divider">or</div>
+
+      <div class="social-grid">
+        <button class="btn-social" type="button" onclick="socialLogin('google')">
+          <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6 8-11.3 8a12 12 0 1 1 0-24c3 0 5.8 1.2 7.9 3l5.7-5.7A20 20 0 1 0 44 24c0-1.3-.1-2.3-.4-3.5z"/>
+            <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3 0 5.8 1.2 7.9 3l5.7-5.7A20 20 0 0 0 6.3 14.7z"/>
+            <path fill="#4CAF50" d="M24 44a20 20 0 0 0 13.5-5.2l-6.2-5.3A11.9 11.9 0 0 1 12.7 28l-6.5 5A20 20 0 0 0 24 44z"/>
+            <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3a12 12 0 0 1-4.1 5.5l6.2 5.3C42 34.7 44 29.8 44 24c0-1.2-.1-2.3-.4-3.5z"/>
+          </svg>
+          Google
+        </button>
+        <button class="btn-social" type="button" onclick="socialLogin('apple')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+          </svg>
+          Apple
+        </button>
+      </div>
 
       <div class="form-switch">
         New to Shield? <a href="register.html">Create a free account</a>
-      </div>
-
-      <div class="form-trust">
-        <div class="form-trust-item">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-          </svg>
-          SSL Encrypted
-        </div>
-        <div class="form-trust-item">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>
-          </svg>
-          Privacy First
-        </div>
-        <div class="form-trust-item">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-            <polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-          Always Free
-        </div>
       </div>
 
     </div>
@@ -634,8 +572,10 @@ const API = '/api/v1/auth';
 function togglePwd(inputId, iconId) {
   const inp = document.getElementById(inputId);
   const svg = document.getElementById(iconId);
+  const btn = svg.closest('button');
   const show = inp.type === 'password';
   inp.type = show ? 'text' : 'password';
+  btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
   svg.innerHTML = show
     ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
     : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
@@ -643,7 +583,7 @@ function togglePwd(inputId, iconId) {
 
 function showAlert(msg) {
   const box = document.getElementById('alertBox');
-  box.className = 'alert alert-error show';
+  box.classList.add('show');
   document.getElementById('alertMsg').textContent = msg;
 }
 function hideAlert() {
@@ -653,10 +593,17 @@ function hideAlert() {
 function validateEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
 
 function showFieldError(id, show) {
-  const el  = document.getElementById(id + 'Error');
-  const inp = document.getElementById(id);
-  if (el)  el.classList.toggle('show', show);
-  if (inp) inp.classList.toggle('error', show);
+  const el = document.getElementById(id + 'Error');
+  const wrap = document.getElementById(id).closest('.input-wrap');
+  if (el)   el.classList.toggle('show', show);
+  if (wrap) wrap.classList.toggle('error', show);
+}
+
+function socialLogin(provider) {
+  // Stub — backend OAuth not yet wired. Flashes a helpful message instead of
+  // a dead click.
+  showAlert('Social sign-in is coming soon. Please use email + password for now.');
+  setTimeout(hideAlert, 4000);
 }
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -671,7 +618,6 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   else showFieldError('email', false);
   if (!password)              { showFieldError('password', true); valid = false; }
   else showFieldError('password', false);
-
   if (!valid) return;
 
   const btn = document.getElementById('submitBtn');
@@ -693,13 +639,11 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
     const { accessToken, refreshToken, name, email: userEmail, role, userId, tenantId } = data.data || {};
     if (accessToken) {
-      // Legacy keys (for dashboard.html compat)
       localStorage.setItem('shield_access_token',  accessToken);
       if (refreshToken) localStorage.setItem('shield_refresh_token', refreshToken);
       if (name)         localStorage.setItem('shield_name',  name);
       if (userEmail)    localStorage.setItem('shield_email', userEmail);
       if (role)         localStorage.setItem('shield_role',  role);
-      // Zustand persist key (for React /app/ dashboard)
       localStorage.setItem('shield-auth', JSON.stringify({
         state: {
           user: { id: userId, name: name || '', email: userEmail || '', role: role || 'CUSTOMER', tenantId: tenantId || null },
@@ -712,7 +656,11 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         localStorage.setItem('shield_remember', '1');
       }
     }
-    window.location.href = '/app/';
+
+    // Support deep-link through login: /login.html?redirect=/app/settings
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect') || '/app/';
+    window.location.href = redirect;
 
   } catch {
     showAlert('Unable to connect. Please check your internet connection.');
@@ -723,7 +671,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 });
 
 ['email','password'].forEach(id => {
-  document.getElementById(id)?.addEventListener('input', () => showFieldError(id, false));
+  document.getElementById(id)?.addEventListener('input', () => {
+    showFieldError(id, false);
+    hideAlert();
+  });
 });
 
 if (localStorage.getItem('shield_access_token')) {
