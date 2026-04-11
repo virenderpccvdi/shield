@@ -42,6 +42,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 
+  <!-- Preload critical resources for faster LCP -->
+  <link rel="preload" href="/tokens.css?v=3" as="style"/>
+  <link rel="preload" href="/components.css?v=3" as="style"/>
+
   <!-- Design system -->
   <link rel="stylesheet" href="/tokens.css?v=3"/>
   <link rel="stylesheet" href="/components.css?v=3"/>
@@ -1532,6 +1536,13 @@
       }
     })
     .catch(() => {});
+
+  // ── Service worker registration ────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
 </script>
 </body>
 </html>
