@@ -1,4 +1,7 @@
-FROM nginx:1.27-alpine
+FROM nginx:1.29-alpine
+
+# Apply latest Alpine security patches (CVE-2026-34757 libpng, CVE-2026-40200 musl)
+RUN apk upgrade --no-cache
 
 # Copy website files
 COPY . /usr/share/nginx/html/
