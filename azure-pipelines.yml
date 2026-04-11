@@ -364,17 +364,17 @@ stages:
 # ══════════════════════════════════════════════════════════════════════════════
 - stage: DeployDev
   displayName: 'Deploy → shield-dev'
-  # Deploy runs in parallel with SecurityScan — we don't block deployment on a
-  # 30-min OWASP scan. CVEs are independently tracked via GitHub code scanning
-  # (CodeQL + Trivy workflows), and DependencyCheck artifacts are still uploaded.
+  # DeployDev only runs on `develop` branch pushes. `main` pushes skip
+  # DeployDev and go straight to DeployProd. This is a workaround for the
+  # Central India vCPU quota: the single 30-pod node can't host both
+  # prod (15) + dev (15) + kube-system (15). Re-enable `main` once the
+  # quota request is approved and a user node pool with higher max-pods is
+  # added.
   dependsOn: [Build]
   condition: |
     and(
       succeeded('Build'),
-      or(
-        eq(variables['Build.SourceBranch'], 'refs/heads/main'),
-        eq(variables['Build.SourceBranch'], 'refs/heads/develop')
-      )
+      eq(variables['Build.SourceBranch'], 'refs/heads/develop')
     )
   jobs:
   - deployment: DeployDev
