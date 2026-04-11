@@ -6,7 +6,7 @@
 
   <!-- SEO -->
   <title>Shield — Protect Your Family's Digital World</title>
-  <meta name="description" content="Shield gives parents complete control over their children's internet. DNS filtering on 4G &amp; WiFi, screen time schedules, real-time alerts, GPS tracking."/>
+  <meta name="description" content="Shield gives parents complete control over their children's internet. DNS filtering on 4G &amp; WiFi, screen time schedules, real-time alerts, GPS tracking — Android parental controls."/>
   <meta name="keywords" content="parental control app, dns filtering, screen time control, internet safety kids, family internet protection, parental controls android"/>
   <meta name="author" content="RST Global"/>
   <meta name="robots" content="index, follow"/>
@@ -17,7 +17,7 @@
   <meta property="og:url" content="https://shield.rstglobal.in/"/>
   <meta property="og:site_name" content="Shield"/>
   <meta property="og:title" content="Shield — Protect Your Family's Digital World"/>
-  <meta property="og:description" content="Complete parental control that works everywhere — home WiFi, school WiFi, and mobile 4G. DNS filtering, screen time, real-time alerts."/>
+  <meta property="og:description" content="Complete parental control that works everywhere — home WiFi, school WiFi, and mobile 4G/5G. DNS filtering, screen time, real-time alerts."/>
   <meta property="og:image" content="https://shield.rstglobal.in/og-image.svg"/>
   <meta property="og:locale" content="en_US"/>
 
@@ -29,7 +29,7 @@
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json"/>
-  <meta name="theme-color" content="#005DAC"/>
+  <meta name="theme-color" content="#1E4FC4"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -40,8 +40,11 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+  <!-- Design system -->
+  <link rel="stylesheet" href="/tokens.css?v=3"/>
+  <link rel="stylesheet" href="/components.css?v=3"/>
 
   <!-- Structured Data -->
   <script type="application/ld+json">
@@ -49,7 +52,7 @@
     "@context": "https://schema.org",
     "@type": "MobileApplication",
     "name": "Shield — Family Internet Protection",
-    "operatingSystem": "Android 8.0+",
+    "operatingSystem": "Android 7.0+",
     "applicationCategory": "UtilitiesApplication",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
     "publisher": { "@type": "Organization", "name": "RST Global", "url": "https://shield.rstglobal.in" }
@@ -57,626 +60,824 @@
   </script>
 
   <style>
-    /* ── Design Tokens ── */
-    :root {
-      --primary: #005DAC;
-      --primary-dark: #003D72;
-      --primary-light: #1976D2;
-      --surface: #F7F9FB;
-      --on-surface: #0F1F3D;
-      --on-surface-variant: #4A6481;
-      --white: #ffffff;
-      --shadow: 0 8px 32px -4px rgba(15,31,61,0.06);
-      --shadow-md: 0 12px 40px -4px rgba(15,31,61,0.12);
-      --radius-sm: 10px;
-      --radius-md: 14px;
-      --radius-lg: 20px;
-    }
+    /* ══════════════════════════════════════════════════════════════
+       Landing-page specific styles (tokens/components used below)
+       ══════════════════════════════════════════════════════════════ */
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--surface);
-      color: var(--on-surface);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    h1, h2, h3, h4 { font-family: 'Manrope', sans-serif; font-weight: 800; line-height: 1.2; }
-
-    a { color: inherit; text-decoration: none; }
-
-    img { max-width: 100%; display: block; }
-
-    /* ── Utilities ── */
-    .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
-
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 13px 28px; border-radius: var(--radius-sm);
-      font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.95rem;
-      cursor: pointer; border: none; transition: all 0.2s ease;
-      white-space: nowrap; text-decoration: none;
-    }
-    .btn-primary {
-      background: var(--primary); color: var(--white);
-    }
-    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-
-    .btn-outline {
-      background: transparent; color: var(--white);
-      border: 2px solid rgba(255,255,255,0.6);
-    }
-    .btn-outline:hover { background: rgba(255,255,255,0.12); border-color: var(--white); }
-
-    .btn-ghost {
-      background: rgba(255,255,255,0.15); color: var(--white);
-      backdrop-filter: blur(8px);
-    }
-    .btn-ghost:hover { background: rgba(255,255,255,0.25); }
-
-    .section-label {
-      display: inline-block;
-      font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.75rem;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--primary); margin-bottom: 12px;
-    }
-
-    .section-title {
-      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
-      color: var(--on-surface); margin-bottom: 16px;
-    }
-
-    .section-subtitle {
-      font-size: 1.05rem; color: var(--on-surface-variant);
-      max-width: 560px; margin: 0 auto;
-    }
-
-    .card {
-      background: var(--white); border-radius: var(--radius-md);
-      box-shadow: var(--shadow); padding: 32px;
-    }
-
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    }
-
-    /* ── Nav ── */
+    /* ─── Nav ─────────────────────────────────────────────────── */
     .nav {
-      position: sticky; top: 0; z-index: 1000;
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      background: rgba(247,249,251,0.92);
-      border-bottom: 1px solid rgba(0,93,172,0.08);
-      transition: box-shadow 0.3s;
+      position: sticky;
+      top: 0;
+      z-index: var(--z-nav);
+      background: rgba(248, 250, 252, 0.82);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(30, 79, 196, 0.06);
+      transition: box-shadow var(--d-mid);
     }
-    .nav.scrolled { box-shadow: var(--shadow); }
-
+    .nav.scrolled {
+      box-shadow: var(--shadow-md);
+    }
     .nav-inner {
-      display: flex; align-items: center; justify-content: space-between;
-      height: 68px; gap: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+      gap: var(--s-8);
     }
-
     .nav-logo {
-      display: flex; align-items: center; gap: 10px;
-      font-family: 'Manrope', sans-serif; font-weight: 800;
-      font-size: 1.25rem; color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-xl);
+      color: var(--brand-700);
       flex-shrink: 0;
     }
-
     .nav-links {
-      display: flex; align-items: center; gap: 4px; list-style: none;
+      display: flex;
+      align-items: center;
+      gap: var(--s-1);
+      list-style: none;
     }
     .nav-links a {
-      padding: 8px 14px; border-radius: 8px;
-      font-size: 0.9rem; font-weight: 500; color: var(--on-surface-variant);
-      transition: all 0.15s;
+      padding: var(--s-2) var(--s-4);
+      border-radius: var(--r-sm);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--ink-600);
+      transition: background var(--d-fast), color var(--d-fast);
     }
-    .nav-links a:hover { color: var(--primary); background: rgba(0,93,172,0.06); }
-
-    .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-
-    .nav-login {
-      padding: 9px 20px; border-radius: var(--radius-sm);
-      font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.88rem;
-      color: var(--primary); background: rgba(0,93,172,0.08);
-      transition: all 0.15s;
+    .nav-links a:hover {
+      color: var(--brand-700);
+      background: var(--brand-50);
     }
-    .nav-login:hover { background: rgba(0,93,172,0.14); }
-
-    .nav-cta {
-      padding: 9px 20px; border-radius: var(--radius-sm);
-      font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.88rem;
-      background: var(--primary); color: var(--white);
-      transition: all 0.2s;
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      flex-shrink: 0;
     }
-    .nav-cta:hover { background: var(--primary-dark); }
-
+    .nav-signin {
+      padding: 9px var(--s-5);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--text-sm);
+      color: var(--brand-700);
+    }
+    .nav-signin:hover { color: var(--brand-800); }
     .nav-hamburger {
-      display: none; flex-direction: column; gap: 5px;
-      cursor: pointer; padding: 8px; border: none; background: none;
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      padding: var(--s-2);
+      border: none;
+      background: none;
+      cursor: pointer;
     }
     .nav-hamburger span {
-      display: block; width: 22px; height: 2px;
-      background: var(--on-surface); border-radius: 2px;
-      transition: all 0.3s;
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--ink-800);
+      border-radius: 2px;
+      transition: all var(--d-mid);
     }
-
     .nav-mobile {
-      display: none; flex-direction: column;
-      background: var(--white); border-top: 1px solid rgba(0,93,172,0.08);
-      padding: 16px 24px 24px;
+      display: none;
+      flex-direction: column;
+      background: var(--white);
+      border-top: 1px solid var(--ink-200);
+      padding: var(--s-4) var(--s-6) var(--s-6);
     }
     .nav-mobile.open { display: flex; }
     .nav-mobile a {
-      padding: 12px 0; font-size: 0.95rem; font-weight: 500;
-      color: var(--on-surface-variant); border-bottom: 1px solid var(--surface);
+      padding: var(--s-3) 0;
+      font-size: var(--text-base);
+      font-weight: 500;
+      color: var(--ink-700);
+      border-bottom: 1px solid var(--ink-100);
     }
-    .nav-mobile-actions { display: flex; gap: 10px; margin-top: 16px; }
-    .nav-mobile-actions .nav-login,
-    .nav-mobile-actions .nav-cta { flex: 1; text-align: center; }
+    .nav-mobile a:last-of-type { border-bottom: none; }
+    .nav-mobile-actions {
+      display: flex;
+      gap: var(--s-3);
+      margin-top: var(--s-4);
+    }
+    .nav-mobile-actions .btn { flex: 1; }
 
-    /* ── Hero ── */
+    /* ─── Hero ────────────────────────────────────────────────── */
     .hero {
-      background: linear-gradient(135deg, #003D72 0%, #005DAC 60%, #1976D2 100%);
-      color: var(--white); overflow: hidden; position: relative;
-      padding: 80px 0 0;
+      position: relative;
+      padding: var(--s-20) 0 var(--s-16);
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 30%, rgba(107,155,245,0.35) 0%, transparent 60%),
+        linear-gradient(155deg, var(--brand-900) 0%, var(--brand-800) 45%, var(--brand-700) 100%);
+      color: var(--white);
+      overflow: hidden;
     }
-
     .hero::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse 80% 60% at 70% 50%, rgba(25,118,210,0.3) 0%, transparent 70%);
+      content: '';
+      position: absolute;
+      top: -50%; left: -10%;
+      width: 60%; height: 200%;
+      background: radial-gradient(ellipse, rgba(107,155,245,0.12) 0%, transparent 55%);
+      pointer-events: none;
+      animation: hero-glow 14s var(--ease-in-out) infinite alternate;
     }
-
+    @keyframes hero-glow {
+      0%   { transform: translate(-5%, 0) scale(1); }
+      100% { transform: translate(10%, 8%) scale(1.15); }
+    }
     .hero-inner {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 48px; align-items: center;
-      position: relative; z-index: 1;
-    }
-
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 100px; padding: 6px 14px;
-      font-size: 0.8rem; font-weight: 600; margin-bottom: 24px;
-      backdrop-filter: blur(8px);
-    }
-    .hero-badge-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: #4ADE80; flex-shrink: 0;
-      animation: pulse-dot 2s infinite;
-    }
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(1.3); }
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: var(--s-16);
+      align-items: center;
+      position: relative;
+      z-index: 1;
     }
 
     .hero h1 {
-      font-size: clamp(2rem, 4.5vw, 3.25rem);
-      font-weight: 800; line-height: 1.1;
-      margin-bottom: 20px;
+      font-size: clamp(var(--text-4xl), 4.8vw, 4rem);
+      font-weight: 800;
+      line-height: var(--leading-tight);
+      letter-spacing: var(--tracking-tight);
+      margin-bottom: var(--s-5);
+      color: var(--white);
     }
-    .hero h1 span { color: #7DD3FC; }
-
+    .hero h1 span {
+      background: linear-gradient(120deg, var(--brand-300) 0%, #a3c4fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
     .hero-sub {
-      font-size: 1.1rem; line-height: 1.65;
-      color: rgba(255,255,255,0.8); margin-bottom: 36px;
-      max-width: 480px;
+      font-size: var(--text-lg);
+      line-height: var(--leading-normal);
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: var(--s-8);
+      max-width: 520px;
     }
-
-    .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 40px; }
-
-    .hero-trust {
-      display: flex; align-items: center; gap: 16px;
-      font-size: 0.82rem; color: rgba(255,255,255,0.65);
-    }
-    .hero-trust-item { display: flex; align-items: center; gap: 6px; }
-    .hero-trust-item .material-symbols-outlined { font-size: 16px; color: #4ADE80; }
-
-    .hero-phone {
-      display: flex; justify-content: center; align-items: flex-end;
-      padding-top: 20px;
-    }
-
-    .phone-mockup {
-      width: 240px; height: 460px; position: relative;
-      background: rgba(255,255,255,0.06); border-radius: 36px;
-      border: 2px solid rgba(255,255,255,0.18);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 40px 80px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
-      overflow: hidden;
-    }
-
-    .phone-notch {
-      position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
-      width: 80px; height: 22px; background: rgba(15,31,61,0.6);
-      border-radius: 100px;
-    }
-
-    .phone-screen {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      padding: 56px 14px 14px;
-      gap: 10px;
-    }
-
-    .phone-stat-row {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-    }
-
-    .phone-card {
-      background: rgba(255,255,255,0.12); border-radius: 12px;
-      padding: 10px 12px; border: 1px solid rgba(255,255,255,0.12);
-    }
-    .phone-card-label { font-size: 0.6rem; color: rgba(255,255,255,0.6); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-    .phone-card-val { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 1.2rem; color: var(--white); margin-top: 2px; }
-    .phone-card-sub { font-size: 0.6rem; color: rgba(255,255,255,0.5); }
-
-    .phone-alert {
-      background: rgba(74,222,128,0.15); border-radius: 10px;
-      padding: 10px 12px; border: 1px solid rgba(74,222,128,0.25);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .phone-alert-icon {
-      width: 28px; height: 28px; border-radius: 8px;
-      background: rgba(74,222,128,0.25);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0;
-    }
-    .phone-alert-text { font-size: 0.65rem; color: rgba(255,255,255,0.85); font-weight: 500; line-height: 1.4; }
-    .phone-alert-title { font-weight: 700; color: var(--white); }
-
-    .phone-bar {
-      background: rgba(255,255,255,0.08); border-radius: 8px;
-      padding: 8px 12px;
-    }
-    .phone-bar-label { font-size: 0.6rem; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
-    .phone-bar-track { height: 5px; background: rgba(255,255,255,0.12); border-radius: 99px; overflow: hidden; }
-    .phone-bar-fill { height: 100%; background: linear-gradient(90deg, #005DAC, #7DD3FC); border-radius: 99px; }
-
-    /* ── Features ── */
-    .features { padding: 100px 0; }
-    .features-header { text-align: center; margin-bottom: 60px; }
-
-    .features-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
-    }
-
-    .feature-card {
-      background: var(--white); border-radius: var(--radius-md);
-      box-shadow: var(--shadow); padding: 32px;
-      transition: all 0.25s ease;
-    }
-    .feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
-
-    .feature-icon {
-      width: 52px; height: 52px; border-radius: 14px;
-      background: linear-gradient(135deg, rgba(0,93,172,0.1), rgba(0,93,172,0.05));
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 20px;
-    }
-    .feature-icon .material-symbols-outlined { font-size: 26px; color: var(--primary); }
-
-    .feature-card h3 {
-      font-size: 1.05rem; font-weight: 700; margin-bottom: 10px;
-    }
-    .feature-card p { font-size: 0.9rem; color: var(--on-surface-variant); line-height: 1.6; }
-
-    /* ── How It Works ── */
-    .how { background: var(--white); padding: 100px 0; }
-    .how-header { text-align: center; margin-bottom: 64px; }
-
-    .how-steps {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 40px; position: relative;
-    }
-
-    .how-steps::before {
-      content: '';
-      position: absolute; top: 28px; left: calc(16.66% + 16px); right: calc(16.66% + 16px);
-      height: 2px; background: linear-gradient(90deg, var(--primary), var(--primary-light));
-      opacity: 0.2;
-    }
-
-    .how-step { text-align: center; position: relative; }
-
-    .how-step-num {
-      width: 56px; height: 56px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
-      color: var(--white); font-family: 'Manrope', sans-serif;
-      font-weight: 800; font-size: 1.25rem;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 24px; position: relative; z-index: 1;
-      box-shadow: 0 8px 24px rgba(0,93,172,0.3);
-    }
-
-    .how-step h3 { font-size: 1.1rem; margin-bottom: 10px; }
-    .how-step p { font-size: 0.9rem; color: var(--on-surface-variant); max-width: 240px; margin: 0 auto; }
-
-    /* ── Stats ── */
-    .stats {
-      background: linear-gradient(135deg, #003D72 0%, #005DAC 60%, #1976D2 100%);
-      padding: 64px 0;
-    }
-
-    .stats-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
-    }
-
-    .stat-item {
-      text-align: center; color: var(--white); padding: 12px 24px;
-      border-right: 1px solid rgba(255,255,255,0.12);
-    }
-    .stat-item:last-child { border-right: none; }
-
-    .stat-number {
-      font-family: 'Manrope', sans-serif; font-weight: 800;
-      font-size: clamp(2rem, 4vw, 3rem); line-height: 1;
-      margin-bottom: 8px;
-    }
-    .stat-label { font-size: 0.95rem; color: rgba(255,255,255,0.7); font-weight: 500; }
-
-    /* ── Pricing ── */
-    .pricing { padding: 100px 0; }
-    .pricing-header { text-align: center; margin-bottom: 60px; }
-
-    .pricing-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 24px; align-items: start;
-    }
-
-    .pricing-card {
-      background: var(--white); border-radius: var(--radius-md);
-      box-shadow: var(--shadow); padding: 36px 32px;
-      position: relative; transition: all 0.25s;
-    }
-
-    .pricing-card.featured {
-      background: linear-gradient(160deg, #003D72 0%, #005DAC 100%);
-      color: var(--white); transform: translateY(-12px);
-      box-shadow: 0 20px 60px rgba(0,93,172,0.3);
-    }
-
-    .pricing-badge {
-      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
-      background: linear-gradient(90deg, #F59E0B, #EF4444);
-      color: var(--white); font-size: 0.72rem; font-weight: 700;
-      padding: 5px 16px; border-radius: 100px; white-space: nowrap;
-      font-family: 'Manrope', sans-serif; letter-spacing: 0.05em;
-    }
-
-    .pricing-name {
-      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--primary); margin-bottom: 12px;
-    }
-    .pricing-card.featured .pricing-name { color: rgba(255,255,255,0.7); }
-
-    .pricing-price {
-      font-family: 'Manrope', sans-serif; font-weight: 800;
-      font-size: 2.5rem; line-height: 1; margin-bottom: 4px;
-    }
-    .pricing-period { font-size: 0.85rem; color: var(--on-surface-variant); margin-bottom: 24px; }
-    .pricing-card.featured .pricing-period { color: rgba(255,255,255,0.6); }
-
-    .pricing-divider {
-      height: 1px; background: var(--surface); margin: 0 0 24px;
-    }
-    .pricing-card.featured .pricing-divider { background: rgba(255,255,255,0.12); }
-
-    .pricing-features { list-style: none; margin-bottom: 32px; }
-    .pricing-features li {
-      display: flex; align-items: flex-start; gap: 10px;
-      font-size: 0.88rem; margin-bottom: 12px; color: var(--on-surface-variant);
-    }
-    .pricing-card.featured .pricing-features li { color: rgba(255,255,255,0.8); }
-    .pricing-features li .material-symbols-outlined {
-      font-size: 18px; color: var(--primary); flex-shrink: 0; margin-top: 1px;
-    }
-    .pricing-card.featured .pricing-features li .material-symbols-outlined { color: #7DD3FC; }
-
-    .btn-pricing {
-      display: block; text-align: center; width: 100%;
-      padding: 13px 24px; border-radius: var(--radius-sm);
-      font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.95rem;
-      transition: all 0.2s; cursor: pointer; border: none;
-    }
-    .btn-pricing-default {
-      background: rgba(0,93,172,0.08); color: var(--primary);
-    }
-    .btn-pricing-default:hover { background: rgba(0,93,172,0.14); }
-    .btn-pricing-featured {
-      background: var(--white); color: var(--primary);
-    }
-    .btn-pricing-featured:hover { background: var(--surface); transform: translateY(-1px); }
-
-    /* ── Testimonials ── */
-    .testimonials { background: var(--surface); padding: 100px 0; }
-    .testimonials-header { text-align: center; margin-bottom: 60px; }
-
-    .testi-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
-    }
-
-    .testi-card {
-      background: var(--white); border-radius: var(--radius-md);
-      box-shadow: var(--shadow); padding: 32px;
-      transition: all 0.25s;
-    }
-    .testi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
-
-    .testi-stars {
-      display: flex; gap: 4px; margin-bottom: 16px;
-      color: #F59E0B; font-size: 18px;
-    }
-
-    .testi-quote {
-      font-size: 0.93rem; line-height: 1.7;
-      color: var(--on-surface-variant); margin-bottom: 24px;
-      font-style: italic;
-    }
-
-    .testi-author {
-      display: flex; align-items: center; gap: 12px;
-    }
-    .testi-avatar {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Manrope', sans-serif; font-weight: 800;
-      font-size: 1rem; color: var(--white); flex-shrink: 0;
-    }
-    .testi-name { font-weight: 700; font-size: 0.9rem; }
-    .testi-role { font-size: 0.8rem; color: var(--on-surface-variant); }
-
-    /* ── APK Download Section ── */
-    .download-section {
-      background: linear-gradient(135deg, #005DAC 0%, #0277BD 100%);
-      padding: 80px 0;
-      color: #fff;
-    }
-    .download-card {
-      max-width: 900px;
-      margin: 0 auto;
+    .hero-ctas {
       display: flex;
-      gap: 60px;
+      gap: var(--s-3);
+      flex-wrap: wrap;
+      margin-bottom: var(--s-8);
+    }
+    .hero-trust {
+      display: flex;
       align-items: center;
+      gap: var(--s-5);
+      font-size: var(--text-xs);
+      color: rgba(255, 255, 255, 0.65);
       flex-wrap: wrap;
     }
-    .download-left { flex: 1; min-width: 300px; }
-    .dl-badge {
-      display: inline-block;
-      background: rgba(255,255,255,0.2);
-      border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 20px;
-      padding: 4px 14px;
-      font-size: 13px;
-      margin-bottom: 16px;
-      font-weight: 600;
+    .hero-trust-item {
+      display: flex;
+      align-items: center;
+      gap: var(--s-2);
     }
-    .download-left h2 {
-      font-family: Manrope, sans-serif;
+    .hero-trust-item svg { color: var(--success-600); flex-shrink: 0; }
+
+    /* ─── Animated phone mockup ───────────────────────────────── */
+    .hero-phone-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding-top: var(--s-2);
+    }
+    .phone {
+      width: 280px;
+      height: 540px;
+      position: relative;
+      background: linear-gradient(165deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border-radius: 42px;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(10px);
+      box-shadow:
+        0 48px 96px rgba(6, 20, 48, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      overflow: hidden;
+      animation: phone-float 8s var(--ease-in-out) infinite;
+    }
+    @keyframes phone-float {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50%      { transform: translateY(-12px) rotate(-1deg); }
+    }
+    .phone-notch {
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 24px;
+      background: rgba(6, 20, 48, 0.7);
+      border-radius: var(--r-full);
+      z-index: 2;
+    }
+    .phone-screen {
+      position: absolute;
+      inset: 0;
+      padding: 60px var(--s-4) var(--s-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+    }
+    .phone-card {
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--r-md);
+      padding: var(--s-3) var(--s-4);
+    }
+    .phone-card-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.55);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wide);
+    }
+    .phone-card-val {
+      font-family: var(--font-display);
       font-weight: 800;
-      font-size: clamp(24px, 3vw, 36px);
-      margin-bottom: 12px;
+      font-size: 20px;
+      color: var(--white);
+      margin-top: 2px;
+    }
+    .phone-card-sub {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 1px;
+    }
+    .phone-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--s-2);
+    }
+    .phone-alert {
+      background: rgba(22, 163, 74, 0.14);
+      border: 1px solid rgba(22, 163, 74, 0.3);
+      border-radius: var(--r-md);
+      padding: var(--s-3) var(--s-4);
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      position: relative;
+      overflow: hidden;
+    }
+    .phone-alert::before {
+      content: '';
+      position: absolute;
+      left: -100%;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+      animation: phone-alert-shine 3.6s var(--ease-in-out) infinite;
+    }
+    @keyframes phone-alert-shine {
+      0%, 20%  { left: -100%; }
+      60%      { left: 100%; }
+      100%     { left: 100%; }
+    }
+    .phone-alert-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--r-sm);
+      background: var(--success-600);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      flex-shrink: 0;
+    }
+    .phone-alert-text { font-size: 11px; color: rgba(255, 255, 255, 0.85); line-height: 1.35; }
+    .phone-alert-title { font-weight: 700; color: var(--white); display: block; }
+    .phone-bar {
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: var(--r-md);
+      padding: var(--s-3) var(--s-4);
+    }
+    .phone-bar-label { font-size: 10px; color: rgba(255, 255, 255, 0.55); margin-bottom: 6px; }
+    .phone-bar-track {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: var(--r-full);
+      overflow: hidden;
+    }
+    .phone-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--brand-500), var(--brand-300));
+      border-radius: var(--r-full);
+      width: 0;
+      animation: phone-bar-fill 3s var(--ease-out-quart) forwards;
+      animation-delay: 1.2s;
+    }
+    @keyframes phone-bar-fill {
+      to { width: 62%; }
+    }
+
+    /* ─── Features ────────────────────────────────────────────── */
+    .features { padding: var(--s-24) 0; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s-6);
+    }
+    .feature-card {
+      background: var(--white);
+      border: 1px solid var(--ink-200);
+      border-radius: var(--r-xl);
+      padding: var(--s-8);
+      transition: transform var(--d-mid) var(--ease-out-quart), box-shadow var(--d-mid), border-color var(--d-mid);
+    }
+    .feature-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--brand-200);
+    }
+    .feature-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--r-lg);
+      background: linear-gradient(135deg, var(--brand-100), var(--brand-50));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--s-5);
+      color: var(--brand-700);
+      transition: transform var(--d-mid) var(--ease-spring);
+    }
+    .feature-card:hover .feature-icon { transform: scale(1.08) rotate(-4deg); }
+    .feature-card h3 {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      margin-bottom: var(--s-2);
+    }
+    .feature-card p {
+      font-size: var(--text-sm);
+      color: var(--ink-600);
+      line-height: var(--leading-normal);
+    }
+
+    /* ─── How It Works ─────────────────────────────────────────── */
+    .how {
+      background: var(--white);
+      padding: var(--s-24) 0;
+      border-top: 1px solid var(--ink-100);
+      border-bottom: 1px solid var(--ink-100);
+    }
+    .how-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s-10);
+      position: relative;
+    }
+    .how-steps::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: calc(16.66% + 28px);
+      right: calc(16.66% + 28px);
+      height: 2px;
+      background: linear-gradient(90deg, var(--brand-200), var(--brand-400), var(--brand-200));
+      opacity: 0.4;
+    }
+    .how-step {
+      text-align: center;
+      position: relative;
+    }
+    .how-step-num {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
+      color: var(--white);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--s-6);
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 12px 32px -8px rgba(30, 79, 196, 0.5);
+    }
+    .how-step h3 {
+      font-size: var(--text-lg);
+      margin-bottom: var(--s-2);
+    }
+    .how-step p {
+      font-size: var(--text-sm);
+      color: var(--ink-600);
+      max-width: 260px;
+      margin: 0 auto;
+      line-height: var(--leading-normal);
+    }
+
+    /* ─── Stats ────────────────────────────────────────────────── */
+    .stats {
+      padding: var(--s-16) 0;
+      background:
+        radial-gradient(ellipse 60% 80% at 50% 50%, rgba(107,155,245,0.18) 0%, transparent 70%),
+        linear-gradient(135deg, var(--brand-900), var(--brand-700));
+      color: var(--white);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .stat-item {
+      text-align: center;
+      padding: var(--s-4) var(--s-6);
+      border-right: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-number {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(var(--text-4xl), 4vw, var(--text-5xl));
+      line-height: 1;
+      margin-bottom: var(--s-2);
+    }
+    .stat-label {
+      font-size: var(--text-sm);
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 500;
+    }
+
+    /* ─── Pricing ─────────────────────────────────────────────── */
+    .pricing { padding: var(--s-24) 0; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s-6);
+      align-items: start;
+    }
+    .pricing-card {
+      background: var(--white);
+      border: 1px solid var(--ink-200);
+      border-radius: var(--r-xl);
+      padding: var(--s-10) var(--s-8);
+      position: relative;
+      transition: transform var(--d-mid), box-shadow var(--d-mid), border-color var(--d-mid);
+    }
+    .pricing-card:hover {
+      border-color: var(--brand-300);
+      box-shadow: var(--shadow-md);
+    }
+    .pricing-card.featured {
+      background: linear-gradient(165deg, var(--brand-800), var(--brand-700));
+      color: var(--white);
+      transform: translateY(-14px);
+      box-shadow: var(--shadow-xl);
+      border-color: transparent;
+    }
+    .pricing-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(95deg, var(--warning-600), #f97316);
+      color: var(--white);
+      font-family: var(--font-display);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      padding: 6px var(--s-4);
+      border-radius: var(--r-full);
+      letter-spacing: var(--tracking-wide);
+      white-space: nowrap;
+      box-shadow: var(--shadow-md);
+    }
+    .pricing-name {
+      font-family: var(--font-display);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: var(--tracking-widest);
+      text-transform: uppercase;
+      color: var(--brand-600);
+      margin-bottom: var(--s-3);
+    }
+    .pricing-card.featured .pricing-name { color: var(--brand-300); }
+    .pricing-price {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-5xl);
+      line-height: 1;
+      margin-bottom: var(--s-1);
+      letter-spacing: var(--tracking-tight);
+    }
+    .pricing-price-small {
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--ink-500);
+    }
+    .pricing-card.featured .pricing-price-small { color: rgba(255,255,255,0.6); }
+    .pricing-period {
+      font-size: var(--text-sm);
+      color: var(--ink-500);
+      margin-bottom: var(--s-6);
+    }
+    .pricing-card.featured .pricing-period { color: rgba(255,255,255,0.65); }
+    .pricing-divider {
+      height: 1px;
+      background: var(--ink-200);
+      margin-bottom: var(--s-6);
+    }
+    .pricing-card.featured .pricing-divider { background: rgba(255,255,255,0.14); }
+    .pricing-features {
+      list-style: none;
+      margin-bottom: var(--s-8);
+    }
+    .pricing-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--s-3);
+      font-size: var(--text-sm);
+      line-height: var(--leading-normal);
+      color: var(--ink-700);
+      margin-bottom: var(--s-3);
+    }
+    .pricing-card.featured .pricing-features li { color: rgba(255,255,255,0.85); }
+    .pricing-features svg { flex-shrink: 0; color: var(--brand-600); margin-top: 2px; }
+    .pricing-card.featured .pricing-features svg { color: var(--brand-300); }
+
+    /* ─── Testimonials ────────────────────────────────────────── */
+    .testimonials {
+      background: var(--ink-50);
+      padding: var(--s-24) 0;
+    }
+    .testi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s-6);
+    }
+    .testi-card {
+      background: var(--white);
+      border: 1px solid var(--ink-200);
+      border-radius: var(--r-xl);
+      padding: var(--s-8);
+      transition: transform var(--d-mid), box-shadow var(--d-mid);
+    }
+    .testi-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+    }
+    .testi-stars {
+      display: flex;
+      gap: 2px;
+      margin-bottom: var(--s-4);
+      color: var(--warning-600);
+    }
+    .testi-quote {
+      font-size: var(--text-base);
+      line-height: var(--leading-relaxed);
+      color: var(--ink-700);
+      margin-bottom: var(--s-6);
+      font-style: italic;
+    }
+    .testi-author {
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+    }
+    .testi-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-sm);
+      flex-shrink: 0;
+    }
+    .testi-name { font-weight: 700; font-size: var(--text-sm); color: var(--ink-900); }
+    .testi-role { font-size: var(--text-xs); color: var(--ink-500); }
+
+    /* ─── Download ────────────────────────────────────────────── */
+    .download-section {
+      padding: var(--s-20) 0;
+      background: linear-gradient(135deg, var(--brand-700) 0%, var(--brand-500) 100%);
+      color: var(--white);
+    }
+    .download-card {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: var(--s-12);
+      align-items: center;
+    }
+    .download-card h2 {
+      font-size: clamp(var(--text-3xl), 3.5vw, var(--text-4xl));
+      color: var(--white);
+      margin-bottom: var(--s-4);
+    }
+    .download-card p {
+      font-size: var(--text-base);
+      color: rgba(255,255,255,0.8);
+      max-width: 540px;
+      margin-bottom: var(--s-6);
+      line-height: var(--leading-normal);
     }
     .dl-features {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px 20px;
-      margin: 20px 0;
-      font-size: 14px;
-      opacity: 0.9;
+      gap: var(--s-2) var(--s-5);
+      margin-bottom: var(--s-6);
+      font-size: var(--text-xs);
+      color: rgba(255,255,255,0.8);
     }
+    .dl-features span { display: flex; align-items: center; gap: var(--s-1); }
     .btn-download {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      background: #fff;
-      color: #005DAC;
+      gap: var(--s-3);
+      background: var(--white);
+      color: var(--brand-700);
+      padding: var(--s-4) var(--s-7);
+      border-radius: var(--r-lg);
+      font-family: var(--font-display);
       font-weight: 700;
-      font-size: 16px;
-      padding: 14px 28px;
-      border-radius: 12px;
-      text-decoration: none;
-      margin-bottom: 14px;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      font-size: var(--text-base);
+      box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.3);
+      transition: transform var(--d-mid), box-shadow var(--d-mid);
     }
-    .btn-download:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.2); }
-    .dl-meta { font-size: 12px; font-weight: 400; opacity: 0.6; margin-left: 4px; }
-    .dl-note { font-size: 12px; opacity: 0.65; margin-top: 0; }
-    .download-right { flex: 0 0 200px; }
-    .qr-box {
-      width: 180px;
-      height: 180px;
-      background: rgba(255,255,255,0.12);
-      border: 2px solid rgba(255,255,255,0.25);
-      border-radius: 16px;
+    .btn-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.4);
+      color: var(--brand-800);
+    }
+    .dl-meta {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: rgba(30, 79, 196, 0.6);
+      margin-left: var(--s-1);
+    }
+    .dl-note {
+      font-size: var(--text-xs);
+      color: rgba(255,255,255,0.6);
+      margin-top: var(--s-4);
+    }
+    .download-qr {
       display: flex;
-      align-items: center;
       justify-content: center;
     }
-    .qr-inner { text-align: center; padding: 20px; }
-    .qr-icon { font-size: 48px; margin-bottom: 8px; }
+    .qr-box {
+      width: 200px;
+      height: 200px;
+      background: rgba(255,255,255,0.1);
+      border: 1.5px solid rgba(255,255,255,0.22);
+      border-radius: var(--r-xl);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--s-2);
+      backdrop-filter: blur(8px);
+    }
+    .qr-box svg { color: rgba(255,255,255,0.7); }
+    .qr-box p {
+      margin: 0;
+      font-size: var(--text-xs);
+      color: rgba(255,255,255,0.7);
+      text-align: center;
+    }
 
-    /* ── CTA Banner ── */
+    /* ─── CTA banner ──────────────────────────────────────────── */
     .cta-banner {
-      background: linear-gradient(135deg, #003D72 0%, #005DAC 60%, #1976D2 100%);
-      padding: 80px 0; text-align: center; color: var(--white);
+      padding: var(--s-20) 0;
+      text-align: center;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 50%, rgba(107,155,245,0.22) 0%, transparent 60%),
+        linear-gradient(135deg, var(--brand-900) 0%, var(--brand-800) 50%, var(--brand-700) 100%);
+      color: var(--white);
     }
     .cta-banner h2 {
-      font-size: clamp(1.75rem, 3.5vw, 2.5rem); margin-bottom: 16px;
+      font-size: clamp(var(--text-3xl), 4vw, var(--text-5xl));
+      color: var(--white);
+      margin-bottom: var(--s-4);
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .cta-banner p {
-      font-size: 1.05rem; color: rgba(255,255,255,0.75);
-      margin-bottom: 36px; max-width: 500px; margin-left: auto; margin-right: auto;
+      font-size: var(--text-lg);
+      color: rgba(255, 255, 255, 0.75);
+      max-width: 520px;
+      margin: 0 auto var(--s-8);
+      line-height: var(--leading-normal);
     }
-    .cta-banner-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .cta-banner-btns {
+      display: flex;
+      gap: var(--s-3);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
 
-    /* ── Footer ── */
+    /* ─── Footer ──────────────────────────────────────────────── */
     .footer {
-      background: var(--on-surface); color: rgba(255,255,255,0.65);
-      padding: 60px 0 32px;
+      background: var(--ink-950);
+      color: rgba(255,255,255,0.65);
+      padding: var(--s-16) 0 var(--s-8);
     }
-
     .footer-grid {
-      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 48px; margin-bottom: 48px;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: var(--s-12);
+      margin-bottom: var(--s-12);
     }
-
     .footer-brand {
-      display: flex; align-items: center; gap: 10px;
-      font-family: 'Manrope', sans-serif; font-weight: 800;
-      font-size: 1.2rem; color: var(--white); margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-lg);
+      color: var(--white);
+      margin-bottom: var(--s-4);
     }
-
-    .footer-desc { font-size: 0.88rem; line-height: 1.7; max-width: 280px; }
-
+    .footer-desc {
+      font-size: var(--text-sm);
+      line-height: var(--leading-relaxed);
+      max-width: 320px;
+    }
     .footer-col h4 {
-      font-family: 'Manrope', sans-serif; font-weight: 700;
-      font-size: 0.85rem; color: var(--white); text-transform: uppercase;
-      letter-spacing: 0.08em; margin-bottom: 16px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--text-xs);
+      color: var(--white);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wider);
+      margin-bottom: var(--s-4);
     }
     .footer-col ul { list-style: none; }
-    .footer-col li { margin-bottom: 10px; }
-    .footer-col a { font-size: 0.88rem; transition: color 0.15s; }
+    .footer-col li { margin-bottom: var(--s-3); }
+    .footer-col a {
+      font-size: var(--text-sm);
+      color: rgba(255,255,255,0.65);
+      transition: color var(--d-fast);
+    }
     .footer-col a:hover { color: var(--white); }
-
     .footer-bottom {
       border-top: 1px solid rgba(255,255,255,0.08);
-      padding-top: 28px;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 16px;
+      padding-top: var(--s-6);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--s-4);
     }
-    .footer-bottom p { font-size: 0.82rem; }
+    .footer-bottom p, .footer-bottom a {
+      font-size: var(--text-xs);
+      color: rgba(255,255,255,0.5);
+    }
+    .footer-bottom a:hover { color: rgba(255,255,255,0.85); }
+    .footer-legal-links { display: flex; gap: var(--s-5); }
 
-    /* ── Shield Logo SVG ── */
-    .shield-logo-svg { width: 32px; height: 32px; flex-shrink: 0; }
-
-    /* ── Responsive ── */
+    /* ─── Responsive ──────────────────────────────────────────── */
     @media (max-width: 1024px) {
       .features-grid { grid-template-columns: repeat(2, 1fr); }
-      .footer-grid { grid-template-columns: 1fr 1fr; gap: 36px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: var(--s-8); }
+      .hero-inner { gap: var(--s-10); }
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 860px) {
       .nav-links, .nav-actions { display: none; }
       .nav-hamburger { display: flex; }
+      .nav-inner { height: 60px; }
 
-      .hero-inner { grid-template-columns: 1fr; text-align: center; padding-bottom: 0; }
-      .hero-phone { display: none; }
+      .hero { padding: var(--s-14) 0 var(--s-12); }
+      .hero-inner {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: var(--s-10);
+      }
       .hero-sub { margin-left: auto; margin-right: auto; }
       .hero-ctas { justify-content: center; }
-      .hero-trust { justify-content: center; flex-wrap: wrap; }
+      .hero-trust { justify-content: center; }
+      .hero-phone-wrap { order: 2; }
+      .phone {
+        width: 240px;
+        height: 440px;
+        transform: scale(0.92);
+      }
 
-      .how-steps { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; }
+
+      .how-steps { grid-template-columns: 1fr; gap: var(--s-8); }
       .how-steps::before { display: none; }
 
-      .stats-grid { grid-template-columns: 1fr; gap: 0; }
-      .stat-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.12); }
+      .stats-grid { grid-template-columns: 1fr; }
+      .stat-item {
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+        padding: var(--s-5) var(--s-6);
+      }
       .stat-item:last-child { border-bottom: none; }
 
       .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
@@ -684,30 +885,26 @@
 
       .testi-grid { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
 
-      .features-grid { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
+      .download-card { grid-template-columns: 1fr; gap: var(--s-8); text-align: center; }
+      .download-qr { order: -1; }
 
-      .footer-grid { grid-template-columns: 1fr; gap: 28px; }
+      .footer-grid { grid-template-columns: 1fr; gap: var(--s-8); }
       .footer-bottom { flex-direction: column; text-align: center; }
-    }
-
-    @media (max-width: 480px) {
-      .container { padding: 0 16px; }
-      .hero { padding: 60px 0 0; }
-      .features, .how, .pricing, .testimonials { padding: 72px 0; }
-      .btn { padding: 12px 22px; font-size: 0.9rem; }
     }
   </style>
 </head>
 <body>
 
-<!-- ══════════════ NAV ══════════════ -->
+<a href="#main" class="skip-link">Skip to content</a>
+
+<!-- ══════════════════ NAV ══════════════════ -->
 <nav class="nav" id="mainNav">
   <div class="container">
     <div class="nav-inner">
-      <a href="/" class="nav-logo">
-        <svg class="shield-logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#005DAC"/>
-          <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#1976D2"/>
+      <a href="/" class="nav-logo" aria-label="Shield home">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#1E4FC4"/>
+          <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#3B6FE0"/>
           <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         Shield
@@ -715,117 +912,134 @@
 
       <ul class="nav-links">
         <li><a href="#features">Features</a></li>
-        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#how-it-works">How it works</a></li>
         <li><a href="#pricing">Pricing</a></li>
         <li><a href="#testimonials">Reviews</a></li>
         <li><a href="#download">Download</a></li>
       </ul>
 
       <div class="nav-actions">
-        <a href="/login.html" class="nav-login">Sign In</a>
-        <a href="/register.html" class="nav-cta">Get Started</a>
+        <a href="/login.html" class="nav-signin">Sign in</a>
+        <a href="/register.html" class="btn btn-primary btn-sm">Get started</a>
       </div>
 
-      <button class="nav-hamburger" id="hamburger" aria-label="Open menu">
+      <button class="nav-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
     </div>
   </div>
   <div class="nav-mobile" id="navMobile">
     <a href="#features">Features</a>
-    <a href="#how-it-works">How It Works</a>
+    <a href="#how-it-works">How it works</a>
     <a href="#pricing">Pricing</a>
     <a href="#testimonials">Reviews</a>
     <a href="#download">Download</a>
     <div class="nav-mobile-actions">
-      <a href="/login.html" class="nav-login">Sign In</a>
-      <a href="/register.html" class="nav-cta">Get Started</a>
+      <a href="/login.html" class="btn btn-ghost">Sign in</a>
+      <a href="/register.html" class="btn btn-primary">Get started</a>
     </div>
   </div>
 </nav>
 
-<!-- ══════════════ HERO ══════════════ -->
+<main id="main">
+
+<!-- ══════════════════ HERO ══════════════════ -->
 <section class="hero">
   <div class="container">
     <div class="hero-inner">
-      <div>
-        <div class="hero-badge">
-          <span class="hero-badge-dot"></span>
-          Trusted by 50,000+ families worldwide
+      <div data-reveal>
+        <div class="badge badge-outline-white" style="margin-bottom: var(--s-5);">
+          <span class="badge-dot"></span>
+          Protecting 50,000+ families
         </div>
 
-        <h1>Protect Your<br/>Family's <span>Digital World</span></h1>
+        <h1>Protect your<br/>family's <span>digital world</span></h1>
 
         <p class="hero-sub">
-          Shield wraps every device — phone, tablet, laptop — in a layer of intelligent protection. Block harmful content, enforce healthy screen limits, and stay connected to your family wherever they are.
+          Shield wraps every Android phone and tablet in a layer of intelligent protection. Block harmful content, enforce healthy screen limits, and stay connected to your family wherever they are.
         </p>
 
         <div class="hero-ctas">
-          <a href="/register.html" class="btn btn-primary">
-            <span class="material-symbols-outlined" style="font-size:18px">rocket_launch</span>
-            Start Free Trial
+          <a href="/register.html" class="btn btn-white btn-lg">
+            Start free
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
           </a>
-          <a href="#download" class="btn btn-outline">
-            <span class="material-symbols-outlined" style="font-size:18px">android</span>
-            Download App
+          <a href="#download" class="btn btn-outline-white btn-lg">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12 16l-4-4h3V4h2v8h3l-4 4z"/>
+              <path d="M20 18H4v2h16v-2z"/>
+            </svg>
+            Download app
           </a>
         </div>
 
         <div class="hero-trust">
           <div class="hero-trust-item">
-            <span class="material-symbols-outlined">verified</span>
-            No credit card required
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            No credit card
           </div>
           <div class="hero-trust-item">
-            <span class="material-symbols-outlined">verified</span>
-            14-day free trial
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            14-day trial
           </div>
           <div class="hero-trust-item">
-            <span class="material-symbols-outlined">verified</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
             Cancel anytime
           </div>
         </div>
       </div>
 
-      <div class="hero-phone">
-        <div class="phone-mockup">
+      <div class="hero-phone-wrap" data-reveal data-reveal-delay="2">
+        <div class="phone" aria-hidden="true">
           <div class="phone-notch"></div>
           <div class="phone-screen">
-            <div class="phone-stat-row">
+            <div class="phone-row">
               <div class="phone-card">
                 <div class="phone-card-label">Screen Time</div>
-                <div class="phone-card-val">2h 14m</div>
+                <div class="phone-card-val"><span id="phoneScreenTime">2h 14m</span></div>
                 <div class="phone-card-sub">Today · limit 4h</div>
               </div>
               <div class="phone-card">
-                <div class="phone-card-label">Sites Blocked</div>
-                <div class="phone-card-val">137</div>
+                <div class="phone-card-label">Blocked</div>
+                <div class="phone-card-val"><span id="phoneBlocked">137</span></div>
                 <div class="phone-card-sub">This week</div>
               </div>
             </div>
             <div class="phone-alert">
-              <div class="phone-alert-icon">✓</div>
+              <div class="phone-alert-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
               <div class="phone-alert-text">
-                <div class="phone-alert-title">Safe browsing active</div>
-                All filters running on 4G &amp; WiFi
+                <span class="phone-alert-title">Safe browsing active</span>
+                Filters running on 4G &amp; WiFi
               </div>
             </div>
             <div class="phone-bar">
-              <div class="phone-bar-label">Daily limit used — 56%</div>
+              <div class="phone-bar-label">Daily limit — <span id="phoneBarPct">62</span>% used</div>
               <div class="phone-bar-track">
-                <div class="phone-bar-fill" style="width:56%"></div>
+                <div class="phone-bar-fill"></div>
               </div>
             </div>
-            <div class="phone-stat-row">
+            <div class="phone-row">
               <div class="phone-card">
                 <div class="phone-card-label">Location</div>
-                <div class="phone-card-val" style="font-size:0.85rem;margin-top:4px">Home ✓</div>
+                <div class="phone-card-val" style="font-size:13px;margin-top:4px">Home ✓</div>
                 <div class="phone-card-sub">Updated 2m ago</div>
               </div>
               <div class="phone-card">
-                <div class="phone-card-label">Rewards</div>
-                <div class="phone-card-val">480</div>
-                <div class="phone-card-sub">Points earned</div>
+                <div class="phone-card-label">Points</div>
+                <div class="phone-card-val"><span id="phonePoints">480</span></div>
+                <div class="phone-card-sub">This week</div>
               </div>
             </div>
           </div>
@@ -835,195 +1049,215 @@
   </div>
 </section>
 
-<!-- ══════════════ FEATURES ══════════════ -->
+<!-- ══════════════════ FEATURES ══════════════════ -->
 <section class="features" id="features">
   <div class="container">
-    <div class="features-header">
-      <span class="section-label">What Shield Does</span>
+    <div class="section-header" data-reveal>
+      <span class="section-eyebrow">What Shield does</span>
       <h2 class="section-title">Everything your family needs, in one app</h2>
-      <p class="section-subtitle">A complete digital safety platform built for modern families — works on any device, on any network.</p>
+      <p class="section-subtitle">A complete digital safety platform for modern families — works on any Android device, any network.</p>
     </div>
 
     <div class="features-grid">
-      <div class="feature-card">
+      <div class="feature-card" data-reveal data-reveal-delay="1">
         <div class="feature-icon">
-          <span class="material-symbols-outlined">security</span>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>
+          </svg>
         </div>
-        <h3>Digital Safety</h3>
-        <p>DNS-level content filtering blocks harmful websites across all apps — even social media — on WiFi and mobile data simultaneously.</p>
+        <h3>Works everywhere</h3>
+        <p>DNS-level content filtering blocks harmful websites across all apps — on WiFi, school networks, and mobile 4G/5G simultaneously.</p>
       </div>
 
-      <div class="feature-card">
+      <div class="feature-card" data-reveal data-reveal-delay="2">
         <div class="feature-icon">
-          <span class="material-symbols-outlined">psychology</span>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
         </div>
-        <h3>AI Insights</h3>
-        <p>Our AI analyses browsing patterns, detects anomalies, and sends smart alerts when something unusual is happening online.</p>
+        <h3>Smart schedules</h3>
+        <p>Daily time budgets, bedtime lockdowns, and per-app limits. Healthy digital habits built in, adjustable any time.</p>
       </div>
 
-      <div class="feature-card">
+      <div class="feature-card" data-reveal data-reveal-delay="3">
         <div class="feature-icon">
-          <span class="material-symbols-outlined">family_restroom</span>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
         </div>
-        <h3>Family Controls</h3>
-        <p>Manage multiple children from one dashboard. Set per-child rules, schedules, and content filters that adapt as they grow.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <span class="material-symbols-outlined">location_on</span>
-        </div>
-        <h3>Location Safety</h3>
+        <h3>Live location</h3>
         <p>Real-time GPS tracking with geofence alerts. Know when your child arrives at school or leaves a safe zone — instantly.</p>
       </div>
 
-      <div class="feature-card">
+      <div class="feature-card" data-reveal data-reveal-delay="1">
         <div class="feature-icon">
-          <span class="material-symbols-outlined">schedule</span>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 01-3.46 0"/>
+          </svg>
         </div>
-        <h3>Screen Time</h3>
-        <p>Daily time budgets, bedtime lockdowns, and app-specific limits. Healthy digital habits built in automatically.</p>
+        <h3>Instant alerts</h3>
+        <p>Know the moment your child tries to access blocked content or leaves a safe zone. Push notifications on your phone.</p>
       </div>
 
-      <div class="feature-card">
+      <div class="feature-card" data-reveal data-reveal-delay="2">
         <div class="feature-icon">
-          <span class="material-symbols-outlined">stars</span>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4l3 2"/>
+            <path d="M7 20l1-3M17 20l-1-3"/>
+          </svg>
         </div>
-        <h3>Rewards System</h3>
-        <p>Motivate good behaviour with a points-and-rewards engine. Children earn stars for completing tasks and respecting screen time limits.</p>
+        <h3>Family controls</h3>
+        <p>Manage multiple children from one dashboard. Set per-child rules, filters, and schedules that adapt as they grow.</p>
+      </div>
+
+      <div class="feature-card" data-reveal data-reveal-delay="3">
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/>
+          </svg>
+        </div>
+        <h3>Rewards system</h3>
+        <p>Motivate good behaviour with a points engine. Children earn stars for respecting screen time and completing tasks.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ HOW IT WORKS ══════════════ -->
+<!-- ══════════════════ HOW IT WORKS ══════════════════ -->
 <section class="how" id="how-it-works">
   <div class="container">
-    <div class="how-header">
-      <span class="section-label">Getting Started</span>
+    <div class="section-header" data-reveal>
+      <span class="section-eyebrow">Getting started</span>
       <h2 class="section-title">Up and running in minutes</h2>
-      <p class="section-subtitle">No router configuration. No complicated setup. Shield is ready the moment you install it.</p>
+      <p class="section-subtitle">No router configuration. No VPN. Shield is protecting your family the moment it's installed.</p>
     </div>
 
     <div class="how-steps">
-      <div class="how-step">
+      <div class="how-step" data-reveal data-reveal-delay="1">
         <div class="how-step-num">1</div>
-        <h3>Create Your Family Account</h3>
-        <p>Sign up in seconds. Add your children's profiles and set their ages — Shield calibrates the right protection level automatically.</p>
+        <h3>Create your account</h3>
+        <p>Sign up in under a minute. Add each child's age and Shield calibrates the right protection level automatically.</p>
       </div>
-      <div class="how-step">
+      <div class="how-step" data-reveal data-reveal-delay="2">
         <div class="how-step-num">2</div>
-        <h3>Install on Every Device</h3>
-        <p>Download the Shield app on your child's Android phone or tablet. One tap activates full DNS protection on WiFi and 4G.</p>
+        <h3>Install on the device</h3>
+        <p>Download the Shield app on your child's Android phone or tablet. One tap activates DNS protection on WiFi and 4G/5G.</p>
       </div>
-      <div class="how-step">
+      <div class="how-step" data-reveal data-reveal-delay="3">
         <div class="how-step-num">3</div>
-        <h3>Relax — Shield Takes Over</h3>
-        <p>Monitor from the parent dashboard. Get instant alerts for anything that needs your attention. Adjust rules on the fly, any time.</p>
+        <h3>Monitor &amp; adjust</h3>
+        <p>Watch the parent dashboard. Instant alerts for anything needing attention. Adjust rules any time, any device.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ STATS ══════════════ -->
+<!-- ══════════════════ STATS ══════════════════ -->
 <section class="stats">
   <div class="container">
     <div class="stats-grid">
-      <div class="stat-item">
-        <div class="stat-number">50K+</div>
-        <div class="stat-label">Families Protected</div>
+      <div class="stat-item" data-reveal>
+        <div class="stat-number" id="stat1">50K+</div>
+        <div class="stat-label">Families protected</div>
       </div>
-      <div class="stat-item">
+      <div class="stat-item" data-reveal data-reveal-delay="1">
         <div class="stat-number">99.9%</div>
         <div class="stat-label">Uptime SLA</div>
       </div>
-      <div class="stat-item">
+      <div class="stat-item" data-reveal data-reveal-delay="2">
         <div class="stat-number">5★</div>
-        <div class="stat-label">Average Rating</div>
+        <div class="stat-label">Average rating</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ PRICING ══════════════ -->
+<!-- ══════════════════ PRICING ══════════════════ -->
 <section class="pricing" id="pricing">
   <div class="container">
-    <div class="pricing-header">
-      <span class="section-label">Simple Pricing</span>
+    <div class="section-header" data-reveal>
+      <span class="section-eyebrow">Simple pricing</span>
       <h2 class="section-title">Choose the right plan for your family</h2>
-      <p class="section-subtitle">All plans include a 14-day free trial. No credit card required to start.</p>
+      <p class="section-subtitle">Start on the free plan. Upgrade any time. 14-day trial on paid plans — no credit card to start.</p>
     </div>
 
     <div class="pricing-grid">
-      <!-- Basic -->
-      <div class="pricing-card">
+      <div class="pricing-card" data-reveal data-reveal-delay="1">
         <div class="pricing-name">Basic</div>
-        <div class="pricing-price">Free</div>
-        <div class="pricing-period">forever, 1 child</div>
+        <div class="pricing-price">Free<span class="pricing-price-small"></span></div>
+        <div class="pricing-period">forever · 1 child</div>
         <div class="pricing-divider"></div>
         <ul class="pricing-features">
-          <li><span class="material-symbols-outlined">check_circle</span> DNS content filtering</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Screen time limits</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Basic activity report</li>
-          <li><span class="material-symbols-outlined">check_circle</span> 1 child profile</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Community support</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> DNS content filtering</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Screen time limits</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Basic activity report</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> 1 child profile</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Community support</li>
         </ul>
-        <a href="/register.html" class="btn-pricing btn-pricing-default">Get Started Free</a>
+        <a href="/register.html" class="btn btn-secondary btn-full">Get started free</a>
       </div>
 
-      <!-- Standard (highlighted) -->
-      <div class="pricing-card featured">
-        <div class="pricing-badge">MOST POPULAR</div>
+      <div class="pricing-card featured" data-reveal data-reveal-delay="2">
+        <div class="pricing-badge">Most popular</div>
         <div class="pricing-name">Standard</div>
-        <div class="pricing-price">₹299<span style="font-size:1rem;font-weight:600">/mo</span></div>
+        <div class="pricing-price">₹299<span class="pricing-price-small">/mo</span></div>
         <div class="pricing-period">up to 3 children</div>
         <div class="pricing-divider"></div>
         <ul class="pricing-features">
-          <li><span class="material-symbols-outlined">check_circle</span> Everything in Basic</li>
-          <li><span class="material-symbols-outlined">check_circle</span> AI-powered insights</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Real-time location tracking</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Geofence alerts</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Rewards &amp; tasks system</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Priority email support</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Everything in Basic</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> AI-powered insights</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Real-time location tracking</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Geofence alerts</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Rewards &amp; tasks system</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Priority email support</li>
         </ul>
-        <a href="/register.html" class="btn-pricing btn-pricing-featured">Start 14-Day Trial</a>
+        <a href="/register.html" class="btn btn-white btn-full">Start 14-day trial</a>
       </div>
 
-      <!-- Premium -->
-      <div class="pricing-card">
+      <div class="pricing-card" data-reveal data-reveal-delay="3">
         <div class="pricing-name">Premium</div>
-        <div class="pricing-price">₹599<span style="font-size:1rem;font-weight:600">/mo</span></div>
+        <div class="pricing-price">₹599<span class="pricing-price-small">/mo</span></div>
         <div class="pricing-period">unlimited children</div>
         <div class="pricing-divider"></div>
         <ul class="pricing-features">
-          <li><span class="material-symbols-outlined">check_circle</span> Everything in Standard</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Unlimited child profiles</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Advanced AI anomaly detection</li>
-          <li><span class="material-symbols-outlined">check_circle</span> WhatsApp &amp; Telegram alerts</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Co-parent sharing</li>
-          <li><span class="material-symbols-outlined">check_circle</span> Dedicated phone support</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Everything in Standard</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Unlimited child profiles</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Advanced AI anomaly detection</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> WhatsApp &amp; Telegram alerts</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Co-parent sharing</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Dedicated phone support</li>
         </ul>
-        <a href="/register.html" class="btn-pricing btn-pricing-default">Start 14-Day Trial</a>
+        <a href="/register.html" class="btn btn-secondary btn-full">Start 14-day trial</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ TESTIMONIALS ══════════════ -->
+<!-- ══════════════════ TESTIMONIALS ══════════════════ -->
 <section class="testimonials" id="testimonials">
   <div class="container">
-    <div class="testimonials-header">
-      <span class="section-label">Real Families</span>
+    <div class="section-header" data-reveal>
+      <span class="section-eyebrow">Real families</span>
       <h2 class="section-title">Parents love Shield</h2>
       <p class="section-subtitle">Join thousands of families who've made their children's online world safer.</p>
     </div>
 
     <div class="testi-grid">
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-quote">"Shield changed everything for us. My daughter's phone was a constant battle — now I can set healthy limits without constant arguments. The AI alerts caught something worrying before I even noticed."</p>
+      <div class="testi-card" data-reveal data-reveal-delay="1">
+        <div class="testi-stars">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+        </div>
+        <p class="testi-quote">"Shield changed everything for us. My daughter's phone was a constant battle — now I can set healthy limits without arguments. The AI alerts caught something worrying before I even noticed."</p>
         <div class="testi-author">
-          <div class="testi-avatar">PR</div>
+          <div class="testi-avatar" aria-hidden="true">PR</div>
           <div>
             <div class="testi-name">Priya Rajan</div>
             <div class="testi-role">Mother of 2 · Bengaluru</div>
@@ -1031,11 +1265,17 @@
         </div>
       </div>
 
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
+      <div class="testi-card" data-reveal data-reveal-delay="2">
+        <div class="testi-stars">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+        </div>
         <p class="testi-quote">"The location tracking gives me real peace of mind when my son is commuting to school. The geofence alert the moment he arrives is brilliant — I don't have to call or text every day."</p>
         <div class="testi-author">
-          <div class="testi-avatar">AK</div>
+          <div class="testi-avatar" aria-hidden="true">AK</div>
           <div>
             <div class="testi-name">Arvind Kumar</div>
             <div class="testi-role">Father of 3 · Mumbai</div>
@@ -1043,11 +1283,17 @@
         </div>
       </div>
 
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
+      <div class="testi-card" data-reveal data-reveal-delay="3">
+        <div class="testi-stars">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>
+        </div>
         <p class="testi-quote">"Finally a parental control app that actually works on mobile data, not just WiFi. The DNS filtering blocks content even when my kids switch to 4G. Setup took under 5 minutes."</p>
         <div class="testi-author">
-          <div class="testi-avatar">SM</div>
+          <div class="testi-avatar" aria-hidden="true">SM</div>
           <div>
             <div class="testi-name">Sunita Mehta</div>
             <div class="testi-role">Mother of 1 · Delhi</div>
@@ -1058,72 +1304,96 @@
   </div>
 </section>
 
-<!-- ══════════════ APK DOWNLOAD ══════════════ -->
+<!-- ══════════════════ DOWNLOAD ══════════════════ -->
 <section id="download" class="download-section">
   <div class="container">
     <div class="download-card">
-      <div class="download-left">
-        <div class="dl-badge">Android App</div>
+      <div data-reveal>
+        <div class="badge badge-outline-white" style="margin-bottom: var(--s-5);">Android app</div>
         <h2>Protect your family, right from your phone</h2>
         <p>Monitor activity, set screen time limits, and receive instant alerts — all from the Shield mobile app.</p>
         <div class="dl-features">
-          <span>✓ Real-time DNS filtering</span>
-          <span>✓ Location tracking</span>
-          <span>✓ Screen time controls</span>
-          <span>✓ Instant alerts</span>
+          <span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            Real-time DNS filtering
+          </span>
+          <span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            Location tracking
+          </span>
+          <span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            Screen time controls
+          </span>
+          <span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            Instant alerts
+          </span>
         </div>
         <a href="/download/shield-app.apk" class="btn-download" id="apkDownloadBtn">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 16l-4-4h3V4h2v8h3l-4 4z" fill="currentColor"/><path d="M20 18H4v2h16v-2z" fill="currentColor"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12 16l-4-4h3V4h2v8h3l-4 4z" fill="currentColor" stroke="none"/>
+            <path d="M20 18H4v2h16v-2z" fill="currentColor" stroke="none"/>
+          </svg>
           Download for Android
           <span class="dl-meta" id="apkMeta">APK · Free</span>
         </a>
         <p class="dl-note">Compatible with Android 7.0+. Enable "Install from unknown sources" in Settings.</p>
       </div>
-      <div class="download-right">
-        <div class="qr-box">
-          <div class="qr-inner">
-            <div class="qr-icon">📱</div>
-            <p>Scan to download</p>
-            <small>Or click the button →</small>
-          </div>
+      <div class="download-qr" data-reveal data-reveal-delay="1">
+        <div class="qr-box" aria-hidden="true">
+          <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <path d="M14 14h3v3M17 20v1M20 14v3M14 20h3"/>
+          </svg>
+          <p>Scan to download<br/>with your phone</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ CTA BANNER ══════════════ -->
+<!-- ══════════════════ CTA BANNER ══════════════════ -->
 <section class="cta-banner">
   <div class="container">
-    <h2>Ready to protect your family?</h2>
-    <p>Join 50,000+ families already using Shield. Start your free trial today — no card needed.</p>
-    <div class="cta-banner-btns">
-      <a href="/register.html" class="btn btn-ghost" style="background:var(--white);color:var(--primary);font-weight:700">
-        <span class="material-symbols-outlined" style="font-size:18px">rocket_launch</span>
-        Create Free Account
+    <h2 data-reveal>Ready to protect your family?</h2>
+    <p data-reveal data-reveal-delay="1">Join thousands of families already using Shield. Start free — no credit card, no commitment.</p>
+    <div class="cta-banner-btns" data-reveal data-reveal-delay="2">
+      <a href="/register.html" class="btn btn-white btn-lg">
+        Create free account
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
       </a>
-      <a href="/download/shield-app.apk" class="btn btn-outline">
-        <span class="material-symbols-outlined" style="font-size:18px">android</span>
+      <a href="/download/shield-app.apk" class="btn btn-outline-white btn-lg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12 16l-4-4h3V4h2v8h3l-4 4z"/>
+          <path d="M20 18H4v2h16v-2z"/>
+        </svg>
         Download APK
       </a>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ FOOTER ══════════════ -->
+</main>
+
+<!-- ══════════════════ FOOTER ══════════════════ -->
 <footer class="footer">
   <div class="container">
     <div class="footer-grid">
       <div>
         <div class="footer-brand">
-          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-            <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#005DAC"/>
-            <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#1976D2"/>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#3B6FE0"/>
+            <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#6B9BF5"/>
             <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Shield
         </div>
-        <p class="footer-desc">Intelligent family internet protection — DNS filtering, screen time, location safety, and AI insights in one beautifully simple app.</p>
+        <p class="footer-desc">Intelligent family internet protection — DNS filtering, screen time, location safety, and AI insights in one simple Android app.</p>
       </div>
 
       <div class="footer-col">
@@ -1131,63 +1401,63 @@
         <ul>
           <li><a href="#features">Features</a></li>
           <li><a href="#pricing">Pricing</a></li>
-          <li><a href="#how-it-works">How It Works</a></li>
-          <li><a href="/download/shield-app.apk">Download App</a></li>
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="/download/shield-app.apk">Download APK</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
         <h4>Account</h4>
         <ul>
-          <li><a href="/login.html">Sign In</a></li>
-          <li><a href="/register.html">Get Started</a></li>
-          <li><a href="/dashboard.html">Dashboard</a></li>
+          <li><a href="/login.html">Sign in</a></li>
+          <li><a href="/register.html">Get started</a></li>
+          <li><a href="/forgot-password.html">Reset password</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
         <h4>Company</h4>
         <ul>
-          <li><a href="#">About RST Global</a></li>
-          <li><a href="#">Privacy Policy</a></li>
-          <li><a href="#">Terms of Service</a></li>
-          <li><a href="#">Support</a></li>
+          <li><a href="/privacy.html">Privacy policy</a></li>
+          <li><a href="/terms.html">Terms of service</a></li>
+          <li><a href="mailto:support@rstglobal.in">Contact support</a></li>
         </ul>
       </div>
     </div>
 
     <div class="footer-bottom">
-      <p>&copy; 2026 RST Global. All rights reserved. Shield is a product of RST Global Pvt. Ltd.</p>
-      <p style="display:flex;gap:16px">
-        <a href="#">Privacy</a>
-        <a href="#">Terms</a>
-        <a href="#">Cookies</a>
-      </p>
+      <p>&copy; 2026 RST Global Pvt. Ltd. All rights reserved.</p>
+      <div class="footer-legal-links">
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms</a>
+      </div>
     </div>
   </div>
 </footer>
 
+<script src="/reveal.js?v=1" defer></script>
 <script>
-  // Nav scroll effect
+  // ── Nav shadow on scroll ───────────────────────────────────────
   const nav = document.getElementById('mainNav');
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 20);
-  }, { passive: true });
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 20);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 
-  // Mobile menu
+  // ── Mobile menu ────────────────────────────────────────────────
   const hamburger = document.getElementById('hamburger');
   const navMobile = document.getElementById('navMobile');
   hamburger.addEventListener('click', () => {
     const open = navMobile.classList.toggle('open');
-    hamburger.setAttribute('aria-expanded', open);
+    hamburger.setAttribute('aria-expanded', String(open));
   });
-
-  // Close mobile menu on link click
   navMobile.querySelectorAll('a').forEach(a => {
-    a.addEventListener('click', () => navMobile.classList.remove('open'));
+    a.addEventListener('click', () => {
+      navMobile.classList.remove('open');
+      hamburger.setAttribute('aria-expanded', 'false');
+    });
   });
 
-  // Smooth anchor scroll with offset for sticky nav
+  // ── Smooth anchor scroll with sticky-nav offset ───────────────
   document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener('click', e => {
       const target = document.querySelector(a.getAttribute('href'));
@@ -1199,48 +1469,69 @@
     });
   });
 
-  // Simple counter animation for stats
-  function animateCounter(el, target, suffix) {
-    let start = 0;
-    const duration = 1600;
-    const step = (timestamp) => {
-      if (!start) start = timestamp;
-      const progress = Math.min((timestamp - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const val = Math.floor(eased * target);
-      el.textContent = val.toLocaleString() + suffix;
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }
+  // ── Animated phone mockup: tick counters every few seconds ────
+  (function animatePhone() {
+    const screenEl  = document.getElementById('phoneScreenTime');
+    const blockedEl = document.getElementById('phoneBlocked');
+    const barPctEl  = document.getElementById('phoneBarPct');
+    const pointsEl  = document.getElementById('phonePoints');
+    if (!screenEl) return;
 
-  // Intersection observer for stats
-  const statsSection = document.querySelector('.stats');
-  let statsAnimated = false;
-  if (statsSection) {
-    new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && !statsAnimated) {
-        statsAnimated = true;
-        const nums = statsSection.querySelectorAll('.stat-number');
-        animateCounter(nums[0], 50, 'K+');
-        nums[1].textContent = '99.9%';
-        nums[2].textContent = '5★';
+    // Pseudo-random gentle updates — keep the mockup feeling alive
+    let screenMin = 134, blocked = 137, pct = 62, points = 480;
+    setInterval(() => {
+      screenMin += Math.random() < 0.5 ? 1 : 0;
+      const h = Math.floor(screenMin / 60);
+      const m = screenMin % 60;
+      screenEl.textContent = `${h}h ${m.toString().padStart(2,'0')}m`;
+
+      if (Math.random() < 0.4) {
+        blocked += Math.floor(Math.random() * 3) + 1;
+        blockedEl.textContent = blocked;
       }
-    }, { threshold: 0.4 }).observe(statsSection);
-  }
-
-  // Fetch APK file size for download button label
-  (function(){
-    fetch('/download/shield-app.apk', {method:'HEAD'})
-      .then(r => {
-        const size = r.headers.get('content-length');
-        if (size) {
-          const mb = (parseInt(size) / 1024 / 1024).toFixed(0);
-          const meta = document.getElementById('apkMeta');
-          if (meta) meta.textContent = 'APK \u00b7 ' + mb + ' MB \u00b7 Free';
-        }
-      }).catch(function(){});
+      if (Math.random() < 0.3) {
+        points += Math.floor(Math.random() * 4);
+        pointsEl.textContent = points;
+      }
+      pct = Math.min(95, pct + (Math.random() < 0.4 ? 1 : 0));
+      barPctEl.textContent = pct;
+    }, 3200);
   })();
+
+  // ── Stats counter (when section enters viewport) ──────────────
+  (function animateStats() {
+    const target = document.getElementById('stat1');
+    if (!target) return;
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        let start = 0;
+        const dur = 1400;
+        const t0 = performance.now();
+        const tick = (t) => {
+          const progress = Math.min((t - t0) / dur, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          target.textContent = Math.floor(eased * 50) + 'K+';
+          if (progress < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+        observer.disconnect();
+      });
+    }, { threshold: 0.5 });
+    observer.observe(target);
+  })();
+
+  // ── APK file-size fetch (best-effort) ─────────────────────────
+  fetch('/download/shield-app.apk', { method: 'HEAD' })
+    .then(r => {
+      const size = r.headers.get('content-length');
+      if (size) {
+        const mb = (parseInt(size, 10) / 1024 / 1024).toFixed(0);
+        const meta = document.getElementById('apkMeta');
+        if (meta) meta.textContent = `APK · ${mb} MB · Free`;
+      }
+    })
+    .catch(() => {});
 </script>
 </body>
 </html>
