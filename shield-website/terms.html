@@ -7,437 +7,545 @@
   <meta name="description" content="Terms of Service for Shield, a family internet protection platform by RST Global Private Limited."/>
   <meta name="robots" content="index, follow"/>
   <link rel="canonical" href="https://shield.rstglobal.in/terms.html"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://shield.rstglobal.in/terms.html"/>
+  <meta property="og:title" content="Terms of Service — Shield Family Internet Protection"/>
+  <meta property="og:description" content="Terms of Service for Shield by RST Global Private Limited."/>
+  <meta property="og:image" content="https://shield.rstglobal.in/og-image.svg"/>
+  <meta name="theme-color" content="#1E4FC4"/>
+  <link rel="manifest" href="/manifest.json"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css?v=2"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="/tokens.css?v=3"/>
+  <link rel="stylesheet" href="/components.css?v=3"/>
+
   <style>
-    .legal-page {
-      padding: 120px 0 80px;
-      min-height: 80vh;
+    /* Same layout as privacy.html — both pages use .policy-* classes */
+
+    .legal-nav {
+      position: sticky; top: 0; z-index: var(--z-nav);
+      background: rgba(248, 250, 252, 0.82);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(30, 79, 196, 0.06);
     }
-    .legal-page .container {
-      max-width: 780px;
-    }
-    .legal-header {
-      margin-bottom: 48px;
-      border-bottom: 1px solid var(--border, #E2E8F0);
-      padding-bottom: 32px;
-    }
-    .legal-header h1 {
-      font-size: 2.25rem;
-      font-weight: 800;
-      color: var(--text-primary, #0F172A);
-      margin-bottom: 10px;
-    }
-    .legal-meta {
-      color: var(--text-muted, #64748B);
-      font-size: 0.9rem;
-    }
-    .legal-toc {
-      background: #F1F5F9;
-      border-radius: 12px;
-      padding: 24px 28px;
-      margin-bottom: 48px;
-    }
-    .legal-toc h2 {
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted, #64748B);
-      margin-bottom: 14px;
-    }
-    .legal-toc ol {
-      margin: 0;
-      padding-left: 20px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px 24px;
-    }
-    .legal-toc li a {
-      color: #1565C0;
-      text-decoration: none;
-      font-size: 0.9rem;
-    }
-    .legal-toc li a:hover {
-      text-decoration: underline;
-    }
-    .legal-section {
-      margin-bottom: 44px;
-    }
-    .legal-section h2 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--text-primary, #0F172A);
-      margin-bottom: 16px;
-      padding-top: 8px;
+    .legal-nav-inner {
       display: flex;
       align-items: center;
-      gap: 10px;
+      justify-content: space-between;
+      height: 68px;
+      gap: var(--s-8);
     }
-    .legal-section h2 .sec-num {
+    .legal-nav-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-xl);
+      color: var(--brand-700);
+    }
+    .legal-nav-links {
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+    }
+    .legal-nav-back {
+      font-size: var(--text-sm);
+      color: var(--ink-600);
+      display: flex;
+      align-items: center;
+      gap: var(--s-2);
+    }
+    .legal-nav-back:hover { color: var(--brand-700); }
+
+    .policy-hero {
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 30%, rgba(107,155,245,0.35) 0%, transparent 65%),
+        linear-gradient(155deg, var(--brand-900) 0%, var(--brand-800) 50%, var(--brand-700) 100%);
+      color: var(--white);
+      text-align: center;
+      padding: var(--s-20) var(--s-6) var(--s-16);
+    }
+    .policy-hero h1 {
+      font-size: clamp(var(--text-4xl), 4.8vw, var(--text-5xl));
+      color: var(--white);
+      margin-bottom: var(--s-3);
+    }
+    .policy-hero p {
+      font-size: var(--text-base);
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .policy-body {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: var(--s-16) var(--s-6) var(--s-24);
+    }
+
+    .policy-highlight {
+      background: var(--brand-50);
+      border-left: 4px solid var(--brand-600);
+      border-radius: 0 var(--r-md) var(--r-md) 0;
+      padding: var(--s-5) var(--s-6);
+      margin-bottom: var(--s-12);
+    }
+    .policy-highlight p {
+      margin: 0;
+      font-size: var(--text-base);
+      color: var(--ink-800);
+      line-height: var(--leading-normal);
+    }
+
+    .policy-toc {
+      background: var(--white);
+      border: 1px solid var(--ink-200);
+      border-radius: var(--r-lg);
+      padding: var(--s-5) var(--s-7);
+      margin-bottom: var(--s-12);
+    }
+    .policy-toc h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-widest);
+      color: var(--brand-600);
+      margin-bottom: var(--s-3);
+    }
+    .policy-toc ol {
+      margin: 0;
+      padding-left: var(--s-5);
+      columns: 2;
+      column-gap: var(--s-6);
+    }
+    .policy-toc li {
+      margin-bottom: var(--s-2);
+      break-inside: avoid;
+    }
+    .policy-toc a {
+      font-size: var(--text-sm);
+      color: var(--ink-700);
+    }
+    .policy-toc a:hover {
+      color: var(--brand-700);
+      text-decoration: underline;
+    }
+
+    .policy-section {
+      margin-bottom: var(--s-12);
+      scroll-margin-top: 88px;
+    }
+    .policy-section h2 {
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      color: var(--ink-900);
+      margin-bottom: var(--s-5);
+      padding-bottom: var(--s-3);
+      border-bottom: 1px solid var(--ink-200);
+    }
+    .policy-section h2 .sec-num {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
-      background: #1565C0;
-      color: #fff;
-      border-radius: 50%;
-      font-size: 0.8rem;
-      font-weight: 700;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--r-full);
+      background: var(--brand-100);
+      color: var(--brand-700);
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: 800;
       flex-shrink: 0;
     }
-    .legal-section p {
-      color: var(--text-secondary, #334155);
-      line-height: 1.8;
-      margin-bottom: 14px;
+    .policy-section h3 {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--ink-800);
+      margin-top: var(--s-8);
+      margin-bottom: var(--s-3);
     }
-    .legal-section ul, .legal-section ol {
-      color: var(--text-secondary, #334155);
-      line-height: 1.8;
-      padding-left: 22px;
-      margin-bottom: 14px;
+    .policy-section p {
+      font-size: var(--text-base);
+      line-height: var(--leading-relaxed);
+      color: var(--ink-700);
+      margin-bottom: var(--s-4);
     }
-    .legal-section li {
-      margin-bottom: 6px;
+    .policy-section ul {
+      padding-left: var(--s-5);
+      margin-bottom: var(--s-4);
     }
-    .legal-highlight {
-      background: #EFF6FF;
-      border-left: 4px solid #1565C0;
-      border-radius: 0 8px 8px 0;
-      padding: 16px 20px;
-      margin: 20px 0;
-      color: #1E3A5F;
-      font-size: 0.92rem;
-      line-height: 1.7;
+    .policy-section li {
+      font-size: var(--text-base);
+      line-height: var(--leading-relaxed);
+      color: var(--ink-700);
+      margin-bottom: var(--s-2);
     }
-    .legal-contact-box {
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      border-radius: 12px;
-      padding: 28px 32px;
-      margin-top: 20px;
+    .policy-section strong {
+      color: var(--ink-900);
+      font-weight: 600;
     }
-    .legal-contact-box p {
-      margin: 0 0 8px;
+    .policy-section a {
+      color: var(--brand-600);
+      font-weight: 500;
     }
-    .legal-contact-box a {
-      color: #1565C0;
+    .policy-section a:hover { text-decoration: underline; }
+
+    .policy-contact-card {
+      background: linear-gradient(155deg, var(--brand-50), var(--white));
+      border: 1px solid var(--brand-200);
+      border-radius: var(--r-lg);
+      padding: var(--s-7);
+      margin-top: var(--s-5);
     }
-    @media (max-width: 600px) {
-      .legal-page {
-        padding: 100px 0 60px;
-      }
-      .legal-header h1 {
-        font-size: 1.75rem;
-      }
-      .legal-toc ol {
-        grid-template-columns: 1fr;
-      }
+    .policy-contact-card h3 {
+      margin-top: 0;
+      margin-bottom: var(--s-3);
+      color: var(--ink-900);
+    }
+    .policy-contact-card p {
+      margin-bottom: var(--s-2);
+      font-size: var(--text-sm);
+    }
+
+    .policy-updated {
+      text-align: center;
+      font-size: var(--text-sm);
+      color: var(--ink-500);
+      margin-top: var(--s-12);
+      padding-top: var(--s-6);
+      border-top: 1px solid var(--ink-200);
+    }
+
+    /* Footer (matching other pages) */
+    .footer {
+      background: var(--ink-950);
+      color: rgba(255, 255, 255, 0.65);
+      padding: var(--s-16) 0 var(--s-8);
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: var(--s-12);
+      margin-bottom: var(--s-12);
+    }
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: var(--s-3);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-lg);
+      color: var(--white);
+      margin-bottom: var(--s-4);
+    }
+    .footer-desc {
+      font-size: var(--text-sm);
+      line-height: var(--leading-relaxed);
+      max-width: 320px;
+    }
+    .footer-col h4 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--text-xs);
+      color: var(--white);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wider);
+      margin-bottom: var(--s-4);
+    }
+    .footer-col ul { list-style: none; padding: 0; margin: 0; }
+    .footer-col li { margin-bottom: var(--s-3); }
+    .footer-col a {
+      font-size: var(--text-sm);
+      color: rgba(255, 255, 255, 0.65);
+      transition: color var(--d-fast);
+    }
+    .footer-col a:hover { color: var(--white); }
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: var(--s-6);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--s-4);
+    }
+    .footer-bottom p, .footer-bottom a {
+      font-size: var(--text-xs);
+      color: rgba(255, 255, 255, 0.5);
+    }
+    .footer-bottom a:hover { color: rgba(255, 255, 255, 0.85); }
+    .footer-legal-links { display: flex; gap: var(--s-5); }
+
+    @media (max-width: 768px) {
+      .legal-nav-links .legal-nav-signin,
+      .legal-nav-links .btn { display: none; }
+      .policy-toc ol { columns: 1; }
+      .footer-grid { grid-template-columns: 1fr; gap: var(--s-8); }
+      .footer-bottom { flex-direction: column; text-align: center; }
     }
   </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════ NAV ═══════════════════════════ -->
-<header class="nav" id="mainNav">
-  <div class="nav-inner">
+<a href="#main" class="skip-link">Skip to content</a>
 
-    <a href="/" class="nav-logo" aria-label="Shield — Home">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <defs>
-          <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#1565C0"/>
-            <stop offset="100%" stop-color="#0D47A1"/>
-          </linearGradient>
-        </defs>
-        <path d="M16 2L28 7.5V16C28 23.5 22.8 29.8 16 32C9.2 29.8 4 23.5 4 16V7.5Z" fill="url(#sg)"/>
-        <path d="M10 16L14 20.5L22 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>Shield</span>
-    </a>
-
-    <ul class="nav-links" role="list">
-      <li><a href="/#features">Features</a></li>
-      <li><a href="/#how-it-works">How It Works</a></li>
-      <li><a href="/#pricing">Pricing</a></li>
-      <li><a href="/#download">Download</a></li>
-      <li><a href="/#faq">FAQ</a></li>
-      <li><a href="/#contact">Contact</a></li>
-    </ul>
-
-    <div class="nav-cta">
-      <a href="login.html" class="btn btn-ghost btn-sm">Sign In</a>
-      <a href="register.html" class="btn btn-primary btn-sm">Get Started Free</a>
-    </div>
-
-    <button class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer">
-      <span></span><span></span><span></span>
-    </button>
-
-  </div>
-
-  <div class="nav-drawer" id="navDrawer" aria-hidden="true">
-    <nav aria-label="Mobile navigation">
-      <a href="/#features">Features</a>
-      <a href="/#how-it-works">How It Works</a>
-      <a href="/#pricing">Pricing</a>
-      <a href="/#download">Download</a>
-      <a href="/#faq">FAQ</a>
-    </nav>
-    <div class="nav-drawer-cta">
-      <a href="login.html" class="btn btn-ghost">Sign In</a>
-      <a href="register.html" class="btn btn-primary">Get Started Free</a>
+<header class="legal-nav">
+  <div class="container">
+    <div class="legal-nav-inner">
+      <a href="/" class="legal-nav-logo" aria-label="Shield home">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#1E4FC4"/>
+          <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#3B6FE0"/>
+          <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Shield
+      </a>
+      <div class="legal-nav-links">
+        <a href="/" class="legal-nav-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to home
+        </a>
+        <a href="/register.html" class="btn btn-primary btn-sm legal-nav-signin">Get started</a>
+      </div>
     </div>
   </div>
 </header>
 
-<!-- ═══════════════════════════ CONTENT ═══════════════════════════ -->
-<main class="legal-page">
-  <div class="container">
+<section class="policy-hero">
+  <h1>Terms of Service</h1>
+  <p>Effective date: 1 March 2026 &nbsp;·&nbsp; RST Global Private Limited, India</p>
+</section>
 
-    <div class="legal-header">
-      <h1>Terms of Service</h1>
-      <p class="legal-meta">
-        <strong>RST Global Private Limited</strong> &nbsp;|&nbsp;
-        Effective Date: <strong>1 March 2026</strong> &nbsp;|&nbsp;
-        Last Updated: <strong>1 March 2026</strong>
-      </p>
-    </div>
+<main class="policy-body" id="main">
 
-    <div class="legal-toc">
-      <h2>Contents</h2>
-      <ol>
-        <li><a href="#acceptance">Acceptance of Terms</a></li>
-        <li><a href="#service">Description of Service</a></li>
-        <li><a href="#eligibility">Account Registration &amp; Eligibility</a></li>
-        <li><a href="#acceptable-use">Acceptable Use</a></li>
-        <li><a href="#children">Children's Accounts</a></li>
-        <li><a href="#billing">Subscription &amp; Billing</a></li>
-        <li><a href="#privacy">Privacy &amp; Data</a></li>
-        <li><a href="#liability">Limitation of Liability</a></li>
-        <li><a href="#termination">Termination</a></li>
-        <li><a href="#changes">Changes to These Terms</a></li>
-        <li><a href="#governing-law">Governing Law</a></li>
-        <li><a href="#contact">Contact Us</a></li>
-      </ol>
-    </div>
-
-    <div class="legal-highlight">
-      Please read these Terms of Service carefully before using Shield. By creating an account or using the Shield platform, you agree to be bound by these terms. If you do not agree, please do not use the service.
-    </div>
-
-    <!-- 1 -->
-    <div class="legal-section" id="acceptance">
-      <h2><span class="sec-num">1</span> Acceptance of Terms</h2>
-      <p>These Terms of Service ("Terms") constitute a legally binding agreement between you ("User", "you", or "your") and RST Global Private Limited ("RST Global", "we", "us", or "our"), a company incorporated under the laws of India, with respect to your use of the Shield platform, including the Shield mobile application, web dashboard, DNS filtering services, and any related software or features (collectively, the "Service").</p>
-      <p>By accessing or using the Service in any way — including creating an account, installing the Shield app, or configuring DNS settings — you confirm that you have read, understood, and agree to be bound by these Terms, along with our Privacy Policy, which is incorporated herein by reference.</p>
-      <p>If you are using the Service on behalf of an organisation such as an Internet Service Provider (ISP) or school, you represent that you have the authority to bind that organisation to these Terms.</p>
-    </div>
-
-    <!-- 2 -->
-    <div class="legal-section" id="service">
-      <h2><span class="sec-num">2</span> Description of Service</h2>
-      <p>Shield is a family internet protection platform that enables parents and guardians to manage and safeguard their children's online experience. The Service currently includes the following features:</p>
-      <ul>
-        <li><strong>DNS Filtering:</strong> Blocks access to websites and online content in categories such as adult content, gambling, violence, phishing, and malware, using DNS-over-HTTPS (DoH) technology. Filtering applies on any network — home WiFi, school WiFi, and mobile 4G/5G data.</li>
-        <li><strong>Parental Controls:</strong> Content category blocking, custom allow/block lists, internet schedule enforcement (e.g. no internet during school hours or after bedtime), and per-device screen time budgets.</li>
-        <li><strong>Location Tracking:</strong> Real-time GPS location sharing for enrolled child devices, location history, and geofence alerts that notify parents when a child enters or leaves a designated area.</li>
-        <li><strong>Alerts &amp; Notifications:</strong> Push notifications and optional messaging-app alerts (WhatsApp, Telegram) for key events such as blocked site attempts, geofence breaches, and SOS requests from a child.</li>
-        <li><strong>Rewards System:</strong> A points-based incentive system allowing parents to assign tasks to children and reward compliance with screen time or other privileges.</li>
-        <li><strong>Analytics &amp; Reporting:</strong> Summaries of browsing activity categories, time-online trends, and weekly digest emails.</li>
-        <li><strong>ISP &amp; Multi-Tenant Deployment:</strong> White-label deployment for Internet Service Providers and enterprises to offer Shield as a managed service to their customers.</li>
-      </ul>
-      <p>We reserve the right to modify, enhance, or discontinue any feature of the Service at any time with reasonable notice where practicable.</p>
-    </div>
-
-    <!-- 3 -->
-    <div class="legal-section" id="eligibility">
-      <h2><span class="sec-num">3</span> Account Registration &amp; Eligibility</h2>
-      <p><strong>Age requirement:</strong> You must be at least 18 years of age to create a parent, guardian, or administrator account on Shield. By registering, you represent and warrant that you are 18 years of age or older.</p>
-      <p><strong>Accurate information:</strong> You agree to provide accurate, current, and complete information during registration and to keep your account information up to date. Providing false information may result in immediate suspension or termination of your account.</p>
-      <p><strong>Account security:</strong> You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You must notify us immediately at <a href="mailto:legal@rstglobal.in">legal@rstglobal.in</a> if you suspect any unauthorised use of your account.</p>
-      <p><strong>One account per household:</strong> A single parent account may manage multiple child profiles and devices. Sharing of parent account credentials with other adults who are not co-guardians of the enrolled children is not permitted.</p>
-      <p><strong>ISP/Enterprise accounts:</strong> Organisations registering as Internet Service Providers or enterprises must provide valid business details. A designated administrator is responsible for compliance with these Terms across all sub-accounts provisioned under the organisation's tenant.</p>
-    </div>
-
-    <!-- 4 -->
-    <div class="legal-section" id="acceptable-use">
-      <h2><span class="sec-num">4</span> Acceptable Use</h2>
-      <p>You agree to use the Service only for lawful purposes and in a manner consistent with these Terms. The following actions are strictly prohibited:</p>
-      <ul>
-        <li>Using the Service for any illegal activity or in violation of any applicable Indian or international law or regulation.</li>
-        <li>Attempting to circumvent, disable, or bypass any safety feature, DNS filtering rule, or access control implemented by Shield.</li>
-        <li>Using the Service to monitor, track, or control any individual without their knowledge or consent, except as expressly permitted for enrolled minor children under the supervision of their parent or legal guardian.</li>
-        <li>Reverse-engineering, decompiling, or attempting to extract the source code of the Shield application or backend systems.</li>
-        <li>Attempting to gain unauthorised access to the Shield infrastructure, databases, or other users' accounts.</li>
-        <li>Using the Service to transmit malware, spam, or any other harmful or disruptive content.</li>
-        <li>Reselling or sublicensing access to the Service without a written ISP or reseller agreement with RST Global.</li>
-        <li>Using automated tools, bots, or scripts to interact with the Service in a way that places undue load on our systems.</li>
-      </ul>
-      <p>Violation of this Acceptable Use Policy may result in immediate suspension or permanent termination of your account, without refund, and may be reported to the appropriate authorities where required by law.</p>
-    </div>
-
-    <!-- 5 -->
-    <div class="legal-section" id="children">
-      <h2><span class="sec-num">5</span> Children's Accounts</h2>
-      <p>Shield is designed as a tool for parents and guardians to protect and manage their minor children's internet access. Child profiles and child device accounts are created by, and operate under the authority of, a registered parent or guardian account.</p>
-      <p><strong>Parental responsibility:</strong> By creating a child profile, you confirm that you are the parent or legal guardian of that child and that you have the legal right to monitor their online activity and location. You take full responsibility for all data collected through child profiles associated with your account.</p>
-      <p><strong>Transparency with children:</strong> We strongly encourage parents and guardians to be open with their children about the use of Shield. Age-appropriate transparency about internet filters, location sharing, and screen time rules promotes trust and digital literacy.</p>
-      <p><strong>Data minimisation for children:</strong> We collect only the data necessary to provide the Service for child profiles. We do not use child data for advertising, profiling, or any purpose other than delivering and improving the parental control features. Please refer to our Privacy Policy for details.</p>
-      <p><strong>No direct accounts for minors:</strong> Children under the age of 18 may not independently register for a Shield account. All access by minors is through child profiles administered by a parent or guardian.</p>
-    </div>
-
-    <!-- 6 -->
-    <div class="legal-section" id="billing">
-      <h2><span class="sec-num">6</span> Subscription &amp; Billing</h2>
-      <p><strong>Free tier:</strong> Shield offers a free plan with core DNS filtering features. The features included in the free plan may change over time and are described on our pricing page.</p>
-      <p><strong>Paid plans:</strong> Premium features are available through paid subscription plans billed monthly or annually. Prices are displayed in Indian Rupees (INR) inclusive of applicable taxes unless otherwise stated. ISP and enterprise plans are priced separately based on the number of managed customers.</p>
-      <p><strong>Payment processing:</strong> All payments are processed securely through Stripe. By providing payment details, you authorise RST Global to charge your selected payment method on a recurring basis in accordance with your chosen plan. We do not store your full card details on our servers.</p>
-      <p><strong>Renewals:</strong> Subscriptions renew automatically at the end of each billing cycle unless cancelled before the renewal date. You will receive a reminder email before each renewal.</p>
-      <p><strong>Cancellation:</strong> You may cancel your subscription at any time from the Shield dashboard. Cancellation takes effect at the end of the current billing period. You will retain access to paid features until that date. No partial-period refunds are issued unless required by applicable law.</p>
-      <p><strong>Refunds:</strong> If you believe you have been charged in error, please contact us at <a href="mailto:legal@rstglobal.in">legal@rstglobal.in</a> within 14 days of the charge. We review refund requests on a case-by-case basis.</p>
-      <p><strong>Price changes:</strong> We may update subscription prices with at least 30 days' notice before the change takes effect. Continued use of the Service after a price change constitutes acceptance of the new pricing.</p>
-      <p><strong>Taxes:</strong> You are responsible for all applicable taxes. Where required by law, RST Global will collect GST or other taxes at the point of payment.</p>
-    </div>
-
-    <!-- 7 -->
-    <div class="legal-section" id="privacy">
-      <h2><span class="sec-num">7</span> Privacy &amp; Data</h2>
-      <p>Your use of the Service is also governed by our Privacy Policy, which describes how we collect, use, and protect your personal data and the data of enrolled child profiles. The Privacy Policy is available at <a href="/privacy.html">shield.rstglobal.in/privacy.html</a>.</p>
-      <p>Key points:</p>
-      <ul>
-        <li>We do not sell your personal data or your children's data to third parties.</li>
-        <li>DNS query logs are used solely to enforce filtering rules and provide activity summaries. We do not build browsing profiles for advertising purposes.</li>
-        <li>Location data is stored securely and accessible only to the parent/guardian account holder and authorised RST Global personnel for support purposes.</li>
-        <li>You may request deletion of your account and associated data at any time by contacting <a href="mailto:legal@rstglobal.in">legal@rstglobal.in</a>.</li>
-      </ul>
-    </div>
-
-    <!-- 8 -->
-    <div class="legal-section" id="liability">
-      <h2><span class="sec-num">8</span> Limitation of Liability</h2>
-      <p><strong>No guarantee of complete filtering:</strong> While Shield employs robust DNS filtering and content categorisation, no internet filtering technology is 100% effective. We do not warrant that all harmful content will be blocked or that all permitted content will be accessible at all times. The Service is a tool to assist parents — it does not replace parental supervision.</p>
-      <p><strong>"As is" basis:</strong> The Service is provided on an "as is" and "as available" basis without warranties of any kind, whether express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or uninterrupted availability.</p>
-      <p><strong>Cap on liability:</strong> To the maximum extent permitted by applicable law, RST Global's total cumulative liability to you for any claims arising from or related to the Service shall not exceed the amount you paid to RST Global in the twelve (12) months immediately preceding the event giving rise to the claim, or INR 1,000, whichever is greater.</p>
-      <p><strong>Exclusion of consequential damages:</strong> RST Global shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of data, loss of revenue, or harm arising from a child's access to inappropriate content, even if we have been advised of the possibility of such damages.</p>
-      <p><strong>Indemnification:</strong> You agree to indemnify and hold harmless RST Global, its directors, employees, and agents from any claims, losses, or expenses (including legal fees) arising from your use of the Service, your violation of these Terms, or your violation of any applicable law.</p>
-    </div>
-
-    <!-- 9 -->
-    <div class="legal-section" id="termination">
-      <h2><span class="sec-num">9</span> Termination</h2>
-      <p><strong>By you:</strong> You may close your account at any time from the Shield dashboard or by contacting us. Closing your account will delete all associated child profiles and device configurations. Data deletion timelines are described in our Privacy Policy.</p>
-      <p><strong>By us:</strong> RST Global reserves the right to suspend or terminate your account and access to the Service, with or without notice, if:</p>
-      <ul>
-        <li>You materially breach these Terms and fail to remedy the breach within 7 days of written notice.</li>
-        <li>We are required to do so by law or court order.</li>
-        <li>We reasonably believe continued access poses a risk to the security or integrity of the Service.</li>
-        <li>Your subscription payment remains unpaid after a reasonable grace period.</li>
-      </ul>
-      <p>On termination, your right to use the Service ceases immediately. Provisions of these Terms that by their nature should survive termination — including limitations of liability, indemnification, and governing law — will continue to apply.</p>
-    </div>
-
-    <!-- 10 -->
-    <div class="legal-section" id="changes">
-      <h2><span class="sec-num">10</span> Changes to These Terms</h2>
-      <p>We may update these Terms from time to time to reflect changes in our Service, legal requirements, or business practices. When we make material changes, we will:</p>
-      <ul>
-        <li>Update the "Last Updated" date at the top of this page.</li>
-        <li>Send a notification email to the address associated with your account at least 14 days before the changes take effect (for material changes).</li>
-        <li>Display a prominent notice within the Shield dashboard or app.</li>
-      </ul>
-      <p>Your continued use of the Service after the effective date of the updated Terms constitutes your acceptance of the changes. If you do not agree with the updated Terms, you must stop using the Service and close your account before the effective date.</p>
-    </div>
-
-    <!-- 11 -->
-    <div class="legal-section" id="governing-law">
-      <h2><span class="sec-num">11</span> Governing Law</h2>
-      <p>These Terms shall be governed by and construed in accordance with the laws of India, without regard to its conflict of law provisions. The Information Technology Act, 2000 (and its amendments), the Digital Personal Data Protection Act, 2023, and other applicable Indian legislation govern the use of the Service.</p>
-      <p>Any dispute, controversy, or claim arising out of or relating to these Terms or the Service shall first be attempted to be resolved through good-faith negotiation. If not resolved within 30 days, disputes shall be subject to the exclusive jurisdiction of the competent courts located in Bangalore, Karnataka, India.</p>
-    </div>
-
-    <!-- 12 -->
-    <div class="legal-section" id="contact">
-      <h2><span class="sec-num">12</span> Contact Us</h2>
-      <p>If you have questions about these Terms, need to report a concern, or wish to make a data-related request, please contact us:</p>
-      <div class="legal-contact-box">
-        <p><strong>RST Global Private Limited</strong></p>
-        <p>Legal &amp; Compliance Team</p>
-        <p>Email: <a href="mailto:legal@rstglobal.in">legal@rstglobal.in</a></p>
-        <p>Platform: <a href="https://shield.rstglobal.in">shield.rstglobal.in</a></p>
-        <p style="margin-top:12px; color:#64748B; font-size:0.875rem;">We aim to respond to all legal and compliance inquiries within 5 business days.</p>
-      </div>
-    </div>
-
+  <div class="policy-highlight">
+    <p>Please read these Terms of Service carefully before using Shield. By creating an account or using the Shield platform, you agree to be bound by these terms. If you do not agree, please do not use the service.</p>
   </div>
+
+  <div class="policy-toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#acceptance">Acceptance of Terms</a></li>
+      <li><a href="#service">Description of Service</a></li>
+      <li><a href="#eligibility">Account Registration &amp; Eligibility</a></li>
+      <li><a href="#acceptable-use">Acceptable Use</a></li>
+      <li><a href="#children">Children's Accounts</a></li>
+      <li><a href="#billing">Subscription &amp; Billing</a></li>
+      <li><a href="#privacy">Privacy &amp; Data</a></li>
+      <li><a href="#liability">Limitation of Liability</a></li>
+      <li><a href="#termination">Termination</a></li>
+      <li><a href="#changes">Changes to These Terms</a></li>
+      <li><a href="#governing-law">Governing Law</a></li>
+      <li><a href="#contact">Contact Us</a></li>
+    </ol>
+  </div>
+
+  <section class="policy-section" id="acceptance">
+    <h2><span class="sec-num">1</span>Acceptance of Terms</h2>
+    <p>These Terms of Service ("Terms") constitute a legally binding agreement between you ("User", "you", or "your") and RST Global Private Limited ("RST Global", "we", "us", or "our"), a company incorporated under the laws of India, with respect to your use of the Shield platform, including the Shield mobile application, web dashboard, DNS filtering services, and any related software or features (collectively, the "Service").</p>
+    <p>By accessing or using the Service in any way — including creating an account, installing the Shield app, or configuring DNS settings — you confirm that you have read, understood, and agree to be bound by these Terms, along with our Privacy Policy, which is incorporated herein by reference.</p>
+    <p>If you are using the Service on behalf of an organisation such as an Internet Service Provider (ISP) or school, you represent that you have the authority to bind that organisation to these Terms.</p>
+  </section>
+
+  <section class="policy-section" id="service">
+    <h2><span class="sec-num">2</span>Description of Service</h2>
+    <p>Shield is a family internet protection platform that enables parents and guardians to manage and safeguard their children's online experience. The Service currently includes the following features:</p>
+    <ul>
+      <li><strong>DNS Filtering:</strong> Blocks access to websites and online content in categories such as adult content, gambling, violence, phishing, and malware, using DNS-over-HTTPS (DoH) technology. Filtering applies on any network — home WiFi, school WiFi, and mobile 4G/5G data.</li>
+      <li><strong>Parental Controls:</strong> Content category blocking, custom allow/block lists, internet schedule enforcement (e.g. no internet during school hours or after bedtime), and per-device screen time budgets.</li>
+      <li><strong>Location Tracking:</strong> Real-time GPS location sharing for enrolled child devices, location history, and geofence alerts that notify parents when a child enters or leaves a designated area.</li>
+      <li><strong>Alerts &amp; Notifications:</strong> Push notifications and optional messaging-app alerts (WhatsApp, Telegram) for key events such as blocked site attempts, geofence breaches, and SOS requests from a child.</li>
+      <li><strong>Rewards System:</strong> A points-based incentive system allowing parents to assign tasks to children and reward compliance with screen time or other privileges.</li>
+      <li><strong>Analytics &amp; Reporting:</strong> Summaries of browsing activity categories, time-online trends, and weekly digest emails.</li>
+      <li><strong>ISP &amp; Multi-Tenant Deployment:</strong> White-label deployment for Internet Service Providers and enterprises to offer Shield as a managed service to their customers.</li>
+    </ul>
+    <p>We reserve the right to modify, enhance, or discontinue any feature of the Service at any time with reasonable notice where practicable.</p>
+  </section>
+
+  <section class="policy-section" id="eligibility">
+    <h2><span class="sec-num">3</span>Account Registration &amp; Eligibility</h2>
+    <p><strong>Age requirement:</strong> You must be at least 18 years of age to create a parent, guardian, or administrator account on Shield. By registering, you represent and warrant that you are 18 years of age or older.</p>
+    <p><strong>Accurate information:</strong> You agree to provide accurate, current, and complete information during registration and to keep your account information up to date. Providing false information may result in immediate suspension or termination of your account.</p>
+    <p><strong>Account security:</strong> You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You must notify us immediately at <a href="mailto:legal@rstglobal.in">legal@rstglobal.in</a> if you suspect any unauthorised use of your account.</p>
+    <p><strong>One account per household:</strong> A single parent account may manage multiple child profiles and devices. Sharing of parent account credentials with other adults who are not co-guardians of the enrolled children is not permitted.</p>
+    <p><strong>ISP/Enterprise accounts:</strong> Organisations registering as Internet Service Providers or enterprises must provide valid business details. A designated administrator is responsible for compliance with these Terms across all sub-accounts provisioned under the organisation's tenant.</p>
+  </section>
+
+  <section class="policy-section" id="acceptable-use">
+    <h2><span class="sec-num">4</span>Acceptable Use</h2>
+    <p>You agree to use the Service only for lawful purposes and in a manner consistent with these Terms. The following actions are strictly prohibited:</p>
+    <ul>
+      <li>Using the Service for any illegal activity or in violation of any applicable Indian or international law or regulation.</li>
+      <li>Attempting to circumvent, disable, or bypass any safety feature, DNS filtering rule, or access control implemented by Shield.</li>
+      <li>Using the Service to monitor, track, or control any individual without their knowledge or consent, except as expressly permitted for enrolled minor children under the supervision of their parent or legal guardian.</li>
+      <li>Reverse-engineering, decompiling, or attempting to extract the source code of the Shield application or backend systems.</li>
+      <li>Attempting to gain unauthorised access to the Shield infrastructure, databases, or other users' accounts.</li>
+      <li>Using the Service to transmit malware, spam, or any other harmful or disruptive content.</li>
+      <li>Reselling or sublicensing access to the Service without a written ISP or reseller agreement with RST Global.</li>
+      <li>Using automated tools, bots, or scripts to interact with the Service in a way that places undue load on our systems.</li>
+    </ul>
+    <p>Violation of this Acceptable Use Policy may result in immediate suspension or permanent termination of your account, without refund, and may be reported to the appropriate authorities where required by law.</p>
+  </section>
+
+  <section class="policy-section" id="children">
+    <h2><span class="sec-num">5</span>Children's Accounts</h2>
+    <p>Shield is designed as a tool for parents and guardians to protect and manage their minor children's internet access. Child profiles and child device accounts are created by, and operate under the authority of, a registered parent or guardian account.</p>
+    <p><strong>Parental responsibility:</strong> By creating a child profile, you confirm that you are the parent or legal guardian of that child and that you have the legal right to monitor their online activity and location. You take full responsibility for all data collected through child profiles associated with your account.</p>
+    <p><strong>Transparency with children:</strong> We strongly encourage parents and guardians to be open with their children about the use of Shield. Age-appropriate transparency about internet filters, location sharing, and screen time rules promotes trust and digital literacy.</p>
+    <p><strong>Data minimisation for children:</strong> We collect only the data necessary to provide the Service for child profiles. We do not use child data for advertising, profiling, or any purpose other than delivering and improving the parental control features. Please refer to our Privacy Policy for details.</p>
+    <p><strong>No direct accounts for minors:</strong> Children under the age of 18 may not independently register for a Shield account. All access by minors is through child profiles administered by a parent or guardian.</p>
+  </section>
+
+  <section class="policy-section" id="billing">
+    <h2><span class="sec-num">6</span>Subscription &amp; Billing</h2>
+    <p><strong>Free tier:</strong> Shield offers a free plan with core DNS filtering features. The features included in the free plan may change over time and are described on our pricing page.</p>
+    <p><strong>Paid plans:</strong> Premium features are available through paid subscription plans billed monthly or annually. Prices are displayed in Indian Rupees (INR) inclusive of applicable taxes unless otherwise stated. ISP and enterprise plans are priced separately based on the number of managed customers.</p>
+    <p><strong>Payment processing:</strong> All payments are processed securely through Stripe. By providing payment details, you authorise RST Global to charge your selected payment method on a recurring basis in accordance with your chosen plan. We do not store your full card details on our servers.</p>
+    <p><strong>Renewals:</strong> Subscriptions renew automatically at the end of each billing cycle unless cancelled before the renewal date. You will receive a reminder email before each renewal.</p>
+    <p><strong>Cancellation:</strong> You may cancel your subscription at any time from the Shield dashboard. Cancellation takes effect at the end of the current billing period. You will retain access to paid features until that date. No partial-period refunds are issued unless required by applicable law.</p>
+    <p><strong>Refunds:</strong> If you believe you have been charged in error, please contact us at <a href="mailto:legal@rstglobal.in">legal@rstglobal.in</a> within 14 days of the charge. We review refund requests on a case-by-case basis.</p>
+    <p><strong>Price changes:</strong> We may update subscription prices with at least 30 days' notice before the change takes effect. Continued use of the Service after a price change constitutes acceptance of the new pricing.</p>
+    <p><strong>Taxes:</strong> You are responsible for all applicable taxes. Where required by law, RST Global will collect GST or other taxes at the point of payment.</p>
+  </section>
+
+  <section class="policy-section" id="privacy">
+    <h2><span class="sec-num">7</span>Privacy &amp; Data</h2>
+    <p>Your use of the Service is also governed by our Privacy Policy, which describes how we collect, use, and protect your personal data and the data of enrolled child profiles. The Privacy Policy is available at <a href="/privacy.html">shield.rstglobal.in/privacy.html</a>.</p>
+    <p>Key points:</p>
+    <ul>
+      <li>We do not sell your personal data or your children's data to third parties.</li>
+      <li>DNS query logs are used solely to enforce filtering rules and provide activity summaries. We do not build browsing profiles for advertising purposes.</li>
+      <li>Location data is stored securely and accessible only to the parent/guardian account holder and authorised RST Global personnel for support purposes.</li>
+      <li>You may request deletion of your account and associated data at any time by contacting <a href="mailto:legal@rstglobal.in">legal@rstglobal.in</a>.</li>
+    </ul>
+  </section>
+
+  <section class="policy-section" id="liability">
+    <h2><span class="sec-num">8</span>Limitation of Liability</h2>
+    <p><strong>No guarantee of complete filtering:</strong> While Shield employs robust DNS filtering and content categorisation, no internet filtering technology is 100% effective. We do not warrant that all harmful content will be blocked or that all permitted content will be accessible at all times. The Service is a tool to assist parents — it does not replace parental supervision.</p>
+    <p><strong>"As is" basis:</strong> The Service is provided on an "as is" and "as available" basis without warranties of any kind, whether express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or uninterrupted availability.</p>
+    <p><strong>Cap on liability:</strong> To the maximum extent permitted by applicable law, RST Global's total cumulative liability to you for any claims arising from or related to the Service shall not exceed the amount you paid to RST Global in the twelve (12) months immediately preceding the event giving rise to the claim, or INR 1,000, whichever is greater.</p>
+    <p><strong>Exclusion of consequential damages:</strong> RST Global shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of data, loss of revenue, or harm arising from a child's access to inappropriate content, even if we have been advised of the possibility of such damages.</p>
+    <p><strong>Indemnification:</strong> You agree to indemnify and hold harmless RST Global, its directors, employees, and agents from any claims, losses, or expenses (including legal fees) arising from your use of the Service, your violation of these Terms, or your violation of any applicable law.</p>
+  </section>
+
+  <section class="policy-section" id="termination">
+    <h2><span class="sec-num">9</span>Termination</h2>
+    <p><strong>By you:</strong> You may close your account at any time from the Shield dashboard or by contacting us. Closing your account will delete all associated child profiles and device configurations. Data deletion timelines are described in our Privacy Policy.</p>
+    <p><strong>By us:</strong> RST Global reserves the right to suspend or terminate your account and access to the Service, with or without notice, if:</p>
+    <ul>
+      <li>You materially breach these Terms and fail to remedy the breach within 7 days of written notice.</li>
+      <li>We are required to do so by law or court order.</li>
+      <li>We reasonably believe continued access poses a risk to the security or integrity of the Service.</li>
+      <li>Your subscription payment remains unpaid after a reasonable grace period.</li>
+    </ul>
+    <p>On termination, your right to use the Service ceases immediately. Provisions of these Terms that by their nature should survive termination — including limitations of liability, indemnification, and governing law — will continue to apply.</p>
+  </section>
+
+  <section class="policy-section" id="changes">
+    <h2><span class="sec-num">10</span>Changes to These Terms</h2>
+    <p>We may update these Terms from time to time to reflect changes in our Service, legal requirements, or business practices. When we make material changes, we will:</p>
+    <ul>
+      <li>Update the "Last Updated" date at the top of this page.</li>
+      <li>Send a notification email to the address associated with your account at least 14 days before the changes take effect (for material changes).</li>
+      <li>Display a prominent notice within the Shield dashboard or app.</li>
+    </ul>
+    <p>Your continued use of the Service after the effective date of the updated Terms constitutes your acceptance of the changes. If you do not agree with the updated Terms, you must stop using the Service and close your account before the effective date.</p>
+  </section>
+
+  <section class="policy-section" id="governing-law">
+    <h2><span class="sec-num">11</span>Governing Law</h2>
+    <p>These Terms shall be governed by and construed in accordance with the laws of India, without regard to its conflict of law provisions. The Information Technology Act, 2000 (and its amendments), the Digital Personal Data Protection Act, 2023, and other applicable Indian legislation govern the use of the Service.</p>
+    <p>Any dispute, controversy, or claim arising out of or relating to these Terms or the Service shall first be attempted to be resolved through good-faith negotiation. If not resolved within 30 days, disputes shall be subject to the exclusive jurisdiction of the competent courts located in Bangalore, Karnataka, India.</p>
+  </section>
+
+  <section class="policy-section" id="contact">
+    <h2><span class="sec-num">12</span>Contact Us</h2>
+    <p>If you have questions about these Terms, need to report a concern, or wish to make a data-related request, please contact us:</p>
+    <div class="policy-contact-card">
+      <h3>RST Global Private Limited</h3>
+      <p>Legal &amp; Compliance Team</p>
+      <p>Email: <a href="mailto:legal@rstglobal.in">legal@rstglobal.in</a></p>
+      <p>Platform: <a href="https://shield.rstglobal.in">shield.rstglobal.in</a></p>
+      <p style="color: var(--ink-500); margin-top: var(--s-3);">We aim to respond to all legal and compliance inquiries within 5 business days.</p>
+    </div>
+  </section>
+
+  <p class="policy-updated">These Terms of Service were last updated on 1 March 2026.</p>
+
 </main>
 
-<!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
 <footer class="footer">
   <div class="container">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <a href="/" class="nav-logo" aria-label="Shield — Home">
-          <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-            <path d="M16 2 L28 7.5 V16 C28 23.5 22.8 29.8 16 32 C9.2 29.8 4 23.5 4 16 V7.5 Z" fill="rgba(255,255,255,0.9)"/>
-            <path d="M16 5.5 L25.5 9.5 V16 C25.5 22 21.5 27.5 16 29.5 C10.5 27.5 6.5 22 6.5 16 V9.5 Z" fill="rgba(13,71,161,0.15)"/>
-            <path d="M10 16 L14 20.5 L22 12" stroke="#1565C0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#3B6FE0"/>
+            <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#6B9BF5"/>
+            <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>Shield</span>
-        </a>
-        <p>Keeping children safe online with intelligent DNS-based protection that works everywhere.</p>
+          Shield
+        </div>
+        <p class="footer-desc">Intelligent family internet protection — DNS filtering, screen time, location safety, and AI insights in one simple Android app.</p>
       </div>
-      <div class="footer-links">
-        <nav class="footer-col" aria-label="Product links">
-          <h4>Product</h4>
-          <a href="/#features">Features</a>
-          <a href="/#how-it-works">How It Works</a>
-          <a href="/#pricing">Pricing</a>
-          <a href="/#download">Download</a>
-          <a href="/#faq">FAQ</a>
-        </nav>
-        <nav class="footer-col" aria-label="Account links">
-          <h4>Account</h4>
-          <a href="register.html">Create Account</a>
-          <a href="login.html">Sign In</a>
-        </nav>
-        <nav class="footer-col" aria-label="Company links">
-          <h4>Company</h4>
-          <a href="#">About RST Global</a>
-          <a href="/privacy.html">Privacy Policy</a>
-          <a href="/terms.html">Terms of Service</a>
-          <a href="/#contact">Contact</a>
-        </nav>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/#pricing">Pricing</a></li>
+          <li><a href="/#how-it-works">How it works</a></li>
+          <li><a href="/download/shield-app.apk">Download APK</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Account</h4>
+        <ul>
+          <li><a href="/login.html">Sign in</a></li>
+          <li><a href="/register.html">Get started</a></li>
+          <li><a href="/forgot-password.html">Reset password</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="/privacy.html">Privacy policy</a></li>
+          <li><a href="/terms.html">Terms of service</a></li>
+          <li><a href="mailto:support@rstglobal.in">Contact support</a></li>
+        </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; 2026 RST Global. All rights reserved. Shield is a product of RST Global Private Limited.</p>
-      <p>Made with &#10084; for families everywhere.</p>
+      <p>&copy; 2026 RST Global Pvt. Ltd. All rights reserved.</p>
+      <div class="footer-legal-links">
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms</a>
+      </div>
     </div>
   </div>
 </footer>
 
 <script>
-// Mobile nav drawer
-const navBurger = document.getElementById('navBurger');
-const navDrawer = document.getElementById('navDrawer');
-function closeDrawer() {
-  navDrawer.setAttribute('aria-hidden', 'true');
-  navBurger.setAttribute('aria-expanded', 'false');
-  navBurger.classList.remove('is-open');
-}
-navBurger.addEventListener('click', () => {
-  const opening = navDrawer.getAttribute('aria-hidden') === 'true';
-  navDrawer.setAttribute('aria-hidden', opening ? 'false' : 'true');
-  navBurger.setAttribute('aria-expanded', opening ? 'true' : 'false');
-  navBurger.classList.toggle('is-open', opening);
-});
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (!target) return;
+      e.preventDefault();
+      const top = target.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top, behavior: 'smooth' });
+    });
+  });
 </script>
-
 </body>
 </html>
