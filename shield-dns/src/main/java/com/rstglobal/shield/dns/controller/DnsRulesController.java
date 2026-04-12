@@ -525,7 +525,7 @@ public class DnsRulesController {
             String ownerUserId = (String) parentInfo.get("userId");
             if (!callerUserIdStr.equals(ownerUserId)) {
                 log.warn("Ownership check failed: caller={} ownerOfProfile={} profileId={}",
-                        callerUserIdStr, ownerUserId, profileId);
+                        callerUserIdStr.replaceAll("[\\r\\n]", ""), ownerUserId, profileId);
                 throw ShieldException.forbidden("You do not own this child profile");
             }
         } catch (ShieldException se) {

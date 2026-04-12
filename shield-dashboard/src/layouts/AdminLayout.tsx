@@ -106,6 +106,8 @@ export default function AdminLayout() {
   const { user, logout } = useAuthStore();
   const { mode: themeMode, toggle: toggleTheme } = useThemeStore();
 
+  const [sidebarSearch, setSidebarSearch] = useState('');
+
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
     () => Object.fromEntries(sections.map(s => [s.title, true]))
   );
@@ -186,6 +188,11 @@ export default function AdminLayout() {
         <List disablePadding sx={{ px: collapsed && !isMobile ? 0.75 : 1.25 }}>
           {sections.map((section, si) => {
             const isExpanded = expandedSections[section.title] ?? true;
+            const query = sidebarSearch.toLowerCase().trim();
+            const filteredItems = query
+              ? section.items.filter((item) => item.label.toLowerCase().includes(query))
+              : section.items;
+            if (query && filteredItems.length === 0) return null;
             return (
               <Box key={section.title}>
                 {si > 0 && (
@@ -214,8 +221,8 @@ export default function AdminLayout() {
                     </Box>
                   </Box>
                 )}
-                <Collapse in={collapsed || isMobile ? true : isExpanded} timeout={150}>
-                  {section.items.map((item) => {
+                <Collapse in={query ? true : (collapsed || isMobile ? true : isExpanded)} timeout={150}>
+                  {filteredItems.map((item) => {
                     const active = isActive(item.path);
                     const btn = (
                       <ListItemButton
@@ -442,6 +449,11 @@ export default function AdminLayout() {
               <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', flexShrink: 0 }} />
               <InputBase
                 placeholder="Search…"
+                value={sidebarSearch}
+                onChange={(e) => setSidebarSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setSidebarSearch('');
+                }}
                 inputProps={{ 'aria-label': 'global search' }}
                 sx={{ fontSize: 13.5, flex: 1, '& input': { py: 0 } }}
               />

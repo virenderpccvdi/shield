@@ -134,14 +134,14 @@ img, svg { max-width: 100%; display: block; }
 .btn-sm { padding: 9px 16px; font-size: var(--text-xs); }
 
 .btn-primary {
-  background: var(--brand-600);
+  background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
   color: var(--white);
-  box-shadow: 0 6px 16px -6px rgba(30, 79, 196, 0.5);
+  box-shadow: 0 6px 16px -6px rgba(0, 93, 172, 0.5);
 }
 .btn-primary:hover {
-  background: var(--brand-700);
+  background: linear-gradient(135deg, var(--brand-700), var(--brand-600));
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px -8px rgba(30, 79, 196, 0.55);
+  box-shadow: 0 10px 24px -8px rgba(0, 93, 172, 0.55);
   color: var(--white);
 }
 
@@ -219,7 +219,7 @@ img, svg { max-width: 100%; display: block; }
   display: flex;
   align-items: center;
   background: var(--white);
-  border: 1.5px solid var(--ink-300);
+  border: 1.5px solid rgba(203, 213, 225, 0.4);
   border-radius: var(--r-md);
   transition: border-color var(--d-fast) var(--ease-out-quart), box-shadow var(--d-mid) var(--ease-out-quart);
 }
@@ -335,9 +335,9 @@ img, svg { max-width: 100%; display: block; }
 .card {
   background: var(--white);
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   padding: var(--s-8);
-  border: 1px solid var(--ink-200);
+  border: none;
 }
 .card-interactive {
   transition: transform var(--d-mid) var(--ease-out-quart),

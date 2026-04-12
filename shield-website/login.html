@@ -12,7 +12,7 @@
   <meta property="og:title" content="Sign In — Shield Family Protection"/>
   <meta property="og:description" content="Sign in to your Shield parental control dashboard."/>
   <meta property="og:image" content="https://shield.rstglobal.in/og-image.svg"/>
-  <meta name="theme-color" content="#1E4FC4"/>
+  <meta name="theme-color" content="#005DAC"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
   <link rel="manifest" href="/manifest.json"/>
 
@@ -31,8 +31,8 @@
       min-height: 100vh;
       display: flex;
       background:
-        radial-gradient(ellipse 60% 45% at 85% 15%, rgba(30,79,196,0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at 10% 90%, rgba(107,155,245,0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 45% at 85% 15%, rgba(0,93,172,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 10% 90%, rgba(66,165,245,0.10) 0%, transparent 60%),
         var(--ink-50);
     }
 
@@ -54,8 +54,8 @@
       padding: var(--s-10);
       border-radius: var(--r-2xl);
       background:
-        radial-gradient(ellipse 80% 60% at 70% 15%, rgba(107,155,245,0.35) 0%, transparent 65%),
-        linear-gradient(155deg, var(--brand-900) 0%, var(--brand-800) 45%, var(--brand-700) 100%);
+        radial-gradient(ellipse 80% 60% at 70% 15%, rgba(66,165,245,0.35) 0%, transparent 65%),
+        linear-gradient(135deg, #005DAC 0%, #1976D2 100%);
       color: var(--white);
       overflow: hidden;
       min-height: 600px;
@@ -77,7 +77,7 @@
       bottom: -100px; left: -80px;
       width: 260px; height: 260px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(107,155,245,0.15) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(66,165,245,0.15) 0%, transparent 70%);
       pointer-events: none;
     }
 
@@ -196,7 +196,7 @@
     .auth-form-box {
       background: var(--white);
       border-radius: var(--r-2xl);
-      border: 1px solid var(--ink-200);
+      border: 1.5px solid rgba(203, 213, 225, 0.4);
       box-shadow: var(--shadow-lg);
       padding: var(--s-10) var(--s-10) var(--s-8);
     }
@@ -475,8 +475,8 @@
       <!-- Mobile-only Shield logo (hidden on desktop, shown ≤860px) -->
       <a href="/" class="form-mobile-logo" aria-label="Shield home">
         <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#1E4FC4"/>
-          <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#3B6FE0"/>
+          <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#005DAC"/>
+          <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#1976D2"/>
           <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         Shield
@@ -685,8 +685,12 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     // open redirect attacks (external URLs). Only allow same-origin paths.
     const params = new URLSearchParams(window.location.search);
     const raw = params.get('redirect') || '/app/';
-    const redirect = (raw.startsWith('/') && !raw.startsWith('//')) ? raw : '/app/';
-    window.location.href = redirect;
+    // Strict validation: must start with exactly one slash followed by a
+    // path character — blocks protocol-relative URLs (//evil.com),
+    // javascript: URIs, data: URIs, and any other scheme.
+    const safePathPattern = /^\/[a-zA-Z0-9._\-\/]*(\?[^]*)?$/;
+    const redirect = safePathPattern.test(raw) ? raw : '/app/';
+    window.location.assign(redirect);
 
   } catch {
     showAlert('Unable to connect. Please check your internet connection.');

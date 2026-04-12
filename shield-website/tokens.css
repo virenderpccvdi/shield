@@ -7,16 +7,16 @@
 :root {
   /* ─── Brand (navy → cobalt → sky) ─────────────────────────────── */
   --brand-950: #061430;   /* deepest — footer, hero text shadow */
-  --brand-900: #0A1F44;
-  --brand-800: #0F2A5E;   /* hero gradient start */
-  --brand-700: #1538A0;   /* button hover, link hover */
-  --brand-600: #1E4FC4;   /* PRIMARY — CTA, active nav, focus ring */
-  --brand-500: #3B6FE0;   /* primary hover, badges */
-  --brand-400: #6B9BF5;   /* secondary accent */
-  --brand-300: #9DBEFB;
+  --brand-900: #002B52;
+  --brand-800: #003D72;   /* hero gradient start */
+  --brand-700: #004A8F;   /* button hover, link hover */
+  --brand-600: #005DAC;   /* PRIMARY — CTA, active nav, focus ring */
+  --brand-500: #1976D2;   /* primary hover, badges */
+  --brand-400: #42A5F5;   /* secondary accent */
+  --brand-300: #7DD3FC;
   --brand-200: #C7D9FD;
-  --brand-100: #E0EBFF;   /* tinted card bg */
-  --brand-50:  #F0F6FF;   /* tinted page bg */
+  --brand-100: #E3F2FD;   /* tinted card bg */
+  --brand-50:  #EFF6FF;   /* tinted page bg */
 
   /* ─── Neutrals (slate) ────────────────────────────────────────── */
   --ink-950: #020617;
@@ -99,11 +99,11 @@
   /* ─── Shadows (layered) ───────────────────────────────────────── */
   --shadow-xs:  0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-sm:  0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-md:  0 6px 16px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
-  --shadow-lg:  0 16px 40px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
-  --shadow-xl:  0 32px 72px -12px rgba(15, 23, 42, 0.18);
+  --shadow-md:  0 8px 32px -4px rgba(15, 31, 61, 0.06);
+  --shadow-lg:  0 16px 48px -8px rgba(15, 31, 61, 0.08);
+  --shadow-xl:  0 24px 64px -12px rgba(15, 31, 61, 0.10);
   --shadow-2xl: 0 48px 96px -16px rgba(15, 23, 42, 0.22);
-  --shadow-ring: 0 0 0 4px rgba(30, 79, 196, 0.18);  /* focus ring */
+  --shadow-ring: 0 0 0 4px rgba(0, 93, 172, 0.18);  /* focus ring */
   --shadow-ring-danger: 0 0 0 4px rgba(220, 38, 38, 0.18);
 
   /* ─── Motion ──────────────────────────────────────────────────── */

@@ -63,30 +63,63 @@ class FcmService {
 
   static void _handleOpen(RemoteMessage msg) {
     final notifType = msg.data['type'] as String? ?? '';
+    final profileId = msg.data['profileId'] as String? ?? msg.data['childId'] as String?;
     final ctx = navigatorKey.currentContext;
     if (ctx == null) return;
     final router = GoRouter.of(ctx);
     switch (notifType) {
       case 'GEOFENCE':
-        router.go('/parent/location/map');
+        if (profileId != null && profileId.isNotEmpty) {
+          router.go('/parent/family/$profileId/map');
+        } else {
+          router.go('/parent/map');
+        }
         break;
       case 'BUDGET_EXCEEDED':
-        router.go('/parent/controls/time-limits');
+        if (profileId != null && profileId.isNotEmpty) {
+          router.go('/parent/family/$profileId/time-limits');
+        } else {
+          router.go('/parent/alerts');
+        }
         break;
       case 'ANOMALY':
-        router.go('/parent/activity/ai-insights');
+        if (profileId != null && profileId.isNotEmpty) {
+          router.go('/parent/family/$profileId/ai-insights');
+        } else {
+          router.go('/parent/alerts');
+        }
         break;
       case 'SOS':
       case 'PANIC':
-        final childId = msg.data['childId'] as String?;
-        if (childId != null && childId.isNotEmpty) {
-          router.go('/parent/location/map?childId=$childId');
+        if (profileId != null && profileId.isNotEmpty) {
+          router.go('/parent/family/$profileId/map');
         } else {
-          router.go('/parent/location/map');
+          router.go('/parent/map');
         }
         break;
       case 'BEDTIME':
-        router.go('/parent/controls/bedtime');
+        if (profileId != null && profileId.isNotEmpty) {
+          router.go('/parent/family/$profileId/bedtime');
+        } else {
+          router.go('/parent/alerts');
+        }
+        break;
+      case 'DNS_ALERT':
+        if (profileId != null && profileId.isNotEmpty) {
+          router.go('/parent/family/$profileId/browsing');
+        } else {
+          router.go('/parent/alerts');
+        }
+        break;
+      case 'APP_UPDATE':
+        router.go('/parent/settings');
+        break;
+      case 'LOCATION_UPDATE':
+        if (profileId != null && profileId.isNotEmpty) {
+          router.go('/parent/family/$profileId/map');
+        } else {
+          router.go('/parent/map');
+        }
         break;
       default:
         router.go('/parent/alerts');

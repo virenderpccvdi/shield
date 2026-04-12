@@ -157,7 +157,7 @@ public class BulkImportService {
                      .builder()
                      .setIgnoreEmptyLines(true)
                      .setTrim(true)
-                     .build()
+                     .get()
                      .parse(reader)) {
 
             boolean firstRow = true;

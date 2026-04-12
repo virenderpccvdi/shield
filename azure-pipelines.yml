@@ -226,23 +226,34 @@ stages:
           cp "$GSF" "$DEST"
           echo "Copied google-services.json from server repo"
         fi
+        # Copy signing keystore + key.properties from server repo (gitignored)
+        KP="/var/www/ai/FamilyShield/shield-app/android/key.properties"
+        KS="/var/www/ai/FamilyShield/shield-app/android/shield-release.jks"
+        if [ -f "$KP" ] && [ ! -f "shield-app/android/key.properties" ]; then
+          cp "$KP" shield-app/android/key.properties
+          echo "Copied key.properties from server repo"
+        fi
+        if [ -f "$KS" ] && [ ! -f "shield-app/android/shield-release.jks" ]; then
+          cp "$KS" shield-app/android/shield-release.jks
+          echo "Copied shield-release.jks from server repo"
+        fi
         # Write local.properties so Gradle finds the SDK without needing to install it
         echo "sdk.dir=/usr/lib/android-sdk" > shield-app/android/local.properties
         cd shield-app
         flutter pub get
-        # Debug build — no keystore required in CI.
-        # To switch to release: add a signing keystore as an Azure Pipelines
-        # secure file and configure android/app/build.gradle signingConfigs.
+        # Release build with code shrinking (minify + shrinkResources in build.gradle).
+        # Signing config: android/key.properties + android/shield-release.jks
+        # --split-per-abi is handled by the splits block in build.gradle.
         flutter build apk \
-          --debug \
+          --release \
           --no-tree-shake-icons
-        APK_SIZE=$(du -sh build/app/outputs/flutter-apk/app-debug.apk | cut -f1)
-        echo "Debug APK built: $APK_SIZE"
-      displayName: 'flutter build apk (debug)'
+        APK_SIZE=$(du -sh build/app/outputs/flutter-apk/app-release.apk | cut -f1)
+        echo "Release APK built: $APK_SIZE"
+      displayName: 'flutter build apk (release)'
 
     - script: |
         set -e
-        cp shield-app/build/app/outputs/flutter-apk/app-debug.apk \
+        cp shield-app/build/app/outputs/flutter-apk/app-release.apk \
            /var/www/ai/FamilyShield/static/shield-app.apk
         echo "APK deployed: $(du -sh /var/www/ai/FamilyShield/static/shield-app.apk)"
       displayName: 'Deploy APK to static directory'
@@ -250,7 +261,7 @@ stages:
     - script: |
         set -e
         mkdir -p shield-website/download
-        cp shield-app/build/app/outputs/flutter-apk/app-debug.apk \
+        cp shield-app/build/app/outputs/flutter-apk/app-release.apk \
            shield-website/download/shield-app.apk
         echo "APK size in website context: $(du -sh shield-website/download/shield-app.apk)"
       displayName: 'Copy APK into website Docker context'
@@ -300,7 +311,7 @@ stages:
 
     - script: |
         set -e
-        APK="shield-app/build/app/outputs/flutter-apk/app-debug.apk"
+        APK="shield-app/build/app/outputs/flutter-apk/app-release.apk"
         if [ -f "$APK" ]; then
           SIZE=$(du -sh "$APK" | cut -f1)
           echo "##vso[task.setvariable variable=APK_SIZE;isOutput=true]$SIZE"
