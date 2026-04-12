@@ -334,27 +334,11 @@ stages:
         echo "  - GitHub CodeQL Security Scan (.github/workflows/codeql.yml)"
       displayName: 'OWASP dependency check (nightly only — see note)'
 
-    # ── Step 3: Publish OWASP HTML report as pipeline artifact ───────────────
-    - script: |
-        REPORT=$(find $(Build.SourcesDirectory) \
-          -name "dependency-check-report.html" 2>/dev/null | head -1)
-        if [ -n "$REPORT" ]; then
-          cp "$REPORT" \
-             "$(Build.ArtifactStagingDirectory)/owasp-$(Build.BuildNumber).html"
-          echo "##[section]OWASP report staged for artifact upload"
-        else
-          echo "No OWASP report found (scan may have timed out on first run)"
-        fi
-      displayName: 'Stage OWASP report'
-      condition: always()
-
-    - task: PublishBuildArtifacts@1
-      displayName: 'Publish OWASP report artifact'
-      condition: always()
-      inputs:
-        pathToPublish: '$(Build.ArtifactStagingDirectory)'
-        artifactName: 'security-reports'
-        publishLocation: 'Container'
+    # OWASP report artifact step removed — OWASP scan itself is skipped on
+    # push path (nightly only in azure-pipelines-security.yml). Keeping the
+    # publish step with an empty directory caused a warning:
+    #   "Directory is empty. Nothing will be added to build artifact."
+    # CVE scanning is handled by GitHub Trivy + CodeQL workflows.
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STAGE 3: DEPLOY PROD — shield-prod namespace on AKS
