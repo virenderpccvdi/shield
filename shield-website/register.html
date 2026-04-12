@@ -198,6 +198,18 @@
       color: rgba(255, 255, 255, 0.72);
     }
 
+    /* ─── Mobile logo (hidden on desktop, shown ≤860px) ──────────── */
+    .form-mobile-logo {
+      display: none;
+      align-items: center;
+      gap: var(--s-3);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: var(--text-lg);
+      color: var(--brand-700);
+      margin-bottom: var(--s-5);
+    }
+
     /* ─── Right: form panel ─────────────────────────────────────── */
     .auth-form-wrap {
       flex: 1;
@@ -313,33 +325,57 @@
     .form-switch a { color: var(--brand-600); font-weight: 600; }
 
     /* ─── Mobile ────────────────────────────────────────────────── */
+    /* ─── Mobile (≤ 860px) — form first, brand below ───────────── */
     @media (max-width: 860px) {
+      body { min-height: auto; padding: var(--s-4); }
+
       .auth-shell {
         flex-direction: column;
-        padding: var(--s-5) var(--s-4);
-        gap: var(--s-5);
+        padding: 0;
+        gap: var(--s-4);
         min-height: auto;
       }
-      .auth-brand {
-        padding: var(--s-7) var(--s-6);
-        position: static;
+
+      /* Form FIRST on mobile — user sees email/name/password fields
+         immediately without scrolling past a tall brand panel */
+      .auth-form-wrap {
         width: 100%;
-        order: -1;
+        max-width: none;
+        order: 1;
       }
-      .brand-logo { margin-bottom: var(--s-5); font-size: var(--text-lg); }
-      .brand-headline { font-size: var(--text-2xl); margin-bottom: var(--s-3); }
-      .brand-sub { font-size: var(--text-sm); margin-bottom: var(--s-5); }
-      .brand-steps {
-        gap: var(--s-3);
-        margin-bottom: var(--s-4);
+      .auth-brand {
+        width: 100%;
+        order: 2;   /* brand drops BELOW form on mobile */
+        position: static;
+        min-height: auto;
+        padding: var(--s-6);
+        border-radius: var(--r-xl);
       }
-      .brand-step-text span { display: none; }
-      .brand-step-num { width: 30px; height: 30px; }
+
+      /* Show mobile logo in form, hide brand logo */
+      .form-mobile-logo { display: flex !important; }
+      .brand-logo { display: none; }
+      .brand-headline { font-size: var(--text-xl); margin-bottom: var(--s-2); }
+      .brand-sub { font-size: var(--text-sm); margin-bottom: var(--s-4); }
+      .brand-steps { display: none; }
       .brand-trust { padding: var(--s-3) var(--s-4); }
 
-      .auth-form-wrap { width: 100%; max-width: none; }
-      .auth-form-box { padding: var(--s-7) var(--s-6); border-radius: var(--r-xl); }
+      .auth-form-box {
+        padding: var(--s-6);
+        border-radius: var(--r-xl);
+        box-shadow: var(--shadow-md);
+      }
       .form-title { font-size: var(--text-2xl); }
+    }
+
+    /* ─── Very small phones (≤ 420px) ───────────────────────────── */
+    @media (max-width: 420px) {
+      body { padding: var(--s-3); }
+      .auth-brand { padding: var(--s-5) var(--s-4); border-radius: var(--r-lg); }
+      .brand-headline { font-size: var(--text-lg); }
+      .brand-sub { display: none; }
+      .auth-form-box { padding: var(--s-5); }
+      .form-back { display: none; }
     }
   </style>
 </head>
@@ -414,6 +450,16 @@
 
   <main class="auth-form-wrap" id="main">
     <div class="auth-form-box">
+
+      <!-- Mobile-only Shield logo (hidden on desktop, shown ≤860px) -->
+      <a href="/" class="form-mobile-logo" aria-label="Shield home">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#1E4FC4"/>
+          <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#3B6FE0"/>
+          <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Shield
+      </a>
 
       <a href="/" class="form-back">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">

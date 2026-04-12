@@ -334,50 +334,58 @@
 
     /* ─── Mobile (≤ 860px) ──────────────────────────────────────── */
     @media (max-width: 860px) {
+      body { min-height: auto; padding: var(--s-4); }
+
       .auth-shell {
         flex-direction: column;
-        padding: var(--s-5) var(--s-4);
-        gap: var(--s-5);
+        padding: 0;
+        gap: var(--s-4);
         min-height: auto;
+      }
+
+      /* Form comes FIRST on mobile — the primary action should be
+         above the fold. Brand panel drops below as supporting context. */
+      .auth-form-wrap {
+        width: 100%;
+        max-width: none;
+        order: 1;
       }
       .auth-brand {
-        padding: var(--s-7) var(--s-6);
-        min-height: auto;
         width: 100%;
-        order: -1;   /* brand band above the form */
+        order: 2;   /* brand BELOW form on mobile */
+        min-height: auto;
+        padding: var(--s-6);
+        border-radius: var(--r-xl);
       }
-      .brand-logo { margin-bottom: var(--s-5); font-size: var(--text-lg); }
-      .brand-headline { font-size: var(--text-2xl); margin-bottom: var(--s-3); }
-      .brand-sub { font-size: var(--text-sm); margin-bottom: var(--s-5); }
-      .brand-features {
-        flex-direction: row;
-        gap: var(--s-4);
-        overflow-x: auto;
-        margin-bottom: var(--s-4);
-        padding-bottom: var(--s-2);
-        scrollbar-width: none;
-      }
-      .brand-features::-webkit-scrollbar { display: none; }
-      .brand-feature {
-        flex: 0 0 200px;
-        min-width: 0;
-      }
-      .brand-feat-text strong { font-size: var(--text-xs); }
-      .brand-feat-text span { display: none; }
+
+      /* Show Shield logo above the form on mobile (form-mobile-logo) */
+      .form-mobile-logo { display: flex !important; }
+
+      /* Compact brand panel — just headline + trust badge, hide details */
+      .brand-logo { display: none; } /* shown via form-mobile-logo instead */
+      .brand-headline { font-size: var(--text-xl); margin-bottom: var(--s-2); }
+      .brand-sub { font-size: var(--text-sm); margin-bottom: var(--s-4); }
+      .brand-features { display: none; } /* hide feature cards on mobile */
       .brand-trust { padding: var(--s-3) var(--s-4); }
 
-      .auth-form-wrap { width: 100%; max-width: none; }
-      .auth-form-box { padding: var(--s-7) var(--s-6); border-radius: var(--r-xl); }
-      .form-mobile-logo { display: none; } /* brand panel handles it */
+      .auth-form-box {
+        padding: var(--s-6);
+        border-radius: var(--r-xl);
+        box-shadow: var(--shadow-md);
+      }
       .form-title { font-size: var(--text-2xl); }
     }
 
     /* ─── Very small phones (≤ 420px) ───────────────────────────── */
     @media (max-width: 420px) {
-      .auth-brand { padding: var(--s-5) var(--s-4); }
-      .brand-features { gap: var(--s-3); }
-      .brand-feature { flex: 0 0 170px; }
+      body { padding: var(--s-3); }
+      .auth-brand { padding: var(--s-5) var(--s-4); border-radius: var(--r-lg); }
+      .brand-headline { font-size: var(--text-lg); }
+      .brand-sub { display: none; }
+      .brand-trust { font-size: 11px; }
+      .auth-form-box { padding: var(--s-5); }
       .social-grid { grid-template-columns: 1fr; }
+      .form-back { display: none; } /* save space on tiny screens */
     }
   </style>
 </head>
@@ -463,6 +471,16 @@
   <!-- RIGHT — Form Panel -->
   <main class="auth-form-wrap" id="main">
     <div class="auth-form-box">
+
+      <!-- Mobile-only Shield logo (hidden on desktop, shown ≤860px) -->
+      <a href="/" class="form-mobile-logo" aria-label="Shield home">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#1E4FC4"/>
+          <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#3B6FE0"/>
+          <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Shield
+      </a>
 
       <a href="/" class="form-back">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
