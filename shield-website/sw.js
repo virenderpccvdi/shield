@@ -5,7 +5,7 @@
  * Cache versioning: bump CACHE_VERSION to invalidate caches on deploy.
  */
 
-const CACHE_VERSION = 'shield-v3';
+const CACHE_VERSION = 'shield-v4';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const HTML_CACHE    = `${CACHE_VERSION}-html`;
 
