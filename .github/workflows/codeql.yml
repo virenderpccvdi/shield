@@ -37,7 +37,7 @@ jobs:
           cache: 'maven'               # cache ~/.m2 — prevents 10+ min download on each run
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: java
           queries: security-extended,security-and-quality
@@ -46,7 +46,7 @@ jobs:
         run: mvn package -DskipTests -q --no-transfer-progress
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: java
           upload: true
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
           queries: security-extended,security-and-quality
@@ -85,7 +85,7 @@ jobs:
         run: npm run build
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: javascript-typescript
           upload: true
@@ -102,14 +102,14 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: python
           queries: security-extended,security-and-quality
           # CodeQL Python analysis works on source files — no pip install needed
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: python
           upload: true
