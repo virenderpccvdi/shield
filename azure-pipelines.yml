@@ -241,19 +241,19 @@ stages:
         echo "sdk.dir=/usr/lib/android-sdk" > shield-app/android/local.properties
         cd shield-app
         flutter pub get
-        # Release build with code shrinking (minify + shrinkResources in build.gradle).
-        # Signing config: android/key.properties + android/shield-release.jks
-        # --split-per-abi is handled by the splits block in build.gradle.
+        # Debug build for now — release build fails on R8 minification due to
+        # Kotlin version incompatibility (R8 requires newer Kotlin Gradle plugin).
+        # TODO: upgrade Kotlin plugin in settings.gradle, then switch back to --release.
         flutter build apk \
-          --release \
+          --debug \
           --no-tree-shake-icons
-        APK_SIZE=$(du -sh build/app/outputs/flutter-apk/app-release.apk | cut -f1)
-        echo "Release APK built: $APK_SIZE"
-      displayName: 'flutter build apk (release)'
+        APK_SIZE=$(du -sh build/app/outputs/flutter-apk/app-debug.apk | cut -f1)
+        echo "Debug APK built: $APK_SIZE"
+      displayName: 'flutter build apk (debug)'
 
     - script: |
         set -e
-        cp shield-app/build/app/outputs/flutter-apk/app-release.apk \
+        cp shield-app/build/app/outputs/flutter-apk/app-debug.apk \
            /var/www/ai/FamilyShield/static/shield-app.apk
         echo "APK deployed: $(du -sh /var/www/ai/FamilyShield/static/shield-app.apk)"
       displayName: 'Deploy APK to static directory'
@@ -261,7 +261,7 @@ stages:
     - script: |
         set -e
         mkdir -p shield-website/download
-        cp shield-app/build/app/outputs/flutter-apk/app-release.apk \
+        cp shield-app/build/app/outputs/flutter-apk/app-debug.apk \
            shield-website/download/shield-app.apk
         echo "APK size in website context: $(du -sh shield-website/download/shield-app.apk)"
       displayName: 'Copy APK into website Docker context'
@@ -311,7 +311,7 @@ stages:
 
     - script: |
         set -e
-        APK="shield-app/build/app/outputs/flutter-apk/app-release.apk"
+        APK="shield-app/build/app/outputs/flutter-apk/app-debug.apk"
         if [ -f "$APK" ]; then
           SIZE=$(du -sh "$APK" | cut -f1)
           echo "##vso[task.setvariable variable=APK_SIZE;isOutput=true]$SIZE"
