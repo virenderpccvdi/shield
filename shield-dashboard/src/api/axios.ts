@@ -4,7 +4,16 @@ import { useAuthStore } from '../store/auth.store';
 const correlationId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/v1` : '/api/v1',
+  // On AKS, the website and API are on different ingress hosts:
+  //   shield.rstglobal.in     → shield-website (nginx static)
+  //   api.shield.rstglobal.in → shield-gateway (Spring Cloud)
+  // Relative /api/v1 would hit the website nginx → 404.
+  // Detect origin and construct the API URL dynamically.
+  baseURL: import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api/v1`
+    : (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? `https://api.${window.location.hostname}/api/v1`
+      : '/api/v1'),
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 });
@@ -61,7 +70,7 @@ api.interceptors.response.use(
       try {
         // Use a plain axios call (not `api`) to avoid triggering this interceptor again
         const response = await axios.post(
-          `${import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/v1` : '/api/v1'}/auth/refresh`,
+          `${api.defaults.baseURL}/auth/refresh`,
           { refreshToken },
           { headers: { 'Content-Type': 'application/json' } },
         );

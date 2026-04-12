@@ -424,8 +424,10 @@ public class AuthService {
     @Transactional
     public void forgotPassword(ForgotPasswordRequest req) {
         userRepository.findByEmail(req.getEmail().toLowerCase()).ifPresent(user -> {
-            String otp = String.valueOf((int)(Math.random() * 900000) + 100000);
-            redis.opsForValue().set(OTP_PREFIX + user.getId(), otp, 15, TimeUnit.MINUTES);
+            String otp = String.valueOf(SECURE_RANDOM.nextInt(900000) + 100000);
+            // OTP valid for 60 minutes (was 15 min — too short for users checking
+            // email on a different device). Stored in Redis with auto-expiry.
+            redis.opsForValue().set(OTP_PREFIX + user.getId(), otp, 60, TimeUnit.MINUTES);
             notificationClient.sendPasswordResetOtpEmail(user.getId(), user.getEmail(), user.getName(), otp);
             log.info("Password reset OTP generated and email dispatched for user {}", user.getId());
         });
