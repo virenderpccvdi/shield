@@ -181,11 +181,16 @@ stages:
         set -e
         cd shield-dashboard
         # Self-hosted agent: node_modules already on disk.
-        # npm install --prefer-offline picks up any new packages without full reinstall.
-        # No Cache@2 task needed — avoids the package-lock.json hash-drift warning.
         npm install --prefer-offline
+        # VITE_API_URL is injected at build time so the React app knows the
+        # API gateway is on a separate subdomain (api.shield.rstglobal.in).
+        # Without this, axios defaults to relative /api/v1 which 404s on the
+        # website nginx. Vite replaces import.meta.env.VITE_API_URL with the
+        # literal string during production build.
+        export VITE_API_URL=https://api.shield.rstglobal.in
         npm run build
         echo "Dashboard built: $(du -sh dist)"
+        echo "VITE_API_URL baked in: $VITE_API_URL"
       displayName: 'npm build'
 
     - script: |
