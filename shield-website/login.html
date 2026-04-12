@@ -681,8 +681,11 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     }
 
     // Support deep-link through login: /login.html?redirect=/app/settings
+    // Validate the redirect URL to prevent XSS (javascript: URLs) and
+    // open redirect attacks (external URLs). Only allow same-origin paths.
     const params = new URLSearchParams(window.location.search);
-    const redirect = params.get('redirect') || '/app/';
+    const raw = params.get('redirect') || '/app/';
+    const redirect = (raw.startsWith('/') && !raw.startsWith('//')) ? raw : '/app/';
     window.location.href = redirect;
 
   } catch {

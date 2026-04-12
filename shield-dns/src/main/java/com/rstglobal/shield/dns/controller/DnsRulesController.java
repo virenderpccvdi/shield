@@ -509,8 +509,9 @@ public class DnsRulesController {
             String profileBase = resolveServiceUrl(PROFILE_SERVICE);
             if (profileBase == null) {
                 // Profile service unavailable — fail open since gateway already authenticated the user
+                // Sanitize user-controlled values before logging to prevent log injection
                 log.warn("Profile service unavailable — allowing access for userId={} profileId={} (gateway-authenticated)",
-                        callerUserIdStr, profileId);
+                        callerUserIdStr.replaceAll("[\\r\\n]", ""), profileId);
                 return;
             }
             @SuppressWarnings("unchecked")
@@ -533,7 +534,8 @@ public class DnsRulesController {
             // Network/timeout error contacting profile service — fail open since user
             // is already gateway-authenticated. Log for monitoring.
             log.warn("Profile ownership check failed for profileId={} (userId={}): {} — allowing access",
-                    profileId, callerUserIdStr, e.getMessage());
+                    profileId, callerUserIdStr.replaceAll("[\\r\\n]", ""),
+                    e.getMessage() != null ? e.getMessage().replaceAll("[\\r\\n]", "") : "null");
         }
     }
 
