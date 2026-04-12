@@ -1,0 +1,86 @@
+---
+// Top nav — used on index, pricing, features, etc.
+// Login/register/forgot-password use their own compact brand panel, not this nav.
+interface Props {
+  /** optional CSS modifier, e.g. "solid" for legal pages */
+  variant?: 'default' | 'solid';
+}
+const { variant = 'default' } = Astro.props;
+---
+
+<nav class={`nav nav-${variant}`} id="mainNav">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo" aria-label="Shield home">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#1E4FC4"/>
+          <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#3B6FE0"/>
+          <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Shield
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/#features">Features</a></li>
+        <li><a href="/#how-it-works">How it works</a></li>
+        <li><a href="/#pricing">Pricing</a></li>
+        <li><a href="/#testimonials">Reviews</a></li>
+        <li><a href="/#download">Download</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="/login" class="nav-signin">Sign in</a>
+        <a href="/register" class="btn btn-primary btn-sm">Get started</a>
+      </div>
+
+      <button class="nav-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="nav-mobile" id="navMobile">
+    <a href="/#features">Features</a>
+    <a href="/#how-it-works">How it works</a>
+    <a href="/#pricing">Pricing</a>
+    <a href="/#testimonials">Reviews</a>
+    <a href="/#download">Download</a>
+    <div class="nav-mobile-actions">
+      <a href="/login" class="btn btn-ghost">Sign in</a>
+      <a href="/register" class="btn btn-primary">Get started</a>
+    </div>
+  </div>
+</nav>
+
+<script is:inline>
+  const _nav = document.getElementById('mainNav');
+  if (_nav) {
+    const _onScroll = () => _nav.classList.toggle('scrolled', window.scrollY > 20);
+    window.addEventListener('scroll', _onScroll, { passive: true });
+    _onScroll();
+  }
+  const _hb = document.getElementById('hamburger');
+  const _mob = document.getElementById('navMobile');
+  if (_hb && _mob) {
+    _hb.addEventListener('click', () => {
+      const open = _mob.classList.toggle('open');
+      _hb.setAttribute('aria-expanded', String(open));
+    });
+    _mob.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        _mob.classList.remove('open');
+        _hb.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+  document.querySelectorAll('a[href^="/#"], a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const href = a.getAttribute('href');
+      const hash = href.startsWith('/#') ? href.slice(1) : href;
+      const target = document.querySelector(hash);
+      if (!target) return;
+      e.preventDefault();
+      const top = target.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top, behavior: 'smooth' });
+    });
+  });
+</script>

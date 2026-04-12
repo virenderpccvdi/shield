@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A3880"/>
+      <stop offset="55%" stop-color="#1565C0"/>
+      <stop offset="100%" stop-color="#0D47A1"/>
+    </linearGradient>
+    <linearGradient id="sh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.95)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.75)"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle grid pattern -->
+  <g opacity="0.06">
+    <line x1="0" y1="105" x2="1200" y2="105" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="210" x2="1200" y2="210" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="315" x2="1200" y2="315" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="420" x2="1200" y2="420" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="525" x2="1200" y2="525" stroke="white" stroke-width="1"/>
+    <line x1="200" y1="0" x2="200" y2="630" stroke="white" stroke-width="1"/>
+    <line x1="400" y1="0" x2="400" y2="630" stroke="white" stroke-width="1"/>
+    <line x1="600" y1="0" x2="600" y2="630" stroke="white" stroke-width="1"/>
+    <line x1="800" y1="0" x2="800" y2="630" stroke="white" stroke-width="1"/>
+    <line x1="1000" y1="0" x2="1000" y2="630" stroke="white" stroke-width="1"/>
+  </g>
+
+  <!-- Glow circles -->
+  <circle cx="900" cy="120" r="280" fill="rgba(66,165,245,0.08)"/>
+  <circle cx="200" cy="520" r="200" fill="rgba(255,255,255,0.04)"/>
+
+  <!-- Shield icon (large, centered-left) -->
+  <g transform="translate(100, 165) scale(3.2)">
+    <path d="M20 1 L36 7.5 V19 C36 29 28.5 37.5 20 40 C11.5 37.5 4 29 4 19 V7.5 Z"
+          fill="url(#sh)"/>
+    <path d="M20 5 L33 10.5 V19 C33 27 26.5 34.5 20 37 C13.5 34.5 7 27 7 19 V10.5 Z"
+          fill="rgba(13,71,161,0.12)"/>
+    <path d="M12 19 L17.5 25 L28 14"
+          stroke="#1565C0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Brand name -->
+  <text x="440" y="255"
+        font-family="Inter, -apple-system, sans-serif"
+        font-size="96" font-weight="800" fill="white" letter-spacing="-3">Shield</text>
+
+  <!-- Tagline -->
+  <text x="442" y="320"
+        font-family="Inter, -apple-system, sans-serif"
+        font-size="32" font-weight="400" fill="rgba(255,255,255,0.82)" letter-spacing="0.5">Smart Family Internet Protection</text>
+
+  <!-- Feature pills -->
+  <g transform="translate(442, 370)">
+    <!-- DNS Filtering pill -->
+    <rect x="0" y="0" width="190" height="44" rx="22" fill="rgba(255,255,255,0.15)"/>
+    <text x="95" y="28" text-anchor="middle"
+          font-family="Inter, sans-serif" font-size="18" font-weight="600" fill="white">DNS Filtering</text>
+
+    <!-- Screen Time pill -->
+    <rect x="206" y="0" width="200" height="44" rx="22" fill="rgba(255,255,255,0.15)"/>
+    <text x="306" y="28" text-anchor="middle"
+          font-family="Inter, sans-serif" font-size="18" font-weight="600" fill="white">Screen Time</text>
+
+    <!-- Real-Time Alerts pill -->
+    <rect x="422" y="0" width="220" height="44" rx="22" fill="rgba(255,255,255,0.15)"/>
+    <text x="532" y="28" text-anchor="middle"
+          font-family="Inter, sans-serif" font-size="18" font-weight="600" fill="white">Real-Time Alerts</text>
+  </g>
+
+  <!-- Free badge -->
+  <g transform="translate(442, 442)">
+    <rect x="0" y="0" width="140" height="40" rx="20" fill="rgba(76,175,80,0.3)" stroke="rgba(76,175,80,0.6)" stroke-width="1.5"/>
+    <text x="70" y="26" text-anchor="middle"
+          font-family="Inter, sans-serif" font-size="16" font-weight="700" fill="#81C784">✓ Free for Families</text>
+  </g>
+
+  <!-- Domain -->
+  <text x="600" y="588" text-anchor="middle"
+        font-family="Inter, sans-serif" font-size="22" font-weight="500" fill="rgba(255,255,255,0.5)">shield.rstglobal.in</text>
+</svg>

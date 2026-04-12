@@ -1,0 +1,88 @@
+---
+// Shared base layout for every Shield marketing page.
+// Handles <head>, design-system imports, fonts, OG, PWA, and SW registration.
+export interface Props {
+  title: string;
+  description: string;
+  canonical: string;
+  ogImage?: string;
+  noindex?: boolean;
+  /** extra <head> content (page-specific styles, JSON-LD, preloads) */
+  headExtra?: string;
+  /** page-specific theme color override (defaults to brand-600) */
+  themeColor?: string;
+}
+const {
+  title,
+  description,
+  canonical,
+  ogImage = 'https://shield.rstglobal.in/og-image.svg',
+  noindex = false,
+  themeColor = '#1E4FC4',
+} = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <meta name="author" content="RST Global" />
+  {noindex ? <meta name="robots" content="noindex, nofollow" /> : <meta name="robots" content="index, follow" />}
+  <link rel="canonical" href={canonical} />
+
+  {/* Open Graph */}
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:site_name" content="Shield" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:locale" content="en_US" />
+
+  {/* Twitter Card */}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={ogImage} />
+
+  {/* PWA */}
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content={themeColor} />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Shield" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  {/* Fonts */}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  {/* Design system — preload then load */}
+  <link rel="preload" href="/tokens.css" as="style" />
+  <link rel="preload" href="/components.css" as="style" />
+  <link rel="stylesheet" href="/tokens.css" />
+  <link rel="stylesheet" href="/components.css" />
+
+  <slot name="head" />
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <slot />
+  <script is:inline>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

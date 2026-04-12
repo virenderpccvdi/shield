@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Page not found — Shield"
+  description="The page you're looking for doesn't exist."
+  canonical="https://shield.rstglobal.in/404"
+  noindex={true}
+>
+  <Fragment slot="head">
+    <style>{`
+      body {
+        min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        padding: var(--s-8) var(--s-4); text-align: center;
+        background:
+          radial-gradient(ellipse 60% 45% at 85% 15%, rgba(30,79,196,0.12) 0%, transparent 60%),
+          radial-gradient(ellipse 50% 40% at 10% 90%, rgba(107,155,245,0.10) 0%, transparent 60%),
+          var(--ink-50);
+      }
+      .err-card { max-width: 480px; }
+      .err-code {
+        font-family: var(--font-display); font-weight: 800;
+        font-size: clamp(5rem, 14vw, 9rem); line-height: 1;
+        letter-spacing: -0.04em; margin-bottom: var(--s-4);
+        background: linear-gradient(180deg, var(--brand-500), var(--brand-800));
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      }
+      h1 { font-size: var(--text-3xl); margin-bottom: var(--s-3); }
+      p { font-size: var(--text-base); color: var(--ink-500); margin-bottom: var(--s-8); line-height: var(--leading-normal); }
+      .err-actions { display: flex; gap: var(--s-3); justify-content: center; flex-wrap: wrap; }
+    `}</style>
+  </Fragment>
+
+  <div class="err-card">
+    <div class="err-code">404</div>
+    <h1>We couldn't find that page</h1>
+    <p>The link you followed may be broken, or the page may have been moved. Let's get you back on track.</p>
+    <div class="err-actions">
+      <a href="/" class="btn btn-primary">Go to home</a>
+      <a href="/login" class="btn btn-ghost">Sign in</a>
+    </div>
+  </div>
+</BaseLayout>
