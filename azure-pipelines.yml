@@ -182,12 +182,12 @@ stages:
         cd shield-dashboard
         # Self-hosted agent: node_modules already on disk.
         npm install --prefer-offline
-        # VITE_API_URL is injected at build time so the React app knows the
-        # API gateway is on a separate subdomain (api.shield.rstglobal.in).
-        # Without this, axios defaults to relative /api/v1 which 404s on the
-        # website nginx. Vite replaces import.meta.env.VITE_API_URL with the
-        # literal string during production build.
+        # Vite env vars injected at build time. Vite replaces
+        # import.meta.env.VITE_* with literal strings in the production bundle.
+        # VITE_API_URL: API gateway is on api. subdomain, not the website domain.
+        # VITE_GOOGLE_MAPS_API_KEY: Google Maps for location/geofence pages.
         export VITE_API_URL=https://api.shield.rstglobal.in
+        export VITE_GOOGLE_MAPS_API_KEY=AIzaSyDXazeaKnjxYsnwE-Vb-gfapzhr566mo2M
         npm run build
         echo "Dashboard built: $(du -sh dist)"
         echo "VITE_API_URL baked in: $VITE_API_URL"
