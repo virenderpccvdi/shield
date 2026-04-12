@@ -679,9 +679,35 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   });
 });
 
-if (localStorage.getItem('shield_access_token')) {
-  window.location.href = '/app/';
-}
+// Auto-redirect to dashboard if user has a valid (non-expired) token.
+// Previously this redirected unconditionally, which trapped users:
+// expired token → redirected to /app/ → React shows blank → user can't
+// get back to login because the redirect fires again on every visit.
+(function autoRedirect() {
+  const token = localStorage.getItem('shield_access_token');
+  if (!token) return;
+  try {
+    // JWT format: header.payload.signature — decode the payload
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const exp = payload.exp * 1000; // JWT exp is in seconds
+    if (Date.now() < exp) {
+      // Token is still valid — redirect to dashboard
+      window.location.href = '/app/';
+    } else {
+      // Token expired — clear stale auth and let user re-login
+      localStorage.removeItem('shield_access_token');
+      localStorage.removeItem('shield_refresh_token');
+      localStorage.removeItem('shield_name');
+      localStorage.removeItem('shield_email');
+      localStorage.removeItem('shield_role');
+      localStorage.removeItem('shield-auth');
+    }
+  } catch {
+    // Malformed token — clear it
+    localStorage.removeItem('shield_access_token');
+    localStorage.removeItem('shield-auth');
+  }
+})();
 </script>
 </body>
 </html>
