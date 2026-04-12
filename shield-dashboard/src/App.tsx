@@ -155,12 +155,12 @@ function PageLoader() {
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuth = useAuthStore((s) => s.isAuthenticated());
-  return isAuth ? <>{children}</> : <Navigate to="/login" replace />;
+  return isAuth ? <>{children}</> : <Navigate to="/login.html" replace />;
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login.html" replace />;
   if (user.role === 'ISP_ADMIN') return <Navigate to="/isp/dashboard" replace />;
   if (user.role !== 'GLOBAL_ADMIN') return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
@@ -168,7 +168,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
 function IspRoute({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login.html" replace />;
   if (user.role === 'GLOBAL_ADMIN') return <Navigate to="/admin/dashboard" replace />;
   if (user.role !== 'ISP_ADMIN') return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
@@ -176,7 +176,7 @@ function IspRoute({ children }: { children: React.ReactNode }) {
 
 function RoleRouter() {
   const user = useAuthStore((s) => s.user);
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login.html" replace />;
   if (user.role === 'GLOBAL_ADMIN') return <Navigate to="/admin/dashboard" replace />;
   if (user.role === 'ISP_ADMIN') return <Navigate to="/isp/dashboard" replace />;
   return <Navigate to="/dashboard" replace />;
@@ -187,7 +187,7 @@ function RoleRouter() {
 function AuthLogoutListener() {
   const navigate = useNavigate();
   useEffect(() => {
-    const handler = () => navigate('/login', { replace: true });
+    const handler = () => { window.location.href = '/login.html'; };
     window.addEventListener('auth:logout', handler);
     return () => window.removeEventListener('auth:logout', handler);
   }, [navigate]);
