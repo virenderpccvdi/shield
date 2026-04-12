@@ -587,7 +587,10 @@
 </div>
 
 <script>
-const API = '/api/v1/auth';
+// API base URL — must use the api. subdomain because the website and API
+// are served from different AKS pods (shield-website vs shield-gateway).
+// Relative /api/ paths hit the website nginx which returns 404.
+const API = 'https://api.shield.rstglobal.in/api/v1/auth';
 
 function togglePwd(inputId, iconId) {
   const inp = document.getElementById(inputId);

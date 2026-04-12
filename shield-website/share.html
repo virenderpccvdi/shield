@@ -328,7 +328,7 @@
       return;
     }
     try {
-      const res = await fetch('/public/location/share/' + encodeURIComponent(token));
+      const res = await fetch('https://api.shield.rstglobal.in/public/location/share/' + encodeURIComponent(token));
       if (res.status === 404) throw new Error('This link does not exist or has already been removed.');
       if (res.status === 410) throw new Error('This location share link has expired.');
       if (!res.ok) throw new Error('Unable to load location data (HTTP ' + res.status + ').');
