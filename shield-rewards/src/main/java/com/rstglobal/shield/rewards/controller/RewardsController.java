@@ -229,13 +229,29 @@ public class RewardsController {
     // ── A6: Family Leaderboard ─────────────────────────────────────────────────
 
     /**
-     * GET /api/v1/rewards/leaderboard?tenantId={tenantId}
+     * GET /api/v1/rewards/leaderboard
      * Returns all child profiles for the tenant sorted by total points descending.
+     * Reads tenantId from X-Tenant-Id header (injected by gateway) first,
+     * falls back to query parameter. Returns 400 if neither is present.
      * Response: [{ "profileId": "...", "totalPoints": 450, "rank": 1, "streak": 7, "pointsBalance": 120 }]
      */
     @GetMapping("/leaderboard")
     public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getLeaderboard(
-            @RequestParam UUID tenantId) {
-        return ResponseEntity.ok(rewardBankService.getLeaderboard(tenantId));
+            @RequestHeader(value = "X-Tenant-Id", required = false) String headerTenantId,
+            @RequestParam(required = false) UUID tenantId) {
+        UUID effectiveTenantId = null;
+        if (headerTenantId != null && !headerTenantId.isBlank()) {
+            try {
+                effectiveTenantId = UUID.fromString(headerTenantId);
+            } catch (IllegalArgumentException ignored) { }
+        }
+        if (effectiveTenantId == null) {
+            effectiveTenantId = tenantId;
+        }
+        if (effectiveTenantId == null) {
+            log.warn("Leaderboard request missing tenantId — no header or query param provided");
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(rewardBankService.getLeaderboard(effectiveTenantId));
     }
 }

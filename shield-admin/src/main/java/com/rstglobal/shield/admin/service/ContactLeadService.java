@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -26,6 +27,7 @@ public class ContactLeadService {
     private final ContactLeadRepository repo;
     private final CrmActivityRepository activityRepo;
 
+    @Transactional
     public ContactLead submit(ContactSubmitRequest req, String ip, String userAgent) {
         ContactLead lead = ContactLead.builder()
                 .name(req.getName())
@@ -53,6 +55,7 @@ public class ContactLeadService {
         return saved;
     }
 
+    @Transactional(readOnly = true)
     public Page<ContactLead> list(String status, String stage, Pageable pageable) {
         if (stage != null && !stage.isBlank()) {
             return repo.findAll(
@@ -69,10 +72,12 @@ public class ContactLeadService {
         return repo.findAll(pageable);
     }
 
+    @Transactional(readOnly = true)
     public ContactLead get(UUID id) {
         return repo.findById(id).orElseThrow(() -> new RuntimeException("Lead not found: " + id));
     }
 
+    @Transactional
     public ContactLead update(UUID id, LeadUpdateRequest req) {
         ContactLead lead = get(id);
         if (req.getStatus() != null)         lead.setStatus(req.getStatus());
@@ -87,10 +92,12 @@ public class ContactLeadService {
         return repo.save(lead);
     }
 
+    @Transactional
     public void delete(UUID id) {
         repo.deleteById(id);
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Long> stats() {
         return Map.of(
             "total",     repo.count(),
@@ -105,10 +112,12 @@ public class ContactLeadService {
 
     // ── Activities ────────────────────────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public List<CrmActivity> getActivities(UUID leadId) {
         return activityRepo.findByLeadIdOrderByPerformedAtDesc(leadId);
     }
 
+    @Transactional
     public CrmActivity addActivity(UUID leadId, ActivityRequest req, UUID userId, String userName) {
         get(leadId); // verify lead exists
         CrmActivity act = CrmActivity.builder()
@@ -124,10 +133,12 @@ public class ContactLeadService {
         return activityRepo.save(act);
     }
 
+    @Transactional
     public void deleteActivity(UUID actId) {
         activityRepo.deleteById(actId);
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> pipeline() {
         List<ContactLead> all = repo.findAll();
         Map<String, Long> counts = new LinkedHashMap<>();

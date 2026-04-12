@@ -25,7 +25,8 @@ export function useRealtimeSync() {
   useEffect(() => {
     if (!user) return;
 
-    const wsUrl = (import.meta.env.VITE_WS_URL || 'wss://shield.rstglobal.in/ws') + '/websocket';
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = (import.meta.env.VITE_WS_URL || `${wsProtocol}//${window.location.host}/ws`) + '/websocket';
 
     const client = new Client({
       brokerURL: wsUrl,

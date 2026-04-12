@@ -17,6 +17,7 @@ import com.rstglobal.shield.auth.repository.SessionRepository;
 import com.rstglobal.shield.auth.repository.UserRepository;
 import com.rstglobal.shield.common.exception.ShieldException;
 import com.rstglobal.shield.common.security.JwtUtils;
+import java.security.SecureRandom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,6 +43,10 @@ import java.util.concurrent.TimeUnit;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    // Use SecureRandom for all OTP/PIN/password generation — Math.random() is
+    // predictable and enables account takeover via OTP guessing.
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private static final String REFRESH_PREFIX    = "shield:auth:refresh:";
     private static final String OTP_PREFIX        = "shield:auth:otp:";

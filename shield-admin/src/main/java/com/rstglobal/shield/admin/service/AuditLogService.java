@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ public class AuditLogService {
 
     private final AuditLogRepository repo;
 
+    @Transactional(readOnly = true)
     public Page<AuditLog> list(String action, UUID userId, OffsetDateTime from, OffsetDateTime to, Pageable pageable) {
         Specification<AuditLog> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -43,6 +45,7 @@ public class AuditLogService {
     }
 
     @Async
+    @Transactional
     public void log(String action, String resourceType, String resourceId,
                     UUID userId, String userName, String ipAddress,
                     Map<String, Object> details) {

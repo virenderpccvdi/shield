@@ -9,7 +9,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   noindex={true}
 >
   <Fragment slot="head">
-    <style>{`
+    <style is:inline>
       body {
         min-height: 100vh; display: flex; align-items: center; justify-content: center;
         padding: var(--s-8) var(--s-4); text-align: center;
@@ -29,7 +29,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       h1 { font-size: var(--text-3xl); margin-bottom: var(--s-3); }
       p { font-size: var(--text-base); color: var(--ink-500); margin-bottom: var(--s-8); line-height: var(--leading-normal); }
       .err-actions { display: flex; gap: var(--s-3); justify-content: center; flex-wrap: wrap; }
-    `}</style>
+    </style>
   </Fragment>
 
   <div class="err-card">

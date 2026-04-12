@@ -252,6 +252,32 @@ stages:
 
     - script: |
         set -e
+        # The React dashboard was built by BuildDashboard job and the
+        # output lives at shield-dashboard/dist/. Copy the assets into
+        # shield-website/app/ so the Docker image includes the JS/CSS
+        # bundles that index.html references. Without this, /app/ loads
+        # the HTML shell but all JS chunks 404.
+        if [ -d "shield-dashboard/dist/assets" ]; then
+          mkdir -p shield-website/app
+          rm -rf shield-website/app/assets
+          cp -r shield-dashboard/dist/assets shield-website/app/assets
+          cp shield-dashboard/dist/index.html shield-website/app/index.html
+          cp shield-dashboard/dist/shield.svg shield-website/app/shield.svg 2>/dev/null || true
+          echo "Dashboard assets copied: $(ls shield-website/app/assets/ | wc -l) files"
+        else
+          echo "##vso[task.logissue type=warning]shield-dashboard/dist/assets not found — dashboard may have stale bundles"
+          # Fallback: copy from the local server (previous build output)
+          if [ -d "/var/www/ai/FamilyShield/shield-website/app/assets" ]; then
+            mkdir -p shield-website/app
+            cp -r /var/www/ai/FamilyShield/shield-website/app/assets shield-website/app/assets
+            cp /var/www/ai/FamilyShield/shield-website/app/index.html shield-website/app/index.html 2>/dev/null || true
+            echo "Fallback: copied from local server"
+          fi
+        fi
+      displayName: 'Copy React dashboard into website Docker context'
+
+    - script: |
+        set -e
         ACR=$(ACR_LOGIN_SERVER)
         TAG=$(IMAGE_TAG)
         az acr login --name ${ACR%%.*} 2>&1 | tail -2

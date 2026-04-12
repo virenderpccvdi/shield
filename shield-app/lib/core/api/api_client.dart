@@ -37,10 +37,12 @@ class ApiClient {
       final client = HttpClient();
       client.badCertificateCallback =
           (X509Certificate cert, String host, int port) {
-        // Allow the connection only when the host matches our pinned domain.
-        // In production you may additionally compare cert.sha1 / cert.der
-        // to a known fingerprint for strict pinning.
-        return host == _pinnedHost || host.endsWith('.$_pinnedHost');
+        // badCertificateCallback is ONLY invoked when the certificate is
+        // already invalid/untrusted. Returning true = accept the bad cert.
+        // Previously this returned true for our own domain, which
+        // DISABLED SSL verification — a critical MITM vulnerability.
+        // Fix: always return false = always reject bad certificates.
+        return false;
       };
       return client;
     };

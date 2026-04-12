@@ -1,0 +1,555 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Create Free Account — Shield Family Internet Protection"
+  description="Create your free Shield account and start protecting your children online in minutes. DNS filtering, screen time controls, real-time alerts. No credit card required."
+  canonical="https://shield.rstglobal.in/register"
+>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "RegisterAction",
+      "name": "Create Shield Account",
+      "description": "Create a Shield account to protect your children online",
+      "target": "https://shield.rstglobal.in/register",
+      "agent": { "@type": "Organization", "name": "RST Global" }
+    }
+    </script>
+    <style is:inline>
+      body {
+        min-height: 100vh;
+        display: flex;
+        background:
+          radial-gradient(ellipse 60% 45% at 85% 15%, rgba(30,79,196,0.12) 0%, transparent 60%),
+          radial-gradient(ellipse 50% 40% at 10% 90%, rgba(107,155,245,0.10) 0%, transparent 60%),
+          var(--ink-50);
+      }
+      .auth-shell {
+        display: flex; width: 100%; max-width: var(--container-auth);
+        margin: auto; padding: var(--s-8) var(--s-6);
+        gap: var(--s-12); align-items: flex-start; min-height: 100vh;
+      }
+      .auth-brand {
+        flex: 1; position: relative; padding: var(--s-10);
+        border-radius: var(--r-2xl);
+        background:
+          radial-gradient(ellipse 80% 60% at 70% 15%, rgba(107,155,245,0.35) 0%, transparent 65%),
+          linear-gradient(155deg, var(--brand-900) 0%, var(--brand-800) 45%, var(--brand-700) 100%);
+        color: var(--white); overflow: hidden;
+        display: flex; flex-direction: column;
+        position: sticky; top: var(--s-8);
+      }
+      .auth-brand::before {
+        content: ''; position: absolute; top: -140px; right: -100px;
+        width: 320px; height: 320px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+        pointer-events: none;
+      }
+      .auth-brand::after {
+        content: ''; position: absolute; bottom: -100px; left: -80px;
+        width: 260px; height: 260px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(107,155,245,0.15) 0%, transparent 70%);
+        pointer-events: none;
+      }
+      .brand-logo {
+        position: relative; display: inline-flex; align-items: center;
+        gap: var(--s-3); font-family: var(--font-display); font-weight: 800;
+        font-size: var(--text-xl); color: var(--white); margin-bottom: var(--s-10);
+      }
+      .brand-headline {
+        position: relative; font-family: var(--font-display);
+        font-size: clamp(var(--text-3xl), 3.5vw, var(--text-4xl));
+        font-weight: 800; line-height: var(--leading-tight);
+        letter-spacing: var(--tracking-tight); color: var(--white); margin-bottom: var(--s-4);
+      }
+      .brand-headline em { font-style: normal; color: var(--brand-300); }
+      .brand-sub {
+        position: relative; font-size: var(--text-base);
+        line-height: var(--leading-normal); color: rgba(255,255,255,0.78);
+        max-width: 460px; margin-bottom: var(--s-8);
+      }
+      .brand-steps {
+        position: relative; display: flex; flex-direction: column;
+        gap: var(--s-5); margin-bottom: var(--s-8);
+      }
+      .brand-step { display: flex; align-items: flex-start; gap: var(--s-4); }
+      .brand-step-num {
+        flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-display); font-weight: 800;
+        font-size: var(--text-xs); color: var(--brand-300);
+      }
+      .brand-step-text strong {
+        display: block; font-family: var(--font-display); font-size: var(--text-sm);
+        font-weight: 700; color: var(--white); margin-bottom: 2px;
+      }
+      .brand-step-text span {
+        font-size: var(--text-xs); line-height: var(--leading-normal);
+        color: rgba(255,255,255,0.7);
+      }
+      .brand-trust {
+        position: relative; display: flex; align-items: center; gap: var(--s-4);
+        padding: var(--s-4) var(--s-5); border-radius: var(--r-lg);
+        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+        backdrop-filter: blur(8px);
+      }
+      .brand-trust-icon {
+        flex-shrink: 0; width: 32px; height: 32px; border-radius: var(--r-sm);
+        background: var(--success-600); display: flex; align-items: center;
+        justify-content: center; color: var(--white);
+      }
+      .brand-trust-text strong {
+        display: block; font-family: var(--font-display); font-size: var(--text-sm);
+        font-weight: 700; color: var(--white);
+      }
+      .brand-trust-text span { font-size: var(--text-xs); color: rgba(255,255,255,0.72); }
+      .form-mobile-logo {
+        display: none; align-items: center; gap: var(--s-3);
+        font-family: var(--font-display); font-weight: 800;
+        font-size: var(--text-lg); color: var(--brand-700); margin-bottom: var(--s-5);
+      }
+      .auth-form-wrap { flex: 1; max-width: 500px; }
+      .auth-form-box {
+        background: var(--white); border-radius: var(--r-2xl);
+        border: 1px solid var(--ink-200); box-shadow: var(--shadow-lg);
+        padding: var(--s-10) var(--s-10) var(--s-8);
+      }
+      .form-back {
+        display: inline-flex; align-items: center; gap: var(--s-2);
+        font-size: var(--text-xs); font-weight: 500; color: var(--ink-500);
+        margin-bottom: var(--s-6); transition: color var(--d-fast);
+      }
+      .form-back:hover { color: var(--brand-600); }
+      .form-title {
+        font-family: var(--font-display); font-size: var(--text-3xl);
+        font-weight: 800; color: var(--ink-900);
+        letter-spacing: var(--tracking-tight); margin-bottom: var(--s-2);
+      }
+      .form-subtitle { font-size: var(--text-sm); color: var(--ink-500); margin-bottom: var(--s-7); }
+      .form-subtitle a { color: var(--brand-600); font-weight: 500; }
+      .phone-row { display: flex; gap: var(--s-2); }
+      .phone-prefix {
+        flex: 0 0 110px; padding: 13px 10px;
+        font-family: var(--font-body); font-size: var(--text-sm);
+        color: var(--ink-900); background: var(--white);
+        border: 1.5px solid var(--ink-300); border-radius: var(--r-md);
+        cursor: pointer; appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='%23475569'%3E%3Cpath d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 12px center;
+        padding-right: 28px;
+      }
+      .phone-prefix:focus { outline: none; border-color: var(--brand-600); box-shadow: var(--shadow-ring); }
+      .phone-row .input-wrap { flex: 1; }
+      .pwd-strength { margin-top: var(--s-2); display: none; }
+      .pwd-strength.show { display: block; }
+      .pwd-strength-bar {
+        height: 4px; background: var(--ink-200);
+        border-radius: var(--r-full); overflow: hidden;
+      }
+      .pwd-strength-fill {
+        height: 100%; width: 0; border-radius: var(--r-full);
+        transition: width var(--d-mid) var(--ease-out-quart), background var(--d-mid);
+      }
+      .pwd-strength-label {
+        margin-top: var(--s-2); font-size: var(--text-xs);
+        font-weight: 500; color: var(--ink-500);
+      }
+      .btn-submit {
+        position: relative; width: 100%; padding: 14px 24px;
+        font-size: var(--text-base); font-weight: 700;
+        border-radius: var(--r-md); margin-top: var(--s-2);
+      }
+      .btn-submit .btn-text { transition: opacity var(--d-fast); }
+      .btn-submit.loading .btn-text { opacity: 0; }
+      .btn-submit .spinner {
+        position: absolute; top: 50%; left: 50%;
+        margin: -9px 0 0 -9px; display: none;
+      }
+      .btn-submit.loading .spinner { display: block; }
+      .form-switch {
+        text-align: center; font-size: var(--text-sm);
+        color: var(--ink-500); margin-top: var(--s-6);
+      }
+      .form-switch a { color: var(--brand-600); font-weight: 600; }
+      @media (max-width: 860px) {
+        body { min-height: auto; padding: var(--s-4); }
+        .auth-shell { flex-direction: column; padding: 0; gap: var(--s-4); min-height: auto; }
+        .auth-form-wrap { width: 100%; max-width: none; order: 1; }
+        .auth-brand { width: 100%; order: 2; position: static; min-height: auto; padding: var(--s-6); border-radius: var(--r-xl); }
+        .form-mobile-logo { display: flex !important; }
+        .brand-logo { display: none; }
+        .brand-headline { font-size: var(--text-xl); margin-bottom: var(--s-2); }
+        .brand-sub { font-size: var(--text-sm); margin-bottom: var(--s-4); }
+        .brand-steps { display: none; }
+        .brand-trust { padding: var(--s-3) var(--s-4); }
+        .auth-form-box { padding: var(--s-6); border-radius: var(--r-xl); box-shadow: var(--shadow-md); }
+        .form-title { font-size: var(--text-2xl); }
+      }
+      @media (max-width: 420px) {
+        body { padding: var(--s-3); }
+        .auth-brand { padding: var(--s-5) var(--s-4); border-radius: var(--r-lg); }
+        .brand-headline { font-size: var(--text-lg); }
+        .brand-sub { display: none; }
+        .auth-form-box { padding: var(--s-5); }
+        .form-back { display: none; }
+      }
+    </style>
+  </Fragment>
+
+  <div class="auth-shell">
+    <aside class="auth-brand">
+      <a href="/" class="brand-logo" aria-label="Shield home">
+        <svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 2L4 8v8c0 7.18 5.16 13.9 12 15.5C22.84 29.9 28 23.18 28 16V8L16 2z" fill="rgba(255,255,255,.18)"/>
+          <path d="M16 6L7 11v5c0 5.15 3.7 9.96 9 11.35C21.3 25.96 25 21.15 25 16v-5L16 6z" fill="rgba(255,255,255,.42)"/>
+          <path d="M13 15.5l2 2 4-4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Shield
+      </a>
+      <h1 class="brand-headline">
+        Join Shield —<br/>
+        <em>protect your family</em><br/>
+        in minutes.
+      </h1>
+      <p class="brand-sub">
+        Set up DNS filtering, screen-time rules and real-time alerts for your kids. Start on the free tier — upgrade any time.
+      </p>
+      <div class="brand-steps">
+        <div class="brand-step">
+          <div class="brand-step-num">01</div>
+          <div class="brand-step-text">
+            <strong>Create Your Account</strong>
+            <span>Sign up in under a minute. No credit card required on the free plan.</span>
+          </div>
+        </div>
+        <div class="brand-step">
+          <div class="brand-step-num">02</div>
+          <div class="brand-step-text">
+            <strong>Add Your Child's Profile</strong>
+            <span>Set age, blocked categories, and schedule. Shield adapts automatically.</span>
+          </div>
+        </div>
+        <div class="brand-step">
+          <div class="brand-step-num">03</div>
+          <div class="brand-step-text">
+            <strong>Install on Child's Device</strong>
+            <span>One Android install. DNS protection kicks in on WiFi and 4G/5G.</span>
+          </div>
+        </div>
+        <div class="brand-step">
+          <div class="brand-step-num">04</div>
+          <div class="brand-step-text">
+            <strong>You're Protected</strong>
+            <span>Monitor from the parent dashboard. Adjust rules any time.</span>
+          </div>
+        </div>
+      </div>
+      <div class="brand-trust">
+        <div class="brand-trust-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>
+          </svg>
+        </div>
+        <div class="brand-trust-text">
+          <strong>Privacy first</strong>
+          <span>We filter DNS queries — we never store browsing history.</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="auth-form-wrap" id="main">
+      <div class="auth-form-box">
+        <a href="/" class="form-mobile-logo" aria-label="Shield home">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#1E4FC4"/>
+            <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#3B6FE0"/>
+            <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Shield
+        </a>
+        <a href="/" class="form-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to home
+        </a>
+        <h2 class="form-title">Create account</h2>
+        <p class="form-subtitle">
+          Already have an account? <a href="/login">Sign in</a>
+        </p>
+        <div class="alert alert-error" id="alertBox" role="alert" aria-live="assertive">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span id="alertMsg"></span>
+        </div>
+        <div class="alert alert-success" id="successBox" role="status" aria-live="polite">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span id="successMsg"></span>
+        </div>
+        <form id="registerForm" novalidate>
+          <div class="field">
+            <label class="field-label" for="name">Full name</label>
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </span>
+              <input type="text" id="name" name="name" placeholder="e.g. Sarah Johnson"
+                     autocomplete="name" autocapitalize="words"
+                     aria-describedby="nameError"/>
+            </div>
+            <div class="field-error" id="nameError">Please enter your full name.</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="email">Email address</label>
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+              </span>
+              <input type="email" id="email" name="email" placeholder="you@example.com"
+                     autocomplete="email" autocapitalize="none" spellcheck="false"
+                     aria-describedby="emailError"/>
+            </div>
+            <div class="field-error" id="emailError">Please enter a valid email address.</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="phone">
+              Phone number
+              <span class="field-label-optional">optional</span>
+            </label>
+            <div class="phone-row">
+              <select class="phone-prefix" id="phonePrefix" aria-label="Country code">
+                <option value="+91">+91</option>
+                <option value="+1">+1</option>
+                <option value="+44">+44</option>
+                <option value="+971">+971</option>
+                <option value="+966">+966</option>
+                <option value="+61">+61</option>
+                <option value="+65">+65</option>
+              </select>
+              <div class="input-wrap">
+                <span class="input-icon" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.06 1.22 2 2 0 012.03 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                  </svg>
+                </span>
+                <input type="tel" id="phone" name="phone" placeholder="98765 43210"
+                       autocomplete="tel-national" inputmode="numeric"/>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="password">Password</label>
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+              </span>
+              <input type="password" id="password" name="password"
+                     placeholder="Min. 8 characters"
+                     autocomplete="new-password"
+                     aria-describedby="passwordError"/>
+              <button type="button" class="input-action" id="togglePwd1" aria-label="Show password">
+                <svg id="eye1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            <div class="pwd-strength" id="pwdStrength">
+              <div class="pwd-strength-bar">
+                <div class="pwd-strength-fill" id="pwdFill"></div>
+              </div>
+              <div class="pwd-strength-label" id="pwdLabel"></div>
+            </div>
+            <div class="field-error" id="passwordError">Password must be at least 8 characters.</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="confirmPassword">Confirm password</label>
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </span>
+              <input type="password" id="confirmPassword" name="confirmPassword"
+                     placeholder="Repeat your password"
+                     autocomplete="new-password"
+                     aria-describedby="confirmPasswordError"/>
+              <button type="button" class="input-action" id="togglePwd2" aria-label="Show confirm password">
+                <svg id="eye2" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            <div class="field-error" id="confirmPasswordError">Passwords do not match.</div>
+          </div>
+          <div class="field">
+            <label class="checkbox-wrap">
+              <input type="checkbox" id="terms" name="terms"/>
+              I agree to Shield's
+              <a href="/terms" target="_blank" rel="noopener">Terms of Service</a>
+              and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>
+            </label>
+            <div class="field-error" id="termsError">You must accept the terms to continue.</div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">
+            <span class="btn-text">Create free account</span>
+            <div class="spinner"></div>
+          </button>
+        </form>
+        <div class="form-switch">
+          Already a member? <a href="/login">Sign in</a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script is:inline>
+  var API = '/api/v1/auth';
+  function togglePwd(inputId, iconId) {
+    var inp = document.getElementById(inputId);
+    var svg = document.getElementById(iconId);
+    var btn = svg.closest('button');
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    svg.innerHTML = show
+      ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+      : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+  function checkStrength(v) {
+    var strength = document.getElementById('pwdStrength');
+    var fill = document.getElementById('pwdFill');
+    var label = document.getElementById('pwdLabel');
+    if (!v) { strength.classList.remove('show'); return; }
+    strength.classList.add('show');
+    var score = 0;
+    if (v.length >= 8) score++;
+    if (v.length >= 12) score++;
+    if (/[A-Z]/.test(v)) score++;
+    if (/[0-9]/.test(v)) score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+    var levels = [
+      { w: '15%', c: 'var(--danger-600)', t: 'Very weak' },
+      { w: '30%', c: 'var(--danger-600)', t: 'Weak' },
+      { w: '55%', c: 'var(--warning-600)', t: 'Fair' },
+      { w: '80%', c: 'var(--warning-600)', t: 'Good' },
+      { w: '100%', c: 'var(--success-600)', t: 'Strong' },
+      { w: '100%', c: 'var(--success-600)', t: 'Very strong' }
+    ];
+    var lvl = levels[Math.min(score, levels.length - 1)];
+    fill.style.width = lvl.w;
+    fill.style.background = lvl.c;
+    label.textContent = lvl.t;
+    label.style.color = lvl.c;
+  }
+  function showAlert(msg) {
+    document.getElementById('successBox').classList.remove('show');
+    var box = document.getElementById('alertBox');
+    box.classList.add('show');
+    document.getElementById('alertMsg').textContent = msg;
+  }
+  function showSuccess(msg) {
+    document.getElementById('alertBox').classList.remove('show');
+    var box = document.getElementById('successBox');
+    box.classList.add('show');
+    document.getElementById('successMsg').textContent = msg;
+  }
+  function hideAlerts() {
+    document.getElementById('alertBox').classList.remove('show');
+    document.getElementById('successBox').classList.remove('show');
+  }
+  function validateEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
+  function showFieldError(id, show) {
+    var el = document.getElementById(id + 'Error');
+    var inp = document.getElementById(id);
+    if (el) el.classList.toggle('show', show);
+    if (inp) { var wrap = inp.closest('.input-wrap'); if (wrap) wrap.classList.toggle('error', show); }
+  }
+  document.getElementById('togglePwd1').addEventListener('click', function() { togglePwd('password','eye1'); });
+  document.getElementById('togglePwd2').addEventListener('click', function() { togglePwd('confirmPassword','eye2'); });
+  document.getElementById('password').addEventListener('input', function() { checkStrength(this.value); });
+  document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    hideAlerts();
+    var name = document.getElementById('name').value.trim();
+    var email = document.getElementById('email').value.trim();
+    var phonePrefix = document.getElementById('phonePrefix').value;
+    var phoneVal = document.getElementById('phone').value.trim();
+    var phone = phoneVal ? phonePrefix + phoneVal.replace(/\D/g, '') : '';
+    var password = document.getElementById('password').value;
+    var confirmPassword = document.getElementById('confirmPassword').value;
+    var terms = document.getElementById('terms').checked;
+    var valid = true;
+    if (!name) { showFieldError('name', true); valid = false; } else showFieldError('name', false);
+    if (!validateEmail(email)) { showFieldError('email', true); valid = false; } else showFieldError('email', false);
+    if (password.length < 8) { showFieldError('password', true); valid = false; } else showFieldError('password', false);
+    if (password !== confirmPassword) { showFieldError('confirmPassword', true); valid = false; } else showFieldError('confirmPassword', false);
+    if (!terms) { document.getElementById('termsError').classList.add('show'); valid = false; }
+    else { document.getElementById('termsError').classList.remove('show'); }
+    if (!valid) return;
+    var btn = document.getElementById('submitBtn');
+    btn.classList.add('loading'); btn.disabled = true;
+    try {
+      var payload = { name: name, email: email, password: password };
+      if (phone) payload.phone = phone;
+      var res = await fetch(API + '/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      var data = await res.json();
+      if (!res.ok) { showAlert(data && data.message ? data.message : 'Registration failed. Please try again.'); return; }
+      var d = data.data || {};
+      if (d.accessToken) {
+        localStorage.setItem('shield_access_token', d.accessToken);
+        if (d.refreshToken) localStorage.setItem('shield_refresh_token', d.refreshToken);
+        if (d.name) localStorage.setItem('shield_name', d.name);
+        if (d.email) localStorage.setItem('shield_email', d.email);
+        if (d.role) localStorage.setItem('shield_role', d.role);
+        localStorage.setItem('shield-auth', JSON.stringify({ state: { user: { id: d.userId, name: d.name || name, email: d.email || email, role: d.role || 'CUSTOMER', tenantId: d.tenantId || null }, accessToken: d.accessToken, refreshToken: d.refreshToken || null }, version: 0 }));
+        showSuccess('Account created — redirecting to your dashboard...');
+        setTimeout(function() { window.location.href = '/app/'; }, 900);
+      } else {
+        showSuccess('Account created. Redirecting to sign in...');
+        setTimeout(function() { window.location.href = '/login'; }, 1200);
+      }
+    } catch(err) {
+      showAlert('Unable to connect. Please check your internet connection.');
+    } finally {
+      btn.classList.remove('loading'); btn.disabled = false;
+    }
+  });
+  ['name','email','password','confirmPassword'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() { showFieldError(id, false); hideAlerts(); });
+  });
+  document.getElementById('terms').addEventListener('change', function() {
+    document.getElementById('termsError').classList.remove('show');
+  });
+  (function autoRedirect() {
+    var token = localStorage.getItem('shield_access_token');
+    if (!token) return;
+    try {
+      var payload = JSON.parse(atob(token.split('.')[1]));
+      if (Date.now() < payload.exp * 1000) { window.location.href = '/app/'; }
+      else { ['shield_access_token','shield_refresh_token','shield_name','shield_email','shield_role','shield-auth'].forEach(function(k){localStorage.removeItem(k);}); }
+    } catch(e) { localStorage.removeItem('shield_access_token'); localStorage.removeItem('shield-auth'); }
+  })();
+  </script>
+</BaseLayout>

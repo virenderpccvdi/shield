@@ -108,7 +108,7 @@ export default function SystemHealthPage() {
         data: {
           type: 'APP_UPDATE',
           version: updateVersion,
-          downloadUrl: 'https://shield.rstglobal.in/shield-app.apk',
+          downloadUrl: `${window.location.origin}/shield-app.apk`,
         },
       });
       setUpdateDialogOpen(false);

@@ -96,7 +96,7 @@ function SetupDnsDialog({ child, open, onClose }: { child: ChildProfile; open: b
   // Derive the Private DNS hostname from dohUrl if available, otherwise fall back to dnsClientId
   const privateDns = child.dohUrl
     ? child.dohUrl.replace(/^https?:\/\//, '').replace('/dns-query', '')
-    : child.dnsClientId ? `${child.dnsClientId}.dns.shield.rstglobal.in` : '';
+    : child.dnsClientId ? `${child.dnsClientId}.dns.${window.location.hostname}` : '';
 
   const { data: qrUrl, isLoading: qrLoading } = useQuery({
     queryKey: ['qr-image', child.id],

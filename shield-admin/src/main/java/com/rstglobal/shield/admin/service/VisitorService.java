@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.OffsetDateTime;
@@ -25,6 +26,7 @@ public class VisitorService {
     private final RestTemplate restTemplate;
 
     @Async
+    @Transactional
     public void track(VisitorTrackRequest req, String ip, String userAgent) {
         try {
             String country = null, region = null, city = null;
@@ -70,6 +72,7 @@ public class VisitorService {
         }
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> stats() {
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime startOfToday = now.toLocalDate().atStartOfDay().atOffset(now.getOffset());
@@ -94,6 +97,7 @@ public class VisitorService {
         );
     }
 
+    @Transactional(readOnly = true)
     public Page<WebsiteVisitor> list(Pageable pageable) {
         return repo.findAll(pageable);
     }

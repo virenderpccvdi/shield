@@ -1,0 +1,444 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Sign In — Shield Family Internet Protection"
+  description="Sign in to your Shield parental control dashboard. Monitor your children's internet activity, manage DNS filters, screen time and real-time alerts."
+  canonical="https://shield.rstglobal.in/login"
+  noindex={true}
+>
+  <Fragment slot="head">
+    <style is:inline>
+      body {
+        min-height: 100vh;
+        display: flex;
+        background:
+          radial-gradient(ellipse 60% 45% at 85% 15%, rgba(30,79,196,0.12) 0%, transparent 60%),
+          radial-gradient(ellipse 50% 40% at 10% 90%, rgba(107,155,245,0.10) 0%, transparent 60%),
+          var(--ink-50);
+      }
+      .auth-shell {
+        display: flex; width: 100%; max-width: var(--container-auth);
+        margin: auto; padding: var(--s-8) var(--s-6);
+        gap: var(--s-12); align-items: center; min-height: 100vh;
+      }
+      .auth-brand {
+        flex: 1; position: relative; padding: var(--s-10);
+        border-radius: var(--r-2xl);
+        background:
+          radial-gradient(ellipse 80% 60% at 70% 15%, rgba(107,155,245,0.35) 0%, transparent 65%),
+          linear-gradient(155deg, var(--brand-900) 0%, var(--brand-800) 45%, var(--brand-700) 100%);
+        color: var(--white); overflow: hidden; min-height: 600px;
+        display: flex; flex-direction: column;
+      }
+      .auth-brand::before {
+        content: ''; position: absolute; top: -140px; right: -100px;
+        width: 320px; height: 320px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+        pointer-events: none;
+      }
+      .auth-brand::after {
+        content: ''; position: absolute; bottom: -100px; left: -80px;
+        width: 260px; height: 260px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(107,155,245,0.15) 0%, transparent 70%);
+        pointer-events: none;
+      }
+      .brand-logo {
+        position: relative; display: inline-flex; align-items: center;
+        gap: var(--s-3); font-family: var(--font-display); font-weight: 800;
+        font-size: var(--text-xl); color: var(--white); margin-bottom: var(--s-10);
+      }
+      .brand-headline {
+        position: relative; font-family: var(--font-display);
+        font-size: clamp(var(--text-3xl), 3.5vw, var(--text-4xl));
+        font-weight: 800; line-height: var(--leading-tight);
+        letter-spacing: var(--tracking-tight); color: var(--white); margin-bottom: var(--s-4);
+      }
+      .brand-headline em { font-style: normal; color: var(--brand-300); }
+      .brand-sub {
+        position: relative; font-size: var(--text-base);
+        line-height: var(--leading-normal); color: rgba(255,255,255,0.78);
+        max-width: 460px; margin-bottom: var(--s-10);
+      }
+      .brand-features {
+        position: relative; list-style: none; display: flex;
+        flex-direction: column; gap: var(--s-6);
+        margin-bottom: var(--s-10); flex: 1;
+      }
+      .brand-feature { display: flex; align-items: flex-start; gap: var(--s-4); }
+      .brand-feat-icon {
+        flex-shrink: 0; width: 40px; height: 40px; border-radius: var(--r-md);
+        background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+        display: flex; align-items: center; justify-content: center; color: var(--brand-300);
+      }
+      .brand-feat-text strong {
+        display: block; font-family: var(--font-display); font-size: var(--text-sm);
+        font-weight: 700; color: var(--white); margin-bottom: 2px;
+      }
+      .brand-feat-text span {
+        font-size: var(--text-xs); line-height: var(--leading-normal);
+        color: rgba(255,255,255,0.7);
+      }
+      .brand-trust {
+        position: relative; display: flex; align-items: center; gap: var(--s-4);
+        padding: var(--s-4) var(--s-5); border-radius: var(--r-lg);
+        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+        backdrop-filter: blur(8px);
+      }
+      .brand-trust-icon {
+        flex-shrink: 0; width: 32px; height: 32px; border-radius: var(--r-sm);
+        background: var(--success-600); display: flex; align-items: center;
+        justify-content: center; color: var(--white);
+      }
+      .brand-trust-text strong {
+        display: block; font-family: var(--font-display); font-size: var(--text-sm);
+        font-weight: 700; color: var(--white);
+      }
+      .brand-trust-text span { font-size: var(--text-xs); color: rgba(255,255,255,0.72); }
+      .auth-form-wrap { flex: 1; max-width: 460px; }
+      .auth-form-box {
+        background: var(--white); border-radius: var(--r-2xl);
+        border: 1px solid var(--ink-200); box-shadow: var(--shadow-lg);
+        padding: var(--s-10) var(--s-10) var(--s-8);
+      }
+      .form-back {
+        display: inline-flex; align-items: center; gap: var(--s-2);
+        font-size: var(--text-xs); font-weight: 500; color: var(--ink-500);
+        margin-bottom: var(--s-6); transition: color var(--d-fast);
+      }
+      .form-back:hover { color: var(--brand-600); }
+      .form-mobile-logo {
+        display: none; align-items: center; gap: var(--s-3);
+        font-family: var(--font-display); font-weight: 800;
+        font-size: var(--text-lg); color: var(--brand-700); margin-bottom: var(--s-6);
+      }
+      .form-title {
+        font-family: var(--font-display); font-size: var(--text-3xl);
+        font-weight: 800; color: var(--ink-900);
+        letter-spacing: var(--tracking-tight); margin-bottom: var(--s-2);
+      }
+      .form-subtitle { font-size: var(--text-sm); color: var(--ink-500); margin-bottom: var(--s-7); }
+      .form-subtitle a { color: var(--brand-600); font-weight: 500; }
+      .field-extras {
+        display: flex; align-items: center; justify-content: space-between;
+        margin: -8px 0 var(--s-6); font-size: var(--text-xs);
+      }
+      .field-extras .checkbox-wrap { font-size: var(--text-xs); }
+      .field-extras .checkbox-wrap input { width: 16px; height: 16px; }
+      .forgot-link { color: var(--brand-600); font-weight: 500; }
+      .btn-submit {
+        position: relative; width: 100%; padding: 14px 24px;
+        font-size: var(--text-base); font-weight: 700; border-radius: var(--r-md);
+      }
+      .btn-submit .btn-text { transition: opacity var(--d-fast); }
+      .btn-submit.loading .btn-text { opacity: 0; }
+      .btn-submit .spinner {
+        position: absolute; top: 50%; left: 50%;
+        margin: -9px 0 0 -9px; display: none;
+      }
+      .btn-submit.loading .spinner { display: block; }
+      .form-divider {
+        display: flex; align-items: center; gap: var(--s-4);
+        margin: var(--s-6) 0; font-size: var(--text-xs); color: var(--ink-500);
+        text-transform: uppercase; letter-spacing: var(--tracking-wider); font-weight: 600;
+      }
+      .form-divider::before, .form-divider::after {
+        content: ''; flex: 1; height: 1px; background: var(--ink-200);
+      }
+      .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+      .btn-social {
+        display: flex; align-items: center; justify-content: center;
+        gap: var(--s-2); padding: 11px 16px; background: var(--white);
+        color: var(--ink-700); border: 1.5px solid var(--ink-200);
+        border-radius: var(--r-md); font-family: var(--font-display);
+        font-weight: 600; font-size: var(--text-sm); cursor: pointer;
+        transition: background var(--d-fast), border-color var(--d-fast);
+      }
+      .btn-social:hover { background: var(--ink-50); border-color: var(--ink-300); }
+      .btn-social svg { flex-shrink: 0; }
+      .form-switch {
+        text-align: center; font-size: var(--text-sm);
+        color: var(--ink-500); margin-top: var(--s-6);
+      }
+      .form-switch a { color: var(--brand-600); font-weight: 600; }
+      @media (max-width: 860px) {
+        body { min-height: auto; padding: var(--s-4); }
+        .auth-shell { flex-direction: column; padding: 0; gap: var(--s-4); min-height: auto; }
+        .auth-form-wrap { width: 100%; max-width: none; order: 1; }
+        .auth-brand { width: 100%; order: 2; min-height: auto; padding: var(--s-6); border-radius: var(--r-xl); }
+        .form-mobile-logo { display: flex !important; }
+        .brand-logo { display: none; }
+        .brand-headline { font-size: var(--text-xl); margin-bottom: var(--s-2); }
+        .brand-sub { font-size: var(--text-sm); margin-bottom: var(--s-4); }
+        .brand-features { display: none; }
+        .brand-trust { padding: var(--s-3) var(--s-4); }
+        .auth-form-box { padding: var(--s-6); border-radius: var(--r-xl); box-shadow: var(--shadow-md); }
+        .form-title { font-size: var(--text-2xl); }
+      }
+      @media (max-width: 420px) {
+        body { padding: var(--s-3); }
+        .auth-brand { padding: var(--s-5) var(--s-4); border-radius: var(--r-lg); }
+        .brand-headline { font-size: var(--text-lg); }
+        .brand-sub { display: none; }
+        .brand-trust { font-size: 11px; }
+        .auth-form-box { padding: var(--s-5); }
+        .social-grid { grid-template-columns: 1fr; }
+        .form-back { display: none; }
+      }
+    </style>
+  </Fragment>
+
+  <div class="auth-shell">
+    <aside class="auth-brand">
+      <a href="/" class="brand-logo" aria-label="Shield home">
+        <svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 2L4 8v8c0 7.18 5.16 13.9 12 15.5C22.84 29.9 28 23.18 28 16V8L16 2z" fill="rgba(255,255,255,.18)"/>
+          <path d="M16 6L7 11v5c0 5.15 3.7 9.96 9 11.35C21.3 25.96 25 21.15 25 16v-5L16 6z" fill="rgba(255,255,255,.42)"/>
+          <path d="M13 15.5l2 2 4-4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Shield
+      </a>
+      <h1 class="brand-headline">
+        Your family's<br/>
+        <em>safety starts</em><br/>
+        here.
+      </h1>
+      <p class="brand-sub">
+        DNS-level protection that follows your child everywhere — home WiFi, school, and 4G/5G mobile data.
+      </p>
+      <ul class="brand-features">
+        <li class="brand-feature">
+          <div class="brand-feat-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L3 8v6c0 5.25 3.75 10.15 9 11.35C17.25 24.15 21 19.25 21 14V8L12 2z"/>
+            </svg>
+          </div>
+          <div class="brand-feat-text">
+            <strong>Works Everywhere</strong>
+            <span>DoH filtering across WiFi, school networks and 4G/5G.</span>
+          </div>
+        </li>
+        <li class="brand-feature">
+          <div class="brand-feat-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div class="brand-feat-text">
+            <strong>Smart Schedules</strong>
+            <span>Hour-by-hour rules and per-app daily time limits.</span>
+          </div>
+        </li>
+        <li class="brand-feature">
+          <div class="brand-feat-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
+          <div class="brand-feat-text">
+            <strong>Live Location</strong>
+            <span>Real-time GPS with geofence alerts for safe zones.</span>
+          </div>
+        </li>
+      </ul>
+      <div class="brand-trust">
+        <div class="brand-trust-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div class="brand-trust-text">
+          <strong>Privacy first</strong>
+          <span>We filter DNS queries. Browsing history is never stored.</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="auth-form-wrap" id="main">
+      <div class="auth-form-box">
+        <a href="/" class="form-mobile-logo" aria-label="Shield home">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 2L4 7V16C4 22.627 9.373 28 16 30C22.627 28 28 22.627 28 16V7L16 2Z" fill="#1E4FC4"/>
+            <path d="M16 5L7 9.5V16C7 21.247 11.029 25.742 16 27.472C20.971 25.742 25 21.247 25 16V9.5L16 5Z" fill="#3B6FE0"/>
+            <path d="M12 16.5L14.5 19L20 13.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Shield
+        </a>
+        <a href="/" class="form-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to home
+        </a>
+        <h2 class="form-title">Welcome back</h2>
+        <p class="form-subtitle">
+          Don't have an account? <a href="/register">Create one free</a>
+        </p>
+        <div class="alert alert-error" id="alertBox" role="alert" aria-live="assertive">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span id="alertMsg"></span>
+        </div>
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label class="field-label" for="email">Email address</label>
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+              </span>
+              <input type="email" id="email" name="email" placeholder="you@example.com"
+                     autocomplete="email" autocapitalize="none" spellcheck="false"
+                     aria-describedby="emailError"/>
+            </div>
+            <div class="field-error" id="emailError">Please enter a valid email address.</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="password">Password</label>
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+              </span>
+              <input type="password" id="password" name="password" placeholder="Your password"
+                     autocomplete="current-password"
+                     aria-describedby="passwordError"/>
+              <button type="button" class="input-action" id="togglePwdBtn" aria-label="Show password">
+                <svg id="eye1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            <div class="field-error" id="passwordError">Password is required.</div>
+          </div>
+          <div class="field-extras">
+            <label class="checkbox-wrap">
+              <input type="checkbox" id="remember" name="remember"/>
+              Remember me
+            </label>
+            <a href="/forgot-password" class="forgot-link">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">
+            <span class="btn-text">Sign in</span>
+            <div class="spinner"></div>
+          </button>
+        </form>
+        <div class="form-divider">or</div>
+        <div class="social-grid">
+          <button class="btn-social" type="button" id="googleBtn">
+            <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6 8-11.3 8a12 12 0 1 1 0-24c3 0 5.8 1.2 7.9 3l5.7-5.7A20 20 0 1 0 44 24c0-1.3-.1-2.3-.4-3.5z"/>
+              <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3 0 5.8 1.2 7.9 3l5.7-5.7A20 20 0 0 0 6.3 14.7z"/>
+              <path fill="#4CAF50" d="M24 44a20 20 0 0 0 13.5-5.2l-6.2-5.3A11.9 11.9 0 0 1 12.7 28l-6.5 5A20 20 0 0 0 24 44z"/>
+              <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3a12 12 0 0 1-4.1 5.5l6.2 5.3C42 34.7 44 29.8 44 24c0-1.2-.1-2.3-.4-3.5z"/>
+            </svg>
+            Google
+          </button>
+          <button class="btn-social" type="button" id="appleBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+            </svg>
+            Apple
+          </button>
+        </div>
+        <div class="form-switch">
+          New to Shield? <a href="/register">Create a free account</a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script is:inline>
+  const API = '/api/v1/auth';
+  function togglePwd(inputId, iconId) {
+    const inp = document.getElementById(inputId);
+    const svg = document.getElementById(iconId);
+    const btn = svg.closest('button');
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    svg.innerHTML = show
+      ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+      : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+  function showAlert(msg) {
+    var box = document.getElementById('alertBox');
+    box.classList.add('show');
+    document.getElementById('alertMsg').textContent = msg;
+  }
+  function hideAlert() { document.getElementById('alertBox').classList.remove('show'); }
+  function validateEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
+  function showFieldError(id, show) {
+    var el = document.getElementById(id + 'Error');
+    var wrap = document.getElementById(id).closest('.input-wrap');
+    if (el) el.classList.toggle('show', show);
+    if (wrap) wrap.classList.toggle('error', show);
+  }
+  function socialLogin(provider) {
+    showAlert('Social sign-in is coming soon. Please use email + password for now.');
+    setTimeout(hideAlert, 4000);
+  }
+  document.getElementById('togglePwdBtn').addEventListener('click', function() { togglePwd('password','eye1'); });
+  document.getElementById('googleBtn').addEventListener('click', function() { socialLogin('google'); });
+  document.getElementById('appleBtn').addEventListener('click', function() { socialLogin('apple'); });
+  document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    hideAlert();
+    var email = document.getElementById('email').value.trim();
+    var password = document.getElementById('password').value;
+    var valid = true;
+    if (!validateEmail(email)) { showFieldError('email', true); valid = false; } else showFieldError('email', false);
+    if (!password) { showFieldError('password', true); valid = false; } else showFieldError('password', false);
+    if (!valid) return;
+    var btn = document.getElementById('submitBtn');
+    btn.classList.add('loading'); btn.disabled = true;
+    try {
+      var res = await fetch(API + '/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, password: password }) });
+      var data = await res.json();
+      if (!res.ok) { showAlert(data && data.message ? data.message : 'Invalid email or password. Please try again.'); return; }
+      var d = data.data || {};
+      if (d.accessToken) {
+        localStorage.setItem('shield_access_token', d.accessToken);
+        if (d.refreshToken) localStorage.setItem('shield_refresh_token', d.refreshToken);
+        if (d.name) localStorage.setItem('shield_name', d.name);
+        if (d.email) localStorage.setItem('shield_email', d.email);
+        if (d.role) localStorage.setItem('shield_role', d.role);
+        localStorage.setItem('shield-auth', JSON.stringify({ state: { user: { id: d.userId, name: d.name || '', email: d.email || '', role: d.role || 'CUSTOMER', tenantId: d.tenantId || null }, accessToken: d.accessToken, refreshToken: d.refreshToken || null }, version: 0 }));
+        if (document.getElementById('remember').checked) localStorage.setItem('shield_remember', '1');
+      }
+      var params = new URLSearchParams(window.location.search);
+      window.location.href = params.get('redirect') || '/app/';
+    } catch(err) {
+      showAlert('Unable to connect. Please check your internet connection.');
+    } finally {
+      btn.classList.remove('loading'); btn.disabled = false;
+    }
+  });
+  ['email','password'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() { showFieldError(id, false); hideAlert(); });
+  });
+  (function autoRedirect() {
+    var token = localStorage.getItem('shield_access_token');
+    if (!token) return;
+    try {
+      var payload = JSON.parse(atob(token.split('.')[1]));
+      if (Date.now() < payload.exp * 1000) { window.location.href = '/app/'; }
+      else { ['shield_access_token','shield_refresh_token','shield_name','shield_email','shield_role','shield-auth'].forEach(function(k){localStorage.removeItem(k);}); }
+    } catch(e) { localStorage.removeItem('shield_access_token'); localStorage.removeItem('shield-auth'); }
+  })();
+  </script>
+</BaseLayout>

@@ -20,7 +20,7 @@ const { title, description, canonical, heroTitle, heroDate } = Astro.props;
   canonical={canonical}
 >
   <Fragment slot="head">
-    <style>{`
+    <style is:inline>
       .legal-nav {
         position: sticky; top: 0; z-index: var(--z-nav);
         background: rgba(248,250,252,0.82);
@@ -162,7 +162,7 @@ const { title, description, canonical, heroTitle, heroDate } = Astro.props;
         .footer-grid { grid-template-columns: 1fr; gap: var(--s-8); }
         .footer-bottom { flex-direction: column; text-align: center; }
       }
-    `}</style>
+    </style>
   </Fragment>
 
   <header class="legal-nav">
