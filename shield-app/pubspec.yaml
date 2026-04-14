@@ -49,7 +49,7 @@ dependencies:
   mobile_scanner: ^5.2.3
 
   # Sensors (shake detection)
-  sensors_plus: ^4.0.0
+  sensors_plus: ^7.0.0
 
   # Battery
   battery_plus: ^6.0.3
