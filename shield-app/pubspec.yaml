@@ -58,7 +58,7 @@ dependencies:
   flutter_background_service: ^5.0.0
 
   # Installed apps
-  installed_apps: ^1.4.0
+  installed_apps: ^2.1.1
 
   # Notifications
   flutter_local_notifications: ^18.0.1
