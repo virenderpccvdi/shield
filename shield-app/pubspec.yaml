@@ -71,7 +71,7 @@ dependencies:
   google_fonts: ^6.2.1
 
   # Icons
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.9
 
 dev_dependencies:
   flutter_test:
