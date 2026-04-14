@@ -40,7 +40,7 @@ dependencies:
 
   # Maps & Location
   google_maps_flutter: ^2.17.0
-  geolocator: ^13.0.2
+  geolocator: ^14.0.2
 
   # WebSocket
   stomp_dart_client: ^2.0.0
