@@ -42,7 +42,7 @@
         <spring-cloud.version>2025.1.1</spring-cloud.version>
         <jjwt.version>0.13.0</jjwt.version>
         <mapstruct.version>1.6.3</mapstruct.version>
-        <lombok.version>1.18.44</lombok.version>
+        <lombok.version>1.18.46</lombok.version>
         <springdoc.version>3.0.2</springdoc.version>
         <logstash-logback.version>9.0</logstash-logback.version>
 
